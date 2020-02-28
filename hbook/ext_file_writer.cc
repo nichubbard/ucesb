@@ -3360,8 +3360,9 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // buffers (which are there even if there are no consumers).
       // That way, we save a memcpy operation.
 
+      // Add 1 for the (possible) final jump to complete the buffer.
       size_t max_length = s->_stage_array._rewrite_max_bytes_per_item *
-	((ppp - s->_stage_array._offset_value)/* / 2*/);
+	((ppp - s->_stage_array._offset_value)/* / 2*/ + 1);
 
       max_length = (max_length + 3) & ~3; // 4-byte alignment
       max_length += sizeof (external_writer_buf_header);
@@ -3554,7 +3555,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // if we employ zero suppression, so it's anyhow not to be
       // used.  We do this such that the unpacking can verify that
       // at least all the offsets worked out together.
-
+      /*
+      MSG("rewrite: before end jump: %d, %d",
+	  ((char *) dest - (char *) (mark_dest + 1)),
+	  ((((char *) dest - (char *) *header) + 3) & ~3));
+      */
       if (cur_offset != s->_stage_array._length)
 	{
 	  uint32_t offset = s->_stage_array._length - sizeof(uint32_t);
@@ -3582,9 +3587,9 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       uint32_t new_length =
 	((((char *) dest - (char *) header) + 3) & ~3);
       /*
-      MSG("rewrite: %d items (%d bpi), %d / nl: %d ml: %d",
-	  (ppp - _stage_array._offset_value) / 2,
-	  _stage_array._rewrite_max_bytes_per_item,
+      MSG("rewrite: %zd items (%d bpi), %d / nl: %d ml: %d",
+	  (ppp - s->_stage_array._offset_value) / 2,
+	  s->_stage_array._rewrite_max_bytes_per_item,
 	  ((char *) dest - (char *) (mark_dest + 1)),
 	  new_length,max_length);
       */
