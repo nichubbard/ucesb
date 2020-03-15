@@ -23,7 +23,7 @@
 
 /* TODO: confirm this! */
 #define WR_STAMP_EBID_ERROR           0x00010000
-#define WR_STAMP_EBID_BRANCH_ID_MASK  0x00000f00
+#define WR_STAMP_EBID_BRANCH_ID_MASK  0x0000ff00
 #define WR_STAMP_EBID_UNUSED		\
   (0xffffffff ^				\
    WR_STAMP_EBID_ERROR ^		\

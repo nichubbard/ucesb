@@ -39,7 +39,7 @@ CXXFLAGS += # -ansi , troubles with strdup and fileno
 CXXFLAGS += -O3
 CXXFLAGS += -DUCESB_SRC
 
-CXXFLAGS += -ansi -Wall -W -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wwrite-strings -Wconversion -Werror -Wcast-qual #-Wshadow 
+CXXFLAGS += -ansi -Wall -W -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wwrite-strings -Wconversion  -Wcast-qual #-Wshadow 
 
 UNAME_S:=$(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
@@ -98,9 +98,9 @@ $(GENDIR)/parser.y.incfile: parser.y $(GENDIR)/parser.y.incfile.d
 	@perl $(INCLUDE_FILE_PL) --input=$< && touch $@
 
 # TODO: should be automatically determined, i.e. if $(YACC) accepts -Werror
-ifeq ($(NO_YACC_WERROR),)
-YACC_WERROR_FLAG=-Werror
-endif
+#ifeq ($(NO_YACC_WERROR),)
+#YACC_WERROR_FLAG=-Werror
+#endif
 
 $(GENDIR)/y.tab.c: parser.y $(GENDIR)/parser.y.incfile
 	@echo "  YACC   $@"

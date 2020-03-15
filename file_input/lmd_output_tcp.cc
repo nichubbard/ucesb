@@ -762,9 +762,14 @@ void lmd_output_server_con::bind(int mode,int port)
 
   _socket = ::socket(PF_INET, SOCK_STREAM, 0);
 
+  
   if (_socket < 0)
     ERROR("Could not open server socket.");
 
+  int reuse=1;
+  setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+  
+  
   servAddr.sin_family = AF_INET;
   servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
   servAddr.sin_port = htons(port);

@@ -88,7 +88,7 @@ tstamp_alignment *_ts_align_hist = NULL;
 
 event_base _static_event;
 
-#ifdef USE_MERGING 
+#ifdef USE_MERGING
 // and not USE_THREADING, but does not compile together anyhow
 event_base *_current_event = NULL;
 #endif
@@ -127,7 +127,7 @@ void dump_init(const char *command)
 {
   const char *cmd = command;
   const char *req_end;
-  
+
   while ((req_end = strchr(cmd,':')) != NULL)
     {
       char *request = strndup(cmd,(size_t) (req_end-cmd));
@@ -135,9 +135,9 @@ void dump_init(const char *command)
       add_dump_item(request);
 
       free(request);
-      cmd = req_end+1;      
+      cmd = req_end+1;
     }
-  
+
   // and handle the remainder
 
   add_dump_item(cmd);
@@ -151,7 +151,7 @@ void level_dump(int level_mask,const char *level_name,T &level)
       pretty_dump_info pdi;
       memset(&pdi,0,sizeof(pdi));
       level.dump(signal_id(level_name),pdi);
-    } 
+    }
 }
 
 /********************************************************************/
@@ -361,10 +361,10 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
   typedef __typeof__(*src_event->_subevents) subevent_t;
 
   subevent_t *subevent_info = &src_event->_subevents[0 /* subevent */];
-  
+
   char *start;
   char *end;
-  
+
   src_event->get_subevent_data_src(subevent_info,start,end);
 
   // The timestamp info is as 32-bit words, so we need only care about
@@ -397,7 +397,7 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
       else
 	*ts_align_index =
 	  _ts_align_hist->get_index(subevent_info,
-				    error_branch_id & 
+				    error_branch_id &
 				    TITRIS_STAMP_EBID_BRANCH_ID_MASK);
     }
 
@@ -415,11 +415,11 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("TITRIS time stamp word has wrong marker.  (0x%08x 0x%08x 0x%08x)",
 	  ts_l16, ts_m16, ts_h16);
 
-  *timestamp = 
+  *timestamp =
     (             ts_l16 & TITRIS_STAMP_LMH_TIME_MASK)         |
     (            (ts_m16 & TITRIS_STAMP_LMH_TIME_MASK)  << 16) |
     (((uint64_t) (ts_h16 & TITRIS_STAMP_LMH_TIME_MASK)) << 32);
-  
+
   return true;
 }
 
@@ -433,10 +433,10 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
   typedef __typeof__(*src_event->_subevents) subevent_t;
 
   subevent_t *subevent_info = &src_event->_subevents[0 /* subevent */];
-  
+
   char *start;
   char *end;
-  
+
   src_event->get_subevent_data_src(subevent_info,start,end);
 
   // The timestamp info is as 32-bit words, so we need only care about
@@ -471,7 +471,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
       else
 	*ts_align_index =
 	  _ts_align_hist->get_index(subevent_info,
-				    error_branch_id & 
+				    error_branch_id &
 				    WR_STAMP_EBID_BRANCH_ID_MASK);
     }
 
@@ -492,7 +492,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  "(0x%08x 0x%08x 0x%08x 0x%08x)",
 	  ts_0_16, ts_1_16, ts_2_16, ts_3_16);
 
-  *timestamp = 
+  *timestamp =
     (             ts_0_16 & WR_STAMP_DATA_TIME_MASK)         |
     ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
     (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
@@ -618,11 +618,11 @@ int do_check_merge_event_after(const merge_event_order *prev,
 	{
 	  WARNING("From source: '" ERR_WHITE "%s" ERR_ENDCOL "':",
 		  x->_name);
-	  WARNING("This timestamp:     " 
+	  WARNING("This timestamp:     "
 		  ERR_RED "%016" PRIx64 "" ERR_ENDCOL ", "
 		  "out of order:",
 		  x->_timestamp);
-	  WARNING("Previous timestamp: " 
+	  WARNING("Previous timestamp: "
 		  ERR_BLUE "%016" PRIx64 "" ERR_ENDCOL ".",
 		  prev->_timestamp);
 	  // We continue to sort anyhow.  Will just mean that current
@@ -661,7 +661,7 @@ void print_current_merge_order(const merge_event_order *prev)
 	      "Ev# %s%10d%s",
 	      CT_OUT(BOLD_BLUE),
 	      prev->event_no,
-	      CT_OUT(NORM_DEF_COL));	
+	      CT_OUT(NORM_DEF_COL));
       break;
     case MERGE_EVENTS_MODE_TITRIS_TIME:
       fprintf(stderr,
@@ -669,7 +669,7 @@ void print_current_merge_order(const merge_event_order *prev)
 	      CT_OUT(BOLD_BLUE),
 	      prev->_timestamp >> 32,
 	      (prev->_timestamp >> 24) & 0xff,
-	      CT_OUT(NORM_DEF_COL));	
+	      CT_OUT(NORM_DEF_COL));
       break;
     }
 }
@@ -748,7 +748,11 @@ void ucesb_event_loop::open_source(config_input &input,
   // The following should preferably have been something like:
   // typedef __typeof__(_sources.value_type::_src) source_type;
 
+#ifdef USE_INPUTFILTER
+  typedef lmd_source_multievent source_type;
+#else
   typedef lmd_source source_type;
+#endif
 
   source_type *source = new source_type();
 
@@ -799,7 +803,7 @@ bool ucesb_event_loop::get_ext_source_event(event_base &eb)
   return _ext_source->get_event();
 #else
   return false;
-#endif  
+#endif
 }
 
 void ucesb_event_loop::close_ext_source()
@@ -820,10 +824,10 @@ void err_bold_header(char* headermsg,
 {
 #if defined(USE_LMD_INPUT)
   sprintf (headermsg,
-	   ERR_BOLD "%5d" ERR_ENDBOLD "/" 
-	   ERR_BOLD "%5d" ERR_ENDBOLD 
-	   " (id:" ERR_BOLD "%d" ERR_ENDBOLD 
-	   ",crate:" ERR_BOLD "%d" ERR_ENDBOLD 
+	   ERR_BOLD "%5d" ERR_ENDBOLD "/"
+	   ERR_BOLD "%5d" ERR_ENDBOLD
+	   " (id:" ERR_BOLD "%d" ERR_ENDBOLD
+	   ",crate:" ERR_BOLD "%d" ERR_ENDBOLD
 	   ",ctrl:" ERR_BOLD "%d" ERR_ENDBOLD ")",
 	   ev_header->_header.i_type,
 	   ev_header->_header.i_subtype,
@@ -832,8 +836,8 @@ void err_bold_header(char* headermsg,
 	   ev_header->h_control);
 #elif defined(USE_HLD_INPUT)
   sprintf (headermsg,
-	   "id:" ERR_BOLD "%08x" ERR_ENDBOLD 
-	   "(" ERR_BOLD "%d" ERR_ENDBOLD 
+	   "id:" ERR_BOLD "%08x" ERR_ENDBOLD
+	   "(" ERR_BOLD "%d" ERR_ENDBOLD
 	   "/" ERR_BOLD "%4d" ERR_ENDBOLD ")",
 	   ev_header->_id,
 	   ev_header->_id >> 31,
@@ -878,7 +882,7 @@ void show_remaining(event_base &eb,
 		    int loc)
 {
   char headermsg[128];
-  
+
   char msg[256];
   char msgthis[64];
   size_t msglen = 0;
@@ -891,7 +895,7 @@ void show_remaining(event_base &eb,
 
   size_t used = (size_t) (src._data - start);
   size_t left = (size_t) (src._end - src._data);
- 
+
   msglen += (size_t) sprintf (msg+msglen,
 			      ERR_BOLD "%zd" ERR_ENDBOLD " bytes used",used);
 
@@ -911,17 +915,17 @@ void show_remaining(event_base &eb,
 #if HAS_WORD_32
       if (!(used % sizeof(uint32))) {
 	uint32 this_data = 0;
-	tmpsrc.reverse(sizeof(uint32)); 
+	tmpsrc.reverse(sizeof(uint32));
 	tmpsrc2 = tmpsrc; prev = used - sizeof(uint32);
 	tmpsrc.get_uint32(&this_data);
 	ADD_MSG_DATA(msgthislen,msgthis,"this dword",ERR_RED,"%08x",this_data);
       }
-      else 
+      else
 #endif
       {
 #if HAS_WORD_16
       if (!(used % sizeof(uint16))) {
-	uint16 this_data = 0; 
+	uint16 this_data = 0;
 	tmpsrc.reverse(sizeof(uint16));
 	tmpsrc2 = tmpsrc; prev = used - sizeof(uint16);
 	tmpsrc.get_uint16(&this_data);
@@ -951,12 +955,12 @@ void show_remaining(event_base &eb,
 	    tmpsrc2.get_uint32(&prev_data);
 	    ADD_MSG_DATA(msglen,msg,"prev dword",ERR_BLACK,"%08x",prev_data);
 	  }
-	  else 
+	  else
 #endif
 	  {
 #if HAS_WORD_16
 	  if (!(prev % sizeof(uint16))) {
-	    uint16 prev_data = 0; 
+	    uint16 prev_data = 0;
 	    tmpsrc2.reverse(sizeof(uint16));
 	    tmpsrc = tmpsrc2;
 	    tmpsrc2.get_uint16(&prev_data);
@@ -997,12 +1001,12 @@ void show_remaining(event_base &eb,
     tmpsrc.get_uint32(&next_data);
     ADD_MSG_DATA(msglen,msg,"next dword",ERR_BLUE,"%08x",next_data);
   }
-  else 
+  else
 #endif
   {
 #if HAS_WORD_16
   if (left >= sizeof(uint16) && !(used % sizeof(uint16))) {
-    uint16 next_data = 0; 
+    uint16 next_data = 0;
     tmpsrc.get_uint16(&next_data);
     ADD_MSG_DATA(msglen,msg,"next word",ERR_BLUE,"%04x",next_data);
   }
@@ -1047,7 +1051,7 @@ void unpack_subevent(event_base &eb,
    *
    * - procid would specify the type of processor, so could change,
    * but should then not change the format
-   * 
+   *
    * - control and subcrate would be used to differentiate between
    * different instances of the same subevent.
    *
@@ -1156,13 +1160,15 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   if (timestamp < stitch->_last_stamp)
     {
       // Unordered, dump!
+      //return;
+      ERROR("Timewarp");
     }
   else
     {
       // So, we look good!
       stitch->_badstamp = false;
 
-      if ((int64_t) (timestamp - stitch->_last_stamp) < 
+      if ((int64_t) (timestamp - stitch->_last_stamp) <
 	  _conf._event_stitch_value)
 	stitch->_combine = true;
     }
@@ -1224,7 +1230,7 @@ void ucesb_event_loop::unpack_event(event_base &eb)
 
       // Also, with a hash table, we can directly fix up the
       // swap/scramble correct pointers...  (he, he)
-      
+
       typedef __typeof__(*src_event->_subevents) subevent_t;
 
       subevent_t *subevent_info = &src_event->_subevents[subevent];
@@ -1246,9 +1252,9 @@ void ucesb_event_loop::unpack_event(event_base &eb)
       scramble ^= _conf._scramble;
 
       if (src_event->_swapping)
-	{  
+	{
 	  if (scramble)
-	    {  
+	    {
 	      __data_src<1,1> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
@@ -1261,7 +1267,7 @@ void ucesb_event_loop::unpack_event(event_base &eb)
       else
 	{
 	  if (scramble)
-	    {  
+	    {
 	      __data_src<0,1> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
@@ -1274,7 +1280,7 @@ void ucesb_event_loop::unpack_event(event_base &eb)
 #endif
 #ifdef USE_HLD_INPUT
       if (subevent_info->_swapping)
-	{  
+	{
 	  __data_src<1,0> src(start,end);
 	  unpack_subevent(eb,&subevent_info->_header,src,start);
 	}
@@ -1306,15 +1312,15 @@ void ucesb_event_loop::unpack_event(event_base &eb)
   src_event->get_data_src(start,end);
 
   if (src_event->_swapping)
-    {  
+    {
       __data_src<1> src(start,end);
-      
+
       unpack_subevent(eb,&src_event->_header,src,start);
     }
   else
     {
       __data_src<0> src(start,end);
-      
+
       unpack_subevent(eb,&src_event->_header,src,start);
     }
 #endif
@@ -1380,7 +1386,7 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 #if defined(UNPACK_EVENT_USER_FUNCTION) || USING_MULTI_EVENTS
       multievents = UNPACK_EVENT_USER_FUNCTION(&_static_event._unpack);
 #endif
-      
+
 #if !USING_MULTI_EVENTS
       multievents = !!multievents;
 #endif
@@ -1414,7 +1420,7 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
     {
       eb._raw.__clean();
       eb._cal.__clean();
-#ifdef USER_STRUCT 
+#ifdef USER_STRUCT
       eb._user.__clean();
 #endif
 
@@ -1439,13 +1445,13 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 	  if (_conf._reverse)
 	    {
 	      level_dump(DUMP_LEVEL_RAW,"RAW",eb._raw);
-      
+
 #if USING_MULTI_EVENTS
 	      map_members_info map_info;
-	      
+
 	      map_info._multi_event_no = /*mev*/0;
 	      map_info._event_type = 0;
-	      
+
 	      do_raw_reverse_map(map_info);
 #else
 	      do_raw_reverse_map();
@@ -1455,7 +1461,7 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 
 	      // do_unpack_map();
 	    }
-	  
+
 	  level_dump(DUMP_LEVEL_UNPACK,"UNPACK",eb._unpack);
 
 	  if (_conf._reverse)
@@ -1465,13 +1471,13 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 
       /* Map(copy) data from unpack structure to raw event structure.
        */
-      
+
 #if USING_MULTI_EVENTS
       map_members_info map_info;
-      
+
       map_info._multi_event_no = mev;
       map_info._event_type = 0;
-      
+
       if (mev == 0)
 	map_info._event_type |= MAP_MEMBER_TYPE_MULTI_FIRST;
       if (mev == multievents-1)
@@ -1491,7 +1497,7 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 #else
       do_unpack_map();
 #endif
-      
+
 #ifdef RAW_EVENT_USER_FUNCTION
       RAW_EVENT_USER_FUNCTION(&eb._unpack,&eb._raw
 #if USING_MULTI_EVENTS
@@ -1506,7 +1512,7 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 
 #ifdef CAL_EVENT_USER_FUNCTION
       CAL_EVENT_USER_FUNCTION(&eb._unpack,&eb._raw,&eb._cal
-#ifdef USER_STRUCT 
+#ifdef USER_STRUCT
 			      ,&eb._user
 #endif
 #if USING_MULTI_EVENTS
@@ -1608,13 +1614,13 @@ void ucesb_event_loop::handle_event_tasks(int task)
   switch (task)
     {
     case EVENT_TASK_UNPACK:
-      
+
 
 
 #ifdef EVENT_TASK_UNPACK_USER
       // if the next task is a task of it's own, we stop here,
       // otherwise we go directly into it
-      break; 
+      break;
     case EVENT_TASK_UNPACK_USER:
 #endif
 

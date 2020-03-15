@@ -30,6 +30,10 @@
 #include "hld_input.hh"
 #include "ridf_input.hh"
 
+#ifdef USE_INPUTFILTER
+#include "lmd_source_multievent.hh"
+#endif
+
 #include "config.hh"
 #include "thread_param.hh"
 
@@ -68,7 +72,7 @@ struct source_event_base
   uint64_t    _events;           // for display
   uint64_t    _events_last_show; // for display
 
-  int         _tstamp_align_index;
+  size_t         _tstamp_align_index;
 
   const char *_name;      // for debug
 };
@@ -135,7 +139,11 @@ public:
 		      vect_source_event_base,
 		      less_source_event_no> _sources_next_event;
 #else
+#ifdef USE_INPUTFILTER	
+  lmd_source_multievent _source;
+#else
   lmd_source _source;
+#endif
 #endif
   typedef lmd_event_hint source_event_hint_t;
   std::vector<output_info> _output;

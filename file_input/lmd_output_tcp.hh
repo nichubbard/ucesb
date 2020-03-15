@@ -35,8 +35,8 @@
 
 #include "thread_block.hh"
 
-#define LMD_OUTPUT_DEFAULT_BUFFER_SIZE    0x8000
-#define LMD_OUTPUT_DEFAULT_BUF_PER_STREAM      8 // each chunk is 8x32k=256k
+#define LMD_OUTPUT_DEFAULT_BUFFER_SIZE    0x80000
+#define LMD_OUTPUT_DEFAULT_BUF_PER_STREAM      8 // each chunk is 8x512k=4M
 
 #define LMD_OUTPUT_DEFAULT_MAX_BUF      0x800000 // 8 MB of buffer
 #define LMD_OUTPUT_MAX_CLIENTS                40

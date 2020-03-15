@@ -26,6 +26,7 @@
 
 #include <curses.h>
 #include <time.h>
+#include <deque>
 
 class watcher_window
 {
@@ -36,6 +37,8 @@ protected:
   WINDOW* mw;
   WINDOW* wtop;
   WINDOW* wscroll;
+  WINDOW* werror;
+  WINDOW* werrortop;
 
 public:
   uint _time;
@@ -56,6 +59,8 @@ public:
   uint _display_at_mask;
   uint _display_counts; 
   uint _display_timeout;
+  
+  bool _init;
 
 public:
   vect_watcher_channel_display  _display_channels;
@@ -64,6 +69,7 @@ public:
 public:
   void init();
   void event(watcher_event_info &info);
+  void on_error(const char* buf, int type);
 
 };
 

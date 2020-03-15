@@ -29,7 +29,7 @@
 struct config_input
 {
   int _type;
-  const char *_name;  
+  const char *_name;
 };
 
 struct config_output
@@ -57,7 +57,7 @@ struct config_opts
   int _allow_errors;
   int _broken_files;
 
-  int _print_buffer; 
+  int _print_buffer;
   int _print; // Print events
   int _data;  // Print event data
   int _reverse;
@@ -67,14 +67,21 @@ struct config_opts
   int _show_calib;
   int _ts_align_hist_mode;
 
-  uint64_t _max_events; 
-  int _skip_events; 
-  int _first_event; 
-  int _last_event; 
+  uint64_t _max_events;
+  int _skip_events;
+  int _first_event;
+  int _last_event;
   int _downscale;
 
 #ifdef USE_LMD_INPUT
   int _scramble;
+#endif
+
+#ifdef USE_INPUTFILTER
+  int _enable_eventbuilder;
+  int _eventbuilder_procid;
+  int _eventbuilder_wrid;
+  int64_t _eventbuilder_window;
 #endif
 
 #ifdef USE_LMD_INPUT
@@ -86,7 +93,7 @@ struct config_opts
   // Data dest
   struct
   {
-    const char *_name; // NULL if inactive 
+    const char *_name; // NULL if inactive
   } _file_output_bad;
 #endif
 

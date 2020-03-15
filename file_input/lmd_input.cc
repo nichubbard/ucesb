@@ -27,6 +27,7 @@
 #include "config.hh"
 #include "hex_dump.hh"
 
+#include <inttypes.h>
 #include <time.h>
 
 #include "worker_thread.hh"
@@ -117,7 +118,7 @@ void lmd_source::new_file()
 }
 
 #define min(a,b) ((a)<(b)?(a):(b))
-      
+
 bool lmd_source::read_record(bool expect_fragment)
 {
   // Read the next record of the file
@@ -132,8 +133,8 @@ bool lmd_source::read_record(bool expect_fragment)
 
   if (!_input.read_range(&_buffer_header,sizeof(_buffer_header)))
     return false;
-  
-  /* First we need to find out if the buffer header is in 
+
+  /* First we need to find out if the buffer header is in
    * big endian or little endian format...
    *
    * (We however treat it as: native endian or foreign endian)
@@ -142,7 +143,7 @@ bool lmd_source::read_record(bool expect_fragment)
    */
 
   uint32 endian_free0 = (uint32) _buffer_header.l_free[0];
-  
+
   if (endian_free0 == 0x00000001)
     _swapping = 0;
   else if (endian_free0 == bswap_32(0x00000001))
@@ -163,14 +164,14 @@ bool lmd_source::read_record(bool expect_fragment)
 					      // order)
     _buffer_status =
       (BYTE_ORDER == LITTLE_ENDIAN ? SDS_SWAPPING : 0) |
-      SDS_NETWORKORDER_HEADERS | 
+      SDS_NETWORKORDER_HEADERS |
       (BYTE_ORDER == LITTLE_ENDIAN ? SDS_DATA_SWAPPING : 0);
   else if (endian_free0 == ntohl(0x02000001)) // headers network
 					      // order, data little
 					      // endian (non-network)
     _buffer_status =
       (BYTE_ORDER == LITTLE_ENDIAN ? SDS_SWAPPING : 0) |
-      SDS_NETWORKORDER_HEADERS | 
+      SDS_NETWORKORDER_HEADERS |
       (BYTE_ORDER == BIG_ENDIAN ? SDS_DATA_SWAPPING : 0);
 #endif
   else
@@ -217,10 +218,10 @@ bool lmd_source::read_record(bool expect_fragment)
     ERROR("Buffer size l_dlen (0x%08x) of file header "
 	  "negative or very large, refusing.",
 	  _buffer_header.l_dlen);
- 
+
   size_t buffer_size_dlen =
     BUFFER_SIZE_FROM_DLEN((size_t) _buffer_header.l_dlen);
-  
+
   // buffer length should be multiple of 1024 bytes
   if (!buffer_size_dlen ||
       buffer_size_dlen % 1024)
@@ -233,7 +234,7 @@ bool lmd_source::read_record(bool expect_fragment)
 	{
 	  size_t buffer_size_dlen_broken =
 	    (size_t) BUFFER_SIZE_FROM_DLEN_BROKEN(_buffer_header.l_dlen);
-	
+
 	  if ((buffer_size_dlen_broken &&
 	       (buffer_size_dlen_broken % 1024) == 0))
             {
@@ -250,14 +251,14 @@ bool lmd_source::read_record(bool expect_fragment)
             (int) BUFFER_SIZE_FROM_DLEN(bswap_32(_buffer_header.l_dlen)));
 
      recovered_buffer_size_dlen:
-      ; 
+      ;
     }
-  
+
   // so now we should check if it is a file header
   // or simply a buffer header
 
   size_t header_size = sizeof (s_bufhe_host);
-  
+
   size_t file_header_size = 0;
   ssize_t file_header_used_size = -1;
 
@@ -308,7 +309,7 @@ bool lmd_source::read_record(bool expect_fragment)
 	      // Lying (normal) format.
 
 	      file_header_size =
-		BUFFER_USED_FROM_IUSED((uint) (ushort) 
+		BUFFER_USED_FROM_IUSED((uint) (ushort)
 				       _buffer_header.i_used);
 
 	      buffer_size_dlen = header_size + file_header_size;
@@ -316,12 +317,12 @@ bool lmd_source::read_record(bool expect_fragment)
 	}
 
       // file header
-      
+
       // s_filhe_extra_host file_header_extra;
 
       if (!_input.read_range(&_file_header,file_header_size))
 	ERROR("Failed to read file header (extras after buffer header).");
-      
+
       // the first part (buffer header) has already been swapped
       //if (IS_SWAPPING(_buffer_status))
       if (_swapping)
@@ -336,11 +337,11 @@ bool lmd_source::read_record(bool expect_fragment)
       // that would anyway be constrained to check that the string
       // length objects are within the lengths of the string arrays.  As
       // we don't use the strings, we do not check...
-      
-      file_header_used_size = 
-	sizeof(_file_header) - 
+
+      file_header_used_size =
+	sizeof(_file_header) -
 	sizeof(_file_header.s_strings) +
-	(min(30,_file_header.filhe_lines)) * 
+	(min(30,_file_header.filhe_lines)) *
 	sizeof(_file_header.s_strings[0]);
 
       _expect_file_header = false; // we'll accept buffer headers from now on
@@ -349,7 +350,7 @@ bool lmd_source::read_record(bool expect_fragment)
            _buffer_header.i_subtype == LMD_BUF_HEADER_10_1_SUBTYPE)
     {
       // buffer header
-      
+
       if (_expect_file_header)
         {
           WARNING("Expected file header but got buffer header.");
@@ -363,7 +364,7 @@ bool lmd_source::read_record(bool expect_fragment)
             _buffer_header.i_type,
             _buffer_header.i_subtype);
     }
-  
+
   size_t buf_used;
 
   if (_buffer_header.l_dlen <= LMD_BUF_HEADER_MAX_IUSED_DLEN)
@@ -413,7 +414,7 @@ bool lmd_source::read_record(bool expect_fragment)
           buf_used,
           header_size + buf_used,
           buffer_size_dlen);
-  
+
   if ((_buffer_header.i_type    == LMD_FILE_HEADER_10_1_TYPE &&
        _buffer_header.i_subtype == LMD_FILE_HEADER_10_1_SUBTYPE))
     {
@@ -483,7 +484,7 @@ bool lmd_source::read_record(bool expect_fragment)
   size_t data_size = buffer_size_dlen - header_size;
 
   int chunks = 0;
-  
+
   chunks = _input.map_range(data_size,_chunks);
   /*
   printf ("Buffer: len: %d, used: %d  (%d/%d)  (data_size:%d) events: %d, \n",
@@ -499,7 +500,7 @@ bool lmd_source::read_record(bool expect_fragment)
       ERROR("Error while reading record data.");
       return false;
     }
-  
+
   _chunk_end += chunks;
 
   // Now, cut away the data that is not used
@@ -555,7 +556,7 @@ bool lmd_source::read_record(bool expect_fragment)
 	  // incident, but is handled in getevent.  (it must abort the
 	  // event that it was fetching as fragments, but can then
 	  // restart fetching the first event from this buffer)
-	  
+
 	  // TODO: put a marker that skip_record should actually allow
 	  // this record to be processed for events again...
 	  // (it does not help to put the error in get_event, it would have
@@ -566,20 +567,20 @@ bool lmd_source::read_record(bool expect_fragment)
       else
 	{
 	  WARNING("Buffer header had unexpected fragment at start.");
-	  
+
 	  // TODO:
-	  
+
 	  // We must take the appropriate action to seek past the unused
 	  // end of an event... (the rest of the events we namely want)
-	  
+
 	  // This is necessary, since otherwise it may take ages to
 	  // syncronize if we get an file with almost exclusively
 	  // fragmented events
-	  
+
 	  // There will be an event header at the start of the buffer...
 
 	  lmd_event_header_host frag_header;
-	  
+
 	  if (!get_range((char *) &frag_header,
 			 _chunk_cur,_chunk_end,
 			 sizeof(lmd_event_header_host)))
@@ -596,7 +597,7 @@ bool lmd_source::read_record(bool expect_fragment)
 	  if (frag_size > buf_used)
 	    ERROR("Fragment larger than buffer (%d>%d).",
 		  (int)frag_size,(int)buf_used);
-	  
+
 	  if (!skip_range(_chunk_cur,_chunk_end,frag_size))
 	    ERROR("Internal error.");  // should have been caught above
 
@@ -621,7 +622,7 @@ bool lmd_source::read_record(bool expect_fragment)
   printf("buf_header.l_free[3]   = %08x\n",_buffer_header.l_free[3]   );
   printf("=============================\n");
   */
-  
+
   return true;
 }
 
@@ -633,11 +634,11 @@ bool lmd_source::skip_record()
   if (_skip_record_try_again)
     {
       // We should try to read events from the current record once
-      // more.  (the failure was 'intermittent')      
+      // more.  (the failure was 'intermittent')
       _skip_record_try_again = false;
       return true;
     }
-  
+
 
 
   return false;
@@ -686,7 +687,7 @@ lmd_event *lmd_source::get_event()
 	   dest->_chunk_cur,
 	   dest->_chunk_end,
 	   dest->_chunk_alloc);
-  */  
+  */
   dest->_status = 0;
   dest->_subevents = NULL;
 
@@ -695,7 +696,7 @@ lmd_event *lmd_source::get_event()
   // stitching.  (We do not know that we can release previous bunch
   // until we see a new event that cannot be combined, and we have
   // written it all...)
-  
+
   // This check has to be in get_event, cannot be in read_record,
   // since we may have a continous stretch of fragmented buffers,
   // which would then always when requesting a new record call
@@ -734,7 +735,7 @@ lmd_event *lmd_source::get_event()
       // some data (left)
 
       // The header should always fit in the first buffer
-      
+
       lmd_event_10_1_host *event_header = &dest->_header;
 
       if (!get_range((char *) &event_header->_header,
@@ -746,7 +747,7 @@ lmd_event *lmd_source::get_event()
 
 	  ERROR("Failure reading event header.");
 	}
-      
+
       // swapping, etc
 
       if (_swapping)
@@ -764,7 +765,7 @@ lmd_event *lmd_source::get_event()
       // the n'th event.  So first check that if we are at the end, we
       // are the n'th event.  If this is a failure, then the fragment
       // info is most likely also crap, so do not dare to continue.
-      
+
       // Hmm, if (at end) != (being n'th), but fragment at end = 0,
       // then there is nothing worse with this event than all the
       // other ones, in the buffer.  Accept this, one (but we'll go
@@ -774,7 +775,7 @@ lmd_event *lmd_source::get_event()
       // the end reaching discussions are left for the getting of data
       // from the chunks, so we'll rely on the event counter, and
       // catch the mess later...  :-(
-      
+
       _events_left--;
 
       size_t event_size =
@@ -837,7 +838,7 @@ lmd_event *lmd_source::get_event()
       // should begin simply copying the chunks, since they should
       // mark exactly the data that we want.  Must also check that this
       // then ends nicely at the buffer end.
-      
+
       // The total event size is however given by l_free[0]
 
       // make sure our header is correct
@@ -903,25 +904,25 @@ lmd_event *lmd_source::get_event()
 	    ERROR("Could not get next record "
 		  "for fragmented event (missing %d).",
 		  (int) total_size);
-	  
+
 	  if (_swapping != dest->_swapping)
 	    // bad boy (hot-swap event builder !?!)
-	    ERROR("Swapping changed within fragmented event."); 
+	    ERROR("Swapping changed within fragmented event.");
 
 	  // Aha, so let's try to get the fragment header...
 
 	  lmd_event_header_host frag_header;
-	  
+
 	  if (!get_range((char *) &frag_header,
 			 _chunk_cur,_chunk_end,
 			 sizeof(lmd_event_header_host)))
 	    {
 	      ERROR("Failure reading fragment event header.");
 	    }
-	  
+
 	  if (_swapping)
 	    byteswap ((uint32*) &frag_header,sizeof(lmd_event_header_host));
-	  
+
 	  if (frag_header.i_type    != event_header->_header.i_type ||
 	      frag_header.i_subtype != event_header->_header.i_subtype)
 	    ERROR("Fragment event type/subtype mismatch from original.");
@@ -1015,7 +1016,7 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
 	 CT_OUT(BOLD),
 	 time_buf,(uint) header->l_time[1],
 	 CT_OUT(NORM));
-  
+
   printf("       Events%s%4d%s Type/Subtype%s%5d%5d%s "
 	 "FragEnd=%s%d%s FragBegin=%s%d%s LastSz%s%8d%s\n",
 	 CT_OUT(BOLD),header->l_evt,CT_OUT(NORM),
@@ -1028,7 +1029,7 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
 	 CT_OUT(BOLD),
 	 (int) EVENT_DATA_LENGTH_FROM_DLEN(header->l_free[1]),
 	 CT_OUT(NORM));
-  
+
   // not printed: l_current_i, l_free[0] l_free[2] l_free[3]
 }
 
@@ -1064,8 +1065,8 @@ Label:   DISK
 File:    /data3/li8_d_184.lmd
 User:    user1
 Time:    02-Dec-04 02:41:52
-Run:     
-Exp:     
+Run:
+Exp:
 --------------------------------------------------------
 --------------------------------------------------------
 Buffer     179713, Length 16360[w] Size 32768[b] 02-Dec-2004 02:41:51.77
@@ -1078,8 +1079,8 @@ Event    65959990 Type/Subtype    10     1 Length    36[w] Trigger  2
 
 Event    65959779 Type/Subtype    10     1 Length    42[w] Trigger  2
   SubEv ID      1 Type/Subtype    10     1 Length    28[w] Control  9 Subcrate  0
-  fefe.fefe fd0c.0054 0004.e557 0800.0003 1000.0055 fa07.0100 f801.40cb fcee.d225 
-  fa0c.0100 f801.4ed6 fcee.e830 efef.efef fa0a.0100 
+  fefe.fefe fd0c.0054 0004.e557 0800.0003 1000.0055 fa07.0100 f801.40cb fcee.d225
+  fa0c.0100 f801.4ed6 fcee.e830 efef.efef fa0a.0100
   SubEv ID      1 Type/Subtype    10     1 Length     2[w] Control  9 Subcrate  1
 
 */
@@ -1146,7 +1147,40 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 		 CT_OUT(BOLD_MAGENTA),
 		 (uint8) subevent_info->_header.h_subcrate,
 		 CT_OUT(NORM_DEF_COL));
-	  
+
+     // NH print WR timestamp if found :)
+     if (subevent_info->_data)
+     {
+        uint32 data_length = (uint32)
+ 		     SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
+         if (data_length >= 20)
+         {
+           uint32_t* wr_p = (uint32*)subevent_info->_data;
+           uint32_t wrID = *wr_p++;
+           uint32_t wrL = *wr_p++;
+           uint32_t wrML = *wr_p++;
+           uint32_t wrMH = *wr_p++;
+           uint32_t wrH = *wr_p++;
+           if ((wrL & 0xFFFF0000) == 0x03e10000)
+           {
+             uint64_t wr =  0;
+             wr = wrL & 0xffff;
+             wr |= (wrML & 0xffff) << 16;
+             wr |= (uint64_t)(wrMH & 0xffff) << 32;
+             wr |= (uint64_t)(wrH & 0xffff) << 48;
+
+             printf("                           WR ID%s%6x%s     Time       %s%16" PRIx64 "%s\n",
+             CT_OUT(CYAN),
+             wrID,
+             CT_OUT(NORM_DEF_COL),
+             CT_OUT(CYAN),
+             wr,
+             CT_OUT(NORM_DEF_COL)
+             );
+           }
+         }
+     }
+
 	  if (data)
 	    {
 	      hex_dump_buf buf;
@@ -1169,7 +1203,7 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 		}
 	    }
 	}
-      
+
       // Is there any remaining data, that could not be assigned as a subevent?
 
       print_remaining_event(_chunk_cur,_chunk_end,_offset_cur,_swapping);
@@ -1184,7 +1218,7 @@ void lmd_event::get_10_1_info()
 
   // Subevents are only known how to handle under format type/subtype
   // 10/1
-  
+
   if (_status & LMD_EVENT_GET_10_1_INFO_ATTEMPT)
     return;
 
@@ -1217,7 +1251,7 @@ void lmd_event::get_10_1_info()
 
   _status |= LMD_EVENT_HAS_10_1_INFO;
 
-  /*  
+  /*
   printf ("info:    %04x %04x %08x .. \n",
 	  _header._info.i_trigger,
 	  _header._info.i_dummy,
@@ -1259,17 +1293,17 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
       //   hints->_max_subevents = 1;
     }
 
-  _subevents = (lmd_subevent *) 
+  _subevents = (lmd_subevent *)
     _wt._defrag_buffer->
     allocate_reclaim(hints->_max_subevents * sizeof (lmd_subevent));
 #else
   // With the single buffer always kept for this purpose, no reason
   // to try to adjust.
 
-  _subevents = (lmd_subevent *) 
+  _subevents = (lmd_subevent *)
     _defrag_event.allocate((size_t) hints->_max_subevents *
 			   sizeof (lmd_subevent));
-#endif      
+#endif
 
   _nsubevents = 0;
 
@@ -1336,25 +1370,25 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
       // So, subevent header is there, now remember where we got the
       // data
 
-      size_t data_length = 
+      size_t data_length =
 	SUBEVENT_DATA_LENGTH_FROM_DLEN((size_t) subevent_header->_header.l_dlen);
 
       // Did the data come exclusively from this buffer?
 
-      size_t chunk_left = chunk_cur < _chunk_end ? 
+      size_t chunk_left = chunk_cur < _chunk_end ?
 	chunk_cur->_length - offset_cur : 0;
 
-      if (LIKELY(data_length <= chunk_left)) 
+      if (LIKELY(data_length <= chunk_left))
 	{
 	  // likely, since most subevents smaller than buffer size
-	  
+
 	  if (UNLIKELY(!data_length))
 	    {
 	      // if the data size is zero, and we're the last
 	      // subevent, then chunk_cur will not be valid, and we
 	      // should not give such a pointer away (i.e. we may not
 	      // dereference chunk_cur, so we cannot give it away)
-	      
+
 	      // But we want to give an invalid (but non-null) pointer
 	      // (since the length is zero, noone should _ever_ look
 	      // at it...
@@ -1368,7 +1402,7 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
 
 	  offset_cur += data_length;
 
-	  /*	  
+	  /*
 	  printf (":: %d %d (%p)\n",
 		  data_length,chunk_left,
 		  subevent_info->_data);
@@ -1397,7 +1431,7 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
 	      // has some data, but not enough
 
 	      data_length -= chunk_left;
-	      
+
 	      // So, go get next fragment
 
 	      chunk_cur++;
@@ -1435,7 +1469,7 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
 
 	  // Account for how much data was used in ending fragment
 	}
-      
+
       // One more subevent fitted in the event...
 
       _nsubevents++;
@@ -1473,7 +1507,7 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
 
   //printf ("===> %d\n",_nsubevents);
   //fflush(stdout);
-  
+
   // Aha, so we have successfully gotten all subevent data
 }
 
@@ -1517,15 +1551,15 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
 	  // allocating should not need to wait for anyone else.  The
 	  // pointer supplied will be stable for the rest of the event
 	  // life-time, i.e. can be used by other threads on the same
-	  // machine.  
+	  // machine.
 
 #ifdef USE_THREADING
-	  char *defrag = (char *) 
+	  char *defrag = (char *)
 	    _wt._defrag_buffer->allocate_reclaim(data_length);
 #else
-	  char *defrag = (char *) 
+	  char *defrag = (char *)
 	    _defrag_event_many.allocate(data_length);
-#endif      
+#endif
 
 	  subevent_info->_data = defrag;
 
@@ -1545,24 +1579,24 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
 	  frag++;
 
 	  // Then, copy all full fragments
-	  
+
 	  size_t size = frag->_length;
-	  
+
 	  while (UNLIKELY(size < length))
 	    {
 	      memcpy(defrag,
 		     frag->_ptr,
 		     size);
-	      
+
 	      defrag += size;
 	      length -= size;
-	      
+
 	      frag++;
 	      size = frag->_length;
 	    }
-	  
+
 	  // And copy last one
-	  
+
 	  memcpy(defrag,frag->_ptr,length);
 	  /*
 	  for (uint i = 0; i < subevent_info->_length; i++)
@@ -1581,26 +1615,26 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
 	  // the use of memmove is slightly more expensive than using
 	  // memcpy, but that is offset by the fact that we usually
 	  // only need to copy < half of the subevent
-	  
+
 	  buf_chunk *frag0 = subevent_info->_frag;
-	  
+
 	  size_t size0  = frag0->_length - subevent_info->_offset;
 	  size_t remain = data_length - size0;
-	  
+
 	  buf_chunk *frag = frag0 + 1;
-	  
+
 	  if (size0 < remain)
 	    {
 	      // The first fragment is smaller than the rest (and then,
 	      // even if more than two fragements, most likely also
 	      // smaller than fragment 1)
-	      
+
 	      subevent_info->_data = frag->_ptr - size0;
-	      
+
 	      memmove(subevent_info->_data,
 		      frag0->_ptr + subevent_info->_offset,
 		      size0);
-	      
+
 	      // Next fragment need not be copied at all
 
 	      remain -= frag->_length;
@@ -1615,21 +1649,21 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
 	  frag = frag0 + 1;
 
 	  size_t size = frag->_length;
-	  
+
 	  while (UNLIKELY(size < remain))
 	    {
 	      memmove(next,
 		      frag->_ptr,
 		      size);
-	      
+
 	      next   += size;
 	      remain -= size;
-	      
+
 	      frag++;
 	    }
-	  
+
 	  // And copy last one
-	  
+
 	  memmove(next,frag->_ptr,remain);
 	}
     }

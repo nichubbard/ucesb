@@ -26,7 +26,6 @@ EVENT
 }
 
 
-
 // Before 'ignore_unknown_subevent' was implemented, all
 // this was needed...  (along with the now removed files
 // empty_external.hh:  #include "external_data.hh"
@@ -40,7 +39,7 @@ external EXTERNAL_DATA_SKIP();
 SUBEVENT(ANY_SUBEVENT)
 {
   // We'll skip the entire subevent...
-  
+
   external skip = EXTERNAL_DATA_SKIP();
 }
 

@@ -37,7 +37,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-// Write LMD files.  
+// Write LMD files.
 //
 // Due to some (mucho-monumental) brain-damages in the way the LMD
 // files are handled (mainly the lack of an endianess marker for the
@@ -75,7 +75,7 @@ lmd_output_buffered::lmd_output_buffered()
   _cur_buf_left = 0;
 
   _buffer_header.l_buf = 1;
-    
+
   _write_native = true;
   _compact_buffers = false; // to be compatible with eventapi, who
 			    // cannot handle last buffer chopped
@@ -128,9 +128,9 @@ void lmd_output_file::close_file()
   // (we're not responsible if it is stdin)
 
   // write the last buffer
-  
+
   // INFO(0,"Writing last buffer.");
-  
+
   try {
     send_buffer();
   } catch (error &e) {
@@ -139,7 +139,7 @@ void lmd_output_file::close_file()
 
   try {
     // First wait for the compressor to finish (if there)
-    _compressor.wait(false); 
+    _compressor.wait(false);
   } catch (error &e) {
     boom = true;
   }
@@ -153,9 +153,9 @@ void lmd_output_file::close_file()
 	  if (fstat(_fd_handle,&st) != 0)
 	    perror("fstat");
 	  else if (fchmod(_fd_handle,
-			  (st.st_mode & 
+			  (st.st_mode &
 			   ~(mode_t) (S_IWUSR | S_IWGRP | S_IWOTH))) != 0)
-	    perror("fchmod");    
+	    perror("fchmod");
 	}
       if (::close(_fd_handle) != 0)
 	perror("close");
@@ -203,7 +203,7 @@ uint64 parse_size_postfix(const char *post,const char *allowed,
     return size;
 
   if (strchr(allowed,*size_end) != NULL)
-    {  
+    {
       if (strcmp(size_end,"k") == 0)
 	{ size *= 1000; goto success; }
       else if (strcmp(size_end,"ki") == 0)
@@ -290,20 +290,20 @@ bool parse_lmd_out_common(char *request,
 lmd_output_file *parse_open_lmd_file(const char *command, bool allow_selections)
 {
   lmd_output_file *out_file = new lmd_output_file();
-  
+
   // chop off any options of the filename
   // native, net, big, little
   // compact
-  
+
   const char *req_end;
-  
+
   while ((req_end = strchr(command,',')) != NULL)
     {
       char *request = strndup(command,(size_t) (req_end-command));
       char *post;
 
       if (parse_lmd_out_common(request, allow_selections, true, out_file))
-	;            
+	;
       else if (MATCH_C_ARG("help"))
 	{
 	  lmd_out_file_usage();
@@ -333,9 +333,9 @@ lmd_output_file *parse_open_lmd_file(const char *command, bool allow_selections)
 	out_file->_lmd_log = new logfile(post);
       else
 	ERROR("Unrecognised option for LMD output: %s",request);
-      
+
       free(request);
-      command = req_end+1;      
+      command = req_end+1;
     }
 
   if (strcmp(command,"help") == 0)
@@ -343,7 +343,7 @@ lmd_output_file *parse_open_lmd_file(const char *command, bool allow_selections)
       lmd_out_file_usage();
       exit(0);
     }
-  
+
   const char *filename = command;
 
   if (strcmp(filename,"-") == 0)
@@ -353,7 +353,7 @@ lmd_output_file *parse_open_lmd_file(const char *command, bool allow_selections)
       out_file->_event_cut != 0 ||
       out_file->_avoid_used_number)
     out_file->parse_open_first_file(filename);
-  else  
+  else
     out_file->open_file(filename);
 
   return out_file;
@@ -362,7 +362,7 @@ lmd_output_file *parse_open_lmd_file(const char *command, bool allow_selections)
 
 void lmd_output_file::new_file(const char *filename)
 {
-  close_file(); 
+  close_file();
   open_file(filename);
 
   if (_has_file_header)
@@ -373,7 +373,7 @@ void lmd_output_file::open_stdout()
 {
   // Write the output to stdout...
 
-  if (_limit_size != (uint64) -1 || 
+  if (_limit_size != (uint64) -1 ||
       _limit_events != (uint32) -1||
       _event_cut)
     ERROR("Cannot write data to stdout with file size or "
@@ -391,7 +391,7 @@ void lmd_output_file::open_stdout()
   // that will go to the associated (FILE *) we would like to go
   // to stderr instead.  Since we cannot reassociate a file handle
   // (in this case stdout) with another file descriptor, we need
-  // to do some dup juggling.  
+  // to do some dup juggling.
 
   // Side-effects: anyone writing to file descriptor 2 in the
   // future, will mess up the output data file.  Stuff that goes
@@ -429,10 +429,10 @@ void lmd_output_file::open_stdout()
 void lmd_output_file::open_file(const char* filename)
 {
   assert(_fd_handle == -1); // we should not have the close_file below
-  close_file(); 
+  close_file();
 
   if ((_fd_handle = open(filename,
-			 O_WRONLY | O_CREAT | O_TRUNC 
+			 O_WRONLY | O_CREAT | O_TRUNC
 #ifdef O_LARGEFILE
 			 | O_LARGEFILE
 #endif
@@ -447,7 +447,7 @@ void lmd_output_file::open_file(const char* filename)
   assert (!_cur_filename);
   _cur_filename = new char[strlen(filename)+1];
   strcpy(_cur_filename, filename);
-  
+
   report_open_close(true);
 
   char level[10];
@@ -491,16 +491,16 @@ void lmd_output_file::get_buffer()
   if (!_cur_buf_start)
     {
       // allocate a buffer
-      
+
       if (!_cur_buf_length)
 	_cur_buf_length = _buf_size; // 64 k ( fragmentation no good...) (I
 				     // could have used 128 k buffers (and
 				     // saved some headers, but MBS format
 				     // for no good reason uses _signed_
 				     // short integers to store lengths)
-      
+
       assert (_cur_buf_length > sizeof (_buffer_header)); // or no space for buffer header
-      
+
       if (!(_cur_buf_start = (uchar*) malloc (_cur_buf_length)))
 	ERROR("Memory allocation failed!");
 
@@ -524,7 +524,7 @@ void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
   // be additions to the new buffer created, or the file will be
   // closed/released.  Otherwise we'll write an unfilled buffer and
   // create a new one (unnecessarily, but still a proper buffer.
-  
+
   // first: is there anything to write, then write it
 
   if (!_cur_buf_start)
@@ -532,28 +532,28 @@ void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
 
   // se if we can shrink the buffer (it must always be a factor of two,
   // but we might be able to shrink it)
-  
+
   // fixup: do not mess up _buffer_size, instead copy value
   // to buffer header and mess with that one.
   // this way any following buffers will not be affected by this
   // gymnastics
-  
+
   size_t count = _cur_buf_length;
-  
+
   if (_compact_buffers)
     {
       size_t too_much = (_cur_buf_left / 1024) * 1024;
-      
+
       count -= too_much;
-      
+
       if (too_much)
 	INFO(0,"Decreasing buffer size by: %d",(int) too_much);
     }
 
   // now we're ready to write!
-  
+
   // first byte swap the buffer header, then write
-  
+
   _buffer_header.l_dlen = (sint32) DLEN_FROM_BUFFER_SIZE(count);
 
   size_t used_size = _cur_buf_usable - _cur_buf_left;
@@ -575,12 +575,12 @@ void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
 	  if (count > max_count)
 	    ERROR("Cannot reduce written buffer size (%zd) to max dlen (%zd).",
 		  count, max_count);
-	}     
+	}
     }
-  
+
   _buffer_header.l_free[2] =
     (sint32) IUSED_FROM_BUFFER_USED(used_size);
-  
+
   if (count <= BUFFER_SIZE_FROM_DLEN(LMD_BUF_HEADER_MAX_IUSED_DLEN))
     _buffer_header.i_used = (sint16) _buffer_header.l_free[2];
 
@@ -593,23 +593,23 @@ void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
     _cur_buf_left);
   */
   // INFO(0,"%d from %d-%d=%d.",_buffer_header.i_used,_cur_buf_usable,_cur_buf_left,_cur_buf_usable - _cur_buf_left);
-  
+
   // Make sure the buffer header ends up in network order
   // I.e., we need to swap if we are not big endian
-  
+
   if (!_write_native)
     byteswap_32(_buffer_header);
-  
+
   memcpy(_cur_buf_start,&_buffer_header,sizeof(_buffer_header));
-  
+
   // make sure any unused space is full of zeros
-  
+
   memset(_cur_buf_ptr,0,_cur_buf_left);
-  
+
   // INFO(0,"Writing %d bytes.",count);
-  
+
   // printf ("write (%8x, %d)\n",count,_cur_buf_left);
-  
+
   write_buffer(count);
 }
 
@@ -624,12 +624,12 @@ void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
   // and assume that the size of the buffer will be changed!
 
   get_buffer();
-  
+
   // fill in the buffer header with some reasonable values
 
   // _cur_buffer_header = (s_bufhe_host*) _buffer;
 
-  _cur_buf_ptr  = _cur_buf_start  + sizeof (_buffer_header);   
+  _cur_buf_ptr  = _cur_buf_start  + sizeof (_buffer_header);
   _cur_buf_left = _cur_buf_length - sizeof (_buffer_header);
 
   memset (&_buffer_header,0,sizeof (_buffer_header));
@@ -652,7 +652,7 @@ void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
   //#if BYTE_ORDER == BIG_ENDIAN
   _buffer_header.l_free[0] = 0x00000003; // We actually write all data network endian (actually as bytes)
   //#else
-  //_buffer_header.l_free[0] = 0x02000001;    
+  //_buffer_header.l_free[0] = 0x02000001;
   //#endif
   */
 
@@ -668,10 +668,10 @@ void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
   _buffer_header.l_time[1] = (sint32) (tv.tv_usec / 1000);
 
   // mark it as buffer header
-  
+
   _buffer_header.i_type    = LMD_BUF_HEADER_10_1_TYPE;
   _buffer_header.i_subtype = LMD_BUF_HEADER_10_1_SUBTYPE;
-  
+
   _cur_buf_usable = _cur_buf_left;
 
   //printf ("_cur_buf_ptr : %8p .. %8p\n",_cur_buf_ptr,_cur_buf_ptr+_cur_buf_left);
@@ -722,14 +722,14 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
 
   size_t event_data_length = event->get_length();
 
-  /*  
+  /*
   printf ("*** WRITE: %zd chunks, %zd bytes ***\n",
 	  event->_chunk_end - event->_chunk_start,
 	  event_data_length);
   */
-  
+
   // so write an event to file.
-  
+
   // we always write fragments if possible.  As a reader by spec should
   // be able to deal with them, we may as well use them and reduce the
   // I/O (by not emitting so much junk at the end of buffers) (in
@@ -792,7 +792,7 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
   while (sizeof(lmd_event_header_host) + event_size_left > _cur_buf_left)
     {
       assert (_cur_buf_left > sizeof(lmd_event_header_host)); // or you have a bug: buffers too small
-      
+
       // we need to write the start of an fragment
 
       size_t event_size_write = _cur_buf_left - sizeof(lmd_event_header_host);
@@ -801,16 +801,16 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
       assert ((event_size_write & 1) == 0); // should be factor of 2
 
       _buffer_header.l_free[1] = // or should we use event_size_left?
-	(sint32) DLEN_FROM_EVENT_DATA_LENGTH(event_data_length); 
-      
+	(sint32) DLEN_FROM_EVENT_DATA_LENGTH(event_data_length);
+
       // first a header
 
       lmd_event_header_host header_write;
 
       header_write = event->_header;
-      header_write.l_dlen = 
+      header_write.l_dlen =
 	(sint32) DLEN_FROM_EVENT_DATA_LENGTH(event_size_write);
-      
+
       copy_to_buffer(&header_write,sizeof(lmd_event_header_host),
 		     !_write_native);
 
@@ -845,9 +845,9 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
 	      offset_cur = 0;
 	    }
 	}
-      
+
       assert (_cur_buf_left == 0);
-      event_size_left -= event_size_write;      
+      event_size_left -= event_size_write;
 
       //INFO(0,"Fragmenting:  writing %d bytes, %d bytes left (%d total).",
       //	   event_size_write,event_size_left,_event._event_size);
@@ -862,14 +862,14 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
   // write whatever is left
 
   // first a header
-  
+
   assert (!(event_size_left & 0x01)); // we should be a factor of 2!
-  
+
   lmd_event_header_host header_write;
-  
+
   header_write = event->_header;
   header_write.l_dlen = (sint32) DLEN_FROM_EVENT_DATA_LENGTH(event_size_left);
-  
+
   copy_to_buffer(&header_write,sizeof(lmd_event_header_host),!_write_native);
 
   // then the data, first the buffer that may have already been copied from...
@@ -938,15 +938,15 @@ void lmd_output_file::write_file_header(const s_filhe_extra_host *file_header_ex
   new_buffer();
 
   // mark it as file header
-  
+
   _buffer_header.i_type    = LMD_FILE_HEADER_10_1_TYPE;
   _buffer_header.i_subtype = LMD_FILE_HEADER_10_1_SUBTYPE;
 
   // allocate and set to zero the extra space...
-  
+
   assert (_cur_buf_left >= sizeof (s_filhe_extra_host));
   // or no space for file header
-  
+
   s_filhe_extra_host write_filhe_extra;
 
   memcpy(&write_filhe_extra,
@@ -981,16 +981,16 @@ void lmd_output_file::write_file_header(const s_filhe_extra_host *file_header_ex
   // but instead uses the length given in the first buffer (or
   // previous, who knows...?).
 
-  size_t file_header_used_size = 
-    sizeof(write_filhe_extra) - 
+  size_t file_header_used_size =
+    sizeof(write_filhe_extra) -
     sizeof(write_filhe_extra.s_strings) +
-    (min(30,write_filhe_extra.filhe_lines)) * 
+    (min(30,write_filhe_extra.filhe_lines)) *
     sizeof(write_filhe_extra.s_strings[0]);
 
   new_buffer(file_header_used_size);
 }
 
-void 
+void
 lmd_output_file::set_file_header(const s_filhe_extra_host *file_header_extra,
 				 const char *add_comment)
 {
@@ -1000,7 +1000,7 @@ lmd_output_file::set_file_header(const s_filhe_extra_host *file_header_extra,
 
   // Header is cleaned up by write_file_header, so we only
   // need to add what we want (the comment).
-  
+
   if (file_header_extra)
     _file_header_extra = *file_header_extra;
   else
@@ -1016,11 +1016,11 @@ lmd_output_file::set_file_header(const s_filhe_extra_host *file_header_extra,
   strncpy((char*) _file_header_extra.s_strings[comment_index].string,
 	  add_comment,sizeof(_file_header_extra.s_strings[comment_index].string));
   _file_header_extra.s_strings[comment_index].len = (uint16) strlen(add_comment);
-  if (_file_header_extra.s_strings[comment_index].len > 
+  if (_file_header_extra.s_strings[comment_index].len >
       sizeof(_file_header_extra.s_strings[comment_index].string))
     _file_header_extra.s_strings[comment_index].len =
       sizeof(_file_header_extra.s_strings[comment_index].string);
-  
+
   _has_file_header = true;
 
   if (!_cur_buf_start)
@@ -1081,16 +1081,16 @@ lmd_event_out::~lmd_event_out()
 void lmd_event_out::realloc_chunks()
 {
   // We need to reallocate
-  
+
   size_t n = (size_t) (_chunk_alloc - _chunk_start);
   size_t m = 2 * n + 4;
-  
+
   _chunk_start = (buf_chunk_swap*) realloc(_chunk_start,
 					   sizeof(buf_chunk_swap) * m);
-  
+
   if (!_chunk_start)
     ERROR("Memory allocation failure.");
-  
+
   _chunk_end   = _chunk_start + n;
   _chunk_alloc = _chunk_start + m;
 }
@@ -1098,7 +1098,7 @@ void lmd_event_out::realloc_chunks()
 void lmd_event_out::realloc_buf(size_t more)
 {
   // We need to reallocate
-  
+
   size_t n = (size_t) (_buf_alloc - _buf_start);
   size_t m = 2 * n + 2 * more;
 
@@ -1114,17 +1114,17 @@ void lmd_event_out::realloc_buf(size_t more)
   // printf ("TO-free: %p (alloc: %zd)\n",_buf_start,m);
 
   _buf_start = (char*) malloc(sizeof(char) * m);
-  
+
   if (!_buf_start)
     ERROR("Memory allocation failure.");
-  
+
   _buf_end   = _buf_start + n;
   _buf_alloc = _buf_start + m;
 }
 
 void lmd_event_out::clear()
-{ 
-  _chunk_end = _chunk_start; 
+{
+  _chunk_end = _chunk_start;
   _buf_end = _buf_start;
 
   for (free_ptr *fp = _free_buf; fp; )
@@ -1190,13 +1190,13 @@ void lmd_event_out::copy_header(const lmd_event *event,
       assert(_chunk_end == _chunk_start);
 
       // Copy directly from the event, ignoring the subevents
-      
+
       _header = event->_header._header;
-      
+
       // The second part of the header is handled as a chunk
-      
+
       _info = event->_header._info;
-      
+
       ANOTHER_CHUNK((const char *) &_info,
 		    sizeof(lmd_event_info_host),
 		    0/*native*/);
@@ -1266,8 +1266,6 @@ void lmd_event_out::copy(const lmd_event *event,
       if (!select->accept_subevent(subevent_header))
 	continue;
 
-      // printf ("subev...\n");
-
       /*****************************************/
 
       // Subevent is wanted.
@@ -1289,7 +1287,7 @@ void lmd_event_out::copy(const lmd_event *event,
 	  // data is in one chunk
 
 	  // we already checked for space for first chunk
-  
+
 	  size_t length = (size_t)
 	    SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
 
@@ -1308,7 +1306,7 @@ void lmd_event_out::copy(const lmd_event *event,
 	  size_t size0 = frag->_length - subevent_info->_offset;
 
 	  // we already checked for space for first chunk
-	  
+
 	  // ANOTHER_CHUNK(frag->_ptr,size0,event->_swapping);
 
 	  char *buf;
@@ -1330,7 +1328,7 @@ void lmd_event_out::copy(const lmd_event *event,
 	      ANOTHER_CHUNK(buf,size,event->_swapping);
 
 	      length -= size;
-	      
+
 	      frag++;
 	      size = frag->_length;
 	    }
@@ -1358,7 +1356,7 @@ bool lmd_event_out::has_subevents() const
   /* Second chunk, if any, shall not be empty. */
 
   assert (_chunk_start + 1 >= _chunk_end ||
-	  _chunk_start[1]._length > 0); 
+	  _chunk_start[1]._length > 0);
 
   /* More than one (header) chunk? */
 
@@ -1371,6 +1369,6 @@ size_t lmd_event_out::get_length() const
 
   for (const buf_chunk_swap* c = _chunk_start; c < _chunk_end; c++)
     length += c->_length;
-       
+
   return length;
 }

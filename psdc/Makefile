@@ -38,7 +38,7 @@ CXXFLAGS += # -ansi , troubles with strdup and fileno
 CXXFLAGS += -O3
 CXXFLAGS += -DPSDC_SRC
 
-CXXFLAGS += -ansi -Wall -W -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wwrite-strings -Wconversion -Werror -Wcast-qual #-Wshadow
+CXXFLAGS += -ansi -Wall -W -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wwrite-strings -Wconversion -Wcast-qual #-Wshadow
 
 UNAME_S:=$(shell uname -s)
 ifneq ($(UNAME_S),Darwin)

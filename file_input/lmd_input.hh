@@ -181,7 +181,7 @@ public:
 public:
   void release_events();
 
-  lmd_event *get_event(/*pax_event *dest*/);
+  virtual lmd_event *get_event(/*pax_event *dest*/);
 
 #if USE_MERGING
   lmd_event _file_event;

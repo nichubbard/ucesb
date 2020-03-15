@@ -46,7 +46,7 @@ inline size_t copy_range(buf_chunk *&dest,
 {
   if (src >= end)
     return 0;
-  
+
   buf_chunk *next = src + 1;
 
   if (next >= end)
@@ -61,7 +61,7 @@ inline size_t copy_range(buf_chunk *&dest,
 
   *(dest++) = src[0];
   *(dest++) = src[1];
-  
+
   return src[0]._length + src[1]._length;
 }
 
@@ -129,13 +129,13 @@ inline bool get_range_many(char *dest,
   // copy whatever data was available
 
   size_t avail = src->_length - offset;
-  
+
   memcpy(dest,src->_ptr + offset,avail);
   dest += avail;
   offset = 0;
   length -= avail;
   src++;
-  
+
   if (UNLIKELY(!length))
     return true; // we got all that we want
 
@@ -224,7 +224,7 @@ inline bool get_range(buf_chunk dest[2],char **dest_continous,
       src++;
       return true;
     }
-  
+
   src->_ptr    += remain;
   src->_length -= remain;
 
@@ -246,7 +246,7 @@ inline bool get_range(buf_chunk dest[2],buf_chunk **dest_end,
 
   if (LIKELY(length < src->_length))
     {
-      dest[0]._length = length;      
+      dest[0]._length = length;
       src->_ptr    += length;
       src->_length -= length;
       *dest_end = &dest[1];
@@ -284,7 +284,7 @@ inline bool get_range(buf_chunk dest[2],buf_chunk **dest_end,
       src++;
       return true;
     }
-  
+
   src->_ptr    += remain;
   src->_length -= remain;
 

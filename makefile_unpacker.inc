@@ -60,11 +60,11 @@ else
   CXXFLAGS += -Wno-comment -Wno-macro-redefined -Wno-sign-conversion -Wno-float-conversion -Wno-mismatched-tags
 endif
 
-CXXFLAGS += -g
+CXXFLAGS += -g --std=c++14
 OPTFLAGS += #-DNDEBUG
 OPTFLAGS += #-fmudflapth # -fstack-protector
 
-OPTFLAGS += -O3
+OPTFLAGS += -O0
 
 # For supporting large files:
 CXXFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
@@ -268,6 +268,10 @@ include $(UCESB_BASE_DIR)/makefile_ext_file_writer.inc
 $(UNPACKER): $(EXT_WRITERS)
 endif
 
+ifdef USE_INPUTFILTER
+CXXFLAGS += -DUSE_INPUTFILTER=1
+endif
+
 #########################################################
 
 ifdef NTUPLE_CREATION
@@ -385,7 +389,7 @@ HAVE_THREAD_LOCAL_STORAGE := $(shell gcc -pthread -lpthread -o /dev/null \
 CXXFLAGS     += $(HAVE_THREAD_LOCAL_STORAGE)
 endif
 
-ifdef USE_PTHREAD
+ifeq ($(USE_PTHREAD),1)
 CXXFLAGS     += -pthread -DUSE_PTHREAD=$(USE_PTHREAD) -DHAVE_PTHREAD
 CXXLIBS      += -lpthread
 
@@ -395,7 +399,7 @@ OBJS         +=
 # make them fatal by default.  But that will come!
 
 ifeq (,$(FORCE_PTHREAD)) # not if we forced
-CXXFLAGS += -Werror # -Wshadow -Wcast-qual
+CXXFLAGS +=  # -Wshadow -Wcast-qual
 endif
 
 endif # USE_PTHREAD
@@ -445,6 +449,9 @@ CXXFLAGS     += -DUSE_LMD_INPUT=$(USE_LMD_INPUT)
 OBJS         += lmd_event.o lmd_input.o lmd_input_tcp.o \
 		tcp_pipe_buffer.o select_event.o \
 		lmd_output.o
+ifdef USE_INPUTFILTER
+OBJS         += lmd_source_multievent.o
+endif
 ifdef USE_PTHREAD
 CXXFLAGS     += -DUSE_LMD_OUTPUT_TCP
 OBJS         += lmd_output_tcp.o

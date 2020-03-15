@@ -35,7 +35,7 @@ export CXX
 
 UNPACKERS=land xtst rpc2006 is446 is430_05 is445_08 labbet1 mwpclab \
 	gamma_k8 hacky empty sid_genf madrid ebye i123 s107 tacquila \
-	fa192mar09 is507 sampler ridf #tagtest
+	fa192mar09 is507 sampler ridf despec
 
 all: $(UNPACKERS)
 
@@ -62,6 +62,12 @@ endif
 .PHONY: empty_real
 empty_real: $(DEPENDENCIES)
 	@$(MAKE) -C empty -f ../makefile_unpacker.inc UNPACKER=empty 
+
+#########################################################
+
+.PHONY: despec_real
+despec_real: $(DEPENDENCIES)
+	@$(MAKE) -C despec -f ../makefile_unpacker.inc UNPACKER=despec 
 
 #########################################################
 
@@ -146,6 +152,15 @@ empty: $(EXTTDIR)/ext_reader_h101.runstamp \
 	$(EXTTDIR)/ext_writer_h101.runstamp
 endif
 
+#########################################################
+
+.PHONY: despec
+despec: despec_real
+ifndef USE_MERGING # disabled for the time being (to be fixed...)
+despec: ext_reader_h101.runstamp ext_reader_h101_items_info.runstamp \
+	ext_reader_h101_stderr.runstamp \
+	ext_writer_h101.runstamp
+endif
 #########################################################
 
 .PHONY: xtst_real

@@ -20,7 +20,9 @@
 
 #include "error.hh"
 
+#include "config.hh"
 #include "thread_info_window.hh"
+#include "../watcher/watcher_window.hh"
 
 #include "worker_thread.hh"
 #include "thread_buffer.hh"
@@ -163,6 +165,7 @@ struct error_reclaim
 };
 
 extern thread_info_window *_ti_info_window;
+extern watcher_window _watcher;
 
 void formatted_error::eject()
 {
@@ -196,10 +199,17 @@ void formatted_error::eject()
   else
 #endif
     {
-      markconvbold_output(_buffer,
-			  _type == FE_ERROR ? CTR_WHITE_BG_RED :
-			  _type == FE_WARNING ? CTR_BLACK_BG_YELLOW :
-			  CTR_NONE);
+      if (_conf._watcher._command && _watcher._init)
+      {
+          _watcher.on_error(_buffer, _type);
+      }
+      else
+      {
+        markconvbold_output(_buffer,
+  			  _type == FE_ERROR ? CTR_WHITE_BG_RED :
+  			  _type == FE_WARNING ? CTR_BLACK_BG_YELLOW :
+  			  CTR_NONE);
+      }
     }
 }
 

@@ -27,6 +27,18 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifdef USER_WATCHER_INIT
+void  USER_WATCHER_INIT();
+#endif
+
+#ifdef USER_WATCHER_DISPLAY
+void USER_WATCHER_DISPLAY(watcher_display_info&);
+#endif
+
+#ifdef USER_WATCHER_CLEAR
+void USER_WATCHER_CLEAR();
+#endif
+
 // If none specified
 watcher_type_info dummy_watch_types[1] = { { COLOR_GREEN, NULL}, };
 
@@ -35,6 +47,7 @@ extern watcher_type_info WATCH_TYPE_NAMES[NUM_WATCH_TYPES];
 watcher_window::watcher_window()
 {
   _last_update = 0;
+  _init = false;
 
   _display_at_mask = 0;
   _display_counts  = 1000; 
@@ -52,13 +65,32 @@ typedef void (*void_void_func)(void);
 
 #define COL_TYPE_BASE   3
 
+#define COL_TEXT_NORMAL 10
+#define COL_TEXT_ERROR 11
+#define COL_TEXT_WARNING 12
+#define COL_TEXT_INFO 13
+
+std::deque<std::pair<std::string, int>> errors;
+#include "colourtext.hh"
+
 void watcher_window::init()
 {
   // Get ourselves some window
-
+  
   mw = initscr();
   start_color();
-  atexit((void_void_func) endwin);
+  atexit([]
+    { 
+      endwin();
+      for (auto const& i : errors)
+      {
+        markconvbold_output(i.first.c_str(),
+  			  i.second == FE_ERROR ? CTR_WHITE_BG_RED :
+  			  i.second == FE_WARNING ? CTR_BLACK_BG_YELLOW :
+  			  CTR_NONE);
+      }
+    }
+  );
   nocbreak(); 
   noecho();
   nonl();
@@ -68,15 +100,24 @@ void watcher_window::init()
 
   init_pair(COL_NORMAL,     COLOR_WHITE  ,COLOR_BLUE);
   init_pair(COL_DATA_BKGND, COLOR_WHITE  ,COLOR_BLACK);
+  
+  init_pair(COL_TEXT_NORMAL, COLOR_WHITE  ,COLOR_BLACK);
+  init_pair(COL_TEXT_ERROR,  COLOR_WHITE  ,COLOR_RED);
+  init_pair(COL_TEXT_WARNING,COLOR_YELLOW ,COLOR_BLACK);
+  init_pair(COL_TEXT_INFO,   COLOR_GREEN  ,COLOR_BLACK);
 
   for (int type = 0; type < NUM_WATCH_TYPES; type++)
     init_pair((short) (COL_TYPE_BASE+type),
 	      WATCH_TYPE_NAMES[type]._color,COLOR_BLACK);
+      
 
-  wtop    = newwin(TOP_WINDOW_LINES,80,               0,0);
-  wscroll = newwin(               0,80,TOP_WINDOW_LINES,0);
+  wtop      = newwin(TOP_WINDOW_LINES,80,               0,    0); 
+  wscroll   = newwin(              31,80,TOP_WINDOW_LINES,    0);
+  werrortop = newwin(               1,80,TOP_WINDOW_LINES+31,  0);
+  werror    = newwin(               0, 0,TOP_WINDOW_LINES+32, 0);
 
   scrollok(wscroll,1);
+  scrollok(werror, 1);
 
   // Fill it with some information
 
@@ -90,7 +131,22 @@ void watcher_window::init()
   wcolor_set(wscroll,COL_NORMAL,NULL);
   wbkgd(wscroll,COLOR_PAIR(COL_DATA_BKGND));
   wrefresh(wscroll);
+  
+  wcolor_set(werrortop, COL_TEXT_ERROR, NULL);
+  wbkgd(werrortop,COLOR_PAIR(COL_TEXT_NORMAL));
+  wmove(werrortop, 0, 0);
+  whline(werrortop, ACS_HLINE, 80);
+  mvwaddstr(werrortop, 0, 1, "ucesb Log");
+  wrefresh(werrortop);  
+  
+  wcolor_set(werror,COL_TEXT_NORMAL,NULL);
+  wbkgd(werror,COLOR_PAIR(COL_TEXT_NORMAL));
+  
+  
+  wmove(werror, 0, 0);
+  wrefresh(werror);  
 
+  _init = true;
   _time = 0;
   _event_no = 0;
   _counter = 0;  
@@ -105,6 +161,10 @@ void watcher_window::init()
       _display_counts  = 10000;
       _display_timeout = 15;
     }
+
+#ifdef USER_WATCHER_INIT
+  USER_WATCHER_INIT();
+#endif
 }
 
 void watcher_window::event(watcher_event_info &info)
@@ -189,10 +249,10 @@ void watcher_window::event(watcher_event_info &info)
       for (int type = 0; type < NUM_WATCH_TYPES; type++)
 	{
 	  wcolor_set(wtop,(short) (COL_TYPE_BASE+type),NULL);
-	  sprintf (buf,"%9s:%6d ",
+	  sprintf (buf,"%9s:%8d ",
 		   WATCH_TYPE_NAMES[type]._name,
 		   _type_count[type]);
-	  wmove(wtop,1+type,80-18);
+	  wmove(wtop,1+type,80-20);
 	  waddstr(wtop,buf);
 	}
 
@@ -223,13 +283,22 @@ void watcher_window::event(watcher_event_info &info)
       for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
 	(*ch)->display(display_info);
 
+#ifdef USER_WATCHER_DISPLAY
+      USER_WATCHER_DISPLAY(display_info);
+#endif
+
       wrefresh(wscroll);
+      wrefresh(werror);  
 
       _counter = 0;
       memset(_type_count,0,sizeof(_type_count));
 
       for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
 	(*ch)->clear_data();
+
+#ifdef USER_WATCHER_CLEAR
+      USER_WATCHER_CLEAR();
+#endif
       /*
       _det_watcher.clear();
       _det_watchcoinc.clear();
@@ -237,3 +306,90 @@ void watcher_window::event(watcher_event_info &info)
     }
 }
 
+void watcher_window::on_error(const char* buf, int type)
+{
+  errors.push_back({buf, type});
+  if (errors.size() > 20)
+    errors.pop_front();
+  
+  wcolor_set(werror,COL_TEXT_NORMAL+type,NULL);  
+  
+  const char *escape = strchr(buf,'\033');
+  
+  if (!escape)
+    wprintw (werror,"%s\n",buf);
+  else
+  {    
+    const char *curbuf = buf;
+    
+    do
+    {
+      size_t eat = 2;
+      int attr = 0;
+      
+      /*
+    A_NORMAL        Normal display (no highlight)
+    A_STANDOUT      Best highlighting mode of the terminal.
+    A_UNDERLINE     Underlining
+    A_REVERSE       Reverse video
+    A_BLINK         Blinking
+    A_DIM           Half bright
+    A_BOLD          Extra bright or bold
+    A_PROTECT       Protected mode
+    A_INVIS         Invisible or blank mode
+    A_ALTCHARSET    Alternate character set
+    A_CHARTEXT      Bit-mask to extract a character
+    COLOR_PAIR(n)   Color-pair number n 
+    */
+      
+      switch (escape[1])
+      {
+        case 'A':
+        attr = A_BOLD;
+        break;
+        case 'B':
+        attr = A_NORMAL;
+        break;
+        case 'C':
+        
+        break;
+        case 'D':
+        //ctext_esc = CT_ERR(GREEN);
+        break;
+        case 'E':
+        //ctext_esc = CT_ERR(BLUE);
+        break;
+        case 'F':
+        //ctext_esc = CT_ERR(MAGENTA);
+        break;
+        case 'G':
+        //ctext_esc = CT_ERR(CYAN);
+        break;
+        case 'H':
+        //ctext_esc = CT_ERR(BLACK);
+        break;
+        case 'I':
+        //ctext_esc = CT_ERR(WHITE);
+        break;
+        default:
+        eat = 1;
+        break;
+      }
+      
+      wprintw (werror,"%.*s",
+      (int) (escape - curbuf),curbuf);
+      
+      curbuf = escape + eat;
+      
+      wattrset(werror, attr);
+      wcolor_set(werror,COL_TEXT_NORMAL+type,NULL);  
+      
+      escape = strchr(curbuf,'\033');
+    }
+    while (escape);
+    
+    wprintw (werror,"%s\n",curbuf);
+  }
+    
+  wrefresh(werror);
+}
