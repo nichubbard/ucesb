@@ -157,9 +157,10 @@ endif
 .PHONY: despec
 despec: despec_real
 ifndef USE_MERGING # disabled for the time being (to be fixed...)
-despec: ext_reader_h101.runstamp ext_reader_h101_items_info.runstamp \
-	ext_reader_h101_stderr.runstamp \
-	ext_writer_h101.runstamp
+despec: $(EXTTDIR)/ext_reader_h101.runstamp \
+	$(EXTTDIR)/ext_reader_h101_items_info.runstamp \
+	$(EXTTDIR)/ext_reader_h101_stderr.runstamp \
+	$(EXTTDIR)/ext_writer_h101.runstamp
 endif
 #########################################################
 
