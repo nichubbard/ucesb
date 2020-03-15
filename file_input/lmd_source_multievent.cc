@@ -132,6 +132,11 @@ lmd_event *lmd_source_multievent::get_event()
   else if (status == eof)
   {
     _TRACE("=> EOF reached, %lu / %lu\n", aida_events_merge.size(), trigger_event.size());
+    if (_input._input->_filename != _inputs.back()._name)
+    {
+      _TRACE("Returning EOF to move to next file\n");
+      return NULL;
+    }
     // Mark AIDA data for dumping
     if (aida_events_merge.size() > 0)
     {
@@ -535,7 +540,7 @@ lmd_event *lmd_source_multievent::emit_other()
     return &_file_event;
 }
 
-lmd_source_multievent::lmd_source_multievent() : l_count(0), emit_wr(0), emit_skip(0), aida_skip(0)
+lmd_source_multievent::lmd_source_multievent() : emit_wr(0), emit_skip(0), aida_skip(0), l_count(0)
 {
 #if BPLAST_DELAY_FIX
   WARNING("bPlas WR Correction is ACTIVE");

@@ -331,7 +331,7 @@ public:
   virtual ~input_buffer();
 
 public:
-#ifdef USE_CURSES
+#if defined(USE_CURSES) || defined(USE_INPUTFILTER)
   // Only used for diagnostics (--progress)
   const char *_filename;
 #endif
