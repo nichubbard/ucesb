@@ -69,26 +69,26 @@ public:
   bool  _may_change_file; // e.g. not stdout pipe
 
 public:
-  void add_size(size_t size) 
+  void add_size(size_t size)
   {
     _cur_size += size;
     // printf ("add %d -> %d\n",size,_cur_size);
   }
 
-  void add_events(uint32 events = 1) 
+  void add_events(uint32 events = 1)
   {
     _cur_events += events;
     // printf ("add %d -> %d\n",events,_cur_events);
   }
 
-  void change_file() 
+  void change_file()
   {
     if (_may_change_file)
-      {    
+      {
 	char *filename = new char[strlen(_filename_base)+32];
 
 	for ( ; ; )
-	  {    
+	  {
 	    sprintf(filename,_filename_base,_filename_no_len,_filename_no);
 
 	    if (!_avoid_used_number)
@@ -105,7 +105,7 @@ public:
 
 	    _filename_no++;
 	  }
-    
+
 	new_file(filename);
 	delete[] filename;
 
@@ -116,7 +116,7 @@ public:
     _cur_events = 0;
   }
 
-  void can_change_file() 
+  void can_change_file()
   {
     // printf ("can change, %d cmp %d .. %d cmp %d\n",
     // _cur_size,_limit_size,_cur_events,_limit_events);

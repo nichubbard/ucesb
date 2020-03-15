@@ -55,14 +55,14 @@ For the makefile_additional.inc:
 EVENTUSERFUNCTION=identifier
 
 C name of user function (for looking at physical events), with prototype
-	
+
 void user_function(unpack_event *event,
 		   raw_event    *raw_event);
 
 FULLEVENTUSERFUNCTION=identifier
 
 C name of user function (for looking at full file events), with prototype
-	
+
 int event_user_function(unpack_event *event);
 
 The FULLEVENTUSERFUNCTION can also be used to validate that the event

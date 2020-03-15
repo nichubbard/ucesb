@@ -113,6 +113,7 @@ struct md_ident_fl
 %token PUBLIC
 %token MULTI
 %token UNIT
+%token TOGGLE
 
 /* Operands for simple calculations */
 
@@ -141,6 +142,7 @@ struct md_ident_fl
 
 %type <strValue>   unit
 
+%type <item_type>  item_toggle_typename
 %type <item_type>  item_typename
 %type <item_type>  typename_null
 %type <item_type>  typename
@@ -181,7 +183,7 @@ stmt_list:
 /* Each statement is either an range specification or a parameter specification. */
 stmt:
           ';'                                      { $$ = NULL; }
-        | struct_definition                        { $$ = $1; } 
+        | struct_definition                        { $$ = $1; }
 /*        | '{' stmt_list '}'                        { $$ = node_list_pack($2); }*/
 /*        | hardware_definition                      { append_hardware($1); $$ = NULL; } */
 /*        | module_definition                        { $$ = $1; } */
@@ -214,7 +216,7 @@ ident_null:
 base_class_list:
           base_class                     { $$ = create_list($1); }
         | base_class_list ',' base_class { $$ = append_list($1,$3); }
-        ; 
+        ;
 
 base_class:
 	  PUBLIC IDENTIFIER    { $$ = $2; }
@@ -223,12 +225,12 @@ base_class:
 struct_item_list_null:
                            { null_list(&$$); }
         | struct_item_list { $$ = $1; }
-        ; 
+        ;
 
 struct_item_list:
           struct_item                  { $$ = create_list($1); }
         | struct_item_list struct_item { $$ = append_list($1,$2); }
-        ; 
+        ;
 
 struct_item:
           PUBLIC ':'                   { $$ = NULL; /* silenty ignore */ }
@@ -243,8 +245,8 @@ struct_item:
         ;
 
 struct_member:
-          item_typename IDENTIFIER        { $$ = new c_struct_member(CURR_FILE_LINE,$1,$2,NULL,0,0); }
-        | MULTI item_typename IDENTIFIER  { $$ = new c_struct_member(CURR_FILE_LINE,$2,$3,NULL,0,1); }
+          item_toggle_typename IDENTIFIER        { $$ = new c_struct_member(CURR_FILE_LINE,$1,$2,NULL,0,0); }
+        | MULTI item_toggle_typename IDENTIFIER  { $$ = new c_struct_member(CURR_FILE_LINE,$2,$3,NULL,0,1); }
         ;
 
 unit:
@@ -260,6 +262,11 @@ typename:
 	  IDENTIFIER   { $$ = new c_typename(CURR_FILE_LINE,$1); }
 	;
 
+item_toggle_typename:
+          item_typename                { $$ = $1; }
+        | TOGGLE '(' item_typename ')' { $3->set_toggle(); $$ = $3; }
+        ;
+
 item_typename:
 	  IDENTIFIER                   { $$ = new c_typename(CURR_FILE_LINE,$1); }
         | IDENTIFIER '<' argument_list '>'  { $$ = new c_typename_template(CURR_FILE_LINE,$1,$3); }
@@ -268,21 +275,22 @@ item_typename:
 argument_list:
           argument                     { $$ = create_list($1); }
         | argument_list ',' argument   { $$ = append_list($1,$3); }
-        ; 
+        ;
 
 argument:
-	  IDENTIFIER array_spec_list_null { $$ = new c_arg_named(CURR_FILE_LINE,$1,$2); }
+          IDENTIFIER array_spec_list_null { $$ = new c_arg_named(CURR_FILE_LINE,$1,$2,false); }
+        | TOGGLE '(' IDENTIFIER ')' array_spec_list_null { $$ = new c_arg_named(CURR_FILE_LINE,$3,$5,true); }
 	| INTEGER                         { $$ = new c_arg_const(CURR_FILE_LINE,$1); }
         ;
 
 array_spec_list_null:
                                        { $$ = NULL; }
         | array_spec_list              { $$ = $1; }
-        ; 
+        ;
 
 array_spec_list:
 	  array_spec                   { $$ = new c_array_ind; $$->push_back($1); }
-	| array_spec_list array_spec   { $1->push_back($2); $$ = $1; }  
+	| array_spec_list array_spec   { $1->push_back($2); $$ = $1; }
 	;
 
 array_spec:
@@ -296,7 +304,7 @@ array_spec:
 bitfield_item_list:
           bitfield_item                    { $$ = create_list($1); }
         | bitfield_item_list bitfield_item { $$ = append_list($1,$2); }
-        ; 
+        ;
 
 bitfield_item:
 	  IDENTIFIER IDENTIFIER ':' INTEGER ';'   { $$ = new c_bitfield_item(CURR_FILE_LINE,$1,$2,$4); }
@@ -323,15 +331,15 @@ value:
         | value '+' value         { $$ = $1 + $3; }
         | value '-' value         { $$ = $1 - $3; }
         | value '*' value         { $$ = $1 * $3; }
-        | value '/' value         
-          { 
+        | value '/' value
+          {
 	    if (!$3)
 #ifdef YYBISON
 	      fprintf(stderr,"Warning: Division by zero, l%d,c%d-l%d,c%d",
 		      @3.first_line, @3.first_column,
 		      @3.last_line,  @3.last_column);
 #endif
-	    $$ = $1 / $3; 
+	    $$ = $1 / $3;
 	  }
         | '(' value ')'           { $$ = $2; }
         ;
@@ -342,9 +350,9 @@ void yyerror(const char *s) {
   print_lineno(stderr,yylineno);
   fprintf(stderr," %s\n", s);
 /*
-  Current.first_line   = Rhs[1].first_line;      
-  Current.first_column = Rhs[1].first_column;    
-  Current.last_line    = Rhs[N].last_line;       
+  Current.first_line   = Rhs[1].first_line;
+  Current.first_column = Rhs[1].first_column;
+  Current.last_line    = Rhs[N].last_line;
   Current.last_column  = Rhs[N].last_column;
 */
 }

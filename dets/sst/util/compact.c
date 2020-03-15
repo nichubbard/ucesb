@@ -56,16 +56,16 @@ compact(const uint32 *src,
       for (int j = 32; j; --j)
 	{
 	  uint32 value = (*(src++) - *(base) - offset) & 0xfff; // only 12 bits
-	  
+
 	  if (value < 16)
 	    {
-	      bits = 12;	      
+	      bits = 12;
 	    }
 	  else
 	    {
 	      mask |= bit;
-	      bits = 4;	      
-	    } 
+	      bits = 4;
+	    }
 
 	  bit <<= 1;
 

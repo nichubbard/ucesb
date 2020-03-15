@@ -42,18 +42,18 @@ void test_parabola1()
   double a = -2.0 + (4.0 * random()) / RAND_MAX;
   double b = -2.0 + (4.0 * random()) / RAND_MAX;
   double c = -2.0 + (4.0 * random()) / RAND_MAX;
-  
+
   int n = 3 + (int) ((5.0 * random()) / RAND_MAX);
-  
+
   fit_parabola pfit;
   pfit.clear();
-  
+
   for (int i = 0; i < n; i++)
     {
       double x = -4.0 + (8.0 * random()) / RAND_MAX;
-      
+
       double y = a + b * x + c * x * x;
-      
+
       pfit.fill(x,y,1.0);
     }
 
@@ -62,7 +62,7 @@ void test_parabola1()
   double fc = pfit.c();
 
   printf ("%6.2f %6.2f %6.2f\n",a-fa,b-fb,c-fc);
-    
+
 }
 
 
@@ -71,18 +71,18 @@ void test_parabola2()
   double x0 = -2.0 + (4.0 * random()) / RAND_MAX;
   double y0 = -2.0 + (4.0 * random()) / RAND_MAX;
   double c = -2.0 + (4.0 * random()) / RAND_MAX;
-  
+
   int n = 3 + (int) ((5.0 * random()) / RAND_MAX);
-  
+
   fit_parabola pfit;
   pfit.clear();
-  
+
   for (int i = 0; i < n; i++)
     {
       double x = -4.0 + (8.0 * random()) / RAND_MAX;
-      
+
       double y = c * (x - x0) * (x - x0) + y0;
-      
+
       pfit.fill(x,y,1.0);
     }
 
@@ -91,7 +91,7 @@ void test_parabola2()
   double fc  = pfit.c0();
 
   printf ("%6.2f %6.2f %6.2f\n",x0-fx0,y0-fy0,c-fc);
-    
+
 }
 #endif
 
@@ -142,7 +142,7 @@ void siderem_peaks(int det,sid_data &data,
 
   for (int i = 0; i < data.n; i++)
     if (data.data[i].value > max_val &&
-	data.data[i].value > 25) 
+	data.data[i].value > 25)
       {
 	max_val = data.data[i].value;
 	max_i   = i;
@@ -159,7 +159,7 @@ void siderem_peaks(int det,sid_data &data,
 	    {
 	      printf (" : %7.2f %5.2f %6.2f",
 		      sid_peaks[i].strip,
-		      sid_peaks[i].peak, 
+		      sid_peaks[i].peak,
 		      sid_peaks[i].c);
 	    }
 	  printf ("\n");
@@ -265,23 +265,23 @@ void siderem_peaks(int det,sid_data &data,
   // Now, try to do some fitting of the data
 
 #define SIGMA_CONST_FACTOR 20.0
-  
+
   {
     fit_parabola pfit;
     pfit.clear();
 
     int n_fit = 0;
-    
+
     for (int i = first_i; i <= last_i; i++)
       {
 	if (data.data[i].value > 20)
-	  {        
+	  {
 	    double strip = data.data[i].strip;
 	    double value = data.data[i].value;
 
 	    pfit.fill_inv(strip - max_strip,
 			  log(value),
-			  value/SIGMA_CONST_FACTOR);          
+			  value/SIGMA_CONST_FACTOR);
 	    n_fit++;
 	  }
       }
@@ -298,7 +298,7 @@ void siderem_peaks(int det,sid_data &data,
     if (n_fit >= 4)
       {
 	function_fit<gauss_function> fg;
-	
+
 	fg._cur._param._center = f_strip;
 	fg._cur._param._peak   = exp(f_peak);
 	fg._cur._param._c      = f_c;
@@ -311,12 +311,12 @@ void siderem_peaks(int det,sid_data &data,
 
 	for (int i = first_i; i <= last_i; i++)
 	  if (data.data[i].value > 20)
-	    {        
+	    {
 	      fg.set_value(data.data[i].strip,
 			   data.data[i].value);
 	    }
 
-	fg.fit();	
+	fg.fit();
       }
 
 
@@ -373,11 +373,11 @@ void siderem_peaks(int det,sid_data &data,
 
       hit_event_PEAK_one &item =
 	peaks.hits.do_insert_index(peaks.hits._num_items);
-      
+
       item.center = (float) f_strip;
       item.sum    = (float) f_peak;
       item.c0     = (float) f_c;
-      
+
     }
   else if (last_i + 1 - first_i <= 4)
     {
@@ -388,7 +388,7 @@ void siderem_peaks(int det,sid_data &data,
 	{
 	  double strip = data.data[i].strip;
 	  double value = data.data[i].value;
-	  
+
 	  sum   += value;
 	  sum_x += value * strip;
 	}
@@ -400,7 +400,7 @@ void siderem_peaks(int det,sid_data &data,
       n_sid_mini_peaks++;
     }
    }
-  
+
   ///////////////////////////////////////////////////////////
 
   // now, remove the data that we used, and continue

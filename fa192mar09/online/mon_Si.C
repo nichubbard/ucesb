@@ -42,9 +42,9 @@ void mon_Si()
 
   for (int i = 0; i < 32; i++)
     {
-      
 
-    } 
+
+    }
   */
   cross->Draw("colz");
   _hists.push_back(cross);
@@ -56,7 +56,7 @@ void mon_Si()
 	{
 	  cross->Fill(e.SSSD[0].I[0]+.5,e.SSSD[1].I[0]+.5);
 	}
-      
+
       MON_EVENT_LOOP_UPDATE(e,2,1);
       /*
       if (e.TRIGGER == 2)

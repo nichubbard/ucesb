@@ -18,8 +18,8 @@
 # MA  02110-1301  USA
 
 # This makefile is needed when you make a copy of this directory
-# (hacky/) and use it outside the unpacker/ structure (where the
-# Makefile is within the unpacker/ directory itself.
+# (hacky/) and use it outside the ucesb/ structure (where the
+# Makefile is within the ucesb/ directory itself.
 
 #########################################################
 
@@ -45,12 +45,12 @@
 
 #########################################################
 
-# We still need access to the unpacker/ directory, since the ucesb and
+# We still need access to the ucesb/ directory, since the ucesb and
 # psdc programs are there, and since the common source also is there
 
-TREE_OR_HOME_SRC_DIR = $(firstword $(wildcard $(addsuffix /$(1),$(shell pwd)/.. $(HOME))))
+TREE_OR_HOME_SRC_DIR = $(realpath $(firstword $(wildcard $(addsuffix /$(1),$(shell pwd)/.. $(HOME)))))
 
-UCESB_BASE_DIR=$(call TREE_OR_HOME_SRC_DIR,unpacker)
+UCESB_BASE_DIR:=$(call TREE_OR_HOME_SRC_DIR,ucesb)
 export UCESB_BASE_DIR
 
 #########################################################
@@ -67,16 +67,16 @@ all: hacky
 #########################################################
 # Submakefiles that the programs depend on
 
-include $(UCESB_BASE_DIR)/makefile_ucesb.inc
+include $(UCESB_BASE_DIR)/makefile_ucesbgen.inc
 include $(UCESB_BASE_DIR)/makefile_psdc.inc
 
-DEPENDENCIES=$(UCESB) $(PSDC)
+DEPENDENCIES=$(UCESBGEN) $(PSDC)
 
 #########################################################
 
 .PHONY: hacky
 hacky: $(DEPENDENCIES)
-	@$(MAKE) -f $(UCESB_BASE_DIR)/makefile_unpacker.inc UNPACKER=$@ 
+	@$(MAKE) -f $(UCESB_BASE_DIR)/makefile_unpacker.inc UNPACKER=$@
 
 #########################################################
 

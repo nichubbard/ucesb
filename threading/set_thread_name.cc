@@ -60,7 +60,7 @@ void set_thread_name(pthread_t thread,
 
   strcat(fullname, "/");
   strncat(fullname, name, maxlen);
-  
+
   pthread_setname_np(thread, fullname);
 #else
   (void) thread;

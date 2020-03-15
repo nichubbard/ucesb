@@ -25,9 +25,15 @@
 
 #include "config.hh"
 
+class unpack_event;
+class unpack_sticky_event;
+
 void correlation_init(const config_command_vect &commands);
 void correlation_exit();
-void correlation_event(WATCH_MEMBERS_SINGLE_PARAM);
+void correlation_event(unpack_event *unpack_ev
+		       WATCH_MEMBERS_PARAM);
+void correlation_event(unpack_sticky_event *unpack_ev
+		       WATCH_MEMBERS_PARAM);
 
 void correlation_one_event(WATCH_MEMBERS_SINGLE_PARAM);
 

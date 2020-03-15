@@ -47,7 +47,7 @@ public:
     free(_ptr);
     _ptr = NULL;
     _alloc = 0;
-    
+
     for (int b = 0; b < buckets; b++)
       _ptr_offset[b] = -1;
   }
@@ -55,35 +55,35 @@ public:
   void alloc_bucket(int bucket)
   {
     // This bucket is not allocated yet...
-    
+
     // We'll need to reallocate
-    
+
     int *np = (int*) realloc(_ptr,sizeof(int) * chunk * (_alloc+1));
-    
+
     if (!np)
       ERROR("Memory allocation failure in corr.");
-    
+
     _ptr = np;
-    
+
     _ptr_offset[bucket] = _alloc;
-    
+
     memset(_ptr + _alloc * chunk,0,sizeof(int) * chunk);
-    
+
     _alloc++;
   }
-   
+
   void add(int start)
   {
     int bucket = start / chunk;
-    
+
     if (_ptr_offset[bucket] == -1)
       alloc_bucket(bucket);
-   
+
     int *p = _ptr + ((int) _ptr_offset[bucket]) * chunk;
-    
+
     int offset = start - bucket * chunk;
     p += offset;
-    
+
     (*p)++;
   }
 
@@ -91,11 +91,11 @@ public:
   {
     if (_ptr_offset[bucket] == -1)
       alloc_bucket(bucket);
-   
+
     int *p = _ptr + ((int) _ptr_offset[bucket]) * chunk;
-    
+
     p += offset;
-    
+
     (*p)++;
   }
 
@@ -104,15 +104,15 @@ public:
     while (start < end)
       {
 	int bucket = start / chunk;
-	
+
 	if (_ptr_offset[bucket] == -1)
 	  alloc_bucket(bucket);
-	
+
 	int *p = _ptr + ((int) _ptr_offset[bucket]) * chunk;
-	
+
 	int offset = start - bucket * chunk;
 	p += offset;
-	
+
 	while (start < end && offset < chunk)
 	  {
 	    (*p)++;
@@ -135,7 +135,7 @@ public:
 
 	  if (_ptr_offset[b] == -1)
 	    alloc_bucket(b);
-	  
+
 	  int *p_src  = rhs._ptr + ((int) rhs._ptr_offset[b]) * chunk;
 	  int *p_dest =     _ptr + ((int)     _ptr_offset[b]) * chunk;
 
@@ -176,13 +176,13 @@ public:
   {
     _corr[i1].add(i2);
   }
-  
+
   void add2(int i1,/*int i1_b,int i1_o,*/int i2_b,int i2_o)
   {
     // i1 = i1_b * chunk + i1_o
     _corr[i1].add(i2_b,i2_o);
   }
-  
+
   void add_range_self(int start1,int end1)
   {
     for (int i1 = start1; i1 < end1-1; i1++)
@@ -192,7 +192,7 @@ public:
       }
     _count[end1-1]++;
   }
-  
+
   void add_range(int start1,int end1,
 		 int start2,int end2)
   {
@@ -211,7 +211,7 @@ public:
       _count[i] += rhs._count[i];
 
     for (int i = 0; i < buckets*chunk; i++)
-      _corr[i].merge(rhs._corr[i]); 
+      _corr[i].merge(rhs._corr[i]);
   }
 
 public:
@@ -225,11 +225,11 @@ public:
     */
     // before we make the picture of the correlations, we need to
     // which buckets are in use at all
-    
+
     int used[buckets];
-    
+
     memset(used,0,sizeof(used));
-    
+
     for (int i = 0; i < buckets*chunk; i++)
       {
 	for (int b = 0; b < buckets; b++)
@@ -239,25 +239,25 @@ public:
 	      used[i / chunk]++;
 	    }
       }
-    
+
     int num_used = 0;
-    
+
     for (int b = 0; b < buckets; b++)
       {
 	if (used[b])
 	  num_used++;
-	
+
 	//printf ("b %d %3d : %d\n",m,b,used[b]);
       }
-    
+
     // The we need to allocate space for a picture, large enough...
-    
+
     int dim = num_used * chunk + buckets+1;
-    
+
     int off[buckets];
-    
+
     int next_off = 1;
-    
+
     for (int b = 0; b < buckets; b++)
       {
 	if (used[b])
@@ -267,18 +267,18 @@ public:
 	  }
 	else
 	  off[b] = 0;
-	
+
 	next_off++;
       }
-    
+
     printf ("dim %d  next %d\n",dim,next_off);
-    
+
     char *pict = (char *) malloc(sizeof(char) * dim * dim);
-    
+
     memset(pict,255,sizeof(char) * dim * dim);
-    
+
     // Then we need to dump the information onto the picture
-    
+
     for (int b1 = 0; b1 < buckets; b1++)
       if (off[b1])
 	{
@@ -286,31 +286,31 @@ public:
 		  filename,off[b1],dim,
 		  buckets * chunk + buckets+1);
 	  fflush(stderr);
-	  
+
 	  for (int c1 = 0; c1 < chunk; c1++)
 	    {
 	      int y = off[b1] + c1;
-	      
+
 	      pcorr<buckets,
 		chunk> *corr = &_corr[b1*chunk+c1];
-	      
+
 	      int cnt1 = _count[b1*chunk+c1];
-	      
+
 	      for (int b2 = 0; b2 < buckets; b2++)
 		{
 		  if (corr->_ptr_offset[b2] != -1)
 		    {
 		      int *data = corr->_ptr + corr->_ptr_offset[b2] * chunk;
-		      
+
 		      // now loop over the data in the chunk and eject it
-		      
+
 		      for (int c2 = 0; c2 < chunk; c2++)
 			{
 			  int x = off[b2] + c2;
-			  
+
 			  int corr = data[c2];
 			  int cnt2 = _count[b2*chunk+c2];
-			  
+
 			  double frac;
 
 			  /*
@@ -321,8 +321,8 @@ public:
 
 			  if (corr && cnt1 && cnt2)
 			    {
-			      frac = ((double) corr) / 
-				sqrt(((double) cnt1) * 
+			      frac = ((double) corr) /
+				sqrt(((double) cnt1) *
 				     ((double) cnt2));
 
 				// frac will always be <= 1.0, since corr < cnt1 and corr < cnt2
@@ -341,30 +341,30 @@ public:
 				  }
 			    }
 			}
-		    }		  
+		    }
 		}
 	    }
 	}
-    
+
     FILE *fid = fopen(filename,"wb");
-    
+
     fprintf (fid,"P5\n");
     fprintf (fid,"%d %d\n",dim,dim);
     fprintf (fid,"255\n");
-    
+
     fwrite(pict,sizeof(char),dim*dim,fid);
-    
+
     fclose(fid);
-    
+
     // Then dump the picture (as pgm - highly inefficient, but
     // gets the job done...)
 
-    
+
     //
-    
+
     free(pict);
   }
-  
+
 
 };
 

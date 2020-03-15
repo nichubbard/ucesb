@@ -31,7 +31,7 @@ struct WIRE_START_END
 {
   uint8 wire;
   uint8 start;
-  uint8 stop;  
+  uint8 stop;
 
 public:
   bool operator<(const wire_hit &rhs) const

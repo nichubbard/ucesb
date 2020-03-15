@@ -116,14 +116,14 @@ void mon_reset_hists()
 {
   for (vect_TH1_ptr::iterator iter = _hists.begin();
        iter != _hists.end(); ++iter)
-    (*iter)->Reset();    
+    (*iter)->Reset();
 }
 
 void mon_pads_modified()
 {
   for (vect_TVirtualPad_ptr::iterator iter = _pads.begin();
        iter != _pads.end(); ++iter)
-    (*iter)->Modified();    
+    (*iter)->Modified();
 }
 
 void mon_canvas_update()

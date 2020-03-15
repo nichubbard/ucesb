@@ -51,10 +51,10 @@ bool swap_hld_header(T_header *header)
 {
   uint32 high_byte = header->_decoding.u32 & 0xff000000;
   uint32 low_byte  = header->_decoding.u32 & 0x000000ff;
-  
+
   if (!high_byte && low_byte)
     return false; // no swapping needed
-  
+
   if (high_byte && !low_byte)
     {
       // swapping needed
@@ -153,19 +153,19 @@ hld_event *hld_source::get_event()
 
   // Do not retrieve any data if the data size is 0 (or locate_subevents will
   // try to find a first header...
-  
+
   if (LIKELY(data_size))
     {
       int chunks = 0;
-      
+
       chunks = _input.map_range(data_size,dest->_chunks);
-      
+
       if (UNLIKELY(!chunks))
 	{
 	  ERROR("Error while reading subevent data.");
 	  return NULL;
 	}
-      
+
       dest->_chunk_end += chunks;
     }
 
@@ -209,7 +209,7 @@ void hld_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	 CT_OUT(BOLD_BLUE),_header._id >> 31,CT_OUT(NORM_DEF_COL),
 	 CT_OUT(BOLD_BLUE),_header._id & 0x7fff,CT_OUT(NORM_DEF_COL), // 0-8191
 	 CT_OUT(BOLD_BLUE),_header._size,CT_OUT(NORM_DEF_COL));
-  
+
   printf("                             %s%04d-%02d-%02d %02d:%02d:%02d%s\n",
 	 CT_OUT(BOLD_BLUE),
 	 ((_header._date >> 16) & 0xff) + 1900,
@@ -219,13 +219,13 @@ void hld_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	 ((_header._time >>  8) & 0xff),
 	 ((_header._time      ) & 0xff),
 	 CT_OUT(NORM_DEF_COL));
-  
+
   // Subevents
-  
+
   for (int subevent = 0; subevent < _nsubevents; subevent++)
     {
       hld_subevent *subevent_info = &_subevents[subevent];
-      
+
       bool subevent_error = (unpack_fail &&
 			     unpack_fail->_next == &subevent_info->_header);
 
@@ -255,15 +255,15 @@ void hld_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	     CT_OUT(BOLD_MAGENTA),
 	     subevent_info->_header._size,
 	     CT_OUT(NORM_DEF_COL));
-      
+
       if (data)
 	{
 	  hex_dump_buf buf;
-	  
+
 	  if (subevent_info->_data)
 	    {
 	      uint32 data_length = subevent_info->_header._size;
-	      
+
 	      if (subevent_info->_header._decoding._align >= 2 &&
 		  (data_length & 3) == 0) // length is divisible by 4
 		hex_dump(stdout,
@@ -284,7 +284,7 @@ void hld_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	    }
 	}
     }
-  
+
   // Is there any remaining data, that could not be assigned as a subevent?
 
   print_remaining_event(_chunk_cur,_chunk_end,_offset_cur,0/*subevent_info->_swapping*/);
@@ -315,12 +315,12 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 #define MAX_SUBEVENTS 100 // TODO: fix this!!!
 
 #ifdef USE_THREADING
-  _subevents = (hld_subevent *) 
+  _subevents = (hld_subevent *)
     _wt._defrag_buffer->allocate_reclaim(sizeof (hld_subevent) * MAX_SUBEVENTS);
 #else
-  _subevents = (hld_subevent *) 
+  _subevents = (hld_subevent *)
     _defrag_event.allocate(sizeof (hld_subevent) * MAX_SUBEVENTS);
-#endif      
+#endif
 
   _nsubevents = 0;
 
@@ -386,20 +386,20 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 
       // Did the data come exclusively from this buffer?
 
-      size_t chunk_left = chunk_cur < _chunk_end ? 
+      size_t chunk_left = chunk_cur < _chunk_end ?
 	chunk_cur->_length - offset_cur : 0;
 
-      if (LIKELY(data_length + unused <= chunk_left)) 
+      if (LIKELY(data_length + unused <= chunk_left))
 	{
 	  // likely, since most subevents smaller than buffer size
-	  
+
 	  if (UNLIKELY(!data_length))
 	    {
 	      // if the data size is zero, and we're the last
 	      // subevent, then chunk_cur will not be valid, and we
 	      // should not give such a pointer away (i.e. we may not
 	      // dereference chunk_cur, so we cannot give it away)
-	      
+
 	      // But we want to give an invalid (but non-null) pointer
 	      // (since the length is zero, noone should _ever_ look
 	      // at it...
@@ -435,13 +435,13 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 
 	  // Each time we come into the loop, the current fragment
 	  // has some data, but not enough
-	  
+
 	  data_length -= chunk_left;
-	  
+
 	  // So, go get next fragment
-	  
+
 	  chunk_cur++;
-	  
+
 	  if (chunk_cur >= _chunk_end ||
 	      data_length > chunk_cur->_length)
 	    {
@@ -459,7 +459,7 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 
 	  // Account for how much data was used in ending fragment
 	}
-      
+
       // One more subevent fitted in the event...
 
       _nsubevents++;
@@ -501,7 +501,7 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 
   //printf ("===> %d\n",_nsubevents);
   //  fflush(stdout);
-  
+
   // Aha, so we have successfully gotten all subevent data
 }
 
@@ -528,7 +528,7 @@ void hld_event::get_subevent_data_src(hld_subevent *subevent_info,
       // We need to copy the subevent to an defragment buffer.
       // The trouble with this buffer is that it needs to be
       // deallocated or marked free somehow also...
-      
+
       // Defragmentation buffers.  Need to survive until we have
       // retired the event (retire = ALL operations done).  This
       // is since we may be requested to do a data dump of an
@@ -541,35 +541,35 @@ void hld_event::get_subevent_data_src(hld_subevent *subevent_info,
       // allocating should not need to wait for anyone else.  The
       // pointer supplied will be stable for the rest of the event
       // life-time, i.e. can be used by other threads on the same
-      // machine.  
-      
+      // machine.
+
 #ifdef USE_THREADING
-      char *defrag = (char *) 
+      char *defrag = (char *)
 	_wt._defrag_buffer->allocate_reclaim(data_length);
 #else
-      char *defrag = (char *) 
+      char *defrag = (char *)
 	_defrag_event_many.allocate(data_length);
-#endif      
-      
+#endif
+
       subevent_info->_data = defrag;
-      
+
       buf_chunk *frag = subevent_info->_frag;
-      
+
       size_t size0 = frag->_length - subevent_info->_offset;
-      
+
       // First copy data from first fragmented buffer
-      
+
       memcpy(defrag,
 	     frag->_ptr + subevent_info->_offset,
 	     size0);
-      
+
       defrag += size0;
       size_t length = data_length - size0;
-      
+
       frag++;
-      
+
       // And copy last one
-      
+
       assert(length <= frag->_length);
 
       memcpy(defrag,frag->_ptr,length);

@@ -27,6 +27,13 @@
 #define UNUSED(x) ((void) x)
 #endif
 
+#define stringify_r(x) #x
+#define stringify(x)   stringify_r(x)
+
+#define GCC_VERSION (__GNUC__ * 10000 \
+		     + __GNUC_MINOR__ * 100 \
+		     + __GNUC_PATCHLEVEL__)
+
 inline unsigned int firstbit(unsigned int x)
 {
   if (!x)

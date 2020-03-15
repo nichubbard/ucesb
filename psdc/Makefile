@@ -42,7 +42,7 @@ CXXFLAGS += -ansi -Wall -W -Wno-unused-function -Wno-unused-label -Wno-unused-pa
 
 UNAME_S:=$(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
-  CXXFLAGS += -Wno-non-template-friend
+  CXXFLAGS += 
 endif
 
 #########################################
@@ -51,7 +51,7 @@ include ../makefile_filter_warnings.inc
 
 #########################################
 
-CPP_DEFINES_CYGWIN = $(shell cpp -dM /dev/null | grep __CYGWIN__)
+CPP_DEFINES_CYGWIN = $(shell $(CPP) -x c -dM /dev/null | grep __CYGWIN__)
 
 #########################################
 # Cygwin got vsnprintf problems with -ansi
@@ -172,7 +172,8 @@ psdc.dep: $(AUTO_DEPS)
 psdc.base.dep: psdc.dep
 	@echo " BASEDEP $@"
 	@echo '$$(UCESB_BASE_DIR)/psdc/$(MAKECMDGOALS): \' > $@
-	@cat $< | grep -v ' \\' | sed -e 's,  ,  $$\(UCESB_BASE_DIR\)/psdc/,g' | sort -u >> $@
+	@cat $< | grep -v ' \\' | sed -e 's,  /, /,' | \
+	  sed -e 's,  ,  $$\(UCESB_BASE_DIR\)/psdc/,g' | sort -u >> $@
 
 #
 # Link

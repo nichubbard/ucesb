@@ -26,7 +26,7 @@ external EXTERNAL_DATA_SKIP();
 
 SUBEVENT(XTST_TRIG10)
 {
-  external data = EXTERNAL_DATA_SKIP(); 
+  external data = EXTERNAL_DATA_SKIP();
 }
 
 SUBEVENT(XTST_TRIG1)

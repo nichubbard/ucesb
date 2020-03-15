@@ -36,7 +36,7 @@
 // threads (in SMP mode).  When threading is not enabled (for that
 // part of the code), it should not #ifdef'ed away.
 
-// See the linux kernel, include/asm-<arch>/system.h, search for 
+// See the linux kernel, include/asm-<arch>/system.h, search for
 // mb/wmb/rmb (we are only accessing memory, no devices)
 
 #if defined (__i386__) || defined (__x86_64__)

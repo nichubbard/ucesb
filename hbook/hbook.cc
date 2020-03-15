@@ -45,17 +45,17 @@
 // LLVM did not like alignment 16.  64 seems fine with gcc 4.9
 #define PAWC_ALIGNMENT  64
 
-typedef struct 
-{ 
-  float PAW[PAWC_SIZE]  __attribute__ ((aligned (PAWC_ALIGNMENT))); 
+typedef struct
+{
+  float PAW[PAWC_SIZE]  __attribute__ ((aligned (PAWC_ALIGNMENT)));
 } PAWC_DEF;
 #define PAWC COMMON_BLOCK(PAWC,pawc)
 //COMMON_BLOCK_DEF(PAWC_DEF,PAWC);
 PAWC_DEF PAWC;
 
-typedef struct 
+typedef struct
 {
-  int iquest[100] __attribute__ ((aligned (PAWC_ALIGNMENT))); 
+  int iquest[100] __attribute__ ((aligned (PAWC_ALIGNMENT)));
 } quest_def;
 #define QUEST COMMON_BLOCK(QUEST,quest)
 //COMMON_BLOCK_DEF(quest_def,QUEST);
@@ -87,7 +87,7 @@ void hbook::open(const char *filename,const char* top,
   // Constants are constants and nothing else.  Rotten fortran.
 
   char chfile[256];
-  char chopt[] = "NQE";  
+  char chopt[] = "NQE";
   // with Q or QE iquest[9] (iquest(10)) will be used to set maximum
   // number of records.  Default is 32000.  with Q one can go to 1<<16 (64000 etc)
   // but that's only a factor of 2.  Going to QE immediately!
@@ -198,7 +198,7 @@ void hbook_ntuple_cwn::hbnt(int hid,
   _hid = hid;
 
   char chtitle[256];
-  char chopt[256];  
+  char chopt[256];
 
   strcpy(chtitle,title);
   strcpy(chopt,opt);
@@ -211,8 +211,8 @@ void hbook_ntuple_cwn::hbname(const char *block,
 			      void *structure,
 			      const char *vars)
 {
-  char chblock[256]; 
-  char chvars[1024];  
+  char chblock[256];
+  char chvars[1024];
 
   strcpy(chblock,block);
   strcpy(chvars,vars);
@@ -288,7 +288,7 @@ extern "C"
 #include <ctype.h>
 
 extern "C" {
-  
+
   __const unsigned short int **__ctype_b (void) {
     return __ctype_b_loc();
   }
@@ -308,7 +308,7 @@ extern "C" {
 #else
 
 ///////////////////////////////////////////////////////////////////////
-   
+
 hbook::hbook() { }
 void hbook::open(const char */*filename*/,const char */*top*/, int /*record_length*/) { }
 void hbook::close() { }

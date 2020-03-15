@@ -46,7 +46,7 @@ struct external_writer_shm_control
   };
   union // written by consumer
   {
-    struct 
+    struct
     {
       volatile size_t _done;
       volatile size_t _need_consumer_wakeup;
@@ -69,7 +69,7 @@ struct ext_write_config_comm
   int         _server_fd;
 
   shared_mem_circular *_shmc;    // The associated memory
-  
+
   ext_write_config_comm *_next;
 
   uint32_t   *_sort_u32_raw; // For next event in buffer
@@ -102,18 +102,28 @@ struct ext_write_config
   const char *_insrc;
   const char *_header;
   const char *_header_id;
+  const char *_header_id_orig;
   int         _debug_header;
   int         _port;
   int         _stdout;
+
+#define EXT_WRITER_DUMP_FORMAT_NORMAL 1
+#define EXT_WRITER_DUMP_FORMAT_COMPACT_JSON   2
+#define EXT_WRITER_DUMP_FORMAT_HUMAN_JSON   3    
   int         _dump;
 #endif
 };
 
 extern ext_write_config _config;
 
-extern uint64_t _committed_size;
-extern uint64_t _sent_size;
-extern uint32_t _cur_clients;
+struct ext_file_net_stat
+{
+  uint64_t _committed_size;
+  uint64_t _sent_size;
+  uint32_t _cur_clients;
+};
+
+extern ext_file_net_stat _net_stat;
 
 void ext_net_io_server_bind(int port);
 

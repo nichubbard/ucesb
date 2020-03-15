@@ -26,6 +26,7 @@
 #include "forked_child.hh"
 
 #include "lmd_input.hh"
+#include "lmd_sticky_store.hh"
 
 #include "limit_file_size.hh"
 
@@ -61,7 +62,7 @@ public:
   // lmd_event_info_host
 
   buf_chunk_swap *_chunk_start;
-  buf_chunk_swap *_chunk_end; 
+  buf_chunk_swap *_chunk_end;
   buf_chunk_swap *_chunk_alloc;
 
   char *_buf_start;
@@ -75,13 +76,17 @@ protected:
   void realloc_buf(size_t more);
 
 public:
-  void add_chunk(void *ptr,size_t len,bool swapping);
+  void add_chunk(const void *ptr,size_t len,bool swapping);
 
   void clear();
   bool is_clear() const { return _chunk_end == _chunk_start; }
   bool has_subevents() const;
 
   size_t get_length() const;
+
+  void write(void *dest) const;
+
+  void dump_debug();
 
 public:
   void copy_header(const lmd_event *event,
@@ -105,7 +110,9 @@ public:
 
 
 public:
-  virtual void write_event(const lmd_event_out *event);
+  virtual void write_event(const lmd_event_out *event,
+			   bool sticky_replay = false,
+			   bool discard_revoke = false);
   virtual void event_no_seen(sint32 eventno) { }
 
   virtual void set_file_header(const s_filhe_extra_host *file_header_extra,
@@ -115,18 +122,24 @@ public:
 
   void new_buffer(size_t lie_about_used_when_large_dlen = 0);
   void send_buffer(size_t lie_about_used_when_large_dlen = 0);
+  void mark_close_buffer();
+
+  virtual void print_status(double elapsed) = 0;
 
 protected:
-  virtual void write_buffer(size_t count) = 0;
+  virtual void write_buffer(size_t count, bool has_sticky) = 0;
   virtual void get_buffer() = 0;
   virtual bool flush_buffer() { return false; }
+
+  virtual bool do_sticky_replay() { return false; }
+  virtual void mark_replay_stream(bool replay) { UNUSED(replay); }
 
 protected:
   void copy_to_buffer(const void *src,size_t length,bool swap_32);
 
 protected:
   s_bufhe_host       _buffer_header;
-  
+
   uint8*             _cur_buf_start;
   size_t             _cur_buf_length;
 
@@ -143,12 +156,17 @@ public:
 
 public:
   select_event       _select;
-};
 
-// This function body (and prototype) should really by placed
-// somewhere else
-uint64 parse_size_postfix(const char *post,const char *allowed,
-			  const char *error_name,bool fit32bits);
+public:
+  uint32_t           _last_bufno;
+
+public:
+  uint32_t           _replays;
+  uint32_t           _last_replays;
+
+protected:
+  lmd_sticky_store   _sticky_store;
+};
 
 void lmd_out_common_options();
 
@@ -174,7 +192,9 @@ public:
   virtual void new_file(const char *filename);
 
 public:
-  virtual void write_event(const lmd_event_out *event);
+  virtual void write_event(const lmd_event_out *event,
+			   bool sticky_replay = false,
+			   bool discard_revoke = false);
   virtual void event_no_seen(sint32 eventno);
 
   virtual void set_file_header(const s_filhe_extra_host *file_header_extra,
@@ -182,13 +202,15 @@ public:
 
   virtual void close();
 
+  virtual void print_status(double elapsed);
+
 public:
   void write_file_header(const s_filhe_extra_host *file_header_extra);
 
   void report_open_close(bool open);
 
 protected:
-  virtual void write_buffer(size_t count);
+  virtual void write_buffer(size_t count, bool has_sticky);
   virtual void get_buffer();
 
 public:
@@ -211,10 +233,13 @@ public:
   bool               _write_protect;
 
 public:
+  uint64_t           _total_written;
+  uint64_t           _last_written;
+
+public:
   // When compressing the output on the fly
   forked_child       _compressor;
   uint32             _compression_level;
-
 };
 
 void lmd_out_common_options();

@@ -33,13 +33,13 @@ struct event_te
 public:
   uint16 e;
   uint16 t;
-  
+
 public:
   void add_e(uint32 value) { e = (uint16) value; }
   void add_t(uint32 value) { t = (uint16) value; }
 };
 
-struct event_dsssd_strip : 
+struct event_dsssd_strip :
   public event_te
 {
 public:
@@ -51,41 +51,41 @@ struct event_dsssd_strips
 public:
   int                 n;
   event_dsssd_strip   data[32];
-  
+
 public:
   void add_e(uint32 channel,uint32 value)
   {
     /* First see if we know the strip already.
      */
-    
+
     for (int i = 0; i < n; i++)
       if (data[i].strip == channel)
 	{
 	  data[i].add_e(value);
 	  return;
 	}
-    
+
     /* We do now know the strip. */
-    
+
     data[n].strip = (uint16) channel;
     data[n].add_e(value);
     n++;
   }
-  
+
   void add_t(uint32 channel,uint32 value)
   {
     /* First see if we know the strip already.
      */
-    
+
     for (int i = 0; i < n; i++)
       if (data[i].strip == channel)
 	{
 	  data[i].add_t(value);
 	  return;
 	}
-    
+
     /* We do now know the strip. */
-    
+
     data[n].strip = (uint16) channel;
     data[n].add_t(value);
     n++;
@@ -109,24 +109,24 @@ public:
 
   /* Event counter.
    */
-  
+
   uint32        ievent;
-  
+
   /* From converters.
    */
-  
+
   event_dsssd   dsssd[2];
-  
+
   event_te      back[2];
-  
+
   event_te      mon_de;
   event_te      mon_e;
 
   event_te      mon_tgt;
-  
+
   /* From scaler.
    */
-  
+
   uint32        scaler[32];
   uint32        scaler_mask;
 
@@ -134,7 +134,7 @@ public:
    */
 
   uint32        time_t2;   /* Time since last proton pulse. */
-  uint32        time_ebis; /* Time since last ebis pulse. */  
+  uint32        time_ebis; /* Time since last ebis pulse. */
 };
 
 /* ntuple names:
@@ -159,7 +159,7 @@ public:
  * TnB(NBnE)[-999/0,4095]:I
  *
  * Block: 'SINGLES'
- * 
+ *
  * E1
  * E2
  * T1
@@ -171,7 +171,7 @@ public:
  * MON_E_T
  *
  * Block: 'OTHERS'
- * 
+ *
  * TSHORT
  * TEBIS
  * IEVENT
@@ -238,7 +238,7 @@ class is430_aug05_unpack
 {
 public:
   is430_aug05_unpack();
-  
+
 public:
   event_is430_aug05 event;
 
@@ -257,10 +257,10 @@ public:
 
 public:
   bool file_open;
-  
+
 public:
   void clear();
-  
+
 public:
   void set_trigger(uint32 trig);
 

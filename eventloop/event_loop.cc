@@ -87,6 +87,7 @@ tstamp_alignment *_ts_align_hist = NULL;
 #endif
 
 event_base _static_event;
+sticky_event_base _static_sticky_event;
 
 #ifdef USE_MERGING
 // and not USE_THREADING, but does not compile together anyhow
@@ -108,6 +109,7 @@ int _dump_request = 0;
 #define DUMP_LEVEL_UNPACK 0x01
 #define DUMP_LEVEL_RAW    0x02
 #define DUMP_LEVEL_CAL    0x04
+#define DUMP_LEVEL_USER   0x08
 
 void add_dump_item(const char *request)
 {
@@ -119,6 +121,8 @@ void add_dump_item(const char *request)
     _dump_request |= DUMP_LEVEL_RAW;
   else if (MATCH_ARG("CAL"))
     _dump_request |= DUMP_LEVEL_CAL;
+  else if (MATCH_ARG("USER"))
+    _dump_request |= DUMP_LEVEL_USER;
   else
     ERROR("Unknown level for dump: %s",request);
 }
@@ -128,7 +132,7 @@ void dump_init(const char *command)
   const char *cmd = command;
   const char *req_end;
 
-  while ((req_end = strchr(cmd,':')) != NULL)
+  while ((req_end = strpbrk(cmd,",:")) != NULL)
     {
       char *request = strndup(cmd,(size_t) (req_end-cmd));
 
@@ -152,6 +156,10 @@ void level_dump(int level_mask,const char *level_name,T &level)
       memset(&pdi,0,sizeof(pdi));
       level.dump(signal_id(level_name),pdi);
     }
+}
+
+void level_dump(int level_mask,const char *level_name,dummy_container &level)
+{
 }
 
 /********************************************************************/
@@ -280,6 +288,7 @@ void ucesb_event_loop::close_source(source_event_base* seb)
 
   delete seb->_src;
   delete seb->_event;
+  delete seb->_sticky_event;
 
   _sources.erase(find(_sources.begin(),_sources.end(),seb));
 
@@ -351,9 +360,37 @@ void ucesb_event_loop::close_output()
 #include "wr_stamp.hh"
 
 #if defined(USE_LMD_INPUT)
+void apply_timestamp_slope(lmd_subevent_10_1_host const &a_header, int a_tsid,
+    uint64_t &a_timestamp)
+{
+  bool found_hit = false;
+  for (std::vector<time_slope>::const_iterator it =
+      _conf_time_slope_vector.begin(); it != _conf_time_slope_vector.end();
+      ++it) {
+#define APPLY_TIMESTAMP_SLOPE_SKIP(ts_part, event_part)\
+    (it->ts_part != -1 && it->ts_part != event_part)
+    if (APPLY_TIMESTAMP_SLOPE_SKIP(proc, a_header.i_procid)) continue;
+    if (APPLY_TIMESTAMP_SLOPE_SKIP(ctrl, a_header.h_control)) continue;
+    if (APPLY_TIMESTAMP_SLOPE_SKIP(crate, a_header.h_subcrate)) continue;
+    if (APPLY_TIMESTAMP_SLOPE_SKIP(tsid, a_tsid)) continue;
+    if (found_hit) {
+      ERROR("Several time-slope matches for event, please be more specific.");
+    }
+    found_hit = true;
+    if (it->mult != -1) {
+      a_timestamp *= it->mult;
+    }
+    if (it->add != -1) {
+      a_timestamp += it->add;
+    }
+    // TODO: This cannot check the reverse, i.e. when different sub-events
+    // match to one time-slope. Would require some clever book-keeping.
+  }
+}
+
 bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
 			  uint64_t *timestamp,
-			  size_t *ts_align_index)
+			  ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
     ERROR("No subevents, cannot get a TITRIS time stamp.");
@@ -393,7 +430,7 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
   if (ts_align_index)
     {
       if (!_ts_align_hist)
-	*ts_align_index = (size_t) -1;
+	*ts_align_index = -1;
       else
 	*ts_align_index =
 	  _ts_align_hist->get_index(subevent_info,
@@ -405,6 +442,7 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("First subevent does not have data enough for TITRIS time stamp "
 	"values.");
 
+  uint32_t id     = SWAPPING_BSWAP_32(data[0]);
   uint32_t ts_l16 = SWAPPING_BSWAP_32(data[1]);
   uint32_t ts_m16 = SWAPPING_BSWAP_32(data[2]);
   uint32_t ts_h16 = SWAPPING_BSWAP_32(data[3]);
@@ -416,16 +454,17 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
 	  ts_l16, ts_m16, ts_h16);
 
   *timestamp =
-    (             ts_l16 & TITRIS_STAMP_LMH_TIME_MASK)         |
-    (            (ts_m16 & TITRIS_STAMP_LMH_TIME_MASK)  << 16) |
-    (((uint64_t) (ts_h16 & TITRIS_STAMP_LMH_TIME_MASK)) << 32);
+      (             ts_l16 & TITRIS_STAMP_LMH_TIME_MASK)         |
+      (            (ts_m16 & TITRIS_STAMP_LMH_TIME_MASK)  << 16) |
+      (((uint64_t) (ts_h16 & TITRIS_STAMP_LMH_TIME_MASK)) << 32);
+  apply_timestamp_slope(subevent_info->_header, id, *timestamp);
 
   return true;
 }
 
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 		      uint64_t *timestamp,
-		      size_t *ts_align_index)
+		      ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
     ERROR("No subevents, cannot get a WR time stamp.");
@@ -467,7 +506,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
   if (ts_align_index)
     {
       if (!_ts_align_hist)
-        *ts_align_index = (size_t) -1;
+        *ts_align_index = -1;
       else
 	*ts_align_index =
 	  _ts_align_hist->get_index(subevent_info,
@@ -479,6 +518,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("First subevent does not have data enough "
 	  "for WR time stamp values.");
 
+  uint32_t id      = SWAPPING_BSWAP_32(data[0]);
   uint32_t ts_0_16 = SWAPPING_BSWAP_32(data[1]);
   uint32_t ts_1_16 = SWAPPING_BSWAP_32(data[2]);
   uint32_t ts_2_16 = SWAPPING_BSWAP_32(data[3]);
@@ -493,10 +533,11 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  ts_0_16, ts_1_16, ts_2_16, ts_3_16);
 
   *timestamp =
-    (             ts_0_16 & WR_STAMP_DATA_TIME_MASK)         |
-    ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
-    (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
-    (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
+      (             ts_0_16 & WR_STAMP_DATA_TIME_MASK)         |
+      ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
+      (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
+      (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
+  apply_timestamp_slope(subevent_info->_header, id, *timestamp);
 
   return true;
 }
@@ -504,7 +545,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 bool get_timestamp(int timestamp_type,
 		   FILE_INPUT_EVENT *src_event,
 		   uint64_t *timestamp,
-		   size_t *ts_align_index)
+		   ssize_t *ts_align_index)
 {
   switch (timestamp_type)
     {
@@ -665,7 +706,7 @@ void print_current_merge_order(const merge_event_order *prev)
       break;
     case MERGE_EVENTS_MODE_TITRIS_TIME:
       fprintf(stderr,
-	      "HI: %s0x%08"PRIx64":%02"PRIx64"%s",
+	      "HI: %s0x%08" PRIx64 ":%02" PRIx64 "%s",
 	      CT_OUT(BOLD_BLUE),
 	      prev->_timestamp >> 32,
 	      (prev->_timestamp >> 24) & 0xff,
@@ -775,8 +816,10 @@ void ucesb_event_loop::open_source(config_input &input,
 
   seb->_src   = source;
   seb->_event = new event_base;
+  seb->_sticky_event = new sticky_event_base;
 
-  seb->_event->_file_event = &seb->_src->_file_event;
+  seb->_sticky_event->_file_event =
+    seb->_event->_file_event = &seb->_src->_file_event;
 
   seb->_name = input._name;
 
@@ -875,8 +918,9 @@ void err_bold_header(char* headermsg,
 #pragma GCC diagnostic ignored "-Wformat-security"
 #endif
 
-template<typename __data_src_t,typename start_ptr_t,typename subevent_header_t>
-void show_remaining(event_base &eb,
+template<typename __data_src_t,typename start_ptr_t,
+	 typename event_base_t,typename subevent_header_t>
+void show_remaining(event_base_t &eb,
 		    subevent_header_t *ev_header,
 		    __data_src_t &src,start_ptr_t *start,
 		    int loc)
@@ -888,6 +932,9 @@ void show_remaining(event_base &eb,
   size_t msglen = 0;
   size_t msgthislen = 0;
   msg[0] = 0;
+
+  const char *subevstr =
+    eb.is_sticky() ? "Sticky subevent" : "Subevent";
 
   eb._unpack_fail._next = src._data;
 
@@ -1023,19 +1070,20 @@ void show_remaining(event_base &eb,
   WARNING(msg);
 
   if (loc) {
-    ERROR_U_LOC(loc,"Subevent: " ERR_NOBOLD "%s not completely read.",
-		headermsg);
+    ERROR_U_LOC(loc,ERR_NOBOLD "%s: " ERR_NOBOLD "%s not completely read.",
+		subevstr, headermsg);
   } else {
-    ERROR("Subevent: " ERR_NOBOLD "%s not completely read.",
-	  headermsg);
+    ERROR(ERR_NOBOLD "%s: " ERR_NOBOLD "%s not completely read.",
+	  subevstr, headermsg);
   }
 }
 #if ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)))
 #pragma GCC diagnostic pop
 #endif
 
-template<typename __data_src_t,typename start_ptr_t,typename subevent_header_t>
-void unpack_subevent(event_base &eb,
+template<typename __data_src_t,typename start_ptr_t,
+	 typename event_base_t,typename subevent_header_t>
+void unpack_subevent(event_base_t &eb,
 		     subevent_header_t *ev_header,
 		     __data_src_t &src,
 		     start_ptr_t *start)
@@ -1077,11 +1125,14 @@ void unpack_subevent(event_base &eb,
       if (eb._unpack.ignore_unknown_subevent())
 	return;
 
+      const char *subevstr =
+	eb.is_sticky() ? "Sticky subevent" : "Subevent";
+
       err_bold_header(headermsg,ev_header);
 
       eb._unpack_fail._next = ev_header;
-      ERROR("Subevent: " ERR_NOBOLD "%s (%d bytes) unknown.",
-	    headermsg,
+      ERROR(ERR_NOBOLD "%s: " ERR_NOBOLD "%s (%d bytes) unknown.",
+	    subevstr, headermsg,
 	    (int) (src._end - src._data));
     }
   else
@@ -1091,22 +1142,65 @@ void unpack_subevent(event_base &eb,
     show_remaining(eb,ev_header,src,start,loc);
 }
 
-#if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
-void ucesb_event_loop::pre_unpack_event(event_base &eb,
-					source_event_hint_t *hints)
+template<typename event_base_t,typename subevent_header_t>
+void revoke_subevent(event_base_t &eb,
+		     subevent_header_t *ev_header)
+{
+  int loc;
+  loc = eb._unpack.__revoke_subevent((subevent_header*) ev_header);
+
+  if (!loc)
+    {
+      char headermsg[128];
+
+      if (eb._unpack.ignore_unknown_subevent())
+	return;
+
+      const char *subevstr =
+	eb.is_sticky() ? "Sticky subevent" : "Subevent";
+
+      err_bold_header(headermsg,ev_header);
+
+      eb._unpack_fail._next = ev_header;
+      ERROR(ERR_NOBOLD "%s: " ERR_NOBOLD "%s unknown, cannot revoke.",
+	    subevstr, headermsg);
+    }
+}
+
+void unpack_clean(event_base &eb)
 {
   eb._unpack.__clean();
   eb._unpack.__clear_visited();
+}
+
+void unpack_clean(sticky_event_base &eb)
+{
+  // Sticky events are NOT cleared every time they get unpacked.
+  eb._unpack.__clear_visited();
+}
+
+#if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
+void ucesb_event_loop::pre1_unpack_event(FILE_INPUT_EVENT *src_event)
+{
+#ifdef USE_LMD_INPUT
+  // First get the basic event info
+  src_event->get_10_1_info();    // this may throw up (also)...
+#endif
+
+  // The above figures out if an event is sticky, so must before
+  // we call the correct version of pre2_unpack_event...
+}
+
+template<typename T_event_base>
+void ucesb_event_loop::pre2_unpack_event(T_event_base &eb,
+					 source_event_hint_t *hints)
+{
+  unpack_clean(eb);
 
 #if USE_THREADING || USE_MERGING
   FILE_INPUT_EVENT *src_event = (FILE_INPUT_EVENT *) eb._file_event;
 #else
   FILE_INPUT_EVENT *src_event = &_file_event;
-#endif
-
-#ifdef USE_LMD_INPUT
-  // First get the basic event info
-  src_event->get_10_1_info();    // this may throw up (also)...
 #endif
 
 #ifdef USE_LMD_INPUT
@@ -1125,7 +1219,18 @@ void ucesb_event_loop::pre_unpack_event(event_base &eb,
 
   src_event->locate_subevents(hints); // this may throw up...
 }
+
+// Force instantiation
+template
+void ucesb_event_loop::
+pre2_unpack_event<event_base>(event_base &eb,
+			      source_event_hint_t *hints);
+template
+void ucesb_event_loop::
+pre2_unpack_event<sticky_event_base>(sticky_event_base &eb,
+				     source_event_hint_t *hints);
 #endif//USE_LMD_INPUT || USE_HLD_INPUT || USE_RIDF_INPUT
+
 
 #if defined(USE_LMD_INPUT)
 void ucesb_event_loop::stitch_event(event_base &eb,
@@ -1154,36 +1259,57 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   if (!good_stamp)
     {
       WARNING("Error set in time-stamp.  Dumping event by itself.");
+      // printf("!good -> bad !combine\n");
+      stitch->_has_stamp = false;
       return;
     }
 
-  if (timestamp < stitch->_last_stamp)
-    {
-      // Unordered, dump!
-      //return;
-      ERROR("Timewarp");
-    }
-  else
-    {
-      // So, we look good!
-      stitch->_badstamp = false;
+  // This event has a good timestamp.  Even if unordered it is good
+  // (unordered may be due to other (previous) stamp being wrong).
+  stitch->_badstamp = false;
 
-      if ((int64_t) (timestamp - stitch->_last_stamp) <
-	  _conf._event_stitch_value)
-	stitch->_combine = true;
+  if (stitch->_has_stamp)
+    {
+      if (timestamp < stitch->_last_stamp)
+	{
+	  // Unordered, dump!
+	  // printf("unordered -> !bad !combine\n");
+	  // Since it may have been 'previous' stamp that was bad,
+	  // we fall through and set our new stamp.
+	}
+      else
+	{
+	  if ((int64_t) (timestamp - stitch->_last_stamp) <
+	      _conf._event_stitch_value)
+	    {
+	      stitch->_combine = true;
+	      // printf("ordered -> !bad combine\n");
+	      // Do not change stitch->_last_stamp, we are combining
+	      // against the stamp of the first event in this new event.
+	    }
+	  else
+	    {
+	      // printf("ordered -> !bad !combine\n");
+	    }
+	}
     }
-
   /*
   printf ("%012lx (%d %d)\n",
          timestamp,
          stitch->_combine,stitch->_badstamp);
   */
 
-  stitch->_last_stamp = timestamp;
+  if (!stitch->_combine)
+    {
+      stitch->_last_stamp = timestamp;
+      stitch->_has_stamp = true;
+    }
+  // printf("stitch->_last_stamp = timestamp\n");
 }
 #endif
 
-void ucesb_event_loop::unpack_event(event_base &eb)
+template<typename T_event_base>
+void ucesb_event_loop::unpack_event(T_event_base &eb)
 {
   eb._unpack_fail._prev = eb._unpack_fail._this = eb._unpack_fail._next = NULL;
 
@@ -1239,6 +1365,23 @@ void ucesb_event_loop::unpack_event(event_base &eb)
       char *end;
 
       src_event->get_subevent_data_src(subevent_info,start,end);
+
+      if (eb.is_sticky())
+	{
+      // NOTE! This is for testing only!!!
+      // TODO: Remove!!!
+#ifdef STICKY_SUBEVENT_USER_FUNCTION
+	  STICKY_SUBEVENT_USER_FUNCTION((unpack_sticky_event *) &eb._unpack,
+					&subevent_info->_header,
+					start, end, src_event->_swapping);
+#endif
+	}
+
+      if (start == NULL)
+	{
+	  revoke_subevent(eb,&subevent_info->_header);
+	  continue;
+	}
 
 #ifdef USE_LMD_INPUT
       int scramble;
@@ -1296,8 +1439,7 @@ void ucesb_event_loop::unpack_event(event_base &eb)
 #endif
     }
 #else
-  /*_event*/eb._unpack.__clean();
-  eb._unpack.__clear_visited();
+  unpack_clean(eb);
 
 #if defined(USE_PAX_INPUT) || defined(USE_GENF_INPUT) || \
     defined(USE_EBYE_INPUT_16)
@@ -1327,6 +1469,12 @@ void ucesb_event_loop::unpack_event(event_base &eb)
 
   level_dump(DUMP_LEVEL_UNPACK,"UNPACK",eb._unpack);
 }
+
+// Force instantiation
+template
+void ucesb_event_loop::unpack_event<event_base>(event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base>(sticky_event_base &eb);
 
 void ucesb_event_loop::force_event_data(event_base &eb
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
@@ -1375,21 +1523,169 @@ void ucesb_event_loop::force_event_data(event_base &eb
 #endif
 }
 
-bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
+void init_sticky_idx()
+{
+#if STICKY_EVENT_IS_NONTRIVIAL
+  _static_sticky_event._unpack.sticky_idx = 0;
+  _static_sticky_event._unpack.__clean();
+#endif
+}
+
+void set_sticky_idx(unpack_event_base& unpack)
+{
+#if STICKY_EVENT_IS_NONTRIVIAL
+  unpack.sticky_idx = _static_sticky_event._unpack.sticky_idx;
+#endif
+}
+
+void set_sticky_idx(unpack_sticky_event_base& unpack)
+{
+#if STICKY_EVENT_IS_NONTRIVIAL
+  unpack.sticky_idx++;
+#endif
+}
+
+void event_base::raw_cal_user_clean()
+{
+#ifndef USE_MERGING
+  _raw.__clean();
+  _cal.__clean();
+#ifdef USER_STRUCT
+  _user.__clean();
+#endif
+#endif
+}
+
+void sticky_event_base::raw_cal_user_clean()
+{
+}
+
+void copy_eventno_sub_trig(raw_event_base &raw,
+			   unpack_event_base& unpack,
+			   uint32 sub_no,
+			   bool last_multi_ev)
+{
+#if USING_MULTI_EVENTS
+  raw.event_no     = unpack.event_no;
+  raw.event_sub_no = sub_no;
+
+  if (last_multi_ev)
+    raw.trigger = unpack.trigger;
+  else
+    raw.trigger = 1;
+#endif
+}
+
+void copy_eventno_sub_trig(dummy_container &raw,
+			   unpack_event_base& unpack,
+			   uint32 sub_no,
+			   bool last_multi_ev)
+{
+}
+
+int wrap_UNPACK_EVENT_USER_FUNCTION(unpack_event *unpack_ev)
 {
   int multievents = 1;
+
+#if defined(UNPACK_EVENT_USER_FUNCTION) || USING_MULTI_EVENTS
+  multievents = UNPACK_EVENT_USER_FUNCTION(unpack_ev);
+#endif
+
+#if !USING_MULTI_EVENTS
+  multievents = !!multievents;
+#endif
+
+  return multievents;
+}
+
+int wrap_UNPACK_EVENT_USER_FUNCTION(unpack_sticky_event *unpack_ev)
+{
+  return 1;
+}
+
+void wrap_UNPACK_EVENT_END_USER_FUNCTION(unpack_event *unpack_ev)
+{
+#if defined(UNPACK_EVENT_END_USER_FUNCTION)
+  UNPACK_EVENT_END_USER_FUNCTION(unpack_ev);
+#endif
+}
+
+void wrap_UNPACK_EVENT_END_USER_FUNCTION(unpack_sticky_event *unpack_ev)
+{
+}
+
+void wrap_RAW_EVENT_USER_FUNCTION(unpack_event *unpack_ev,
+                                  raw_event    *raw_ev
+                                  MAP_MEMBERS_PARAM)
+{
+#ifdef RAW_EVENT_USER_FUNCTION
+  RAW_EVENT_USER_FUNCTION(unpack_ev,
+                          raw_ev
+                          MAP_MEMBERS_ARG);
+#endif
+}
+
+void wrap_RAW_EVENT_USER_FUNCTION(unpack_sticky_event *unpack_ev,
+				  raw_sticky          *raw_ev
+				  MAP_MEMBERS_PARAM)
+{
+}
+
+void wrap_CAL_EVENT_USER_FUNCTION(unpack_event *unpack_ev,
+				  raw_event    *raw_ev,
+				  cal_event    *cal_ev
+#ifdef USER_STRUCT
+				  ,USER_STRUCT *user_ev
+#endif
+				  MAP_MEMBERS_PARAM)
+{
+#ifdef CAL_EVENT_USER_FUNCTION
+  CAL_EVENT_USER_FUNCTION(unpack_ev,
+			  raw_ev,
+			  cal_ev
+#ifdef USER_STRUCT
+			  ,user_ev
+#endif
+			  MAP_MEMBERS_ARG);
+#endif
+}
+
+void wrap_CAL_EVENT_USER_FUNCTION(unpack_sticky_event *unpack_ev,
+				  raw_sticky          *raw_ev,
+				  dummy_container     *cal_ev
+#ifdef USER_STRUCT
+				  ,dummy_container    *user_ev
+#endif
+				  MAP_MEMBERS_PARAM)
+{
+}
+
+void wrap_paw_ntuple_event(event_base &eb_dummy)
+{
+#if defined(USE_CERNLIB) || defined(USE_ROOT) || defined(USE_EXT_WRITER)
+  _paw_ntuple->event(PAW_NTUPLE_NORMAL_EVENT);
+#endif
+}
+
+void wrap_paw_ntuple_event(sticky_event_base &eb_dummy)
+{
+#if defined(USE_CERNLIB) || defined(USE_ROOT) || defined(USE_EXT_WRITER)
+  _paw_ntuple->event(PAW_NTUPLE_STICKY_EVENT);
+#endif
+}
+
+template<typename T_event_base>
+bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
+{
+  int multievents = 1;
+
+  set_sticky_idx(eb._unpack);
 
 #if defined(USE_EXT_WRITER)
   if (!_ext_source)
 #endif
     {
-#if defined(UNPACK_EVENT_USER_FUNCTION) || USING_MULTI_EVENTS
-      multievents = UNPACK_EVENT_USER_FUNCTION(&_static_event._unpack);
-#endif
-
-#if !USING_MULTI_EVENTS
-      multievents = !!multievents;
-#endif
+      multievents = wrap_UNPACK_EVENT_USER_FUNCTION(&eb._unpack);
     }
 
   try {
@@ -1398,7 +1694,7 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
   if (_ts_align_hist)
     {
       uint64_t timestamp;
-      size_t ts_align_index;
+      ssize_t ts_align_index;
 
 #if USE_THREADING || USE_MERGING
       FILE_INPUT_EVENT *src_event = (FILE_INPUT_EVENT *) eb._file_event;
@@ -1407,28 +1703,24 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 #endif
 
       bool good_stamp =
-	get_timestamp(_conf._ts_align_hist_mode, src_event,
+	get_timestamp(_ts_align_hist->get_style(), src_event,
 		      &timestamp, &ts_align_index);
 
       if (!good_stamp)
 	timestamp = 0;
 
+      // TODO: if (!good_stamp) { do we want to account 0 at all? }
       _ts_align_hist->account(ts_align_index, timestamp);
     }
 #endif
   for (int mev = 0; mev < multievents; mev++)
     {
-      eb._raw.__clean();
-      eb._cal.__clean();
-#ifdef USER_STRUCT
-      eb._user.__clean();
-#endif
+      eb.raw_cal_user_clean();
 
 #if defined(USE_EXT_WRITER)
       if (_ext_source)
 	{
-	  eb._unpack.__clean();
-	  eb._unpack.__clear_visited();
+	  unpack_clean(eb);
 	  _ext_source->unpack_event();
 
 	  if (_dump_request)
@@ -1452,9 +1744,9 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 	      map_info._multi_event_no = /*mev*/0;
 	      map_info._event_type = 0;
 
-	      do_raw_reverse_map(map_info);
+	      do_raw_reverse_map(&eb._raw, map_info);
 #else
-	      do_raw_reverse_map();
+	      do_raw_reverse_map(&eb._raw);
 #endif
 
 	      // Pack into event structures!
@@ -1486,42 +1778,39 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 				    MAP_MEMBER_TYPE_MULTI_LAST)))
 	map_info._event_type |= MAP_MEMBER_TYPE_MULTI_OTHER;
 
-      do_unpack_map(map_info);
+      do_unpack_map(&eb._unpack, map_info);
 
-      if (mev == multievents-1)
-	eb._raw.trigger  = eb._unpack.trigger;
-      else
-	eb._raw.trigger  = 1;
-      eb._raw.event_no = eb._unpack.event_no;
-      eb._raw.event_sub_no = mev+1;
+      copy_eventno_sub_trig(eb._raw, eb._unpack,
+			    mev+1,
+			    mev == multievents-1);
 #else
-      do_unpack_map();
+      do_unpack_map(&eb._unpack);
 #endif
 
-#ifdef RAW_EVENT_USER_FUNCTION
-      RAW_EVENT_USER_FUNCTION(&eb._unpack,&eb._raw
+      wrap_RAW_EVENT_USER_FUNCTION(&eb._unpack,&eb._raw
 #if USING_MULTI_EVENTS
-			      ,map_info
+				   ,map_info
 #endif
-			      );
-#endif
+				   );
 
       level_dump(DUMP_LEVEL_RAW,"RAW",eb._raw);
 
-      do_calib_map();
+      do_calib_map(&eb._raw);
 
-#ifdef CAL_EVENT_USER_FUNCTION
-      CAL_EVENT_USER_FUNCTION(&eb._unpack,&eb._raw,&eb._cal
+      wrap_CAL_EVENT_USER_FUNCTION(&eb._unpack,&eb._raw,&eb._cal
 #ifdef USER_STRUCT
-			      ,&eb._user
+				   ,&eb._user
 #endif
 #if USING_MULTI_EVENTS
-			      ,map_info
+				   ,map_info
 #endif
-			      );
-#endif
+				   );
 
       level_dump(DUMP_LEVEL_CAL,"CAL",eb._cal);
+
+#ifdef USER_STRUCT
+      level_dump(DUMP_LEVEL_USER,"USER",eb._user);
+#endif
 
     map_process_done:
 
@@ -1529,17 +1818,17 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
       if (_conf._watcher._command)
 	{
 #if USING_MULTI_EVENTS
-	  watcher_one_event(map_info);
+	  watcher_one_event(&eb._unpack, map_info);
 #else
-	  watcher_one_event();
+	  watcher_one_event(&eb._unpack);
 #endif
 	}
 #endif
 
 #if USING_MULTI_EVENTS
-      correlation_event(map_info);
+      correlation_event(&eb._unpack, map_info);
 #else
-      correlation_event();
+      correlation_event(&eb._unpack);
 #endif
 
 #if defined(USE_CERNLIB) || defined(USE_ROOT) || defined(USE_EXT_WRITER)
@@ -1563,11 +1852,9 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
 	      }
 #endif
 	    /* Produce the event. */
-	    _paw_ntuple->event();
+	    wrap_paw_ntuple_event(eb);
 	  } catch (error &e) {
-#if defined(UNPACK_EVENT_END_USER_FUNCTION)
-	    UNPACK_EVENT_END_USER_FUNCTION(&_static_event._unpack);
-#endif
+	    wrap_UNPACK_EVENT_END_USER_FUNCTION(&eb._unpack);
 	    *num_multi = mev;
 	    return false;
 	  }
@@ -1576,19 +1863,21 @@ bool ucesb_event_loop::handle_event(event_base &eb,int *num_multi)
     }
 #endif//!USE_MERGING
   } catch (error &e) {
-#if defined(UNPACK_EVENT_END_USER_FUNCTION)
-    UNPACK_EVENT_END_USER_FUNCTION(&_static_event._unpack);
-#endif
+    wrap_UNPACK_EVENT_END_USER_FUNCTION(&eb._unpack);
     throw;
   }
 
-#if defined(UNPACK_EVENT_END_USER_FUNCTION)
-  UNPACK_EVENT_END_USER_FUNCTION(&_static_event._unpack);
-#endif
+  wrap_UNPACK_EVENT_END_USER_FUNCTION(&eb._unpack);
 
   *num_multi = multievents;
   return true;
 }
+
+// Force instantiation
+template
+bool ucesb_event_loop::handle_event<event_base>(event_base &eb,int *num_multi);
+template
+bool ucesb_event_loop::handle_event<sticky_event_base>(sticky_event_base &eb,int *num_multi);
 
 
 /*

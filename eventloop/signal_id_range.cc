@@ -34,7 +34,7 @@ void dissect_name_range(const char *name,
   // after that, into a list of integers and ascii strings,
   // which are separated either by being the other kind of
   // character, or an underscore.
-  
+
   const char *start = name;
 
   if (!isalpha(*start) && *start != '*' && *start != '?')
@@ -136,7 +136,7 @@ void dissect_name_range(const char *name,
 	      if (index2 < index)
 		ERROR("High range index (%d) < low range index (%d) "
 		      "in name (%s).",index2,index,name);
-	    }  
+	    }
 
 	  id.push_back(index-1,index2-1); // -1 since we internally are 0-based
 	}

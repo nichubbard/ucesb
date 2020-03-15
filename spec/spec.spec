@@ -31,4 +31,5 @@
 #include "spec/vme_caen_v1290.spec"
 
 #include "vme_mesytec_madc32.spec"
+#include "vme_mesytec_mdpp16.spec"
 

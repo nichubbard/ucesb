@@ -21,7 +21,7 @@
 #ifndef __LOGFILE_HH__
 #define __LOGFILE_HH__
 
-class logfile 
+class logfile
 {
 public:
   logfile(const char* file);

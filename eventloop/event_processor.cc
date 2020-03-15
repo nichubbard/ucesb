@@ -67,7 +67,7 @@ void event_processor::wait_for_input_queue_item()
     {
       if (_queues._unpack->can_remove())
 	return;
-      
+
       TDBG("none available");
       _queues._unpack->request_remove_wakeup(&_block);
       if (_queues._unpack->can_remove())
@@ -87,7 +87,7 @@ void *event_processor::worker()
   // Take in events from our input queue, find a slot in the ouput
   // queue, and process the event
 
-  
+
   // If there is no free slot in the output queue, it makes no sense
   // to ask for an event from the input.  Because if the output is
   // full and the input is empty, to most pressing problem is the lack
@@ -131,20 +131,20 @@ void *event_processor::worker()
 #endif
 
 	    ucesb_event_loop::unpack_event(*eb);
-	    /*    
+	    /*
 	    int a, b;
-	    
+
 	    for (int i = 0; i < 10000000; i++)
 	      {
 		a = a + b; b ^= i + a;
 		a |= i;
 	      }
-	    */    
+	    */
 	    ////////////////////////////////////////////////////
 
 	    // process_event();
-	  } catch (error &e) { 
-	    
+	  } catch (error &e) {
+
 	    // If an error occured during processing, remove the
 	    // PROCESS flag
 
@@ -165,7 +165,7 @@ void *event_processor::worker()
       int info = send_item._info;
 
       // We have produced all information we want.  Let someone
-      // operate on this item.  
+      // operate on this item.
       _queues._retire->insert();
       // You may no longer use send_item!!!
 

@@ -19,48 +19,119 @@
  */
 
 #include "tstamp_alignment.hh"
+#include "event_loop.hh"
 #include "colourtext.hh"
 
 #ifdef USE_LMD_INPUT
 
-void tstamp_alignment::init()
-{
-
-}
-
 ts_a_hist::ts_a_hist()
 {
-  clear();
+  _bins[1] = _bins[0] = NULL;
+}
+
+void ts_a_hist::add(int i,uint64_t val)
+{
+  uint bin = -1;
+  if (val < (((uint64_t) 1) << 32))
+    bin = _is_lin ? (uint) (_bin_num * val / _range) : ilog2((uint) val);
+  if (bin != (uint) -1 && bin < _bin_num)
+    _bins[i][bin]++;
 }
 
 void ts_a_hist::clear()
 {
-  memset(_bins, 0, sizeof (_bins));
+  for (size_t i = 0; i < 2; ++i)
+    memset(_bins[i], 0, _bin_num * sizeof *_bins);
 }
 
-
-void ts_a_hist::add(int i,uint64_t val)
+void ts_a_hist::init(int is_lin, uint range, size_t bin_num)
 {
-  if (val < (((uint64_t) 1) << 32))
+  _is_lin = is_lin;
+  _range = range;
+  _bin_num = bin_num;
+  for (size_t i = 0; i < 2; ++i)
     {
-      unsigned int bin = ilog2((unsigned int) val);
-
-      _bins[i][bin]++;
+      free(_bins[i]);
+      _bins[i] = (uint *)calloc(_bin_num, sizeof *_bins[i]);
     }
 }
+
 
 void tstamp_alignment_histo::init_clear()
 {
   _prev_stamp = 0;
 }
 
-void tstamp_alignment_histo::add_histos(size_t n)
+void tstamp_alignment_histo::add_histos(size_t n, int is_lin, uint range,
+    size_t bin_num)
 {
+  size_t n_old = _hists.size();
   _hists.resize(n);
+  for (size_t i = n_old; i < n; ++i)
+    _hists[i].init(is_lin, range, bin_num);
 }
 
 
-size_t tstamp_alignment::get_index(const lmd_subevent *subevent_info,
+tstamp_alignment::tstamp_alignment(char const *a_command):
+  _is_lin(0),
+  _range(1e6),
+  _bin_num(32)
+{
+  const char *cmd = a_command;
+  for (; NULL != cmd;)
+    {
+      char const *req_end;
+      for (req_end = cmd; *req_end != ',' && *req_end; req_end++);
+      if (req_end == cmd)
+        break;
+      char *request = strndup(cmd,req_end-cmd);
+      if (strcmp(request, "help") == 0) {
+        free(request);
+        usage();
+        exit(EXIT_SUCCESS);
+      }
+      char const *p = request;
+      int mode;
+      if ((mode = get_time_stamp_mode(request)) != -1)
+        {
+          _style = mode;
+          goto parse_time_stamp_hist_options_next;
+        }
+      if (strcmp(request, "lin") == 0)
+        {
+          _is_lin = 1;
+          goto parse_time_stamp_hist_options_next;
+        }
+      if (strcmp(request, "log") == 0)
+        {
+          _is_lin = 0;
+          goto parse_time_stamp_hist_options_next;
+        }
+#define TIME_HIST_COMPONENT(dst, src)\
+      do {\
+        char const *opt = #src"=";\
+        size_t optlen = strlen(opt);\
+        if (strncmp(p, opt, optlen) == 0) {\
+          p += optlen;\
+          char *end;\
+          int value = (int)strtod(p, &end);\
+          if (p == end || end[0] != '\0') {\
+            ERROR("Invalid number for \""#src"\" in time stamp histogram option \"%s\".", a_command);\
+          }\
+          dst = value;\
+          goto parse_time_stamp_hist_options_next;\
+        }\
+      } while (0)
+      TIME_HIST_COMPONENT(_range, range);
+      TIME_HIST_COMPONENT(_bin_num, bins);
+      ERROR("Unknown time stamp histogram option \"%s\", in \"%s\".",request,a_command);
+parse_time_stamp_hist_options_next:
+      free(request);
+      cmd = req_end + (*req_end == ',');
+    }
+}
+
+ssize_t tstamp_alignment::get_index(const lmd_subevent *subevent_info,
 				   uint titris_branch_id)
 {
   titris_subevent_ident ident;
@@ -89,7 +160,7 @@ size_t tstamp_alignment::get_index(const lmd_subevent *subevent_info,
       for (vect_tstamp_alignment_histo::iterator i = _vect_histo.begin();
 	   i != _vect_histo.end(); ++i)
 	{
-	  (*i)->add_histos(index+1);
+	  (*i)->add_histos(index+1, _is_lin, _range, _bin_num);
 	}
 
       // printf ("%d\n",index);
@@ -100,9 +171,9 @@ size_t tstamp_alignment::get_index(const lmd_subevent *subevent_info,
     return iter->second;
 }
 
-void tstamp_alignment::account(size_t index, uint64_t stamp)
+void tstamp_alignment::account(ssize_t index, uint64_t stamp)
 {
-  if (index == (size_t) -1)
+  if (index == -1)
     return;
 
   // printf ("%d %zd\n",index, _vect_histo.size());
@@ -142,6 +213,11 @@ void tstamp_alignment::account(size_t index, uint64_t stamp)
   _vect_histo[index]->_prev_stamp = stamp;
 }
 
+int tstamp_alignment::get_style() const
+{
+  return _style;
+}
+
 void tstamp_alignment::show()
 {
   // Loop over the branch/id and show what we have
@@ -164,40 +240,66 @@ void tstamp_alignment::show()
 
 	  if (iter_j == iter_i)
 	    {
-	      printf ("%*s%s*%s\n",
-		      16, "",
-		      CT_OUT(BOLD_MAGENTA), CT_OUT(NORM));
+              if (_is_lin)
+                printf ("%*s%s*%s\n",
+                        (int)_bin_num, "",
+                        CT_OUT(BOLD_MAGENTA), CT_OUT(NORM));
+              else
+                printf ("%*s%s*%s\n",
+                        16, "",
+                        CT_OUT(BOLD_MAGENTA), CT_OUT(NORM));
 	    }
 	  else
 	    {
 	      ts_a_hist &hist =
 		_vect_histo[iter_j->second]->_hists[iter_i->second];
 
-	      for (int k = 0; k < 32; k += 2)
-		{
-		  uint sum =
-		    hist._bins[0][31-k] + hist._bins[0][31-(k+1)];
-		  uint scaled = sum / (1 << (31-k));
-		  if (!scaled && sum)
-		    scaled = 1;
+              if (_is_lin)
+                {
+                  uint max = 0;
+                  for (size_t k = 0; k < _bin_num; ++k)
+                    for (size_t l = 0; l < 2; ++l)
+                      max = std::max(max, hist._bins[l][k]);
+                  for (size_t k = 0; k < _bin_num; ++k)
+                    {
+                      uint val = hist._bins[0][_bin_num - k - 1];
+                      printf ("%c", hexilog2b1(val));
+                    }
+                  printf ("-");
+                  for (size_t k = 0; k < _bin_num; ++k)
+                    {
+                      uint val = hist._bins[1][k];
+                      printf ("%c", hexilog2b1(val));
+                    }
+                }
+              else
+                {
+                  for (int k = 0; k < 32; k += 2)
+                    {
+                      uint sum =
+                          hist._bins[0][31-k] + hist._bins[0][31-(k+1)];
+                      uint scaled = sum / (1 << (31-k));
+                      if (!scaled && sum)
+                        scaled = 1;
 
-		  printf ("%c", hexilog2b1(scaled));
-		}
+                      printf ("%c", hexilog2b1(scaled));
+                    }
 
-	      printf ("-");
+                  printf ("-");
 
-	      for (int k = 0; k < 32; k += 2)
-		{
-		  uint sum =
-		    hist._bins[1][k] + hist._bins[1][(k+1)];
-		  uint scaled = sum / (1 << (31-k));
-		  if (!scaled && sum)
-		    scaled = 1;
+                  for (int k = 0; k < 32; k += 2)
+                    {
+                      uint sum =
+                          hist._bins[1][k] + hist._bins[1][(k+1)];
+                      uint scaled = sum / (1 << (31-k));
+                      if (!scaled && sum)
+                        scaled = 1;
 
-		  printf ("%c", hexilog2b1(scaled));
-		}
-	      printf ("\n");
-	    }
+                      printf ("%c", hexilog2b1(scaled));
+                    }
+                }
+              printf ("\n");
+            }
 	  /*
 	    printf ("%d %d %d\n",ilog2(0),ilog2(1),ilog2(2));
 	    printf ("%d %d %d\n",ilog2(31),ilog2(32),ilog2(33));
@@ -205,6 +307,26 @@ void tstamp_alignment::show()
 	}
       printf ("\n");
     }
+}
+
+void tstamp_alignment::usage()
+{
+  printf ("\n");
+  printf ("%s --tstamp-hist=[help],[props]\n", main_argv0);
+  printf ("\n");
+  printf ("Fill histograms between every pair of timestamped systems.\n");
+  printf ("\n");
+  printf (" [props] is a comma-separated combination of the following properties for the\n");
+  printf (" histograms:\n");
+  printf ("  log        - logarithmic time scale, ignores remaining properties.\n");
+  printf ("  lin        - linear time scale.\n");
+  printf ("  range=num  - maximum negative and positive extent, default=1e6.\n");
+  printf ("  bins=num   - number of bins on one side of 0, default=16 means 2x16+1 columns.\n");
+  printf ("\n");
+  printf ("Examples:\n");
+  printf (" --tstamp-hist=log\n");
+  printf (" --tstamp-hist=lin,range=1e3,bins=40\n");
+  printf ("\n");
 }
 
 #endif//USE_LMD_INPUT

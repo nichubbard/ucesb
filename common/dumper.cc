@@ -65,7 +65,7 @@ void dumper_dest_memory::write(const char* p,size_t len)
       _cur += new_start - _start;
       _start = new_start;
       _end = new_start + newlen;
-    }  
+    }
 
   memcpy(_cur,p,len);
   _cur += len;
@@ -238,7 +238,7 @@ void dumper::text_fmt(const char *fmt,...)
   char *p;
 
   assert(fmt);
-  
+
   va_start(ap, fmt);
   p = make_message(fmt,ap);
   va_end(ap);

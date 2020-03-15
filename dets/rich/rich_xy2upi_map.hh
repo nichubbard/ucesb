@@ -37,7 +37,7 @@ struct rich_map_xy_item
 union rich_map_module_xy
 {
   uint8 _used [2/*contoller*/][8/*port*/][8/*module*/];
-  uint8 _usedf[2/*contoller*/ *8/*port*/ *8/*module*/];  
+  uint8 _usedf[2/*contoller*/ *8/*port*/ *8/*module*/];
 };
 
 union rich_map_xy
@@ -62,13 +62,13 @@ union rich_map_upi_item
   struct
   {
     uint16 cpmc         : 13;
-    uint16 dummy_sector : 3; 
+    uint16 dummy_sector : 3;
   };
   struct
   {
     uint16 dummy2_channel : 6;
     uint16 cpm            : 7;
-    uint16 dummy2_sector  : 3; 
+    uint16 dummy2_sector  : 3;
   };
 #endif
 #if __BYTE_ORDER == __BIG_ENDIAN
@@ -82,12 +82,12 @@ union rich_map_upi_item
   };
   struct
   {
-    uint16 dummy_sector : 3; 
+    uint16 dummy_sector : 3;
     uint16 cpmc         : 13;
   };
   struct
   {
-    uint16 dummy2_sector  : 3; 
+    uint16 dummy2_sector  : 3;
     uint16 cpm            : 7;
     uint16 dummy2_channel : 6;
   };

@@ -53,7 +53,7 @@ struct file_mmap_chunk
   sig_mmap_info _mmap_info;
 };
 
-class file_mmap 
+class file_mmap
   : public input_buffer
 {
 public:
@@ -91,7 +91,11 @@ public:
 #ifdef USE_THREADING
   virtual void arrange_release_to(off_t end);
 #endif
-  
+
+public:
+  virtual size_t buffer_size();
+  virtual size_t max_item_length();
+
   void consistency_check();
 };
 

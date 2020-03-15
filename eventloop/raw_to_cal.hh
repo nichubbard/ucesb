@@ -34,7 +34,7 @@ public:
   {
     _convert = NULL;
   }
-  
+
   virtual ~raw_to_tcal_base() { }
 
   virtual void show() = 0;
@@ -68,7 +68,7 @@ public:
 
 public:
   template<typename T_dest>
-  void set_dest(T_dest *dest);
+  void set_dest(T_dest *dest, int toggle_i);
 };
 
 template<typename T_src>
@@ -266,7 +266,7 @@ union r2c_union
 {
   r2c_slope_offset<T_src/*,T_dest*/> _slope_offset;
   r2c_offset_slope<T_src/*,T_dest*/> _offset_slope;
-  
+
 };
 
 template<typename T_r2c,typename T_src,typename T_dest>
@@ -283,7 +283,7 @@ void call_r2c_convert(void *r2c_ptr,const void *src_ptr)
 
   void *dest = r2c->_dest;
   const zero_suppress_info *zzp_info = r2c->_zzp_info;
-  
+
   switch (zzp_info->_type)
     {
     case ZZP_INFO_NONE: // no zero supress item
@@ -298,7 +298,7 @@ void call_r2c_convert(void *r2c_ptr,const void *src_ptr)
 						 zzp_info->_array._index);
 	dest = (((char *) dest) + offset);
 	*/
-	break; 
+	break;
       }
     case ZZP_INFO_CALL_ARRAY_INDEX:
       (*zzp_info->_array._call)(zzp_info->_array._item,
@@ -317,7 +317,7 @@ void call_r2c_convert(void *r2c_ptr,const void *src_ptr)
 						 zzp_info->_list._index);
 	dest = (((char *) dest) + offset);
 	// printf ("%d - %d\n",zzp_info->_array._index,offset);
-	break; 
+	break;
       }
     case ZZP_INFO_CALL_ARRAY_LIST_II_INDEX:
       (*zzp_info->_array._call)(zzp_info->_array._item,
@@ -336,7 +336,7 @@ void call_r2c_convert(void *r2c_ptr,const void *src_ptr)
 	size_t offset = (*zzp_info->_list_ii._call_ii)(zzp_info->_list_ii._item);
 	dest = (((char *) dest) + offset);
 	// printf ("%d - %d\n",zzp_info->_array._index,offset);
-	break; 
+	break;
       }
     default:
       ERROR("Internal error in calib data mapping! (type=%d)",zzp_info->_type);
@@ -354,7 +354,7 @@ void/*raw_to_tcal_convert_fcn*/ new_raw_to_cal(T_r2c *r2c,
   UNUSED(src);
   UNUSED(dest);
 
-  r2c->set_dest(dest);
+  r2c->set_dest(dest, 0 /* the toggle for calib params applies to the src */);
   r2c->_convert = call_r2c_convert<T_r2c,T_src,T_dest>;
 }
 
@@ -362,7 +362,7 @@ template<typename T_src,typename T_dest>
 raw_to_tcal_base *new_slope_offset(const T_src *src,T_dest *dest,double slope,double offset)
 {
   r2c_slope_offset<T_src> *obj = new r2c_slope_offset<T_src>;
-  
+
   obj->_slope  = slope;
   obj->_offset = offset;
 
@@ -375,10 +375,10 @@ template<typename T_src,typename T_dest>
 raw_to_tcal_base *new_offset_slope(const T_src *src,T_dest *dest,double offset,double slope)
 {
   r2c_offset_slope<T_src> *obj = new r2c_offset_slope<T_src>;
-  
+
   obj->_offset = offset;
   obj->_slope  = slope;
-  
+
   new_raw_to_cal(obj,src,dest);
 
   return obj;
@@ -388,9 +388,9 @@ template<typename T_src,typename T_dest>
 raw_to_tcal_base *new_slope(const T_src *src,T_dest *dest,double slope)
 {
   r2c_slope<T_src> *obj = new r2c_slope<T_src>;
-  
+
   obj->_slope  = slope;
-  
+
   new_raw_to_cal(obj,src,dest);
 
   return obj;
@@ -400,9 +400,9 @@ template<typename T_src,typename T_dest>
 raw_to_tcal_base *new_offset(const T_src *src,T_dest *dest,double offset)
 {
   r2c_offset<T_src> *obj = new r2c_offset<T_src>;
-  
+
   obj->_offset = offset;
-  
+
   new_raw_to_cal(obj,src,dest);
 
   return obj;
@@ -412,9 +412,9 @@ template<typename T_src,typename T_dest>
 raw_to_tcal_base *new_cut_below_oe(const T_src *src,T_dest *dest,double cut)
 {
   r2c_cut_below_oe<T_src> *obj = new r2c_cut_below_oe<T_src>;
-  
+
   obj->_cut = cut;
-  
+
   new_raw_to_cal(obj,src,dest);
 
   return obj;

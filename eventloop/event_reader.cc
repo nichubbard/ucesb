@@ -70,7 +70,7 @@ void event_reader::wait_for_unpack_queue_slot()
 	return;
 
       TDBG("none available");
-      
+
       _unpack_event_queue.request_insert_wakeup(&_block);
       if (_unpack_event_queue.can_insert())
 	{
@@ -89,7 +89,7 @@ void *event_reader::worker()
   TDBG("");
 
   // Get the next file from the input queue, and process events
-  
+
   for ( ; ; )
     {
       while (!_open_file_queue.can_remove())
@@ -133,7 +133,7 @@ void *event_reader::worker()
 	  send_item._event        = NULL; // there is no event payload
 	  send_item._reclaim      = item._reclaim;
 	  send_item._last_reclaim = item._last_reclaim; // not needed, but anyhow
-	  
+
 	  // We're done preparing the item
 	  _unpack_event_queue.insert();
 	}
@@ -147,7 +147,7 @@ void *event_reader::worker()
       if (source)
 	{
 	  // Now, process all the events from this file
-	  
+
 	  process_file(source);
 	}
 
@@ -162,7 +162,7 @@ void *event_reader::worker()
 
 	  // Make sure the queue has space for an item...
 	  wait_for_unpack_queue_slot();
-	  
+
 	  // We may now use the next entry in the queue
 	  eq_item &send_item      = _unpack_event_queue.next_insert(/*0*/(insert_queue++)%MAX_THREADS);
 
@@ -170,7 +170,7 @@ void *event_reader::worker()
 	  send_item._event        = NULL; // there is no event payload
 	  send_item._reclaim      = NULL;
 	  send_item._last_reclaim = NULL; // not needed, but anyhow
-	  
+
 	  // We're done preparing the item
 	  _unpack_event_queue.insert();
 
@@ -200,10 +200,10 @@ void event_reader::process_file(data_input_source *source)
   {
     // Make sure the queue has space for an item...
     wait_for_unpack_queue_slot();
-    
+
     // We may now use the next entry in the queue
     eq_item &send_item      = _unpack_event_queue.next_insert(/*0*/(insert_queue++)%MAX_THREADS);
-    
+
     send_item._info         = EQ_INFO_MESSAGE;
     send_item._event        = NULL; // there is no event payload
     send_item._reclaim      = NULL;
@@ -222,7 +222,7 @@ void event_reader::process_file(data_input_source *source)
       if (_conf._print_buffer)
 	loop._source.print_file_header();
       */
-    } catch (error &e) { 
+    } catch (error &e) {
       WARNING("Skipping this file...");
       failed = true;
     }
@@ -230,7 +230,7 @@ void event_reader::process_file(data_input_source *source)
     // Stop giving error messages to queue item
     send_item._last_reclaim = _wt._last_reclaim;
     _wt._last_reclaim = NULL;
-    
+
     // Insert the messages (if any) into the queue
     _unpack_event_queue.insert();
 
@@ -254,8 +254,8 @@ void event_reader::process_file(data_input_source *source)
       _wt._last_reclaim       = &send_item._reclaim;
 
       try {
-	event_base *eb = (event_base *) 
-	  _wt._defrag_buffer->allocate_reclaim(sizeof (event_base));	
+	event_base *eb = (event_base *)
+	  _wt._defrag_buffer->allocate_reclaim(sizeof (event_base));
 
 	memset(eb,0,sizeof(event_base));
 
@@ -270,7 +270,7 @@ void event_reader::process_file(data_input_source *source)
 	// reclaimed in any case
 
 	// And possibly mark the event for printing
-	
+
 	if (_conf._print)
 	  {
 	    if (_conf._data)
@@ -281,7 +281,7 @@ void event_reader::process_file(data_input_source *source)
 
 	send_item._info  |= EQ_INFO_PROCESS;
 	send_item._event = eb;
-      } catch (error &e) { 
+      } catch (error &e) {
 	WARNING("Skipping this file...");
       }
 
@@ -305,7 +305,7 @@ void event_reader::process_file(data_input_source *source)
       // the in-order execution.
 
       //if (_conf._print)
-      //	loop._source.print_event(_conf._data);			    
+      //	loop._source.print_event(_conf._data);
 
       // We must decide into which queue we will insert the _next_
       // event (this since the fan_in queue gets the information one
@@ -325,7 +325,7 @@ void event_reader::process_file(data_input_source *source)
 
 
 
-      
+
       // Stop giving error messages to queue item
       send_item._last_reclaim = _wt._last_reclaim;
       _wt._last_reclaim = NULL;
@@ -353,10 +353,10 @@ void event_reader::process_file(data_input_source *source)
   {
     // Make sure the queue has space for an item...
     wait_for_unpack_queue_slot();
-    
+
     // We may now use the next entry in the queue
     eq_item &send_item      = _unpack_event_queue.next_insert(/*0*/(insert_queue++)%MAX_THREADS);
-    
+
     send_item._info         = EQ_INFO_FILE_CLOSE;
     send_item._event        = source; // The source item to be removed
     send_item._reclaim      = NULL;

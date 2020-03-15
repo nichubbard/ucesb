@@ -61,7 +61,11 @@
 #define EXTERNAL_WRITER_FLAG_TYPE_MASK    EXT_DATA_ITEM_TYPE_MASK
 #define EXTERNAL_WRITER_FLAG_HAS_LIMIT    EXT_DATA_ITEM_HAS_LIMIT
 
-#define EXTERNAL_WRITER_MAGIC (0x57e65c73u +32) // change with protocol version
+#define EXTERNAL_WRITER_MAGIC (0x57e65c73u +35) // change with protocol version
+
+#define EXTERNAL_WRITER_REQUEST_HI_MASK   0xffff0000u
+#define EXTERNAL_WRITER_REQUEST_LO_MASK   0x0000ffffu
+#define EXTERNAL_WRITER_REQUEST_HI_MAGIC  0x76c30000u
 
 #define EXTERNAL_WRITER_DEFAULT_PORT      56577
 
@@ -69,11 +73,11 @@
  * macro, so that it can be used by certain 'hacked' output buffer
  * child classes.
  */
-#define EXTERNAL_WRITER_SIZE_NTUPLE_FILL(max_size,sort_u32_words, \
+#define EXTERNAL_WRITER_SIZE_NTUPLE_FILL(max_size,sort_u32_words,	\
 					 has_raw,raw_words)		\
   ((uint32_t) sizeof(external_writer_buf_header) +			\
-   (1 + sort_u32_words +						\
-    (has_raw ? (1 + raw_words) : 0)) * (uint32_t) sizeof(uint32_t) +\
+   (2 + sort_u32_words +						\
+    (has_raw ? (1 + raw_words) : 0)) * (uint32_t) sizeof(uint32_t) +	\
    max_size)
 
 struct external_writer_buf_header

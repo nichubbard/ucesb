@@ -30,7 +30,7 @@ CAMAC_LECROY_4434(channels)
 	{
 	  0_23:  value;
 	  24_31: 0;
-	  
+
 	  ENCODE(data[index],(value=value));
 	}
     }

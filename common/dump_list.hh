@@ -45,7 +45,7 @@ void dump_list(const std::vector<item*> *v,dumper &d,const char *separator)
 	  if (strcmp(separator,"\n") == 0)
 	    d.nl();
 	  else
-	    d.text(separator);	
+	    d.text(separator);
 
 	  (*i)->dump(d);
 	}
@@ -60,25 +60,25 @@ void dump_list_paren(const item_list *v,dumper &d,const char *delim,bool first_c
   assert(delim[0] && delim[1]);
 
   d.text_fmt("%c",delim[0]); // '('
-      
+
   if (v)
     {
       dumper sd(d);
-      
+
       typename item_list::const_iterator i;
-      
+
       i = v->begin();
-      
+
       if (i != v->end())
 	{
 	  if (first_comma)
 	    sd.text(",");
 	  (*i)->dump(sd);
 	  ++i;
-	  
+
 	  for (; i != v->end(); ++i)
 	    {
-	      sd.text(",");		      
+	      sd.text(",");
 	      (*i)->dump(sd);
 	    }
 	}
@@ -92,13 +92,13 @@ void dump_list_braces(const std::vector<item*> *v,dumper &d)
 {
   d.text("{");
   d.nl();
-      
+
   if (v)
     {
       dumper sd(d,2);
-      
+
       typename std::vector<item*>::const_iterator i;
-      
+
       for (i = v->begin(); i != v->end(); ++i)
 	{
 	  (*i)->dump(sd);
@@ -113,13 +113,13 @@ void dump_list_braces(const item_list *v,dumper &d,bool end_brace = true,bool st
 {
   if (start_brace)
     d.text("{\n");
-      
+
   if (v)
     {
       dumper sd(d,2);
-      
+
       typename item_list::const_iterator i;
-      
+
       for (i = v->begin(); i != v->end(); ++i)
 	{
 	  (*i)->dump(sd);
@@ -138,12 +138,12 @@ void dump_list_args(const item_list *v,dumper &d,const char *type_name)
   if (v)
     {
       dumper sd(d);
-      
+
       typename item_list::const_iterator i;
-      
+
       for (i = v->begin(); i != v->end(); ++i)
 	{
-	  sd.text_fmt(",%s ",type_name);		      
+	  sd.text_fmt(",%s ",type_name);
 	  (*i)->dump(sd);
 	}
     }

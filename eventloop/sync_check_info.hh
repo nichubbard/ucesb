@@ -48,7 +48,7 @@ public:
 public:
   void clear()
   {
-    _num_items = 0; 
+    _num_items = 0;
     _seen.clear();
   }
 
@@ -64,7 +64,7 @@ public:
       return before;
 
     sync_check_info_item<bits> &item = _items[_num_items++];
-    
+
     item._index   = index;
     item._counter = counter;
 

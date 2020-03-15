@@ -48,7 +48,7 @@ RETIRE:   xxxxk/s  SERIAL    xxxx (xxxx))
 Thread  Task k/s buf  Task k/s buf   TBUF      CPU
 UNZIP:                                          99
 1       UNP xxxx xxx                 xxxk/xxxk  99
-2       UNP xxxx xxx  
+2       UNP xxxx xxx
 3       UNP xxxx xxx  UCL xxxx xxx
         NTU xxxx xxx  RET xxxx xxx   xxxk/xxxk  77
 
@@ -88,7 +88,7 @@ Error messages, info etc...
 
   The main question is: how to figure out if a thread is swamped with
   work (they should all be).  And to figure out when a thread has too
-  little to do.  
+  little to do.
 
   We want to all threads (particularly the serial ones) to be able to
   survive the situation when any producer for it (particularly a
@@ -108,7 +108,7 @@ Error messages, info etc...
   * stdin/out/err input/output, file open and close
   * thread monitoring (n-curses)
   * event retirement
-  
+
   The unwanted part may be the event retirement, but since retirement
   is a light-weight task.  (No analysis, and no memory free, only some
   buffer releases (the free operations go into the treads, there are
@@ -229,7 +229,7 @@ void thread_info::update()
   // following pointers which the other thread may change (and thereby
   // e.g. free an old data structure) B) via care and handling of
   // obviously wrong data, e.g. when _done has passed _avail
-  
+
   // input_buffer *_file_input;
 
 
@@ -320,7 +320,7 @@ void thread_info::update()
 
       if (!task)
 	continue;
-      
+
       if (task->_type & TI_TASK_SERIAL)
 	{
 	  ti_task_serial *serial_task = (ti_task_serial*) task;
@@ -348,15 +348,15 @@ void thread_info::update()
 	      for (int thw = 0; thw < _num_work_threads; thw++)
 		{
 		  thread_queue_base *th_queue = serial_task->_queue._multi->get_queue(thw);
-		  
+
 		  size_t done  = th_queue->_done;
 		  size_t avail = th_queue->_avail;
-		  
+
 		  int todo = avail - done;
 		  // sanity check, since we might have gotten the variables desyncronised
 		  if (todo < 0)
 		    todo = 0;
-		  
+
 		  serial_task->_available += todo;
 		}
 
@@ -422,7 +422,7 @@ void thread_info::update()
       // sanity check, since we might have gotten the variables desyncronised
       if (active < 0)
 	active = 0;
-      
+
       thread->_buf_used = active;
       thread->_buf_size = size;
     }

@@ -67,7 +67,7 @@ bool scaler_timer::set0_estimate(uint32 prev,uint32 now)
 
   for (int i = 0; i < ST_HISTORY_SIZE-1; i++)
     {
-      int i1 = (hist_i + i    ) & (ST_HISTORY_SIZE - 1); 
+      int i1 = (hist_i + i    ) & (ST_HISTORY_SIZE - 1);
       int i2 = (hist_i + i + 1) & (ST_HISTORY_SIZE - 1);
 
       diff[i] = (history[i2] -
@@ -95,8 +95,8 @@ bool scaler_timer::set0_estimate(uint32 prev,uint32 now)
       //printf ("%6.1f ",multiplier);
     }
   //printf ("\n");
-    
-  
+
+
   return false;
 }
 

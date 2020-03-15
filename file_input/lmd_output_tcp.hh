@@ -52,6 +52,18 @@ struct lmd_output_buffer
 };
 */
 
+// Stream is first sticky event replay part:
+#define LOS_FLAGS_STICKY_RECOVERY_FIRST     0x01
+// Stream is (part of) sticky event replay:
+#define LOS_FLAGS_STICKY_RECOVERY_MORE      0x02
+#define LOS_FLAGS_STICKY_RECOVERY_MASK     (LOS_FLAGS_STICKY_RECOVERY_FIRST | \
+					    LOS_FLAGS_STICKY_RECOVERY_MORE)
+// This stream contains sticky events
+#define LOS_FLAGS_HAS_STICKY_EVENT          0x04
+// If a client is about to go beyond this stream, them it will
+// loose sticky events, so it needs to find a recovery stream. 
+#define LOS_FLAGS_STICKY_LOST_AFTER         0x08
+
 struct lmd_output_stream
 {
   lmd_output_stream *_next;
@@ -59,7 +71,7 @@ struct lmd_output_stream
 
   int    _alloc_stream_no; // only for debugging, used to keep track...
 
-  int    _sequence_no;
+  int    _flags;
   size_t _filled;   // only increased by the filling routine
   size_t _max_fill; // more than this will never be filled (may only
 		    // decrease while active filling)
@@ -150,7 +162,7 @@ struct lmd_output_state
 
   // Each buffer (stream) is only sent to one receiver, useful for
   // fanout to multiple processing instances.
-  bool _sendonce; 
+  bool _sendonce;
 
 public:
   uint32 _buf_size;
@@ -175,7 +187,8 @@ public:
 public:
   void free_client_stream(lmd_output_stream *stream);
 
-  lmd_output_stream *get_next_client_stream(lmd_output_stream *stream);
+  lmd_output_stream *get_next_client_stream(lmd_output_stream *stream,
+					    int *need_recovery_stream);
 
   lmd_output_stream *get_last_client_stream();
 
@@ -196,40 +209,47 @@ public:
 #define LOCC_STATE_REQUEST_WAIT   2  // waiting for request
 #define LOCC_STATE_STREAM_WAIT    3  // waiting for data in a stream
 #define LOCC_STATE_BUFFER_WAIT    4  // waiting for data in a buffer
-#define LOCC_STATE_SEND_WAIT      5  
-
-
+#define LOCC_STATE_SEND_WAIT      5
+#define LOCC_STATE_CLOSE_WAIT     6  // wait (timeout) for othe end to close
 
 
 class lmd_output_tcp;
+class lmd_output_server_con;
 
 class lmd_output_client_con
 {
 public:
-  lmd_output_client_con(int fd,int mode,lmd_output_state *data);
+  lmd_output_client_con(int fd, lmd_output_server_con *server_con,
+			lmd_output_state *data);
 
 public:
   int _fd;
 
   int _state;
 
-  int _mode;
-
   struct request
   {
     size_t _got;
     char   _msg[12+1]; // +1 for 0 termination
   } _request;
-  
+
 public:
   lmd_output_stream *_current; // current stream we send from
   size_t             _offset;  // how much has been sent
 
+  int                _need_recovery_stream;
   lmd_output_stream *_pending; // stream to send from
 
   lmd_output_state  *_data;
 
   struct sockaddr_in _cliAddr;
+
+  lmd_output_server_con *_server_con;
+
+  struct timeval _close_beginwait;
+
+protected:
+  void next_stream(lmd_output_tcp *tcp_server);
 
 public:
   int setup_select(int nfd,
@@ -239,7 +259,9 @@ public:
 		    lmd_output_tcp *tcp_server);
 
 public:
-  bool stream_is_available(lmd_output_stream *stream);
+  bool stream_is_available(lmd_output_stream *stream,
+			   bool sticky_events_seen,
+			   lmd_output_tcp *tcp_server);
 
 public:
   void close();
@@ -250,10 +272,11 @@ public:
 
 class lmd_output_server_con
 {
-
+public:
+  lmd_output_server_con();
 
 public:
-  void bind(int mode,int port);
+  void bind(int mode, int port, int port_range_last);
 
   void close();
 
@@ -262,6 +285,8 @@ public:
 
 public:
   int _mode;
+  int _data_port;
+  bool _allow_data;
 
 public:
   int setup_select(int nfd,
@@ -296,12 +321,16 @@ class lmd_output_tcp :
   public lmd_output_buffered
 {
 public:
-  lmd_output_tcp() 
-  { 
+  lmd_output_tcp()
+  {
     _active = false;
 
     _tell_fill_stream = 0;
     _tell_fill_buffer = 0;
+    _need_recovery_stream = 0;
+    _sticky_events_seen = false;
+
+    _mark_replay_stream = 0;
 
     _need_free_stream = 0;
     _shutdown_streams_to_send = 0;
@@ -335,6 +364,8 @@ public:
   // Communication between the data producer and the server itself
   volatile int  _tell_fill_stream;
   volatile int  _tell_fill_buffer;
+  volatile int  _need_recovery_stream;
+  volatile bool _sticky_events_seen;
 
 public:
   pthread_t _thread;
@@ -345,6 +376,8 @@ public:
   thread_block _block_producer;
 
 public:
+  int _mark_replay_stream;
+  
   bool _need_free_stream;
 
   size_t _next_search_client_i;
@@ -356,21 +389,38 @@ public:
   int  _flush_interval;
 
 public:
+  volatile uint64_t _total_sent;
+  uint64_t _last_sent;
+
+public:
   bool _hold; // no buffer should be discarded, all must be sent somewhere
   // no guarantee however, as we may not notice a client disconnecting
   // until some future buffer, i.e. a few streams may be sent into
   // the big vacuum when a client disconnects
 
+protected:
+  lmd_output_server_con *create_server(int mode, int port, int port_range_last,
+				       bool allow_data);
 public:
-  void create_server(int mode,int port);
+  void create_server(int mode, int port,
+		     int dataport, int dataport_last,
+		     bool allow_data_on_map_port);
+
+protected:
+  void send_last_buffer();
 
 public:
   virtual void close();
 
+  virtual void print_status(double elapsed);
+
 protected:
-  virtual void write_buffer(size_t count);
+  virtual void write_buffer(size_t count, bool has_sticky);
   virtual void get_buffer();
   virtual bool flush_buffer();
+
+  virtual bool do_sticky_replay();
+  virtual void mark_replay_stream(bool replay);
 
 };
 

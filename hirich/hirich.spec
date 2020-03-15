@@ -22,7 +22,7 @@
 
 #include "spec/spec.spec"
 
-// Decode using generated unpacker.  Not used, using external 
+// Decode using generated unpacker.  Not used, using external
 // instead
 
 RICH_MODULE(module)
@@ -53,7 +53,7 @@ RICH_MODULE(module)
 
       if (header.count_low)
 	{
-	  UINT16 data_skip;	  
+	  UINT16 data_skip;
 	}
     }
 }
@@ -113,7 +113,7 @@ external EXTERNAL_DATA32();
 
 SUBEVENT(EXTERNAL_DATA32_RICH_SUBEVENT)
 {
-  external data = EXTERNAL_DATA32(); 
+  external data = EXTERNAL_DATA32();
 }
 
 EVENT

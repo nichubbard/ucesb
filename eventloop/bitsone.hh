@@ -150,7 +150,7 @@ public:
 	  {
 	    if (iter._i >= BITSONE_CONTAINERS)
 	      return -1;
-	    
+
 	    iter._left = _bits[iter._i];
 	    //printf ("%16x %16p\n",iter._left,&_bits[iter._i]);
 	    //fflush(stdout);

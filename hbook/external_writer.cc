@@ -79,7 +79,7 @@ external_writer::~external_writer()
 
 int ext_writer_shm_buf::init_open()
 {
-#if defined(__NetBSD__) || defined(__APPLE__)
+#if defined(__NetBSD__) || defined(__APPLE__) || defined(EXTERNAL_WRITER_NO_SHM)
   // NetBSD has no shm_open().  Has shmat() etc, but for now: revert to pipe.
   // MacOSX seems not to like to ftruncate the shm after unlinking it, for now:
   // revert to pipe.
@@ -87,7 +87,7 @@ int ext_writer_shm_buf::init_open()
 #else
   // First create ourselves a piece of shared memory for efficient
   // communication
-  
+
   char tmpname[32];
 
   snprintf (tmpname,sizeof(tmpname),
@@ -106,16 +106,16 @@ int ext_writer_shm_buf::init_open()
       WARNING("Error creating shared memory segment (%s).",tmpname);
       return -1;
     }
-  
+
   // Then, the first thing we do is to unlink it.  Thus, it will
   // go away as soon as we're done
-  
+
   if (shm_unlink(tmpname) == -1)
     {
       WARNING("Error unlinking shared memory segment.");
       return -1;
     }
-  
+
   // Set the size
 
   _len = EXTERNAL_WRITER_MIN_SHARED_SIZE;
@@ -129,16 +129,16 @@ int ext_writer_shm_buf::init_open()
   // Check that the external writer has a chance to get the size
 
   struct stat st;
-  
+
   int r = fstat(_fd_mem, &st);
-  
+
   if (r != 0)
     {
       perror("stat");
       WARNING("Error determining shared memory size.");
       return -1;
     }
-  
+
   if (st.st_size != (off_t) _len)
     {
       WARNING("Shared memory size wrong.");
@@ -214,13 +214,14 @@ void ext_writer_pipe_buf::init_alloc()
 }
 
 
-void external_writer::init(unsigned int type,bool shm,
-			   const char *filename,const char *ftitle,
-			   int server_port,int generate_header,
-			   int timeslice,int timeslice_subdir,
-			   int autosave)
+void external_writer::init_x(unsigned int type,unsigned int opt,
+			     const char *filename,const char *ftitle,
+			     int server_port,int generate_header,
+			     int timeslice,int timeslice_subdir,
+			     int autosave)
 {
   int fd_mem = -1;
+  bool shm = !(opt & NTUPLE_OPT_WRITER_NO_SHM);
 
   if (shm)
     {
@@ -240,6 +241,7 @@ void external_writer::init(unsigned int type,bool shm,
 	  INFO(0,"Using shm communication.");
 	}
     }
+  // We may have reverted to !shm above
   if (!shm)
     {
       ext_writer_pipe_buf *ewpb = new ext_writer_pipe_buf();
@@ -256,7 +258,7 @@ void external_writer::init(unsigned int type,bool shm,
 
 #ifndef EXT_WRITER_PREFIX // UCESB has this defined
 // as land02
-#define EXT_WRITER_PREFIX "../util/hbook/" 
+#define EXT_WRITER_PREFIX "../util/hbook/"
 #endif
 
   if (type & NTUPLE_TYPE_ROOT)
@@ -283,12 +285,41 @@ void external_writer::init(unsigned int type,bool shm,
   int fd_dest = -1;
 
   char tmp[1024];
-  /*const*/ char *argv[15];
+  /*const*/ char *argv[25];
   int argc = 0;
+  char *executable = NULL;
 
   char *fork_pipes = NULL;
 
-  argv[argc++] = strdup(ext_writer_name);
+  // gdb -batch -ex "run" -ex "bt"
+
+  if (opt & NTUPLE_OPT_EXT_GDB)
+    {
+      executable = strdup("gdb");
+      argv[argc++] = strdup("gdb");
+      argv[argc++] = strdup("-batch");
+      argv[argc++] = strdup("-ex");
+      argv[argc++] = strdup("run");
+      argv[argc++] = strdup("-ex");
+      argv[argc++] = strdup("bt");
+      argv[argc++] = strdup("--return-child-result");
+      argv[argc++] = strdup("--args");
+    }
+  else if (opt & NTUPLE_OPT_EXT_VALGRIND)
+    {
+     executable = strdup("valgrind");
+     argv[argc++] = strdup("valgrind");
+    }
+  else
+    {
+      argv[argc++] = strdup(ext_writer_name);
+      executable = argv0_replace(ext_writer);
+    }
+
+  if (opt & (NTUPLE_OPT_EXT_GDB | NTUPLE_OPT_EXT_VALGRIND))
+    {
+      argv[argc++] = strdup(argv0_replace(ext_writer));
+    }
 
   // fork_pipes points to XXXXX,XXXXX, so that actual numbers can be
   // filled out by the forker
@@ -311,17 +342,17 @@ void external_writer::init(unsigned int type,bool shm,
   if (forcecolour)
     {
       snprintf (tmp,sizeof(tmp),
-		"--colour=%s",forcecolour > 0 ? "yes" : "no");  
+		"--colour=%s",forcecolour > 0 ? "yes" : "no");
       argv[argc++] = strdup(tmp);
     }
 
-  if (generate_header)
+  if (type & NTUPLE_TYPE_STRUCT_HH)
     {
       snprintf (tmp,sizeof(tmp),
 		"--header=%s",filename);  argv[argc++] = strdup(tmp);
     }
 
-  if (type & NTUPLE_READER_INPUT)
+  if (opt & NTUPLE_OPT_READER_INPUT)
     {
       if (type & (NTUPLE_TYPE_ROOT | NTUPLE_TYPE_CWN))
 	{
@@ -346,13 +377,13 @@ void external_writer::init(unsigned int type,bool shm,
 	  if (timeslice)
 	    {
 	      snprintf (tmp,sizeof(tmp),
-			"--timeslice=%d",timeslice);  
+			"--timeslice=%d",timeslice);
 	      if (timeslice_subdir)
 		snprintf (tmp+strlen(tmp),sizeof(tmp)-strlen(tmp),
 			  ":%d",timeslice_subdir);
 	      argv[argc++] = strdup(tmp);
 	    }
-	  
+
 	  if (autosave)
 	    {
 	      snprintf (tmp,sizeof(tmp),
@@ -396,13 +427,11 @@ void external_writer::init(unsigned int type,bool shm,
 	    }
 	}
     }
-  
+
   argv[argc++] = NULL; // terminate
 
-  char *executable = argv0_replace(ext_writer);
-
   int dummy_fd; // so they are not closed
-  
+
   _buf->_fork.fork(executable,argv,
                    &dummy_fd,&dummy_fd,fd_dest,-1,fd_mem,fork_pipes);
 
@@ -450,7 +479,7 @@ void external_writer::close()
       // A final token message, done
 
       send_done();
-      
+
       // Write whatever is to be written
 
       _buf->flush();
@@ -463,7 +492,7 @@ void external_writer::close()
 	{
 	  while (_buf->get_response() != EXTERNAL_WRITER_RESPONSE_DONE)
 	    ;
-	  
+
 	  // If everything has worked properly, it should have exactly
 	  // consumed all our data
 
@@ -496,7 +525,7 @@ char ext_writer_buf::get_response()
   for ( ; ; )
     {
       ssize_t ret = read(_fork._fd_in,&response,sizeof(response));
-      
+
       if (ret == -1)
 	{
 	  if (errno == EINTR)
@@ -538,13 +567,13 @@ void ext_writer_shm_buf::commit_buf_space(size_t space)
 
   _ctrl->_avail += space;
   _cur += space;
-  
+
   if (_cur == _end)
     _cur = _begin; // start over from beginning
   assert(_cur + sizeof (uint32_t) <= _end);
-  
+
   // if the consumer wanted to be woken up...
-  
+
   if (_ctrl->_need_consumer_wakeup &&
       (((int) _ctrl->_avail) - ((int) _ctrl->_wakeup_avail)) >= 0)
     {
@@ -566,7 +595,7 @@ void ext_writer_pipe_buf::flush()
     {
       //printf ("write %d bytes (flush)\n",_cur-_begin_write);
       full_write(_fork._fd_out,_begin_write,
-		 (size_t) (_cur-_begin_write));  
+		 (size_t) (_cur-_begin_write));
       _begin_write = _cur;
       // wrote_pipe_buf();
     }
@@ -582,7 +611,7 @@ void ext_writer_pipe_buf::commit_buf_space(size_t space)
 		 (size_t) (_write_mark-_begin_write));
       _begin_write = _write_mark;
       // wrote_pipe_buf();
-      
+
       if (_size >= 2*0x1000)
 	_write_mark += ((_size / 4) & (size_t) ~(0x1000 - 1));
       else
@@ -597,7 +626,7 @@ char *ext_writer_shm_buf::ensure_buf_space(uint32_t space)
 	  space,(uint32_t) _size);
 
   // Check that there is enough space available
-  
+
  check_space:
   while (_ctrl->_avail + space - _ctrl->_done > _size)
     {
@@ -611,15 +640,15 @@ char *ext_writer_shm_buf::ensure_buf_space(uint32_t space)
 	break;
       // we've told we wanted to be woken up, and got nothing in
       // between.  We need to block
-      
+
       get_response();
     }
-  
+
   // Now, if we're having really bad luck, the linear space is not
   // long enough
-  
+
   size_t lin_left = (size_t) (_end - _cur);
-  
+
   if (lin_left < space)
     {
       assert ((_end - _cur) >= (ssize_t) sizeof(uint32_t));
@@ -642,9 +671,9 @@ char *ext_writer_pipe_buf::ensure_buf_space(uint32_t space)
 
   if (_end - _cur >= (ssize_t) space)
     return _cur; // There is space enough
-  
+
   // first we have to write out whatever was not written before
-  
+
   if (_cur-_begin_write)
     {
       //printf ("write %d bytes (end-of-data)\n",_cur-_begin_write);
@@ -652,18 +681,18 @@ char *ext_writer_pipe_buf::ensure_buf_space(uint32_t space)
 		 (size_t) (_cur-_begin_write));
       // wrote_pipe_buf();
     }
-  
+
   // so, now we should reset the _cur and _begin pointers to
   // maximise chance of alignment, we'll (if using more than one
   // page) align _begin such that what we wrote as a partial page
   // now, will get the remainder of the first page, and then the
   // next page becomes aligned (if the consumer operates with
   // entire pages)
-  
+
   // TODO: should use page size known from system!
 
   restart_pointers();
-  
+
   return _cur;
 }
 
@@ -682,7 +711,7 @@ void ext_writer_pipe_buf::restart_pointers()
     }
 }
 
-// 
+//
 #define EWB_STRING_SPACE_FROM_LEN(len) (sizeof(external_writer_buf_string)+\
 					((((len)+1) + 3) & (size_t) ~3))
 #define EWB_STRING_SPACE(str) EWB_STRING_SPACE_FROM_LEN(strlen(str))
@@ -699,7 +728,7 @@ void *external_writer::insert_buf_string(void *ptr,const char *str)
   memcpy(buf->_string,str,len);
   for ( ; len < space - sizeof(external_writer_buf_string); len++)
     buf->_string[len] = 0;
-  
+
   return ((char *) ptr) + space;
 }
 
@@ -709,7 +738,7 @@ void *external_writer::insert_buf_header(void *ptr,
   external_writer_buf_header *header =
     (external_writer_buf_header*) ptr;
 
-  header->_request = htonl(request);
+  header->_request = htonl(request | EXTERNAL_WRITER_REQUEST_HI_MAGIC);
   header->_length  = htonl(length);
 
   return (char *) (header+1);
@@ -717,10 +746,11 @@ void *external_writer::insert_buf_header(void *ptr,
 
 void external_writer::send_file_open(/*const char *filename,
 				     const char *ftitle,
-				     int server_port,int generate_header*/)
+				     int server_port,int generate_header*/
+				     uint32_t sort_u32_words)
 {
   uint32_t space = (uint32_t) (sizeof(external_writer_buf_header)+
-    /*3**/sizeof(uint32_t)/* +
+    /*3**/2 * sizeof(uint32_t)/* +
       EWB_STRING_SPACE(filename)+EWB_STRING_SPACE(ftitle)*/);
   /*
   printf ("%d %d %d -> %d\n",
@@ -737,6 +767,8 @@ void external_writer::send_file_open(/*const char *filename,
   *(i++) = htonl(EXTERNAL_WRITER_MAGIC); // put some magic for checking
   //*(i++) = htonl(server_port);
   //*(i++) = htonl(generate_header);
+  *(i++) = htonl(sort_u32_words);
+  _sort_u32_words = sort_u32_words;
   p = i;
 
   //p = insert_buf_string(p,filename);
@@ -747,15 +779,19 @@ void external_writer::send_file_open(/*const char *filename,
   _buf->commit_buf_space(space);
 }
 
-void external_writer::send_book_ntuple(int hid,
-				       const char *id,const char *title,
-				       uint32_t ntuple_index,
-				       uint32_t sort_u32_words,
-				       uint32_t max_raw_words)
+void external_writer::send_book_ntuple_x(int hid,
+					 const char *id,const char *title,
+					 const char *index_major,
+					 const char *index_minor,
+					 uint32_t struct_index,
+					 uint32_t ntuple_index,
+					 uint32_t max_raw_words)
 {
-  uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
-			       (ntuple_index == 0 ? 4 : 2) * sizeof(uint32_t) +
-			       EWB_STRING_SPACE(id) + EWB_STRING_SPACE(title));
+  uint32_t space =
+    (uint32_t) (sizeof(external_writer_buf_header) +
+		(ntuple_index == 0 ? 4 : 3) * sizeof(uint32_t) +
+		EWB_STRING_SPACE(id) + EWB_STRING_SPACE(title) +
+		EWB_STRING_SPACE(index_major) + EWB_STRING_SPACE(index_minor));
 
   // space for header
   void *p = _buf->ensure_buf_space(space);
@@ -763,25 +799,26 @@ void external_writer::send_book_ntuple(int hid,
   p = insert_buf_header(p,EXTERNAL_WRITER_BUF_BOOK_NTUPLE,space);
 
   uint32_t *i = (uint32_t*) p;
+  *(i++) = htonl(struct_index);
   *(i++) = htonl(ntuple_index);
   *(i++) = htonl(hid);
   if (ntuple_index == 0)
     {
-      *(i++) = htonl(sort_u32_words);
-      _sort_u32_words = sort_u32_words;
       *(i++) = htonl(max_raw_words);
-      _max_raw_words = max_raw_words;  
+      _max_raw_words = max_raw_words;
     }
   p = i;
 
   p = insert_buf_string(p,id);
   p = insert_buf_string(p,title);
+  p = insert_buf_string(p,index_major);
+  p = insert_buf_string(p,index_minor);
 
   assert (p == _buf->_cur + space);
 
   _buf->commit_buf_space(space);
 }
-  
+
 void external_writer::send_alloc_array(uint32_t size)
 {
   uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
@@ -813,7 +850,7 @@ void external_writer::send_hbname_branch(const char *block,
   uint32_t space = (uint32_t) (sizeof(external_writer_buf_header)+
 			       EWB_STRING_SPACE(block)+
 			       6*sizeof(uint32_t)+
-			       EWB_STRING_SPACE(var_name) + 
+			       EWB_STRING_SPACE(var_name) +
 			       EWB_STRING_SPACE(var_ctrl_name));
 
   // space for header
@@ -849,23 +886,19 @@ void external_writer::send_hbname_branch(const char *block,
 
 void external_writer::send_setup_done(bool reader)
 {
-  uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
-			       sizeof(uint32_t));
+  uint32_t space = (uint32_t) (sizeof(external_writer_buf_header));
 
   // space for header
   void *p = _buf->ensure_buf_space(space);
 
   p = insert_buf_header(p,
-			reader ? EXTERNAL_WRITER_BUF_SETUP_DONE_RD : 
+			reader ? EXTERNAL_WRITER_BUF_SETUP_DONE_RD :
 			EXTERNAL_WRITER_BUF_SETUP_DONE,space);
-  
-  uint32_t *i = (uint32_t*) p;
-  *(i++) = htonl(0); // Reserve space for the xor_sum check variable.
-  p = i;
 
   assert (p == _buf->_cur + space);
 
   _buf->commit_buf_space(space);
+  _buf->flush();
 
   // If we are to be a reader, then flush the buffer
 
@@ -890,11 +923,12 @@ void external_writer::send_done()
   _buf->commit_buf_space(space);
 }
 
-uint32_t *external_writer::prepare_send_fill(uint32_t size,
-					     uint32_t ntuple_index,
-					     uint32_t *sort_u32,
-					     uint32_t **raw,
-					     uint32_t raw_words)
+uint32_t *external_writer::prepare_send_fill_x(uint32_t size,
+					       uint32_t struct_index,
+					       uint32_t ntuple_index,
+					       uint32_t *sort_u32,
+					       uint32_t **raw,
+					       uint32_t raw_words)
 {
   uint32_t space =
     EXTERNAL_WRITER_SIZE_NTUPLE_FILL(size,_sort_u32_words,
@@ -907,6 +941,7 @@ uint32_t *external_writer::prepare_send_fill(uint32_t size,
   uint32_t *i = (uint32_t*) p;
   for (uint32_t j = 0; j < _sort_u32_words; j++)
     *(i++) = htonl(sort_u32[j]);
+  *(i++) = htonl(struct_index);
   *(i++) = htonl(ntuple_index);
   if (_max_raw_words)
     {
@@ -924,11 +959,16 @@ uint32_t *external_writer::prepare_send_fill(uint32_t size,
 
 uint32_t *external_writer::prepare_send_offsets(uint32_t size)
 {
-  uint32_t space = (uint32_t) sizeof(external_writer_buf_header) + size;
+  uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
+			       sizeof(uint32_t)) + size;
 
   void *o = _buf->ensure_buf_space(space);
 
   o = insert_buf_header(o,EXTERNAL_WRITER_BUF_ARRAY_OFFSETS,space);
+
+  uint32_t *i = (uint32_t*) o;
+  *(i++) = htonl(0); // Reserve space for the xor_sum check variable.
+  o = i;
 
   return (uint32_t*) o;
 }
@@ -942,12 +982,19 @@ void external_writer::send_offsets_fill(uint32_t *po)
 
   uint32_t size = (uint32_t) (((char*) po) - _buf->_cur);
 
-  assert(header->_request == htonl(EXTERNAL_WRITER_BUF_ARRAY_OFFSETS) ||
-	 header->_request == htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL));
+  assert(header->_request == htonl(EXTERNAL_WRITER_BUF_ARRAY_OFFSETS |
+				   EXTERNAL_WRITER_REQUEST_HI_MAGIC) ||
+	 header->_request == htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL |
+				   EXTERNAL_WRITER_REQUEST_HI_MAGIC));
   assert(header->_length >= size); // or we wrote too much
   header->_length  = htonl(size);
 
   _buf->commit_buf_space(size);
+}
+
+void external_writer::send_flush()
+{
+  _buf->flush();
 }
 
 void ext_writer_shm_buf::resize_shm(uint32_t size)
@@ -966,7 +1013,7 @@ void ext_writer_shm_buf::resize_shm(uint32_t size)
   munmap(_ptr,_len);
   _ptr = (char *) mmap(0, size, (PROT_READ | PROT_WRITE),
 		       MAP_SHARED, _fd_mem, 0);
-  
+
   if (_ptr == MAP_FAILED)
     ERROR("Error mapping expanded shared memory segment.");
 
@@ -1017,21 +1064,21 @@ void external_writer::set_max_message_size(uint32_t size)
   _max_message_size = size;
 
   // How much size do we then want?
-  
+
   if (size < EXTERNAL_WRITER_MIN_SHARED_SIZE)
     size = EXTERNAL_WRITER_MIN_SHARED_SIZE;
 
   if (size < 0x10000) // 64k, will become 256k below
     size = 0x10000;
 
-  size *= 4; 
+  size *= 4;
   // factor to give hysteresis in process/pipe swapping
   // also means we need not care about the space set aside
   // for the control structure
 
 
   // In chunks of the minimum size
-  size = ((size + (EXTERNAL_WRITER_MIN_SHARED_SIZE-1)) & 
+  size = ((size + (EXTERNAL_WRITER_MIN_SHARED_SIZE-1)) &
 	  (uint32_t) ~(EXTERNAL_WRITER_MIN_SHARED_SIZE-1));
 
   if (size < _buf->_size)
@@ -1041,7 +1088,7 @@ void external_writer::set_max_message_size(uint32_t size)
 
   // We must first of all have space enough to write this important message
 
-  uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) + 
+  uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
 			       2*sizeof(uint32_t));
 
   void *p = _buf->ensure_buf_space(space);
@@ -1088,7 +1135,7 @@ void ext_writer_shm_buf::ready_to_read()
 
   while (get_response() != EXTERNAL_WRITER_RESPONSE_WORK_RD)
     ;
-  
+
   // We got the token, so we are now ready to move!  The client should have
   // reset donw for us.
 
@@ -1103,7 +1150,7 @@ char *ext_writer_shm_buf::ensure_read_space(uint32_t space)
       while (_ctrl->_avail - _ctrl->_done < space)
 	{
 	  // Not enough message available.  Need to bang at the producer
-	  
+
 	  MFENCE; // (_size >> 4) to get some hysteresis
 	  _ctrl->_wakeup_avail = _ctrl->_done + (_size >> 4);
 	  MFENCE;
@@ -1114,32 +1161,38 @@ char *ext_writer_shm_buf::ensure_read_space(uint32_t space)
 	    break;
 	  // we've told we wanted to be woken up, and got nothing in
 	  // between.  We need to block
-	  
-	  get_response();	  
+
+	  get_response();
 	}
-      
+
       // Enough message is available.  Now, did we by chance hit a
       // linear space consumer?
 
       assert(space >= sizeof(uint32_t));
 
-      external_writer_buf_header *header = 
+      external_writer_buf_header *header =
 	(external_writer_buf_header *) _cur;
       size_t lin_left = (size_t) (_end - _cur);
-      
+
       uint32_t request = ntohl(header->_request);
-      
+
+      if ((request & EXTERNAL_WRITER_REQUEST_HI_MASK) !=
+	  EXTERNAL_WRITER_REQUEST_HI_MAGIC)
+	ERROR("Bad request, hi magic wrong (0x%08x).", request);
+
+      request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
+
       if (request == EXTERNAL_WRITER_BUF_EAT_LIN_SPACE)
 	{
 	  _ctrl->_done += lin_left;
 	  _cur = _begin;
 	  continue;
 	}
-      
+
       if (lin_left < sizeof(external_writer_buf_header))
 	ERROR("Too little linear SHM space left for message (req=%d,size=%d).",
 	      request,space);
-      
+
       return _cur;
     }
 }
@@ -1187,14 +1240,14 @@ char *ext_writer_pipe_buf::ensure_read_space(uint32_t space)
 	{
 	  if (_cur + space <= READ_END)
 	    return _cur;
-	  
+
 	  size_t max_read = (size_t) (_end - READ_END);
-	  
+
 	  if (!max_read)
 	    break;
-	  
+
 	  ssize_t n = read(_fork._fd_in,READ_END,max_read);
-	  
+
 	  if (n == -1)
 	    {
 	      if (errno == EINTR)
@@ -1210,7 +1263,7 @@ char *ext_writer_pipe_buf::ensure_read_space(uint32_t space)
 	      WARNING("Unexpected end of file from external reader.");
 	      exit(1);
 	    }
-	  
+
 	  READ_END += n;
 	}
 
@@ -1218,7 +1271,7 @@ char *ext_writer_pipe_buf::ensure_read_space(uint32_t space)
       // must move the data back to the beginning!
 
       size_t left = (size_t) (READ_END - _cur);
-      
+
       if (_size >= 2*0x1000)
 	{
 	  size_t page_off = (_cur - _mem) & (0x1000 - 1);
@@ -1259,8 +1312,14 @@ uint32_t external_writer::get_message(uint32_t **start,uint32_t **end)
 
   external_writer_buf_header *header = (external_writer_buf_header *) p;
 
-  uint32_t msg    = ntohl(header->_request);
-  uint32_t length = ntohl(header->_length);
+  uint32_t request = ntohl(header->_request);
+  uint32_t length  = ntohl(header->_length);
+
+  if ((request & EXTERNAL_WRITER_REQUEST_HI_MASK) !=
+      EXTERNAL_WRITER_REQUEST_HI_MAGIC)
+    ERROR("Got bad request hi magic from external writer.");
+
+  request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
 
   // And then get the full message
 
@@ -1273,7 +1332,7 @@ uint32_t external_writer::get_message(uint32_t **start,uint32_t **end)
   *start = (uint32_t *) (p + sizeof (external_writer_buf_header));
   *end   = (uint32_t *) (p + length);
 
-  return msg;
+  return request;
 }
 
 void external_writer::message_body_done(uint32_t *end)
@@ -1284,8 +1343,8 @@ void external_writer::message_body_done(uint32_t *end)
 uint32_t external_writer::max_h1i_size(size_t max_id_title_len,uint32_t bins)
 {
   uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
-			       4*sizeof(uint32_t) + 
-			       2*EWB_STRING_SPACE_FROM_LEN(max_id_title_len) + 
+			       4*sizeof(uint32_t) +
+			       2*EWB_STRING_SPACE_FROM_LEN(max_id_title_len) +
 			       bins * sizeof(uint32_t));
   return space;
 }
@@ -1295,7 +1354,7 @@ void external_writer::send_hist_h1i(int hid,const char *id,const char *title,
 				    uint32_t *data)
 {
   uint32_t space = (uint32_t) (sizeof(external_writer_buf_header) +
-			       4*sizeof(uint32_t) + 
+			       4*sizeof(uint32_t) +
 			       EWB_STRING_SPACE(id) + EWB_STRING_SPACE(title) +
 			       (bins+2) * sizeof(uint32_t));
 
@@ -1342,7 +1401,7 @@ void external_writer::send_named_string(const char *id, const char *str)
 
   // space for header
   void *p = _buf->ensure_buf_space(space);
-  
+
   p = insert_buf_header(p,EXTERNAL_WRITER_BUF_NAMED_STRING,space);
 
   p = insert_buf_string(p,id);
@@ -1350,7 +1409,7 @@ void external_writer::send_named_string(const char *id, const char *str)
 
   assert (p == _buf->_cur + space);
 
-  _buf->commit_buf_space(space); 
+  _buf->commit_buf_space(space);
 }
 
 

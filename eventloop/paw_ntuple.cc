@@ -28,6 +28,7 @@
 #include "writing_ntuple.hh"
 #include "ntuple_item.hh"
 
+#include "parse_util.hh"
 #include "lmd_output.hh"
 
 #include "detector_requests.hh"
@@ -56,6 +57,8 @@ struct enumerate_ntuple_info
   map_ntuple_limits  _limits;
   int                _level;
   bool               _detailed_only;
+  int                _toggle_include;
+  bool               _include_always;
   const char        *_block;
   const char        *_block_prefix;
 };
@@ -66,10 +69,25 @@ void enumerate_member_paw_ntuple(const signal_id &id,
 {
   enumerate_ntuple_info *ntuple = (enumerate_ntuple_info *) extra;
 
-  if (!(ntuple->_requests->
-	is_channel_requested(id,info._type & (ENUM_IS_LIST_LIMIT |
-					      ENUM_IS_ARRAY_MASK),
-			     ntuple->_level, ntuple->_detailed_only)))
+  if (info._type & ENUM_NTUPLE_NEVER)
+    return;
+  else if (info._type & ENUM_NTUPLE_ALWAYS)
+    {
+      if (!ntuple->_include_always)
+	return;
+      // Do include
+    }
+  else if (ntuple->_include_always)
+    return;
+  else if (!(ntuple->_requests->
+	     is_channel_requested(id,info._type & (ENUM_IS_LIST_LIMIT |
+						   ENUM_IS_ARRAY_MASK),
+				  ntuple->_level, ntuple->_detailed_only)))
+    return;
+
+  if (info._type & (ENUM_IS_TOGGLE_I |
+		    ENUM_IS_TOGGLE_V) &&
+      !(info._type & ntuple->_toggle_include))
     return;
 
   const zero_suppress_info *zzp_info = NULL;
@@ -91,9 +109,9 @@ void enumerate_member_paw_ntuple(const signal_id &id,
     zzp_info = get_ptr_zero_suppress_info((void*) info._addr,
 					  ptr_offset,
 					  false);
-  
-  // printf ("paw_ntuple item: %s (%p)  (zzp:%d)\n",
-  //         name,info._addr,zzp_info ? zzp_info->_type : -1);
+
+  // printf ("paw_ntuple item: "/*"%s"*/" (%p)  (zzp:%d)\n",
+  //         /*name,*/info._addr,zzp_info ? zzp_info->_type : -1);
 
   const void  *limit_addr = NULL;
   uint         limit_index = (uint) -1;
@@ -102,7 +120,7 @@ void enumerate_member_paw_ntuple(const signal_id &id,
   const uint32 *limit2_addr = NULL;
   uint          limit2_index = (uint) -1;
   ntuple_item  *limit_item2 = NULL;
-  
+
   if (ntuple->_cwn && zzp_info)
     {
       // Item is part of an array, that has an controlling item (count
@@ -128,7 +146,7 @@ void enumerate_member_paw_ntuple(const signal_id &id,
 	  break;
 	case ZZP_INFO_CALL_LIST_II_INDEX:
 	  limit_addr = zzp_info->_list_ii._limit;
-	  limit_index = zzp_info->_list_ii._index;
+	  limit_index = zzp_info->_list_ii._index_x;
 	  break;
         case ZZP_INFO_CALL_ARRAY_MULTI_INDEX:
 	  limit_addr = zzp_info->_array._limit_mask;
@@ -144,7 +162,7 @@ void enumerate_member_paw_ntuple(const signal_id &id,
 	  goto limit2_list_ii_index;
 	limit2_list_ii_index:
 	  limit2_addr = zzp_info->_list_ii._limit;
-	  limit2_index = zzp_info->_list_ii._index;
+	  limit2_index = zzp_info->_list_ii._index_x;
 	  if (zzp_info->_type != ZZP_INFO_CALL_ARRAY_MULTI_INDEX)
 	    ERROR("Unimplemented - no support for "
 		  "zero suppression + multi entry in ntuples (%d).",
@@ -156,10 +174,19 @@ void enumerate_member_paw_ntuple(const signal_id &id,
 	}
     }
 
+  char prel_name[256];
+  {
+    signal_id id_fmt(id);
+    id_fmt.format_paw(prel_name,sizeof(prel_name));
+  }
+
   size_t omit_index = (size_t) -1;
 
   if (limit_addr)
     {
+      // printf ("paw_ntuple limit_addr: %p\n",
+      //	      limit_addr);
+
       // Find limiting item
 
       map_ntuple_limits::const_iterator i;
@@ -167,7 +194,8 @@ void enumerate_member_paw_ntuple(const signal_id &id,
       i = ntuple->_limits.find(limit_addr);
 
       if (i == ntuple->_limits.end())
-	ERROR("(Internal error?) Failed to find limiting item...");
+	ERROR("(Internal error?) Failed to find limiting item for '%s'...",
+	      prel_name);
 
       omit_index = i->second._omit_index;
       limit_item = i->second._item;
@@ -184,7 +212,8 @@ void enumerate_member_paw_ntuple(const signal_id &id,
       i = ntuple->_limits.find(limit2_addr);
 
       if (i == ntuple->_limits.end())
-	ERROR("(Internal error?) Failed to find limiting item 2...");
+	ERROR("(Internal error?) Failed to find limiting item 2 for '%s'...",
+	      prel_name);
 
       omit_index2 = i->second._omit_index;
       limit_item2 = i->second._item;
@@ -238,6 +267,7 @@ void enumerate_member_paw_ntuple(const signal_id &id,
       item = new ntuple_item(name,(float*)  info._addr,ptr_offset);
       break;
     case ENUM_TYPE_DATA12:
+    case ENUM_TYPE_DATA14:
       // needs full 16 bits, as it sometimes really is 12 bits+overflow+range
     case ENUM_TYPE_DATA16:
     case ENUM_TYPE_USHORT:
@@ -247,6 +277,8 @@ void enumerate_member_paw_ntuple(const signal_id &id,
     case ENUM_TYPE_UCHAR:
       item = new ntuple_item(name,(unsigned char*) info._addr,ptr_offset);
       break;
+    case ENUM_TYPE_DATA16PLUS:
+      // Stores only value? Then could go to 16 bits.
     case ENUM_TYPE_DATA24:
       // could be cut down to 24 bits limits...
     case ENUM_TYPE_DATA32:
@@ -257,11 +289,11 @@ void enumerate_member_paw_ntuple(const signal_id &id,
       item = new ntuple_item(name,(int*)    info._addr,ptr_offset);
       break;
     case ENUM_TYPE_ULINT:
-      item = new ntuple_item(name,(int*)    info._addr,ptr_offset); 
+      item = new ntuple_item(name,(int*)    info._addr,ptr_offset);
       item->_flags |= NTUPLE_ITEM_IS_ARRAY_MASK;
       break;
     default:
-      ERROR("Unhandled ENUM_TYPE (0x%x).",type);
+      ERROR("Unhandled ENUM_TYPE (0x%x) for item '%s'.",type, name);
     }
 
   if (info._type & ENUM_IS_LIST_INDEX)
@@ -272,16 +304,16 @@ void enumerate_member_paw_ntuple(const signal_id &id,
 
   //printf ("paw_ntuple item: %s (%p)  (zzp:%d)\n",
   //	  name,info._addr,zzp_info ? zzp_info->_type : -1);
-  
+
   if (info._type & (ENUM_IS_LIST_LIMIT | ENUM_IS_ARRAY_MASK))
     {
-      //printf ("paw_ntuple item limit: %s (%p) (%d)\n",
-      //name,info._addr,id._parts.size());
+      //printf ("paw_ntuple item limit: %s (%p) (%zd)\n",
+      //	      name,info._addr,id._parts.size());
 
       ntuple_limit_item limit_item;
 
       limit_item._item = item;
-      limit_item._omit_index = id._parts.size();      
+      limit_item._omit_index = id._parts.size();
 
       ntuple->_limits.insert(map_ntuple_limits::value_type(info._addr,
 							   limit_item));
@@ -289,6 +321,11 @@ void enumerate_member_paw_ntuple(const signal_id &id,
 
   if (limit_addr)
     {
+      //printf ("paw_ntuple limit_addr: %s %p (%s : %d)\n",
+      //	      name,limit_addr,
+      //	      (const char *) limit_item->_name.c_str(),
+      //	      limit_index);
+
       // item->_index_var = ;
       item->_index_var = limit_item->_name;
       item->_index     = (uint) limit_index;
@@ -321,6 +358,8 @@ void enumerate_member_paw_ntuple(const signal_id &id,
     item->_flags |= NTUPLE_ITEM_OMIT;
 
   ntuple->_listing->push_back(item);
+
+  //printf ("\n");
 }
 
 #define NTUPLE_WRITER_UNPACK 0x0001
@@ -349,12 +388,13 @@ void paw_ntuple_usage()
   printf ("UNPACK,RAW,CAL,USER         Include requested level data.\n");
   printf ("[UNPACK|RAW|CAL|USER]:name  Include 'name'd member of level data.\n");
   printf ("UR,URC,URCUS        Prefix UNPACK,RAW,(CAL),(USER) level data with U,R,C,U.\n");
+  printf ("TGLV                Include both toggle values.\n");
+  printf ("NOTGLI              Do not include toggle index.\n");
   printf ("CWN                 Produce columnwise HBOOK ntuple (default with .nt*/.hb*).\n");
   printf ("ROOT                Produce ROOT tree (default with .root).\n");
   printf ("STRUCT|SERVER       Run STRUCT server to send data.\n");
   printf ("STRUCT_HH           Produce header file for STRUCT server data.\n");
   printf ("port=N              Run STRUCT server on port N.\n");
-  printf ("NOSHM               Do not use shared memory communication.\n");
   printf ("UPPER               Make all variable names upper case.\n");
   printf ("LOWER               Make all variable names lower case.\n");
   printf ("H2ROOT              Make all variable names like h2root.\n");
@@ -368,12 +408,16 @@ void paw_ntuple_usage()
   printf ("incl=               Subevent inclusion.\n");
   printf ("excl=               Subevent exclusion.\n");
 #endif
+  printf ("NOSHM               Do not use shared memory communication.\n");
+  printf ("GDB                 Run the external program via gdb (backtrace fault).\n");
+  printf ("VALGRIND            Run the external program via valgrind.\n");
   printf ("\n");
 }
 
 paw_ntuple::paw_ntuple()
 {
-  _staged = NULL;
+  for (int i = 0; i < PAW_NTUPLE_NUM; i++)
+    _staged[i] = NULL;
 #if defined(USE_LMD_INPUT)
   _raw_select = NULL;
   _raw_event = NULL;
@@ -382,7 +426,7 @@ paw_ntuple::paw_ntuple()
 
 paw_ntuple::~paw_ntuple()
 {
-  delete _staged;
+  close();
 #if defined(USE_LMD_INPUT)
   delete _raw_select;
   delete _raw_event;
@@ -400,22 +444,32 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
    */
 
   detector_requests requests;
+  detector_requests sticky_requests;
   int request_level = 0;
   int request_level_detailed = 0;
   int prefix_level = 0;
 #if defined(USE_LMD_INPUT)
   uint64_t max_raw_size = 0;
 #endif
+  int toggle_include = ENUM_IS_TOGGLE_I;
+
+  uint ntuple_type = 0;
+  uint ntuple_opt = 0;
+
+  char *id = NULL;     // of ntuple (root: name)
+  char *title = NULL;  // of ntuple
+  char *ftitle = NULL; // of file (hbook: file top)
+
+  int struct_server_port = -1;
+
+  int timeslice = 0;
+  int timeslice_subdir = 0;
+  int autosave = 0;
 
   paw_ntuple *ntuple = new paw_ntuple;
 
   if (!ntuple)
     ERROR("Memory allocation error (ntuple: ntuple).");
-
-  ntuple->_staged = new staged_ntuple;
-
-  if (!ntuple->_staged)
-    ERROR("Memory allocation error (ntuple: staged).");
 
 #if defined(USE_LMD_INPUT)
   ntuple->_raw_select = new select_event;
@@ -425,7 +479,7 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 #endif
 
   if (reading)
-    ntuple->_staged->_ntuple_type |= NTUPLE_READER_INPUT;   
+    ntuple_opt |= NTUPLE_OPT_READER_INPUT;
 
   const char *req_end;
 
@@ -442,7 +496,7 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 
       if (MATCH_ARG("HELP") || MATCH_ARG("help"))
 	{
-	  paw_ntuple_usage();	
+	  paw_ntuple_usage();
 	  exit(0);
 	}
       else if (MATCH_ARG("UNPACK"))
@@ -453,6 +507,10 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 	request_level |= NTUPLE_WRITER_CAL;
       else if (MATCH_ARG("USER"))
 	request_level |= NTUPLE_WRITER_USER;
+      else if (MATCH_ARG("NOTGLI"))
+	toggle_include &= ~ENUM_IS_TOGGLE_I;
+      else if (MATCH_ARG("TGLV"))
+	toggle_include |= ENUM_IS_TOGGLE_V;
       else if (MATCH_PREFIX("UNPACK:",post))
 	{
 	  request_level_detailed |= NTUPLE_WRITER_UNPACK;
@@ -476,54 +534,52 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
       else if (MATCH_ARG("UR"))
 	prefix_level |= (NTUPLE_WRITER_UNPACK | NTUPLE_WRITER_RAW);
       else if (MATCH_ARG("URC"))
-	prefix_level |= (NTUPLE_WRITER_UNPACK | NTUPLE_WRITER_RAW | 
+	prefix_level |= (NTUPLE_WRITER_UNPACK | NTUPLE_WRITER_RAW |
 			 NTUPLE_WRITER_CAL);
       else if (MATCH_ARG("URCUS"))
-	prefix_level |= (NTUPLE_WRITER_UNPACK | NTUPLE_WRITER_RAW | 
+	prefix_level |= (NTUPLE_WRITER_UNPACK | NTUPLE_WRITER_RAW |
 			 NTUPLE_WRITER_CAL |    NTUPLE_WRITER_USER);
       else if (MATCH_ARG("RWN")) {
 	ERROR("Support for row-wise ntuples (RWN) has been removed.");
       }
       else if (MATCH_ARG("CWN"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_CWN;
+	ntuple_type |= NTUPLE_TYPE_CWN;
       else if (MATCH_ARG("ROOT"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_ROOT;
+	ntuple_type |= NTUPLE_TYPE_ROOT;
       else if (MATCH_ARG("STRUCT_HH"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_STRUCT_HH;
+	ntuple_type |= NTUPLE_TYPE_STRUCT_HH;
       else if (MATCH_ARG("STRUCT") || MATCH_ARG("SERVER"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_STRUCT;
+	ntuple_type |= NTUPLE_TYPE_STRUCT;
       else if (MATCH_PREFIX("PORT=",post) || MATCH_PREFIX("port=",post))
-	ntuple->_staged->_struct_server_port = atoi(post);
+	struct_server_port = atoi(post);
       else if (MATCH_ARG("NOEXTERNAL")) {
 	ERROR("Support for internal ntuple writing has been removed.");
       }
-      else if (MATCH_ARG("NOSHM"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_WRITER_NO_SHM;
       else if (MATCH_ARG("UPPER"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_CASE_UPPER;
+	ntuple_type |= NTUPLE_CASE_UPPER;
       else if (MATCH_ARG("LOWER"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_CASE_LOWER;
+	ntuple_type |= NTUPLE_CASE_LOWER;
       else if (MATCH_ARG("H2ROOT"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_CASE_H2ROOT;
+	ntuple_type |= NTUPLE_CASE_H2ROOT;
       else if (MATCH_PREFIX("ID=",post) || MATCH_PREFIX("id=",post))
-	ntuple->_staged->_id = strdup(post);
+	id = strdup(post);
       else if (MATCH_PREFIX("TITLE=",post) || MATCH_PREFIX("title=",post))
-	ntuple->_staged->_title = strdup(post);
+	title = strdup(post);
       else if (MATCH_PREFIX("FTITLE=",post) || MATCH_PREFIX("ftitle=",post))
-	ntuple->_staged->_ftitle = strdup(post);
+	ftitle = strdup(post);
       else if (MATCH_PREFIX("TIMESLICE=",post) ||
 	       MATCH_PREFIX("timeslice=",post))
 	{
-	  ntuple->_staged->_timeslice = atoi(post);
+	  timeslice = atoi(post);
 	  char *colon = strchr(post,':');
 	  if (colon)
-	    ntuple->_staged->_timeslice_subdir = atoi(colon+1);
-	} 
+	    timeslice_subdir = atoi(colon+1);
+	}
       else if (MATCH_ARG("AUTOSAVE") || MATCH_ARG("autosave"))
-	ntuple->_staged->_autosave = 1;
+	autosave = 1;
       else if (MATCH_PREFIX("AUTOSAVE=",post) ||
 	       MATCH_PREFIX("autosave=",post))
-	ntuple->_staged->_autosave = atoi(post);
+	autosave = atoi(post);
 #if defined(USE_LMD_INPUT)
       else if (MATCH_PREFIX("rawdata=",post))
 	max_raw_size = parse_size_postfix(post,"kMG","Rawdata",true);
@@ -532,43 +588,49 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
       else if (MATCH_PREFIX("excl=",post))
 	ntuple->_raw_select->parse_request(post,false);
 #endif
+      else if (MATCH_ARG("NOSHM"))
+	ntuple_opt |= NTUPLE_OPT_WRITER_NO_SHM;
+      else if (MATCH_ARG("GDB"))
+	ntuple_opt |= NTUPLE_OPT_EXT_GDB;
+      else if (MATCH_ARG("VALGRIND"))
+	ntuple_opt |= NTUPLE_OPT_EXT_VALGRIND;
       else
 	requests.add_detector_request(request,0);
 
       free(request);
-      command = req_end+1;      
+      command = req_end+1;
     }
 
   const char *filename = command;
 
   if (strcmp(filename,"help") == 0)
     {
-      paw_ntuple_usage();	
+      paw_ntuple_usage();
       exit(0);
     }
 
-  if (!(ntuple->_staged->_ntuple_type & NTUPLE_TYPE_MASK))
+  if (!(ntuple_type & NTUPLE_TYPE_MASK))
     {
       const char *last_slash = strrchr(filename,'/');
       if (!last_slash)
 	last_slash = filename;
 
       if (strstr(last_slash,".nt") || strstr(last_slash,".hb"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_CWN;
+	ntuple_type |= NTUPLE_TYPE_CWN;
       if (strstr(last_slash,".root"))
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_ROOT;
+	ntuple_type |= NTUPLE_TYPE_ROOT;
 
       if (strcmp(last_slash+strlen(last_slash)-2,".h") == 0 ||
 	  strcmp(last_slash+strlen(last_slash)-3,".hh") == 0)
-	ntuple->_staged->_ntuple_type |= NTUPLE_TYPE_STRUCT_HH;
+	ntuple_type |= NTUPLE_TYPE_STRUCT_HH;
     }
-  if (!(ntuple->_staged->_ntuple_type & NTUPLE_TYPE_MASK))
+  if (!(ntuple_type & NTUPLE_TYPE_MASK))
     ERROR("Cannot determine / no ntuple type given.");
 
-  if (!ntuple->_staged->_ftitle)
-    ntuple->_staged->_ftitle = strdup("ucesb");
-  if (!ntuple->_staged->_title)
-    ntuple->_staged->_title = strdup("CWNtuple");
+  if (!ftitle)
+    ftitle = strdup("ucesb");
+  if (!title)
+    title = strdup("CWNtuple");
 
 #if defined(USE_LMD_INPUT)
   if (ntuple->_raw_select->has_selection() &&
@@ -592,12 +654,14 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 
   vect_ntuple_items listing;
 
+  {
   enumerate_ntuple_info extra;
 
   extra._listing = &listing;
   extra._requests = &requests;
   extra._block = "";
   extra._level = 0;
+  extra._toggle_include = toggle_include;
 
   if (!request_level && !request_level_detailed)
     {
@@ -608,96 +672,208 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 #endif
     }
 
-  extra._cwn = !!(ntuple->_staged->_ntuple_type & (NTUPLE_TYPE_CWN | 
-						   NTUPLE_TYPE_ROOT | 
-						   NTUPLE_TYPE_STRUCT_HH | 
-						   NTUPLE_TYPE_STRUCT));
-  
-  if ((request_level | request_level_detailed) & NTUPLE_WRITER_UNPACK)
-    {
-      extra._level = NTUPLE_WRITER_UNPACK;
-      extra._detailed_only = !(request_level & NTUPLE_WRITER_UNPACK);
-      extra._block = "UNPACK";
-      extra._block_prefix = (prefix_level & NTUPLE_WRITER_UNPACK) ? "U" : "";
-      _static_event._unpack.enumerate_members(signal_id(),enumerate_info(),
-					      enumerate_member_paw_ntuple,
-					      &extra);
+  extra._cwn = !!(ntuple_type & (NTUPLE_TYPE_CWN |
+				 NTUPLE_TYPE_ROOT |
+				 NTUPLE_TYPE_STRUCT_HH |
+				 NTUPLE_TYPE_STRUCT));
+
+  extra._include_always = true;
+
+#define ENUMERATE_MEMBERS_UNCOND(data, level,		    \
+				 block, block_prefix)	    \
+  {							    \
+    extra._level = (level);				    \
+    extra._detailed_only = false;			    \
+    extra._block = block;				    \
+    extra._block_prefix =				    \
+      (prefix_level & (level)) ? block_prefix : "";	    \
+    data.enumerate_members(signal_id(),enumerate_info(),    \
+			   enumerate_member_paw_ntuple,	    \
+			   &extra);			    \
+  }
+
+  ENUMERATE_MEMBERS_UNCOND(_static_event._unpack,
+			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
+  ENUMERATE_MEMBERS_UNCOND(_static_event._raw,
+			   NTUPLE_WRITER_UNPACK, "RAW", "R");
+
+  extra._include_always = false;
+
+#define ENUMERATE_MEMBERS(data, level, block, block_prefix) \
+  if ((request_level | request_level_detailed) & (level))   \
+    {							    \
+      extra._level = (level);				    \
+      extra._detailed_only = !(request_level & (level));    \
+      extra._block = block;				    \
+      extra._block_prefix =				    \
+	(prefix_level & (level)) ? block_prefix : "";	    \
+      data.enumerate_members(signal_id(),enumerate_info(),  \
+			     enumerate_member_paw_ntuple,   \
+			     &extra);			    \
     }
-  if ((request_level | request_level_detailed) & NTUPLE_WRITER_RAW)
-    {
-      extra._level = NTUPLE_WRITER_RAW;
-      extra._detailed_only = !(request_level & NTUPLE_WRITER_RAW);
-      extra._block = "RAW";
-      extra._block_prefix = (prefix_level & NTUPLE_WRITER_RAW) ? "R" : "";
-      _static_event._raw.enumerate_members(signal_id(),enumerate_info(),
-					   enumerate_member_paw_ntuple,
-					   &extra);
-    }
-  if ((request_level | request_level_detailed) & NTUPLE_WRITER_CAL)
-    {
-      extra._level = NTUPLE_WRITER_CAL;
-      extra._detailed_only = !(request_level & NTUPLE_WRITER_CAL);
-      extra._block = "CAL";
-      extra._block_prefix = (prefix_level & NTUPLE_WRITER_CAL) ? "C" : "";
-      _static_event._cal.enumerate_members(signal_id(),enumerate_info(),
-					   enumerate_member_paw_ntuple,
-					   &extra);
-    }
+
+  ENUMERATE_MEMBERS(_static_event._unpack,
+		    NTUPLE_WRITER_UNPACK, "UNPACK", "U");
+  ENUMERATE_MEMBERS(_static_event._raw,
+		    NTUPLE_WRITER_RAW, "RAW", "R");
+  ENUMERATE_MEMBERS(_static_event._cal,
+		    NTUPLE_WRITER_CAL, "CAL", "C");
+
 #ifdef USER_STRUCT
-  if ((request_level | request_level_detailed) & NTUPLE_WRITER_USER)
-    {
-      extra._level = NTUPLE_WRITER_USER;
-      extra._detailed_only = !(request_level & NTUPLE_WRITER_USER);
-      extra._block = "USER";
-      extra._block_prefix = (prefix_level & NTUPLE_WRITER_USER) ? "US" : "";
-      _static_event._user.enumerate_members(signal_id(),enumerate_info(),
-					    enumerate_member_paw_ntuple,
-					    &extra);
-    }
+  ENUMERATE_MEMBERS(_static_event._user,
+		    NTUPLE_WRITER_USER, "USER", "US");
 #endif
 
   for (uint i = 0; i < requests._requests.size(); i++)
     if (!requests._requests[i]._checked)
-      ERROR("NTuple request for item %s (level %s) was not considered.  "
-	    "Does that detector exist?",
-	    requests._requests[i]._str,
-	    request_level_str(requests._requests[i]._level));
+      {
+	if (strcmp(requests._requests[i]._str,"EVENTNO") == 0 ||
+	    strcmp(requests._requests[i]._str,"MEVENTNO") == 0 ||
+	    strcmp(requests._requests[i]._str,"TRIGGER") == 0)
+	  WARNING("NTuple request for item %s (level %s) "
+		  "is no longer needed.  Item is always included.",
+		  requests._requests[i]._str,
+		  request_level_str(requests._requests[i]._level));
+	else
+	  ERROR("NTuple request for item %s (level %s) was not considered.  "
+		"Does that signal exist?",
+		requests._requests[i]._str,
+		request_level_str(requests._requests[i]._level));
+      }
+  }
+
+  sticky_requests.prepare();
+
+  vect_ntuple_items sticky_listing;
+
+  {
+  enumerate_ntuple_info extra;
+
+  extra._listing = &sticky_listing;
+  extra._requests = &sticky_requests;
+  extra._block = "";
+  extra._level = 0;
+  extra._toggle_include = toggle_include;
+
+  extra._cwn = !!(ntuple_type & (NTUPLE_TYPE_CWN |
+				 NTUPLE_TYPE_ROOT |
+				 NTUPLE_TYPE_STRUCT_HH |
+				 NTUPLE_TYPE_STRUCT));
+
+  extra._include_always = true;
+
+  ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._unpack,
+			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
+  ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._raw,
+			   NTUPLE_WRITER_UNPACK, "RAW", "R");
+
+  extra._include_always = false;
+
+  ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._unpack,
+			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
+  ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._raw,
+			   NTUPLE_WRITER_UNPACK, "RAW", "W");
+
+  }
+
 
   int hid = 101;
 
-  if (ntuple->_staged->_ntuple_type & NTUPLE_TYPE_CWN)
+  if (ntuple_type & NTUPLE_TYPE_CWN)
     {
-      if (ntuple->_staged->_id)
+      if (id)
 	{
 	  // The id must be numeric
-	  
+
 	  char *end;
-	  
-	  hid = (int) strtol(ntuple->_staged->_id,&end,10);
-	  
-	  if (end == ntuple->_staged->_id || *end != 0)
+
+	  hid = (int) strtol(id,&end,10);
+
+	  if (end == id || *end != 0)
 	    ERROR("HBOOK ntuple ID (%s) must be numeric.",
-		  ntuple->_staged->_id);
+		  id);
 	}
-      if (strlen(ntuple->_staged->_title) > 255)
+      if (strlen(title) > 255)
 	ERROR("HBOOK ntuple title (%s) too long (max 255 chars).",
-	      ntuple->_staged->_title);
-      if (strlen(ntuple->_staged->_ftitle) > 16)
+	      title);
+      if (strlen(ftitle) > 16)
 	ERROR("HBOOK file title (%s) too long (max 16 chars).",
-	      ntuple->_staged->_ftitle);
+	      ftitle);
     }
 
-  if (!ntuple->_staged->_id)
-    ntuple->_staged->_id = strdup("h101");
+  if (!id)
+    id = strdup("h101");
 
-  ntuple->_staged->open(filename); // open file/start the writer
+  ///
 
-  ntuple->_staged->stage(listing,hid,&_static_event
-#if defined(USE_LMD_INPUT)
-		    ,1
-		    ,(uint) ((max_raw_size + sizeof(uint)-1) / sizeof(uint))
+  for (int i = 0; i < PAW_NTUPLE_NUM; i++)
+    {
+#ifndef STICKY_EVENT_IS_NONTRIVIAL
+# define STICKY_EVENT_IS_NONTRIVIAL 0
 #endif
-		    );
+      if (i == PAW_NTUPLE_STICKY_EVENT &&
+	  (!STICKY_EVENT_IS_NONTRIVIAL ||
+	   reading))
+	continue;
+
+      // printf ("tree: %d\n",i);
+
+      staged_ntuple *staged = new staged_ntuple;
+
+      if (!staged)
+	ERROR("Memory allocation error (ntuple: staged).");
+
+      const char *this_id = NULL;
+      const char *this_title = NULL;
+      const char *this_index_major = "";
+      const char *this_index_minor = "";
+
+      if (i == PAW_NTUPLE_STICKY_EVENT)
+	{
+	  this_id     = "hsticky";
+	  this_title  = "CWNsticky";
+	  this_index_major = "STIDX";
+	}
+      else
+	{
+	  this_id     = id;
+	  this_title  = title;
+	}
+      staged->_struct_index = i;
+
+      if (i == 0)
+	staged->open_x(filename,ftitle,
+		       ntuple_type, ntuple_opt,
+		       struct_server_port,
+		       timeslice, timeslice_subdir,
+		       autosave
+#if defined(USE_LMD_INPUT)
+		       ,1
+#endif
+		       ); // open file/start the writer
+      else
+	staged->set_ext(ntuple->_staged[0]->get_ext());
+
+      staged->stage_x(i == 0 ? listing : sticky_listing,
+		      hid,
+		      this_id, this_title,
+		      this_index_major, this_index_minor,
+		      i == 0 ? &_static_event : (event_base*) &_static_sticky_event
+#if defined(USE_LMD_INPUT)
+		      ,(uint) ((max_raw_size + sizeof(uint)-1) / sizeof(uint))
+#endif
+		      );
+
+      ntuple->_staged[i] = staged;
+    }
+
+  assert(ntuple->_staged[0]);
+
+  ntuple->_staged[0]->stage_done();
+
+  free(id);
+  free(title);
+  free(ftitle);
 
   return ntuple;
 }
@@ -711,7 +887,7 @@ void paw_ntuple_copy_raw(fill_raw_info *fill_raw)
 
   char *ptr = (char *) fill_raw->_ptr;
 
-  paw_ntuple *ntuple = (paw_ntuple *) fill_raw->_extra;  
+  paw_ntuple *ntuple = (paw_ntuple *) fill_raw->_extra;
   lmd_event_out *event = ntuple->_raw_event;
 
   const buf_chunk_swap *chunk_cur = event->_chunk_start;
@@ -732,7 +908,7 @@ void paw_ntuple_copy_raw(fill_raw_info *fill_raw)
 }
 #endif
 
-void paw_ntuple::event()
+void paw_ntuple::event(int kind)
 {
 #if defined(USE_LMD_INPUT)
   fill_raw_info fill_raw;
@@ -743,11 +919,12 @@ void paw_ntuple::event()
 
       length = (length + (sizeof (uint32_t) - 1)) / sizeof (uint32_t);
 
-      if (length > _staged->_ext->_max_raw_words)
+      if (length > _staged[kind]->_ext->_max_raw_words)
 	ERROR("Too many words (%zd bytes > %zd bytes) "
 	      "in raw data for ntuple (struct) output.",
 	      length * sizeof (uint32_t),
-	      _staged->_ext->_max_raw_words * sizeof (uint32_t));
+	      _staged[kind]->_ext->_max_raw_words *
+	      sizeof (uint32_t));
 
       fill_raw._words = (uint32_t) length;
       fill_raw._ptr = NULL;
@@ -758,27 +935,32 @@ void paw_ntuple::event()
     }
 #endif
 
-  _staged->event(&_static_event
+  _staged[kind]->event(kind == PAW_NTUPLE_NORMAL_EVENT ?
+		       &_static_event : (event_base*) &_static_sticky_event
 #if defined(USE_LMD_INPUT)
-		 ,&_static_event._unpack.event_no
-		 ,_raw_event ? &fill_raw : NULL
+		       ,&_static_event._unpack.event_no
+		       ,_raw_event ? &fill_raw : NULL
 #endif
-		 );
+		       );
 }
 
 bool paw_ntuple::get_event()
 {
-  return _staged->get_event();
+  return _staged[PAW_NTUPLE_NORMAL_EVENT]->get_event();
 }
 
 void paw_ntuple::unpack_event()
 {
-  _staged->unpack_event(&_static_event);
+  _staged[PAW_NTUPLE_NORMAL_EVENT]->unpack_event(&_static_event);
 }
 
 void paw_ntuple::close()
 {
-  _staged->close();
-  delete _staged;
-  _staged = NULL;
+  if (_staged[0])
+    _staged[0]->close();
+  for (int i = 0; i < PAW_NTUPLE_NUM; i++)
+    {
+      delete _staged[i];
+      _staged[i] = NULL;
+    }
 }

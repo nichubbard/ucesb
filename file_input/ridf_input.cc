@@ -123,7 +123,7 @@ void ridf_source::print_buffer_header(ridf_header const *header)
 	 CT_OUT(BOLD),class_id,CT_OUT(NORM),
 	 CT_OUT(BOLD),size_bytes,CT_OUT(NORM)
       );
-  
+
   printf("      Address %s%08x%s\n",
       CT_OUT(BOLD),header->_address,CT_OUT(NORM));
 }
@@ -170,8 +170,8 @@ void ridf_event::print_event(int data, hex_dump_mark_buf *unpack_fail) const
       hex_dump_buf buf;
 
       if (subevent_info->_data) {
-        uint32 data_length = 
-	  HEADER_SIZE(subevent_info->_header._header) - 
+        uint32 data_length =
+	  HEADER_SIZE(subevent_info->_header._header) -
 	  (uint32) sizeof (subevent_info->_header);
 
         if (0 == (3 & data_length)) {
@@ -216,7 +216,7 @@ void ridf_event::locate_subevents(ridf_event_hint *hints)
 #else
   _subevents = (ridf_subevent *)_defrag_event.allocate(
       hints->_max_subevents * sizeof (ridf_subevent));
-#endif      
+#endif
 
   _nsubevents = 0;
 
@@ -312,28 +312,28 @@ void ridf_event::get_subevent_data_src(ridf_subevent *subevent_info, char
   if (UNLIKELY(subevent_info->_data == NULL))
     {
 #ifdef USE_THREADING
-      char *defrag = (char *) 
+      char *defrag = (char *)
   _wt._defrag_buffer->allocate_reclaim(data_length);
 #else
-      char *defrag = (char *) 
+      char *defrag = (char *)
   _defrag_event_many.allocate(data_length);
-#endif      
-      
+#endif
+
       subevent_info->_data = defrag;
-      
+
       buf_chunk *frag = subevent_info->_frag;
-      
+
       size_t size0 = frag->_length - subevent_info->_offset;
-      
+
       memcpy(defrag,
           frag->_ptr + subevent_info->_offset,
           size0);
-      
+
       defrag += size0;
       size_t length = data_length - size0;
-      
+
       frag++;
-      
+
       assert(length <= frag->_length);
 
       memcpy(defrag,

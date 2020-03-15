@@ -74,7 +74,7 @@
 
 // Same trick with the masks, using 5 bits to store which bit is used
 // by the mask.  I.e. one extra word, with an offset and a bit
-// location.  
+// location.
 
 // As overflow is not always present, we need to be able to shift that
 // out completely.  For the overflow mark, working along these lines,
@@ -122,46 +122,46 @@ uint32_t cwn_fill_indexed_item(writer_dest_external &w,indexed_item *array,
       {
 	uint32_t info = *(infos++);
 	uint32_t off  = *(infos++);
-	
+
 	uint32_t mask_info = *(infos);
 	uint32_t mask_off  = *(infos+1);
-	
+
 	uint32_t* mask_ptr = (uint32_t*) (((char *) base) + mask_off);
-	
+
 	uint32_t mask_valid = 1;
 	uint32_t mask_ofl   = 0;
-	
+
 	if (info & IND_ITEM_TYPE_IS_MASKED)
 	  {
 	    uint32_t mask = *mask_ptr;
-	    
+
 	    uint32_t mask_bit_valid = 1 << (mask_info & 0x1f);
 	    uint32_t mask_bit_overflow = 2u << ((mask_info >> 5) & 0x1f);
-	    
+
 	    infos += 2; // we used a mask
-	    
+
 	    mask_valid = mask & mask_bit_valid;
 	    mask_ofl   = mask & mask_bit_overflow;
 	  }
-	
+
 	void *src = ((char *) base) + off;
-	
+
 	if (info & IND_ITEM_TYPE_FLOAT) // floating point
 	  {
 	    if (DEBUG_WRITING) {
 	      if (info & IND_ITEM_TYPE_IS_MASKED)
 		INFO(0,"info: %08x (%08x) v:%d o:%d (%.6f) (%p)(%08x)",
 		     info,mask_info,mask_valid,mask_ofl,
-		     (info & IND_ITEM_TYPE_FLOAT_DOUBLE) ? 
+		     (info & IND_ITEM_TYPE_FLOAT_DOUBLE) ?
 		     *((double *) src) : (double) *((float *) src),
 		     mask_ptr,*mask_ptr);
 	      else
 		INFO(0,"info: %08x (%08x) (%.6f)",
 		     info,mask_info,
-		     (info & IND_ITEM_TYPE_FLOAT_DOUBLE) ? 
+		     (info & IND_ITEM_TYPE_FLOAT_DOUBLE) ?
 		     *((double *) src) : (double) *((float *) src));
 	    }
-	    
+
 	    if (!mask_valid)
 	      {
 		if (mask_ofl)
@@ -172,31 +172,31 @@ uint32_t cwn_fill_indexed_item(writer_dest_external &w,indexed_item *array,
 	    else
 	      {
 		double val;
-		
+
 		if (info & IND_ITEM_TYPE_FLOAT_DOUBLE)
 		  val = *((double *) src);
 		else
 		  val = *((float *) src);
-		
+
 		if (info & IND_ITEM_TYPE_FLOAT_SQRT)
 		  val = sqrt(val);
 		if (info & IND_ITEM_TYPE_FLOAT_INV)
 		  val = 1.0 / val;
-		
+
 		w.write_float((float) val);
 	      }
 	  }
 	else // integer
 	  {
 	    uint32_t val;
-	    
+
 	    if (info & IND_ITEM_TYPE_INT_USHORT)
 	      val = *((uint16_t *) src);
 	    else if (!(info & IND_ITEM_TYPE_INT_UCHAR))
 	      val = *((uint32_t *) src);
 	    else
 	      val = *((uint8_t *) src);
-	    
+
 	    if (DEBUG_WRITING) {
 	      if (info & IND_ITEM_TYPE_IS_MASKED)
 		INFO(0,"info: %08x (%08x) v:%d a:%d (%d) (%p)(%08x)",
@@ -210,19 +210,19 @@ uint32_t cwn_fill_indexed_item(writer_dest_external &w,indexed_item *array,
 		     info & IND_ITEM_TYPE_INT_ADD_1,
 		     val);
 	    }
-	    
+
 	    val += (info & IND_ITEM_TYPE_INT_ADD_1); // is in bit 1
-	    
+
 	    if (limit_index && (info & IND_ITEM_TYPE_INT_INDEX_CUT))
 	      if (val > limit_index)
 		{
 		  assert (l == array->_items_per_entry);
 		  return k;
 		}
-	    
+
 	    if (!mask_valid) // reading the integer before was harmless
 	      val = 0;
-	    
+
 	    w.write_int(val);
 	  }
       }
@@ -235,7 +235,7 @@ void cwn_ptrs_indexed_item(read_write_ptrs_external &w,indexed_item *array,
 {
   uint32_t    *infos = array->_infos + array->_info_slots_per_entry * offset;
   void       **dests = array->_dests + array->_items_per_entry * offset;
-  
+
   for (uint32_t k = entries * array->_items_per_entry; k; k--)
     {
       uint32_t info = *(infos++);
@@ -272,18 +272,18 @@ void cwn_get_indexed_item(reader_src_external &w,indexed_item *array,
     }
 
   uint32_t    *infos = array->_infos + array->_info_slots_per_entry * offset;
-  
+
   for (uint32_t k = entries * array->_items_per_entry; k; k--)
     {
       uint32_t info = *(infos++);
       uint32_t off  = *(infos++);
-      
+
       uint32_t mask_info = *(infos);
       uint32_t mask_off  = *(infos+1);
-      
+
       uint32_t dummy_mask; // write here if not IND_ITEM_TYPE_IS_MASKED
       uint32_t* mask_ptr = &dummy_mask;
-      
+
       uint32_t mask_bit_valid = 0;
       uint32_t mask_bit_overflow = 0;
 
@@ -297,7 +297,7 @@ void cwn_get_indexed_item(reader_src_external &w,indexed_item *array,
 	}
 
       void *src = ((char *) base) + off;
-      
+
       if (info & IND_ITEM_TYPE_FLOAT) // floating point
 	{
 	  float_uint32_t_type_pun valf;
@@ -323,7 +323,7 @@ void cwn_get_indexed_item(reader_src_external &w,indexed_item *array,
 		  if (!ISPLUSINF(valf._i))
 		    *mask_ptr |= mask_bit_overflow;
 
-		  continue; // next item!		  
+		  continue; // next item!
 		}
 
 	      // Item good!
@@ -331,12 +331,12 @@ void cwn_get_indexed_item(reader_src_external &w,indexed_item *array,
 	    }
 
 	  double val = valf._f;
-	      
+
 	  if (info & IND_ITEM_TYPE_FLOAT_SQRT)
 	    val = SQR(val);
 	  if (info & IND_ITEM_TYPE_FLOAT_INV)
 	    val = 1.0 / val;
-	  
+
 	  if (info & IND_ITEM_TYPE_FLOAT_DOUBLE)
 	    *((double *) src) = val;
 	  else
@@ -354,9 +354,9 @@ void cwn_get_indexed_item(reader_src_external &w,indexed_item *array,
 	  // zeros actually read out as not valid=present.)
 
 	  *mask_ptr |= (val != 0 ? mask_bit_valid : 0);
-	
+
 	  val -= (info & IND_ITEM_TYPE_INT_ADD_1); // is in bit 1
-	  
+
 	  if (info & IND_ITEM_TYPE_INT_USHORT)
 	    *((uint16_t *) src) = (uint16_t) val;
 	  else if (!(info & IND_ITEM_TYPE_INT_UCHAR))
@@ -375,19 +375,19 @@ void cwn_fill_index_item(writer_dest_external &w,index_item *array,
   for (uint32_t i = 0; i < entries; i++)
     {
       // copy the index variable.
-      
+
       index_item *item = &array[i];
-      
+
       uint32_t *src = (uint32_t *) (((char *) base) + item->_src_offset);
       uint32_t items = *src;
-      
+
       if (items > item->_items_max)
 	ERROR("Internal error rewriting array for CWN filling "
 	      "(index too large %d > %d).",
 	      items,item->_items_max);
       if (items > item->_items_used)
 	items = item->_items_used;
-      
+
       if (DEBUG_WRITING) {
 	INFO(0,"items: %d",
 	     items);
@@ -402,7 +402,7 @@ void cwn_fill_index_item(writer_dest_external &w,index_item *array,
       items = cwn_fill_indexed_item(w,item,base,items,0,item->_items_used);
 
       // Write the number of items
-      w.write_int_to_dest(dest_items,items);     
+      w.write_int_to_dest(dest_items,items);
     }
 }
 
@@ -439,7 +439,7 @@ void cwn_ptrs_index_item(read_write_ptrs_external &w,index_item *array,
       w.dest_int_ctrl((item->_dest),item->_items_used);
 
       cwn_ptrs_indexed_item(w,item,item->_items_used,0);
-      
+
       w.ctrl_over();
     }
 }
@@ -454,14 +454,14 @@ void cwn_fill_array_item(writer_dest_external &w,array_item *array,
       // Since the protocol need to have the number of items first, we
       // must reserve space for this, and write it at the end
       uint32_t *dest_items = w.write_int_dest();
-      
+
       array_item *item = &array[i];
-      
+
       // First we need to go through the array to see how many entries we have
-      
+
       uint32_t items = 0;
-      
-      const unsigned long *src_bits = 
+
+      const unsigned long *src_bits =
 	(const unsigned long *) (((char *) base) + item->_src_bits_offset);
       uint32_t used_items = item->_items_used;
 
@@ -469,7 +469,7 @@ void cwn_fill_array_item(writer_dest_external &w,array_item *array,
 
       /*int *indices = item->_dest+1;*/
 
-      for ( ; index_base < used_items; 
+      for ( ; index_base < used_items;
 	    index_base += (uint32_t) sizeof(unsigned long) * 8)
 	{
 	  unsigned long bits = *(src_bits++);
@@ -481,7 +481,7 @@ void cwn_fill_array_item(writer_dest_external &w,array_item *array,
 	      if (!(bits & 0x0f)) { bits >>= 4; index += 4; }
 	      if (!(bits & 0x03)) { bits >>= 2; index += 2; }
 	      if (!(bits & 0x01)) { bits >>= 1; index += 1; }
-	      
+
 	      // so bits & 1
 
 	      // item @index is there
@@ -502,11 +502,11 @@ void cwn_fill_array_item(writer_dest_external &w,array_item *array,
 	      w.write_int(/*(indices++),*/index);
 
 	      cwn_fill_indexed_item(w,item,base,1,use_index);
-	      
+
 	      items++;
-	    } 
+	    }
 	}
-     
+
       // Write the number of items
       w.write_int_to_dest(/*(item->_dest),*/dest_items,items);
     }
@@ -519,9 +519,9 @@ void cwn_get_array_item(reader_src_external &w,array_item *array,
     {
       array_item *item = &array[i];
 
-      unsigned long *src_bits = 
+      unsigned long *src_bits =
 	(unsigned long *) (((char *) base) + item->_src_bits_offset);
-      
+
       uint32_t items;
 
       w.read_int(/*(item->_dest),*/items);
@@ -543,7 +543,7 @@ void cwn_get_array_item(reader_src_external &w,array_item *array,
 
 	  index--;
 
-	  *(src_bits + (index / (sizeof(unsigned long) * 8))) |= 
+	  *(src_bits + (index / (sizeof(unsigned long) * 8))) |=
 	    ((unsigned long) 1) << (index % (sizeof(unsigned long) * 8));
 	  /*
 	  printf ("[%3d] %16p + %d : %16lx --> %16lx\n",
@@ -587,19 +587,19 @@ void cwn_fill_array2_item(writer_dest_external &w,array2_item *array,
   for (uint32_t i = 0; i < entries; i++)
     {
       //printf ("cfa2i: [%d]\n",i);
-      
+
       // Since the protocol need to have the number of items first, we
       // must reserve space for this, and write it at the end
       uint32_t *dest_items2 = w.write_int_dest();
 
       array2_item *item = &array[i];
-      
+
       // First we need to go through the array to see how many entries we have
-      
+
       uint32_t items1 = 0;
       uint32_t items2 = 0;
 
-      const unsigned long *src_bits = 
+      const unsigned long *src_bits =
 	(const unsigned long *) (((char *) base) + item->_src_bits_offset);
       uint32_t used_items = item->_items_used;
 
@@ -609,7 +609,7 @@ void cwn_fill_array2_item(writer_dest_external &w,array2_item *array,
 
       ie._p = w._p;
 
-      for ( ; index_base < used_items; 
+      for ( ; index_base < used_items;
 	    index_base += (uint32_t) sizeof(unsigned long) * 8)
 	{
 	  unsigned long bits = *(src_bits++);
@@ -652,9 +652,9 @@ void cwn_fill_array2_item(writer_dest_external &w,array2_item *array,
 	      // Set the index after the addition, since we want 1 added!
 	      w.write_int(/*(indices++),*/index);
 	      w.write_int(/*(endloc++),*/items1);
-	      
+
 	      items2++;
-	    } 
+	    }
 	}
 
       if ((uint32_t) items1 > item->_items_max * item->_items_max2)
@@ -665,7 +665,7 @@ void cwn_fill_array2_item(writer_dest_external &w,array2_item *array,
 		item->_items_used,item->_items_used2,
 		item->_items_used * item->_items_used2);
 	}
- 
+
       w.write_int_to_dest(/*(item->_dest),*/dest_items2,items2);
 
       // Number of real items (control item)
@@ -681,7 +681,7 @@ void cwn_fill_array2_item(writer_dest_external &w,array2_item *array,
 	{
 	  uint32_t use_index;
 	  uint32_t end;
-	  
+
 	  ie.read_int(use_index);
 	  ie.read_int(end);
 
@@ -711,7 +711,7 @@ void cwn_ptrs_array2_item(read_write_ptrs_external &w,array2_item *array,
 
       uint32_t used_items = item->_items_used;
       uint32_t used_items2 = item->_items_used2;
-     
+
       w.dest_int_ctrl((item->_dest2),used_items);
 
       uint32_t *indices = item->_dest2+1;

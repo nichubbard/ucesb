@@ -24,12 +24,12 @@
 
 #include <curses.h> // needed for the COLOR_ below
 
-watcher_type_info mwpclab_watch_types[NUM_WATCH_TYPES] = 
-  { 
-    { COLOR_GREEN,   "Physics" }, 
-    { COLOR_YELLOW,  "Tcal" }, 
-    { COLOR_MAGENTA, "TcalClock" }, 
-    { COLOR_RED,     "Scaler" }, 
+watcher_type_info mwpclab_watch_types[NUM_WATCH_TYPES] =
+  {
+    { COLOR_GREEN,   "Physics" },
+    { COLOR_YELLOW,  "Tcal" },
+    { COLOR_MAGENTA, "TcalClock" },
+    { COLOR_RED,     "Scaler" },
   };
 
 // Number of seconds from 1900 to 1970, 17 leap years...
@@ -65,7 +65,7 @@ void mwpclab_watcher_event_info(watcher_event_info *info,
       info->_type = MWPCLAB_WATCH_TYPE_SCALER;
       info->_display |= WATCHER_DISPLAY_SPILL_EOS;
     }
-    
+
 
 
 }

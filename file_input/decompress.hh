@@ -45,7 +45,7 @@ public:
 
 public:
   forked_child _fork;
-  
+
   // For buffering
 
   //#ifdef USE_PTHREAD
@@ -81,10 +81,10 @@ class data_input_source
 {
 public:
   data_input_source();
-  ~data_input_source() 
+  ~data_input_source()
   {
     assert(!_input._input); // want to get rid of the close below
-    close(); 
+    close();
   }
 
 public:

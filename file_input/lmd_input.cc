@@ -128,6 +128,7 @@ bool lmd_source::read_record(bool expect_fragment)
  read_buffer_again:
   _prev_record_release_to = _input._cur;
 
+  _first_buf_status = 0;
   // Note: we may not release the previous record.  (We may just be
   // getting the next record for a fragmented event!)
 
@@ -211,11 +212,11 @@ bool lmd_source::read_record(bool expect_fragment)
     print_buffer_header(&_buffer_header);
 
   if (!_buffer_header.l_dlen)
-    ERROR("Buffer size l_dlen of file header zero.  Cannot be.");
+    ERROR("Buffer size l_dlen header zero.  Cannot be.");
 
-  if (_buffer_header.l_dlen < 0 ||
+  if (/*_buffer_header.l_dlen < 0 || */ /* unsigned, no check needed */
       _buffer_header.l_dlen > 0x20000000)
-    ERROR("Buffer size l_dlen (0x%08x) of file header "
+    ERROR("Buffer size l_dlen (0x%08x) header "
 	  "negative or very large, refusing.",
 	  _buffer_header.l_dlen);
 
@@ -229,8 +230,8 @@ bool lmd_source::read_record(bool expect_fragment)
       // The MBS eventapi creates broken file headers, with l_dlen
       // of original size/2, without taking itself out of account
 
-      if (_buffer_header.i_type    == LMD_FILE_HEADER_10_1_TYPE &&
-          _buffer_header.i_subtype == LMD_FILE_HEADER_10_1_SUBTYPE)
+      if (_buffer_header.i_type    == LMD_FILE_HEADER_2000_1_TYPE &&
+          _buffer_header.i_subtype == LMD_FILE_HEADER_2000_1_SUBTYPE)
 	{
 	  size_t buffer_size_dlen_broken =
 	    (size_t) BUFFER_SIZE_FROM_DLEN_BROKEN(_buffer_header.l_dlen);
@@ -254,6 +255,32 @@ bool lmd_source::read_record(bool expect_fragment)
       ;
     }
 
+  // Check that buffer header size is not too large for input pipe,
+
+  if (buffer_size_dlen > _input._input->max_item_length())
+    {
+      ERROR("LMD buffer size (%zd=0x%08zx) too large for "
+	    "input buffer (%zd=0x%08zx)/3.  "
+	    "Use at least --input-buffer=%zdMi.",
+	    buffer_size_dlen, buffer_size_dlen,
+	    _input._input->buffer_size(),
+	    _input._input->buffer_size(),
+	    (buffer_size_dlen * 3 + (1024*1024-1))/(1024*1024));
+    }
+
+  size_t last_ev_size =
+    (size_t) EVENT_DATA_LENGTH_FROM_DLEN(_buffer_header.l_free[1]);
+  if (last_ev_size > _input._input->max_item_length())
+    {
+      /* Add some margin for buffer sizes. */
+      size_t buffers = last_ev_size / buffer_size_dlen;
+      size_t margin = buffers*64;
+      ERROR("Last event size (%zd=0x%08zx) too large for for input buffer.  "
+	    "Use at least --input-buffer=%zdMi.",
+	    last_ev_size, last_ev_size,
+	    ((last_ev_size + margin) * 3 + (1024*1024-1))/(1024*1024));
+    }
+
   // so now we should check if it is a file header
   // or simply a buffer header
 
@@ -262,13 +289,16 @@ bool lmd_source::read_record(bool expect_fragment)
   size_t file_header_size = 0;
   ssize_t file_header_used_size = -1;
 
-  if (_buffer_header.i_type    == LMD_FILE_HEADER_10_1_TYPE &&
-      _buffer_header.i_subtype == LMD_FILE_HEADER_10_1_SUBTYPE)
+  if (_buffer_header.i_type    == LMD_FILE_HEADER_2000_1_TYPE &&
+      _buffer_header.i_subtype == LMD_FILE_HEADER_2000_1_SUBTYPE)
     {
       if (!_expect_file_header)
 	WARNING("Unexpected file header.");
 
       file_header_size = sizeof(_file_header);
+
+      //printf ("file header sz: %zd = 0x%zx\n",
+      //      file_header_size,file_header_size);
 
       // For large buffers, the LMD file format lies about the buffer
       // size in file headers.  Instead it is stored in the i_used
@@ -346,10 +376,15 @@ bool lmd_source::read_record(bool expect_fragment)
 
       _expect_file_header = false; // we'll accept buffer headers from now on
     }
-  else if (_buffer_header.i_type    == LMD_BUF_HEADER_10_1_TYPE &&
-           _buffer_header.i_subtype == LMD_BUF_HEADER_10_1_SUBTYPE)
+  else if ((_buffer_header.i_type    == LMD_BUF_HEADER_10_1_TYPE &&
+	    _buffer_header.i_subtype == LMD_BUF_HEADER_10_1_SUBTYPE) ||
+	   (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
+	    _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE))
     {
       // buffer header
+      if (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
+	  _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE)
+	_first_buf_status = LMD_EVENT_FIRST_BUFFER_HAS_STICKY;
 
       if (_expect_file_header)
         {
@@ -360,9 +395,11 @@ bool lmd_source::read_record(bool expect_fragment)
   else
     {
       ERROR("Buffer header neither buffer header nor file header. "
-            "Type/subtype error. (%d/%d)",
-            _buffer_header.i_type,
-            _buffer_header.i_subtype);
+            "Type/subtype error. (%d=0x%04x/%d=0x%04x)",
+            (uint16_t) _buffer_header.i_type,
+	    (uint16_t) _buffer_header.i_type,
+            (uint16_t) _buffer_header.i_subtype,
+	    (uint16_t) _buffer_header.i_subtype);
     }
 
   size_t buf_used;
@@ -390,14 +427,16 @@ bool lmd_source::read_record(bool expect_fragment)
       // used part of the file header in i_used, but not l_free[2].
 
       if (_buffer_header.i_used != 0 &&
-	  !(_buffer_header.i_type    == LMD_FILE_HEADER_10_1_TYPE &&
-	    _buffer_header.i_subtype == LMD_FILE_HEADER_10_1_SUBTYPE &&
-	    BUFFER_USED_FROM_IUSED((uint) (ushort) _buffer_header.i_used) ==
+	  !(_buffer_header.i_type    == LMD_FILE_HEADER_2000_1_TYPE &&
+	    _buffer_header.i_subtype == LMD_FILE_HEADER_2000_1_SUBTYPE &&
+	    (ssize_t) BUFFER_USED_FROM_IUSED((uint) (ushort)
+					     _buffer_header.i_used) ==
 	    file_header_used_size))
 	ERROR("Used buffer space double defined differently (large buffer) "
-	      "(i_used:%d, l_free[2]:%d)",
+	      "(i_used:%d, l_free[2]:%d, filehe_eff_used:%zd)",
 	      BUFFER_USED_FROM_IUSED((uint) (ushort) _buffer_header.i_used),
-	      BUFFER_USED_FROM_IUSED(_buffer_header.l_free[2]));
+	      BUFFER_USED_FROM_IUSED(_buffer_header.l_free[2]),
+	      file_header_used_size);
     }
   /*
   INFO(0,"(%zd+%zd=%zd) (%zd)",
@@ -406,17 +445,9 @@ bool lmd_source::read_record(bool expect_fragment)
        header_size + buf_used,
        buffer_size_dlen);
   */
-  if (header_size + buf_used >
-      buffer_size_dlen)
-    ERROR("Header says that more bytes (%zd+%zd=%zd) "
-          "than length of buffer (%zd) are used.",
-          header_size,
-          buf_used,
-          header_size + buf_used,
-          buffer_size_dlen);
 
-  if ((_buffer_header.i_type    == LMD_FILE_HEADER_10_1_TYPE &&
-       _buffer_header.i_subtype == LMD_FILE_HEADER_10_1_SUBTYPE))
+  if ((_buffer_header.i_type    == LMD_FILE_HEADER_2000_1_TYPE &&
+       _buffer_header.i_subtype == LMD_FILE_HEADER_2000_1_SUBTYPE))
     {
       if (buf_used)
 	{
@@ -437,6 +468,15 @@ bool lmd_source::read_record(bool expect_fragment)
 
       header_size += file_header_size;
     }
+
+  if (header_size + buf_used >
+      buffer_size_dlen)
+    ERROR("Header says that more bytes (%zd+%zd=%zd) "
+          "than length of buffer (%zd) are used.",
+          header_size,
+          buf_used,
+          header_size + buf_used,
+          buffer_size_dlen);
 
   // Check buffer number continuity
 
@@ -483,6 +523,12 @@ bool lmd_source::read_record(bool expect_fragment)
 
   size_t data_size = buffer_size_dlen - header_size;
 
+  if (((ssize_t) data_size) < 0)
+    ERROR("Buffer has (%zd) < 0 bytes for data after header"
+	  "(buffer is %zd, header uses %zd).",
+	  data_size,
+	  buffer_size_dlen, header_size);
+
   int chunks = 0;
 
   chunks = _input.map_range(data_size,_chunks);
@@ -521,6 +567,12 @@ bool lmd_source::read_record(bool expect_fragment)
       _events_left = 0;
       _chunk_cur = _chunk_end;
       return true;
+    }
+
+  if (UNLIKELY(_buffer_header.l_evt == 0))
+    {
+      if (data_size)
+	ERROR("Non-empty buffer has no events.");
     }
 
   // buffer seems more or less sane...
@@ -712,7 +764,7 @@ lmd_event *lmd_source::get_event()
       if (_chunk_cur == _chunk_end)
 	{
 	  if (_events_left)
-	    WARNING("Too few events were found in record (%d lost).",
+	    WARNING("Too few events were found in record (%u lost).",
 		    _events_left);
 
 	  //printf ("get record...\n");
@@ -781,6 +833,7 @@ lmd_event *lmd_source::get_event()
       size_t event_size =
 	(size_t) EVENT_DATA_LENGTH_FROM_DLEN(event_header->_header.l_dlen);
       dest->_swapping = _swapping;
+      dest->_status |= _first_buf_status;
 
       // Now, we'd like to get the data, but it may be larger than the
       // current chunk, in case the event is fragmented...
@@ -991,11 +1044,16 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
 
   used = BUFFER_USED_FROM_IUSED(used);
 
-  if (header->i_type    == LMD_FILE_HEADER_10_1_TYPE &&
-      header->i_subtype == LMD_FILE_HEADER_10_1_SUBTYPE)
+  if (header->i_type    == LMD_FILE_HEADER_2000_1_TYPE &&
+      header->i_subtype == LMD_FILE_HEADER_2000_1_SUBTYPE)
     {
       if (header->l_dlen > LMD_BUF_HEADER_MAX_IUSED_DLEN)
 	{
+	  printf("File header claim size%s%8zd%s\n",
+		 CT_OUT(BOLD),
+		 size,
+		 CT_OUT(NORM));
+
 	  used = (size_t) header->i_used;
 
 	  used = BUFFER_USED_FROM_IUSED(used);
@@ -1017,7 +1075,7 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
 	 time_buf,(uint) header->l_time[1],
 	 CT_OUT(NORM));
 
-  printf("       Events%s%4d%s Type/Subtype%s%5d%5d%s "
+  printf("      Events%s%6d%s Type/Subtype%s%5d%5d%s "
 	 "FragEnd=%s%d%s FragBegin=%s%d%s LastSz%s%8d%s\n",
 	 CT_OUT(BOLD),header->l_evt,CT_OUT(NORM),
 	 CT_OUT(BOLD),
@@ -1040,9 +1098,9 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
     printf("  %-8s %s%s%s\n",name,CT_OUT(BOLD),tmp,CT_OUT(NORM_DEF_COL)); \
   }
 #define PRINT_STRING_L(name,str,maxlen) \
-  PRINT_STRING_L2(name,str.string,maxlen,(unsigned int) str.len)
+  PRINT_STRING_L2(name,str,maxlen,(unsigned int) str##_l)
 #define PRINT_STRING(name,str) \
-  PRINT_STRING_L(name,str,sizeof(str.string))
+  PRINT_STRING_L(name,str,sizeof(str))
 
 void lmd_source::print_file_header(const s_filhe_extra_host *header)
 {
@@ -1050,11 +1108,11 @@ void lmd_source::print_file_header(const s_filhe_extra_host *header)
   PRINT_STRING("Label",   header->filhe_label);
   PRINT_STRING("File",    header->filhe_file);
   PRINT_STRING("User",    header->filhe_user);
-  PRINT_STRING_L2("Time", header->filhe_time.string,24,24);
+  PRINT_STRING_L2("Time", header->filhe_time,24,24);
   PRINT_STRING("Run",     header->filhe_run);
   PRINT_STRING("Exp",     header->filhe_exp);
   for (uint i = 0; i < min(30,header->filhe_lines); i++)
-    PRINT_STRING("Comment",header->s_strings[i]);
+    PRINT_STRING("Comment",header->s_strings[i].string);
 }
 
 /*
@@ -1088,33 +1146,51 @@ Event    65959779 Type/Subtype    10     1 Length    42[w] Trigger  2
 
 void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 {
-  if (!(_status & LMD_EVENT_HAS_10_1_INFO))
+  const char *ct_out_bold_ev;
+  const char *ct_out_bold_sev;
+  const char *evtypestr = "Event";
+
+  if (!(_status & LMD_EVENT_IS_STICKY))
     {
-      printf("Event           %s-%s Type/Subtype%s%5d%5d%s "
-	     "Size%s%8d%s Trigger  %s-%s\n",
-	     CT_OUT(BOLD_BLUE),CT_OUT(NORM_DEF_COL),
-	     CT_OUT(BOLD_BLUE),
-	     (uint16) _header._header.i_type,
-	     (uint16) _header._header.i_subtype,
-	     CT_OUT(NORM_DEF_COL),
-	     CT_OUT(BOLD_BLUE),
-	     (int) EVENT_DATA_LENGTH_FROM_DLEN(_header._header.l_dlen),
-	     CT_OUT(NORM_DEF_COL),
-	     CT_OUT(BOLD_BLUE),CT_OUT(NORM_DEF_COL));
+      ct_out_bold_ev = CT_OUT(BOLD_BLUE);
+      ct_out_bold_sev = CT_OUT(BOLD_MAGENTA);
     }
   else
     {
-      printf("Event%s%14u%s Type/Subtype%s%5d%5d%s "
-	     "Size%s%9d%s Trigger %s%2d%s\n",
-	     CT_OUT(BOLD_BLUE),_header._info.l_count,CT_OUT(NORM_DEF_COL),
-	     CT_OUT(BOLD_BLUE),
+      evtypestr = "StEvent";
+      ct_out_bold_ev = CT_OUT(BOLD_GREEN);
+      ct_out_bold_sev = CT_OUT(BOLD_CYAN);
+    }
+
+  if (!(_status & LMD_EVENT_HAS_10_1_INFO))
+    {
+      printf("%-7s         %s-%s Type/Subtype%s%5d%5d%s "
+	     "Size%s%8d%s Trigger  %s-%s\n",
+	     evtypestr,
+	     ct_out_bold_ev,CT_OUT(NORM_DEF_COL),
+	     ct_out_bold_ev,
 	     (uint16) _header._header.i_type,
 	     (uint16) _header._header.i_subtype,
 	     CT_OUT(NORM_DEF_COL),
-	     CT_OUT(BOLD_BLUE),
+	     ct_out_bold_ev,
 	     (int) EVENT_DATA_LENGTH_FROM_DLEN(_header._header.l_dlen),
 	     CT_OUT(NORM_DEF_COL),
-	     CT_OUT(BOLD_BLUE),
+	     ct_out_bold_ev,CT_OUT(NORM_DEF_COL));
+    }
+  else
+    {
+      printf("%-7s%s%12u%s Type/Subtype%s%5d%5d%s "
+	     "Size%s%9d%s Trigger %s%2d%s\n",
+	     evtypestr,
+	     ct_out_bold_ev,_header._info.l_count,CT_OUT(NORM_DEF_COL),
+	     ct_out_bold_ev,
+	     (uint16) _header._header.i_type,
+	     (uint16) _header._header.i_subtype,
+	     CT_OUT(NORM_DEF_COL),
+	     ct_out_bold_ev,
+	     (int) EVENT_DATA_LENGTH_FROM_DLEN(_header._header.l_dlen),
+	     CT_OUT(NORM_DEF_COL),
+	     ct_out_bold_ev,
 	     (uint16) _header._info.i_trigger,
 	     CT_OUT(NORM_DEF_COL));
 
@@ -1127,24 +1203,34 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	  bool subevent_error = (unpack_fail &&
 				 unpack_fail->_next == &subevent_info->_header);
 
+	  char data_len[32];
+
+	  if ((_status & LMD_EVENT_IS_STICKY) &&
+	      subevent_info->_header._header.l_dlen ==
+	      LMD_SUBEVENT_STICKY_DLEN_REVOKE)
+	    strcpy(data_len,"revoke");
+	  else
+	    sprintf (data_len,"%d",
+		     SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen));
+	  
 	  printf(" %sSubEv ProcID%s%s%6d%s Type/Subtype%s%5d%5d%s "
-		 "Size%s%9d%s Ctrl%s%4d%s Subcrate%s%4d%s\n",
+		 "Size%s%9s%s Ctrl%s%4d%s Subcrate%s%4d%s\n",
 		 subevent_error ? CT_OUT(BOLD_RED) : "",
 		 subevent_error ? CT_OUT(NORM_DEF_COL) : "",
-		 CT_OUT(BOLD_MAGENTA),
+		 ct_out_bold_sev,
 		 (uint16) subevent_info->_header.i_procid,
 		 CT_OUT(NORM_DEF_COL),
-		 CT_OUT(BOLD_MAGENTA),
+		 ct_out_bold_sev,
 		 (uint16) subevent_info->_header._header.i_type,
 		 (uint16) subevent_info->_header._header.i_subtype,
 		 CT_OUT(NORM_DEF_COL),
-		 CT_OUT(BOLD_MAGENTA),
-		 SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen),
+		 ct_out_bold_sev,
+		 data_len,
 		 CT_OUT(NORM_DEF_COL),
-		 CT_OUT(BOLD_MAGENTA),
+		 ct_out_bold_sev,
 		 (uint8) subevent_info->_header.h_control,
 		 CT_OUT(NORM_DEF_COL),
-		 CT_OUT(BOLD_MAGENTA),
+		 ct_out_bold_sev,
 		 (uint8) subevent_info->_header.h_subcrate,
 		 CT_OUT(NORM_DEF_COL));
 
@@ -1187,8 +1273,15 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 
 	      if (subevent_info->_data)
 		{
-		  uint32 data_length = (uint32)
-		    SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
+		  size_t data_length;
+
+		  if ((_status & LMD_EVENT_IS_STICKY) &&
+		      subevent_info->_header._header.l_dlen ==
+		      LMD_SUBEVENT_STICKY_DLEN_REVOKE)
+		    data_length = 0;
+		  else
+		    data_length =
+		      SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
 
 		  if ((data_length & 3) == 0) // length is divisible by 4
 		    hex_dump(stdout,
@@ -1224,13 +1317,25 @@ void lmd_event::get_10_1_info()
 
   _status |= LMD_EVENT_GET_10_1_INFO_ATTEMPT;
 
-  if (_header._header.i_type    != LMD_EVENT_10_1_TYPE ||
-      _header._header.i_subtype != LMD_EVENT_10_1_SUBTYPE)
+  if (_header._header.i_type    == LMD_EVENT_10_1_TYPE &&
+      _header._header.i_subtype == LMD_EVENT_10_1_SUBTYPE)
+    ;
+  else if (_header._header.i_type    == LMD_EVENT_STICKY_TYPE &&
+	   _header._header.i_subtype == LMD_EVENT_STICKY_SUBTYPE)
+    {
+      if (!(_status & LMD_EVENT_FIRST_BUFFER_HAS_STICKY))
+	WARNING("Sticky event starts in buffer "
+		"not marked to contain sticky events.");
+      _status |= LMD_EVENT_IS_STICKY;
+    }
+  else
     {
       //printf ("type fail\n");
-      ERROR("Event header type/subtype unsupported: (%d/%d).",
-            _header._header.i_type,
-            _header._header.i_subtype);
+      ERROR("Event header type/subtype unsupported: (%d=0x%04x/%d=0x%04x).",
+            (uint16_t) _header._header.i_type,
+	    (uint16_t) _header._header.i_type,
+            (uint16_t) _header._header.i_subtype,
+	    (uint16_t) _header._header.i_subtype);
     }
 
   // Get the header info.  (this will eat some of the chunk info, but...
@@ -1370,8 +1475,14 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
       // So, subevent header is there, now remember where we got the
       // data
 
-      size_t data_length =
-	SUBEVENT_DATA_LENGTH_FROM_DLEN((size_t) subevent_header->_header.l_dlen);
+      size_t data_length;
+
+      if ((_status & LMD_EVENT_IS_STICKY) &&
+	  subevent_header->_header.l_dlen == LMD_SUBEVENT_STICKY_DLEN_REVOKE)
+	data_length = 0;
+      else
+	data_length =
+	  SUBEVENT_DATA_LENGTH_FROM_DLEN((size_t) subevent_header->_header.l_dlen);
 
       // Did the data come exclusively from this buffer?
 
@@ -1524,6 +1635,12 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
   // as the non-fragmented.  It is just a few more DMA operations.
   // So that one would use a special function, and not this one.
   // This one is for use by normal processors.
+
+  if (is_subevent_sticky_revoke(subevent_info))
+    {
+      start = end = NULL;
+      return;
+    }
 
   // We have a few cases.  Either the data was not fragmented:
 

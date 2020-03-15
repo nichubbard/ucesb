@@ -86,30 +86,30 @@ void user_function(unpack_event *event,
       {
 	if ((p[0] & 0xff00) != 0xab00)
 	  ERROR("Expected header, got %04x,",*p);
-	
+
 	uint16 ccb_id = (uint16) ((p[2] & 0x0f00) >> 8);
 
 	if (ccb_id != 1 && ccb_id != 2)
 	  ERROR("Unknown CCB id: %d",ccb_id);
 
 	CROS3_hits &ccb = user_event->ccb[ccb_id - 1];
-	
+
 	p += 4;
-	
+
 	// Next is either trailer, or an AD16 header
-	
+
 	CHECK_AVAIL(2); // at least trailer should fit
-	
+
 	while ((p[0] & 0xf000) == 0xc000)
 	  {
 	    CHECK_AVAIL(4);
-	    
+
 	    uint16 ad16_id = (uint16) ((p[2] & 0x0f00) >> 8);
-	    
+
 	    p += 4;
-	    
+
 	    // As long as we have data words, eat them
-	    
+
 	    while (p < e && (p[0] & 0xf000) == 0x0000)
 	      {
 		uint16 ch    = (uint16) ((p[0] & 0x0f00) >> 8);
@@ -127,20 +127,20 @@ void user_function(unpack_event *event,
 		// b) The zero-suppressed data structure insists on
 		//    inserting at an index, we'd like to add to the end
 
-		CROS3_wire_hit &hit = 
+		CROS3_wire_hit &hit =
 		  ccb.hits.insert_index(-1,ccb.hits._num_items);
 
 		hit.wire  = wire;
 		hit.start = value;
-		
+
 		p++;
 	      }
 	  }
       }
-      
+
     trailer:
       // trailer existence already checked, now investigate value
-      
+
       uint16 wordcount = (uint16) ((p[0] & 0x00ff) | ((p[0] & 0x00ff) << 8));
 
       p += 2;
@@ -152,7 +152,7 @@ void user_function(unpack_event *event,
 	  CHECK_AVAIL(1);
 
 	  if (p[0])
-	    ERROR("Data padding not 0"); 
+	    ERROR("Data padding not 0");
 
 	  p++;
 	}

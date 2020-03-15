@@ -39,7 +39,7 @@
 
 // --event:
 
-// OPEN: (f_evcli_con) (timeout default: 300 (TCP__TIMEOUT)) 
+// OPEN: (f_evcli_con) (timeout default: 300 (TCP__TIMEOUT))
 // node, port=6003(PORT__EVENT_SERV,l_gl_rev_port)
 // sample=downscale factor
 
@@ -47,11 +47,11 @@
 // connect (node,port)
 
 // write (filter specification (needs to be figured out))
-// 
+//
 
 // client filter structure (5*4+32*12+16*8+4*2):
 // uint32  testbit;  // 0x00000001
-// uint32  endian;   // 0x0 for little endian, 
+// uint32  endian;   // 0x0 for little endian,
 //                   // 0xffffffff for big endian (stupid!!)
 // int32   numev;    // number of events to send
 // int32   sample;   // downscale factor
@@ -81,7 +81,7 @@
 
 // opcode structure:
 // uint8   length             // length of filter
-// uint8   next_filter_block  // 
+// uint8   next_filter_block  //
 // uint8   filter_spec
 // uint8   link_f2   : 1
 // uint8   link_f1   : 1      // 1=and 0=or
@@ -91,7 +91,7 @@
 // uint8   ev_subev  : 1      // 1:event 0:subev active for selection
 
 // The select all-filter seems to be to set the opcode to
-// 1 for ev_subev,selfilter,selwrite, 
+// 1 for ev_subev,selfilter,selwrite,
 // 0 for opc,link_f2,link_f1,filter_spec
 // 1 for next_filter_block,length
 
@@ -121,7 +121,7 @@
 // uint32      buffer_type   // 1:data 2:message 4:flush 8:last 16:first (inclusive/or)
 // uint32      message_type  // 1:info 2:warn 4:error 8:fatal(?)
 // --- 8+36=44 bytes to here
-// char        message[256] 
+// char        message[256]
 // --- 300 bytes to here
 // uint32      read_count    // read buffers
 // uint32      read_count_ok // good read buffers
@@ -208,7 +208,7 @@
 // reading events, it's never checked if we got last buffer
 
 // then disconnect and close stream
-// 
+//
 
 // disconnect calls close(fid)
 // close first calls shutdown(socket,RDWR), then close (socket)
@@ -227,7 +227,7 @@
 // stream_trans_open_info structure
 // uint32   testbit          //  should be 0x00000001 (else swap)
 // uint32   bufsize          //  size of buffer (bytes?)
-// uint32   bufs_per_stream 
+// uint32   bufs_per_stream
 // uint32   dummy
 
 // the io_buf_size is then set to either bufsize (TRANSPORT)
@@ -260,6 +260,8 @@
 
 // both: if l_free[0] of buffer header of first buffer is not 0x00000001, then
 // do 4-byte swapping
+
+// both: if l_evt of buffer header is negative, close connection
 
 
 #include "lmd_input_tcp.hh"
@@ -311,57 +313,81 @@ lmd_input_tcp::~lmd_input_tcp()
 
 #define max(x,y) ((x)>(y)?(x):(y))
 
-void lmd_input_tcp::open_connection(const char *server,
-				    int port)
+bool lmd_input_tcp::parse_connection(const char *server,
+				     struct sockaddr_in *p_serv_addr,
+				     uint16_t *port,
+				     uint16_t default_port)
 {
-  int rc;
-  struct sockaddr_in serv_addr;
   struct hostent *h;
   char *hostname;
+
+  *port = default_port;
 
   // if there is a colon in the hostname, interpret what follows as a
   // port number, overriding the default port
   {
     hostname = strdup(server);
-    
+
     char *colon = strchr(hostname,':');
-    
+
     if (colon)
       {
-	port = atoi(colon+1);
+	int parsed_port;
+
+	parsed_port = atoi(colon+1);
+	if (parsed_port < 0 || parsed_port > 65535)
+	  {
+	    ERROR("Port out of range [0, 65535], is %d.", parsed_port);
+	    return false;
+	  }
+
+	*port = (uint16_t) parsed_port;
 	*colon = 0; // cut the hostname
       }
-    
+
     /* get server IP address (no check if input is IP address or DNS name */
     h = gethostbyname(hostname);
     free(hostname);
   }
   if(h==NULL) {
     ERROR("Unknown host '%s'.",server);
-    return;
+    return false;
   }
 
-  INFO(0,"Server '%s' known... (IP : %s).", h->h_name,
-       inet_ntoa(*(struct in_addr *)h->h_addr_list[0]));
+  INFO(0,"Server '%s' known... (IP : %s) (port: %d).",
+       h->h_name,
+       inet_ntoa(*(struct in_addr *)h->h_addr_list[0]),
+       *port);
+
+  p_serv_addr->sin_family = (sa_family_t) h->h_addrtype;
+  memcpy((char *) &p_serv_addr->sin_addr.s_addr,
+	 h->h_addr_list[0], (size_t) h->h_length);
+  // p_serv_addr->sin_port = htons(port);
+
+  return true;
+}
+
+bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
+				    uint16_t port, bool error_on_failure)
+{
+  int rc;
+  struct sockaddr_in serv_addr;
+
+  serv_addr = *p_serv_addr;
+  serv_addr.sin_port = htons(port);
 
   /* socket creation */
   _fd = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
   if (_fd < 0) {
-    ERROR("Cannot open socket.");	 
-    return;
+    ERROR("Cannot open socket.");
+    return false;
   }
-
-  /* bind any port */
-  serv_addr.sin_family = (sa_family_t) h->h_addrtype;
-  memcpy((char *) &serv_addr.sin_addr.s_addr, 
-	 h->h_addr_list[0], (size_t) h->h_length);
-  serv_addr.sin_port = htons(port);
 
   // Make the read file non-blocking to handle cases where the
   // read would be from some socket of sorts, that may actually
   // offer nothing to read, despite the select succesful (see linux
   // bug notes of select)
-  
+
 
   if (fcntl(_fd,F_SETFL,fcntl(_fd,F_GETFL) | O_NONBLOCK) == -1)
     {
@@ -369,12 +395,14 @@ void lmd_input_tcp::open_connection(const char *server,
       exit(1);
     }
 
+  INFO(0,"Connecting port: %d",port);
+
   rc = ::connect(_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
   if (rc < 0) {
     if (errno == EINPROGRESS)
       {
 	struct timeval timeout;
-	
+
 	timeout.tv_sec  = 3;
 	timeout.tv_usec = 0;
 
@@ -385,15 +413,15 @@ void lmd_input_tcp::open_connection(const char *server,
 	  {
 	    fd_set wfds;
 	    FD_ZERO(&wfds);
-	    
+
 	    int nfds = 0;
-	    
+
 	    if (_fd != -1)
 	      {
 		FD_SET(_fd,&wfds);
 		nfds = max(nfds,_fd);
 	      }
-	    
+
 	    int n = select(nfds+1,NULL,&wfds,NULL,&timeout);
 
 	    if (n == -1)
@@ -409,10 +437,16 @@ void lmd_input_tcp::open_connection(const char *server,
 		// This error is fatal, since it should not happen
 		exit(1);
 	      }
-	    
+
 	    if (n == 0)
 	      {
-		ERROR("timeout waiting for connect completion");
+		if (error_on_failure)
+		  ERROR("timeout waiting for connect completion");
+		else
+		  {
+		    WARNING("timeout waiting for connect completion");
+		    return false;
+		  }
 	      }
 
 	    if (_fd != -1 &&
@@ -436,12 +470,15 @@ void lmd_input_tcp::open_connection(const char *server,
 	  goto connect_success;
 	errno = connect_errno;
       }
-    perror("connect()");
-    ERROR("Cannot connect to port.");	 
-    return;
+    if (error_on_failure)
+      {
+	perror("connect()");
+	ERROR("Cannot connect to port.");
+      }
+    return false;
   }
  connect_success:;
-
+  return true;
 }
 
 
@@ -476,14 +513,14 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 	  FD_SET(_fd,&rfds);
 	  nfds = max(nfds,_fd);
 	}
-      
+
       struct timeval timewait;
-      
+
       timewait.tv_sec  = timeout;
       timewait.tv_usec = 0;
-      
+
       int n = select(nfds+1,&rfds,NULL,NULL,timeout >= 0 ? &timewait : NULL);
-      
+
       if (n == -1)
 	{
 	  if (errno == EINTR)
@@ -502,20 +539,20 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 	{
 	  ERROR("timeout during read");
 	}
-      
+
       if (_fd != -1 &&
 	  FD_ISSET(_fd,&rfds))
 	{
 	  // We can read
-	  
+
 	  ssize_t n = read(_fd,buf,count);
-	  
+
 	  if (n == 0)
 	    {
 	      // Someone closed the writing end
 	      ERROR("Socket closed on other end.");
 	    }
-	      
+
 	  if (n == -1)
 	    {
 	      // EAGAIN can happen if select fooled us (linux 'bug')
@@ -534,7 +571,7 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 	  if (timeout >= 0)
 	    timeout = 100;
 	}
-      
+
     }
 }
 
@@ -559,14 +596,14 @@ void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
 	  FD_SET(_fd,&wfds);
 	  nfds = max(nfds,_fd);
 	}
-      
+
       struct timeval timewait;
-      
+
       timewait.tv_sec  = timeout;
       timewait.tv_usec = 0;
-      
+
       int n = select(nfds+1,NULL,&wfds,NULL,timeout >= 0 ? &timewait : NULL);
-      
+
       if (n == -1)
 	{
 	  if (errno == EINTR)
@@ -585,20 +622,20 @@ void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
 	{
 	  ERROR("timeout during write");
 	}
-      
+
       if (_fd != -1 &&
 	  FD_ISSET(_fd,&wfds))
 	{
 	  // We can read
-	  
+
 	  ssize_t n = write(_fd,buf,count);
-	  
+
 	  if (n == 0)
 	    {
 	      // Someone closed the writing end
 	      ERROR("Write returned 0.");
 	    }
-	      
+
 	  if (n == -1)
 	    {
 	      // EAGAIN can happen if select fooled us (linux 'bug')
@@ -628,11 +665,11 @@ void lmd_input_tcp::create_dummy_buffer(void *buf,size_t count,
   if (count < sizeof (s_bufhe_host))
     ERROR("Destination (%d) is to small to hold dummy buffer (%d).",
 	  (int) count,(int) sizeof (s_bufhe_host));
-  
+
   s_bufhe_host *bufhe = (s_bufhe_host *) buf;
-  
+
   memset(bufhe,0,sizeof (*bufhe));
-  
+
   bufhe->l_dlen = (sint32) DLEN_FROM_BUFFER_SIZE(count);
   if (mark_dummy)
     {
@@ -653,14 +690,14 @@ void lmd_input_tcp::create_dummy_buffer(void *buf,size_t count,
   bufhe->l_evt  = 0;
   bufhe->l_free[0] = 0x00000001;
   bufhe->l_free[2] = 0;
-  
+
   // printf ("dummy...\n");
 }
 
 
 
 
-size_t lmd_input_tcp_buffer::read_info()
+size_t lmd_input_tcp_buffer::read_info(int *data_port)
 {
   do_read(&_info,sizeof(_info));
 
@@ -690,6 +727,27 @@ size_t lmd_input_tcp_buffer::read_info()
 	  _info.bufs_per_stream,
 	  _info.streams);
   */
+  if (data_port &&
+      (_info.streams & LMD_PORT_MAP_MARK_MASK) == LMD_PORT_MAP_MARK)
+    {
+      *data_port = _info.streams & LMD_PORT_MAP_PORT_MASK;
+      INFO(0,"Redirected -> port %d", *data_port);
+      return 0;
+    }
+  
+  if (_info.bufsize == (uint32_t) LMD_TCP_INFO_BUFSIZE_NODATA)
+    {
+      // This should not happen to us!, since we know how to interpret the map
+      ERROR("Buffer size -1, "
+	    "hint that only port mapped clients allowed.");
+    }
+
+  if (_info.bufsize == (uint32_t) LMD_TCP_INFO_BUFSIZE_MAXCLIENTS)
+    {
+      ERROR("Buffer size -2, "
+	    "hint that maximum number of clients are already connected.");
+    }
+
   if (_info.bufsize % 1024)
     ERROR("Buffer size not multiple of 1024.");
 
@@ -721,8 +779,7 @@ size_t lmd_input_tcp_buffer::read_info()
 size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
 					 int *nbufs)
 {
-  if (nbufs)
-    *nbufs = 0;
+  *nbufs = 0;
 
   if (count < _info.bufsize)
     {
@@ -756,6 +813,7 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
   // Well, before that, the swapping has to make sense...
 
   uint32 l_dlen = (uint32) buffer_header->l_dlen;
+  uint32 l_evt = (uint32) buffer_header->l_evt;
 
   switch(buffer_header->l_free[0])
     {
@@ -763,6 +821,7 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
       break;
     case 0x01000000:
       l_dlen = bswap_32(l_dlen);
+      l_evt = bswap_32(l_evt);
       break;
     default:
       ERROR("Buffer header endian marker broken: %08x",_info.testbit);
@@ -786,24 +845,71 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
 
   // The buffer number seems to be quite random...
 
-  if (nbufs)
-    *nbufs = 1;
+  *nbufs = 1;
 
   if (((sint32*) buffer_header)[2] == 0 && // used, end, begin
-      buffer_header->l_evt == 0)
+      l_evt == 0)
     {
       return 0;
     }
-  
+
+  // And again - be very careful to use the byteswapped value!
+
+  if (((sint32) l_evt) < 0)
+    *nbufs = -1;
+
   return _info.bufsize;
+}
+
+/////////////////////////////////////////////////////////////////////
+
+size_t lmd_input_tcp_buffer::do_map_connect(const char *server,
+					    int port_map_add,
+					    uint16_t default_port)
+{
+  struct sockaddr_in serv_addr;
+  uint16_t port;
+
+  if (!lmd_input_tcp::parse_connection(server, &serv_addr, &port,
+				       default_port))
+    return false;
+
+  int data_port = -1;
+  size_t ret;
+
+  if (port_map_add != -1)
+    {
+      // First try with port that only might provide mapping.
+      uint16_t conn_port = (uint16_t) (port + port_map_add);
+      if (lmd_input_tcp_buffer::open_connection(&serv_addr, conn_port, false))
+	ret = lmd_input_tcp_buffer::read_info(&data_port);
+    }
+
+  if (data_port == -1)
+    {
+      lmd_input_tcp_buffer::open_connection(&serv_addr, port, true);
+      ret = lmd_input_tcp_buffer::read_info(port_map_add == -1 ?
+					    &data_port : NULL);
+    }
+
+  if (data_port != -1)
+    {
+      lmd_input_tcp_buffer::close_connection();
+      lmd_input_tcp_buffer::open_connection(&serv_addr, (uint16_t) data_port,
+					    true);
+      ret = lmd_input_tcp_buffer::read_info(NULL);
+    }
+
+  return ret;
 }
 
 /////////////////////////////////////////////////////////////////////
 
 size_t lmd_input_tcp_transport::connect(const char *server)
 {
-  lmd_input_tcp_buffer::open_connection(server,LMD_TCP_PORT_TRANS);
-  return lmd_input_tcp_buffer::read_info();
+  return do_map_connect(server,
+			LMD_TCP_PORT_TRANS_MAP_ADD,
+			LMD_TCP_PORT_TRANS);
 }
 
 void lmd_input_tcp_transport::close()
@@ -826,6 +932,12 @@ size_t lmd_input_tcp_transport::get_buffer(void *buf,size_t count)
 
       size_t n = lmd_input_tcp_buffer::read_buffer(buf,count,&nbufs);
 
+      if (nbufs == -1)
+	{
+	  WARNING("Got disconnect buffer from tcp transport.");
+	  return 0;
+	}
+
       if (n)
 	return n;
 
@@ -844,15 +956,14 @@ size_t lmd_input_tcp_transport::get_buffer(void *buf,size_t count)
 
 /////////////////////////////////////////////////////////////////////
 
-lmd_input_tcp_stream::lmd_input_tcp_stream() 
+lmd_input_tcp_stream::lmd_input_tcp_stream()
 {
-  _buffers_to_read = 0; 
+  _buffers_to_read = 0;
 }
 
 size_t lmd_input_tcp_stream::connect(const char *server)
 {
-  lmd_input_tcp_buffer::open_connection(server,LMD_TCP_PORT_STREAM);
-  return lmd_input_tcp_buffer::read_info();
+  return do_map_connect(server, -1, LMD_TCP_PORT_STREAM);
 }
 
 void lmd_input_tcp_stream::close()
@@ -884,58 +995,64 @@ size_t lmd_input_tcp_stream::get_buffer(void *buf,size_t count)
     {
       // Every n'th buffer, before starting to read the buffer, we must
       // ask the stream server (kindly)
-      
+
       if (_buffers_to_read <= 0)
 	{
 	  char request[12];
-	  
+
 	  memset(request,0,sizeof (request));
 	  strcpy(request,"GETEVT");
-	  
+
 	  do_write(request,sizeof (request));
-	  
+
 	  _buffers_to_read += _info.bufs_per_stream;
 	}
-      
+
       // We ought to read all the buffers of a stream at once, when we
       // have requested the data...
-      
+
       size_t total = 0;
-      
+
       while (_buffers_to_read > 0)
 	{
 	  int nbufs;
-	  
+
 	  size_t n = lmd_input_tcp_buffer::read_buffer(buf,count,&nbufs);
-	  
+
+	  if (nbufs == -1)
+	    {
+	      WARNING("Got disconnect buffer from stream transport.");
+	      return 0;
+	    }
+
 	  _buffers_to_read -= nbufs;
-	  
+
 	  buf   = ((char *) buf) + n;
 	  total += n;
 	  count -= n;
-	  
+
 	  if (!count)
 	    break; // no point in trying again
-	  
+
 	  // This cannot happen.  It would either return 0, or it would
 	  // return 0 buffers but n != 0 when discarding end of linear
 	  // space
 	  assert (!(n == 0 && nbufs == 0));
 	}
-      
+
       // a special valid case of total = 0 may happen: if we got a flush,
       // but also in the middle wrapped the linear space then we for the
       // second call may handle only empty buffers.  those will be
       // silently eaten, and thus we produce no data, but we did discard
       // buffers.  As the recepients of our return call treat total == 0
       // as an error, we must in this case try to read data again...
-      
-      
+
+
       // INFO(0,"Got %d bytes",total);
-      
+
       if (total)
 	return total;
-      
+
       // since we got out of the while loop above, nbuf has returned
       // non-zero, or _buffers_to_read would never reach 0
     }
@@ -943,7 +1060,7 @@ size_t lmd_input_tcp_stream::get_buffer(void *buf,size_t count)
 
 /////////////////////////////////////////////////////////////////////
 
-lmd_input_tcp_event::lmd_input_tcp_event() 
+lmd_input_tcp_event::lmd_input_tcp_event()
 {
   _bytes_left = 0;
   _data_left = 0;
@@ -990,42 +1107,42 @@ size_t lmd_input_tcp_event::read_client_header()
 	  _header.dlen,
 	  _header.free);
   */
-  /*  
+  /*
   printf ("testbit         %08x (%d)\n",_header.testbit	  	,_header.testbit	);
   printf ("endian          %08x (%d)\n",_header.endian          ,_header.endian         );
-  
-  printf ("dlen            %08x (%d)\n",_header.dlen            ,_header.dlen           ); 
-  printf ("free            %08x (%d)\n",_header.free            ,_header.free           ); 
-  printf ("num_events      %08x (%d)\n",_header.num_events      ,_header.num_events     ); 
-  printf ("max_buf_size    %08x (%d)\n",_header.max_buf_size    ,_header.max_buf_size   ); 
-  printf ("send_bytes      %08x (%d)\n",_header.send_bytes      ,_header.send_bytes     ); 
-  printf ("send_buffers    %08x (%d)\n",_header.send_buffers    ,_header.send_buffers   ); 
+
+  printf ("dlen            %08x (%d)\n",_header.dlen            ,_header.dlen           );
+  printf ("free            %08x (%d)\n",_header.free            ,_header.free           );
+  printf ("num_events      %08x (%d)\n",_header.num_events      ,_header.num_events     );
+  printf ("max_buf_size    %08x (%d)\n",_header.max_buf_size    ,_header.max_buf_size   );
+  printf ("send_bytes      %08x (%d)\n",_header.send_bytes      ,_header.send_bytes     );
+  printf ("send_buffers    %08x (%d)\n",_header.send_buffers    ,_header.send_buffers   );
   printf ("con_clients     %08x (%d)\n",_header.con_clients     ,_header.con_clients    );
-  printf ("buffer_type     %08x (%d)\n",_header.buffer_type     ,_header.buffer_type    ); 
-  printf ("message_type    %08x (%d)\n",_header.message_type    ,_header.message_type   ); 
-  		  		       						
+  printf ("buffer_type     %08x (%d)\n",_header.buffer_type     ,_header.buffer_type    );
+  printf ("message_type    %08x (%d)\n",_header.message_type    ,_header.message_type   );
+
   _header.message[255] = 0; // safety
 
   printf ("message[256]:\n%s\n",_header.message);
-  
-  printf ("read_count      %08x (%d)\n",_header.read_count      ,_header.read_count     ); 
-  printf ("read_count_ok   %08x (%d)\n",_header.read_count_ok   ,_header.read_count_ok  ); 
-  printf ("skip_count      %08x (%d)\n",_header.skip_count      ,_header.skip_count     ); 
-  printf ("byte_read_count %08x (%d)\n",_header.byte_read_count ,_header.byte_read_count); 
-  printf ("count_bufs      %08x (%d)\n",_header.count_bufs      ,_header.count_bufs     ); 
+
+  printf ("read_count      %08x (%d)\n",_header.read_count      ,_header.read_count     );
+  printf ("read_count_ok   %08x (%d)\n",_header.read_count_ok   ,_header.read_count_ok  );
+  printf ("skip_count      %08x (%d)\n",_header.skip_count      ,_header.skip_count     );
+  printf ("byte_read_count %08x (%d)\n",_header.byte_read_count ,_header.byte_read_count);
+  printf ("count_bufs      %08x (%d)\n",_header.count_bufs      ,_header.count_bufs     );
   printf ("count_events    %08x (%d)\n",_header.count_events    ,_header.count_events   );
-  
-  printf ("sent_events     %08x (%d)\n",_header.sent_events	,_header.sent_events	);  
-  printf ("sent_bytes      %08x (%d)\n",_header.sent_bytes	,_header.sent_bytes	);  
-  printf ("send_buffer     %08x (%d)\n",_header.send_buffer	,_header.send_buffer	);  
-  printf ("con_proc_events %08x (%d)\n",_header.con_proc_events ,_header.con_proc_events); 
+
+  printf ("sent_events     %08x (%d)\n",_header.sent_events	,_header.sent_events	);
+  printf ("sent_bytes      %08x (%d)\n",_header.sent_bytes	,_header.sent_bytes	);
+  printf ("send_buffer     %08x (%d)\n",_header.send_buffer	,_header.send_buffer	);
+  printf ("con_proc_events %08x (%d)\n",_header.con_proc_events ,_header.con_proc_events);
   printf ("filter_matches  %08x (%d)\n",_header.filter_matches  ,_header.filter_matches  );
   */
 
   // We should now take care of and propagate any message...
   // please note: it may be a multi-line message
 
-  
+
   // Do some sanity checking on the contents
 
   if (_header.send_buffers == 1 &&
@@ -1062,7 +1179,7 @@ size_t lmd_input_tcp_event::read_client_header()
 
   if ((!_header.dlen) != (!_header.num_events))
     ERROR("Data length being zero != number of events being zero.");
-  
+
   _bytes_left = _header.send_bytes - sizeof(_header);
   _data_left  = (size_t) _header.dlen;
 
@@ -1090,9 +1207,15 @@ void lmd_input_tcp_event::send_acknowledge()
 
 size_t lmd_input_tcp_event::connect(const char *server)
 {
-  // First establish connection
-  lmd_input_tcp::open_connection(server,LMD_TCP_PORT_EVENT);
+  struct sockaddr_in serv_addr;
+  uint16_t port;
   
+  // First establish connection
+  if (!lmd_input_tcp::parse_connection(server, &serv_addr, &port,
+				       LMD_TCP_PORT_EVENT) ||
+      !lmd_input_tcp::open_connection(&serv_addr, port, true))
+    return false;
+
   // Then we are to setup, specify and send a filter description...
 
   ltcp_base_filter_struct base_filter;
@@ -1119,7 +1242,7 @@ size_t lmd_input_tcp_event::connect(const char *server)
   base_filter.items[0].opcode.selwrite          = 1;
   base_filter.items[0].opcode.selfilter         = 1;
   base_filter.items[0].opcode.ev_subev          = 1;
-  
+
   do_write(&base_filter,sizeof (base_filter));
 
   // After this, we should get some response
@@ -1153,10 +1276,10 @@ size_t lmd_input_tcp_event::get_buffer(void *buf,size_t count)
 	  send_acknowledge();
 	  read_client_header();
 	}
-      
+
       // now, is there space in the pipe to hold all the data?.  If not,
       // we'll dummy the space away and get another
-      
+
       if (_data_left)
 	{
 	  // So there is some data.  Let's format ourselves a buffer...
@@ -1185,7 +1308,7 @@ size_t lmd_input_tcp_event::get_buffer(void *buf,size_t count)
 
 	  s_bufhe_host *bufhe = (s_bufhe_host *) buf;
 
-	  size_t data_left_aligned = 
+	  size_t data_left_aligned =
 	    ((_data_left + sizeof (*bufhe) + 0x3ff) & (size_t) ~0x3ff) - sizeof (*bufhe);
 
 	  memset(bufhe,0,sizeof (*bufhe));
@@ -1218,27 +1341,27 @@ size_t lmd_input_tcp_event::get_buffer(void *buf,size_t count)
 
 	  _bytes_left -= _data_left;
 	  _data_left = 0;
-	  
+
 	  total += data_left_aligned;
 
 	  return total;
 	}
-      
+
       // if there is still some dummy data to eat, then let's chew that
-      
+
       while (_bytes_left)
 	{
 	  char skip_buf[4096];
-	  
+
 	  size_t skip = _bytes_left;
-	  
+
 	  if (skip > sizeof(skip_buf))
 	    skip = sizeof(skip_buf);
-	  
+
 	  do_read(skip_buf,skip);
-	  
+
 	  _bytes_left -= skip;
-	  
+
 	  // printf ("Ate %d bytes. (%d left)\n",skip,_bytes_left);
 	}
     }
@@ -1252,9 +1375,9 @@ size_t lmd_input_tcp_event::get_buffer(void *buf,size_t count)
 
 // For testing:
 // g++ -g -DTEST_LMD_INPUT_TCP -o lmd_input_tcp -x c++ lmd_input_tcp.cc -I ../eventloop
-// ./lmd_input_tcp --event=localhost 
-// ./lmd_input_tcp --trans=localhost 
-// ./lmd_input_tcp --stream=localhost 
+// ./lmd_input_tcp --event=localhost
+// ./lmd_input_tcp --trans=localhost
+// ./lmd_input_tcp --stream=localhost
 
 int main(int argc,char *argv[])
 {

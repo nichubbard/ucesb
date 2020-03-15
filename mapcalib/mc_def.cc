@@ -40,7 +40,7 @@ bool parse_definitions();
 void read_map_calib_info_file(const char *filename,bool must_exist)
 {
   struct stat buf;
-  
+
   if (stat(filename,&buf) == -1)
     {
       if (must_exist)
@@ -57,15 +57,16 @@ void read_map_calib_info_file(const char *filename,bool must_exist)
   INFO("Reading mapping/calibration file '%s'...",filename);
 
   forked_child fork;
-    
-  const char *argv[] = { 
+
+  const char *argv[] = {
 #if ((defined(__APPLE__) && defined(__MACH__)) || defined(__OpenBSD__))
 	"g++", "-E", "-x", "c",
 #else
-	"cpp", 
+	"cpp",
 #endif
+	"-DUNPACKER_IS_" stringify(UNPACKERNAME),
 	/*arg,*/ filename, NULL };
- 
+
   fork.fork(argv[0],argv,&lexer_read_fd,NULL);
 
   // read the information!
@@ -91,8 +92,8 @@ void read_map_calib_info()
   // probably not _the_ way to do it, but to get it running
 
   char *filename;
-  
-  filename = argv0_replace("gen/data_mapping.hh");
+
+  filename = argv0_replace(GENDIR "/data_mapping.hh");
   read_map_calib_info_file(filename,true);
   free (filename);
 
@@ -131,7 +132,8 @@ void verify_units_match(const prefix_units_exponent *dest,
       format_unit_str(dest,str_unit_dest,sizeof(str_unit_dest));
 
       ERROR_LOC(loc,
-		"Unit mismatch: '%s' (unit '%s' of value does not match destination unit '%s').",
+		"Unit mismatch: '%s' "
+		"(unit '%s' of value does not match destination unit '%s').",
 		descr,str_unit_src,str_unit_dest);
     }
 }
@@ -139,7 +141,7 @@ void verify_units_match(const prefix_units_exponent *dest,
 
 void apply_map_item(const map_info *item)
 {
-  /*  
+  /*
   char str_src[64];
   char str_dest[64];
 
@@ -155,18 +157,21 @@ void apply_map_item(const map_info *item)
   assert(item->_src->_addr);
   assert(item->_dest->_addr);
 
-  if ((item->_src->_type & ENUM_TYPE_MASK) != 
+  if ((item->_src->_type & ENUM_TYPE_MASK) !=
       (item->_dest->_type & ENUM_TYPE_MASK))
     ERROR_LOC(item->_loc,"Mapping between incompatible types!");
 
   if (item->_dest->_type & ENUM_NO_INDEX_DEST)
-    ERROR_LOC(item->_loc,"Mapping destination is non-first index in unindexed array.  (use (dummy)index 0/1)");
+    ERROR_LOC(item->_loc,
+	      "Mapping destination is non-first index in unindexed array.  "
+	      "(use (dummy)index 0/1)");
 
   // Ugly hack: we must discard the const qualifier on the src and
   // dest pointer
 
   if (!item->_src->_set_dest((void *) item->_src->_addr,
-			     (void *) item->_dest->_addr))
+			     (void *) item->_dest->_addr,
+			     item->_toggle_i /* applies to dest */))
     ERROR_LOC(item->_loc,"Mapping already specified for source item.");
 }
 
@@ -176,8 +181,9 @@ void apply_calib_param(calib_param *item)
   assert(item->_src->_addr);
   assert(item->_dest->_addr);
 
-  if (!item->_src->_set_dest(item,NULL))
-    ERROR_LOC(item->_loc,"Mapping already specified for source item.");
+  if (!item->_src->_set_dest(item,NULL,
+			     item->_toggle_i /* applies to src */))
+    ERROR_LOC(item->_loc,"Calib mapping already specified for source item.");
 }
 
 void apply_calib_param(user_calib_param *item)
@@ -197,15 +203,18 @@ void apply_calib_param(user_calib_param *item)
 		     item->_loc,"param",factor);
 
   if (item->_dest->_type == ENUM_TYPE_FLOAT) {
-    *((float *) item->_dest->_addr) = (float) (item->_param[0][0]._value * factor);
+    *((float *) item->_dest->_addr) =
+      (float) (item->_param[0][0]._value * factor);
     return;
   }
   if (item->_dest->_type == ENUM_TYPE_DOUBLE) {
-    *((double *) item->_dest->_addr) = item->_param[0][0]._value * factor;
+    *((double *) item->_dest->_addr) =
+      item->_param[0][0]._value * factor;
     return;
   }
 
-  ERROR_LOC(item->_loc,"Unhandled type of calibration parameter destination (%d).",
+  ERROR_LOC(item->_loc,"Unhandled type of calibration parameter destination "
+	    "(%d).",
 	    item->_dest->_type);
 
   /*
@@ -213,7 +222,7 @@ void apply_calib_param(user_calib_param *item)
   assert(item->_src->_addr);
   assert(item->_dest->_addr);
 
-  if (!item->_src->_set_dest(item,NULL))
+  if (!item->_src->_set_dest(item,NULL,0))
     ERROR_LOC(item->_loc,"Mapping already specified for source item.");
   */
 }
@@ -225,8 +234,8 @@ void process_map_calib_info()
   for (i = all_mc_defs->begin(); i != all_mc_defs->end(); ++i)
     {
       def_node *info = *i;
- 
-      calib_param *calib_item = 
+
+      calib_param *calib_item =
 	dynamic_cast<calib_param *>(info);
 
       if (calib_item)
@@ -235,7 +244,7 @@ void process_map_calib_info()
 	  continue; // not to also get caught as a map_item
 	}
 
-      user_calib_param *user_calib_item = 
+      user_calib_param *user_calib_item =
 	dynamic_cast<user_calib_param *>(info);
 
       if (user_calib_item)
@@ -245,7 +254,7 @@ void process_map_calib_info()
 	}
 
       // Has to be last as it as base class for the above
-      map_info *map_item = 
+      map_info *map_item =
 	dynamic_cast<map_info *>(info);
 
       if (map_item)
@@ -253,7 +262,7 @@ void process_map_calib_info()
 	  apply_map_item(map_item);
 	  continue;
 	}
- 
+
     }
 }
 
@@ -279,6 +288,11 @@ const signal_id_info *get_signal_id_info(signal_id *id,int map_no)
 	case SID_MAP_USER:   map_str = "USER";    break;
 	case SID_MAP_CALIB:  map_str = "CALIB";   break;
 
+	case SID_MAP_STICKY | SID_MAP_UNPACK:
+	  map_str = "sticky UNPACK";  break;
+	case SID_MAP_STICKY | SID_MAP_RAW:
+	  map_str = "sticky RAW";     break;  
+
 	case SID_MAP_MIRROR_MAP | SID_MAP_UNPACK:
 	  map_str = "UNPACK (map mirror)";  break;
 	case SID_MAP_MIRROR_MAP | SID_MAP_RAW:
@@ -290,6 +304,9 @@ const signal_id_info *get_signal_id_info(signal_id *id,int map_no)
 	case SID_MAP_MIRROR_MAP | SID_MAP_CALIB:
 	  map_str = "CALIB (map mirror)";   break;
 
+	case SID_MAP_STICKY | SID_MAP_MIRROR_MAP | SID_MAP_UNPACK:
+	  map_str = "sticky UNPACK (map mirror)";  break;
+
 	case SID_MAP_MIRROR_MAP | SID_MAP_RAW | SID_MAP_REVERSE:
 	  map_str = "RAW (reverse map mirror)"; break;
 
@@ -297,9 +314,9 @@ const signal_id_info *get_signal_id_info(signal_id *id,int map_no)
 	}
 
       print_lineno(stderr,yylineno);
-      ERROR("Cannot find signal %s in map %s",str,map_str);      
+      ERROR("Cannot find signal %s in map %s",str,map_str);
     }
-        
+
   return info;
 }
 

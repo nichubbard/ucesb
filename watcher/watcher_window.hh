@@ -57,7 +57,7 @@ public:
   // detector_requests _requests;
 
   uint _display_at_mask;
-  uint _display_counts; 
+  uint _display_counts;
   uint _display_timeout;
   
   bool _init;

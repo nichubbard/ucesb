@@ -68,6 +68,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <vector>
 
@@ -145,7 +146,7 @@ int main()
       v.push_back(e);
     }
 
-  
+
   for (unsigned int i = 0; i < v.size(); i++)
     {
       ec_event &e = v[i];
@@ -165,7 +166,7 @@ int main()
 
 #define IF_HAS_DATA(type,no) if (e.ec.p.type[no])
 #define RO(type,no) { e.flags.p.type[no] |= FLAG_HAD_READOUT; }
-      
+
       IF_HAS_DATA(adc,0) { RO(adc,1); RO(adc,6); RO(tdc,0); RO(tdc,1); RO(tdc,4); }
       IF_HAS_DATA(adc,1) { RO(adc,0); RO(adc,6); RO(tdc,0); RO(tdc,1); RO(tdc,4); }
       IF_HAS_DATA(adc,2) { RO(adc,3); RO(adc,6); RO(tdc,2); RO(tdc,3); RO(tdc,4); }
@@ -173,7 +174,7 @@ int main()
       //IF_HAS_DATA(adc,4) { RO(adc,5); RO(adc,6); RO(tdc,2);            RO(tdc,4); }
       //IF_HAS_DATA(adc,5) { RO(adc,4); RO(adc,6); RO(tdc,2);            RO(tdc,4); }
       IF_HAS_DATA(adc,6) {                                             RO(tdc,4); }
-      
+
       IF_HAS_DATA(tdc,0) { RO(adc,0); RO(adc,1); RO(adc,6); RO(tdc,1); RO(tdc,4); }
       IF_HAS_DATA(tdc,1) { RO(adc,0); RO(adc,1); RO(adc,6); RO(tdc,0); RO(tdc,4); }
       IF_HAS_DATA(tdc,2) { RO(adc,2); RO(adc,3); RO(adc,6); RO(tdc,3); RO(tdc,4); }
@@ -268,7 +269,7 @@ int main()
 
 
     }
-	  
+
 
   for (unsigned int i = 0; i < v.size(); i++)
     {
@@ -287,7 +288,7 @@ int main()
 	{
 	  if (e.flags.all[j] & FLAG_HAD_READOUT)
 	    printf (" >");
-	  else 
+	  else
 	    printf ("  ");
 
 	  if (e.flags.all[j] & FLAG_HAS_DATA)

@@ -78,6 +78,7 @@ XTST_SUBEVENT_MEMBER_##type()                                              \
 XTST_SUBEVENT_MEMBER_ZZP(DATA32)
 XTST_SUBEVENT_MEMBER_ZZP(DATA24)
 XTST_SUBEVENT_MEMBER_ZZP(DATA16)
+XTST_SUBEVENT_MEMBER_ZZP(DATA16_OVERFLOW)
 XTST_SUBEVENT_MEMBER_ZZP(DATA12)
 XTST_SUBEVENT_MEMBER_ZZP(DATA12_OVERFLOW)
 XTST_SUBEVENT_MEMBER_ZZP(DATA12_RANGE)
@@ -94,6 +95,7 @@ SUBEVENT(XTST_SUBEVENT_MEMBER_ENCODE)
   member_DATA32 = XTST_SUBEVENT_MEMBER_DATA32();
   member_DATA24 = XTST_SUBEVENT_MEMBER_DATA24();
   member_DATA16 = XTST_SUBEVENT_MEMBER_DATA16();
+  member_DATA16_OVERFLOW = XTST_SUBEVENT_MEMBER_DATA16_OVERFLOW();
   member_DATA12 = XTST_SUBEVENT_MEMBER_DATA12();
   member_DATA12_OVERFLOW = XTST_SUBEVENT_MEMBER_DATA12_OVERFLOW();
   member_DATA12_RANGE = XTST_SUBEVENT_MEMBER_DATA12_RANGE();
@@ -173,8 +175,12 @@ SUBEVENT(BITS64)
   UINT32 data32_1;
   UINT32 data32_2;
 
+  MARK_COUNT(start);
+
   UINT64 data64_1;
 
+  MARK_COUNT(end);
+  CHECK_COUNT(data32_1,start,end,4,4);
 
   select several
   {
@@ -196,7 +202,7 @@ ITEM_ME2(geom)
   UINT32 header NOENCODE {
     16_23: geom = MATCH(geom);
   }
-  
+
   MATCH_END;
 
   UINT32 data NOENCODE {
@@ -224,8 +230,63 @@ SUBEVENT(XTST_PLAIN)
   // DATA32 d;
 }
 
+STICKY_ACTIVE()
+{
+  UINT32 separator { /* We encode this, tells if event is here. */
+    0_31: 7;
+  }
+
+  UINT32 active;
+  UINT32 mark;
+
+  UINT32 corr;
+}
+
+WR_STAMP(id)
+{
+  UINT32 header NOENCODE
+  {
+    8_11: id = MATCH(id);
+    16:   error;
+  }
+  UINT32 data0 NOENCODE
+  {
+    0_15: v;
+    16_31: 0x03e1;
+  };
+  UINT32 data1 NOENCODE
+  {
+    0_15: v;
+    16_31: 0x04e1;
+  };
+  UINT32 data2 NOENCODE
+  {
+    0_15: v;
+    16_31: 0x05e1;
+  };
+  UINT32 data3 NOENCODE
+  {
+    0_15: v;
+    16_31: 0x06e1;
+  };
+}
+
 SUBEVENT(XTST_REGRESS)
 {
+  select several
+  {
+    wr[1] = WR_STAMP(id=1);
+    wr[2] = WR_STAMP(id=2);
+    wr[3] = WR_STAMP(id=3);
+    wr[4] = WR_STAMP(id=4);
+    wr[5] = WR_STAMP(id=5);
+  }
+
+  UINT32 separator1 NOENCODE
+  {
+    0_31: 0;
+  }
+
   UINT32 seed;
 
   select several
@@ -234,15 +295,20 @@ SUBEVENT(XTST_REGRESS)
     v775mod[1] = VME_CAEN_V775(geom=2,crate=0x7e);
   }
 
-  UINT32 separator NOENCODE
+  UINT32 separator2 NOENCODE
   {
     0_31: 0;
   }
-  
+
   select several
   {
     v1290mod[0] = VME_CAEN_V1290_SHORT(geom=1);
     v1290mod[1] = VME_CAEN_V1290_SHORT(geom=2);
+  }
+
+  select several
+  {
+    sticky_active = STICKY_ACTIVE();
   }
 }
 
@@ -270,7 +336,22 @@ EVENT
 
   plain = XTST_PLAIN(type=12);
 
-  regress = XTST_REGRESS(type=0x0cae,subtype=0x0cae);
+  regress[ 0] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 0);
+  regress[ 1] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 1);
+  regress[ 2] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 2);
+  regress[ 3] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 3);
+  regress[ 4] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 4);
+  regress[ 5] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 5);
+  regress[ 6] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 6);
+  regress[ 7] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 7);
+  regress[ 8] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 8);
+  regress[ 9] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate= 9);
+  regress[10] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=10);
+  regress[11] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=11);
+  regress[12] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=12);
+  regress[13] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=13);
+  regress[14] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=14);
+  regress[15] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=15);
 
   regressextra = XTST_REGRESSEXTRA(type=0x0de0,subtype=0x0ad0);
 }
@@ -310,6 +391,21 @@ SIGNAL(GFI1_V16E,,DATA12);
 SIGNAL(SST1_X640,,DATA12);
 SIGNAL(SST1_Y384,,DATA12);
 
+SIGNAL(TOGGLE 2: POS3_1_E,vme.qdc1.data[17],DATA12);
+SIGNAL(TOGGLE 1: POS3_1_E,vme.qdc1.data[1],DATA12);
+
+SIGNAL(TOGGLE 2: POS3_2_E,vme.qdc1.data[0],DATA12);
+
+SIGNAL(TOGGLE 1:
+       POS3_3_E,vme.qdc1.data[3],
+       POS3_4_E,vme.qdc1.data[4],DATA12);
+SIGNAL(TOGGLE 2:
+       POS3_3_T,vme.tdc2.data[3],
+       POS3_4_T,vme.tdc2.data[4],DATA12);
+SIGNAL(TOGGLE 1:
+       POS3_3_T,vme.tdc2.data[3+16],
+       POS3_4_T,vme.tdc2.data[4+16],DATA12);
+
 SIGNAL(N10_20_1_T,,DATA12 "ch");
 
 SIGNAL(N10_20_1_T,,DATA12 "ch");
@@ -317,6 +413,13 @@ SIGNAL(N10_20_1_T,,DATA12 "ch");
 SIGNAL(N10_19_2_T,,(DATA12 "ch", float "#ns"));
 
 SIGNAL(ZERO_SUPPRESS: N10_20);
+
+SIGNAL(TGL1_1_E_1,vme.qdc1.data[10],DATA12);
+SIGNAL(ZERO_SUPPRESS: TGL1_1_E_3);
+SIGNAL(TOGGLE 2: TGL1_1_T_1,vme.tdc2.data[10],DATA12);
+SIGNAL(ZERO_SUPPRESS: TGL1_1_T_3);
+SIGNAL(TOGGLE 2: TGL1_1_F_1,vme.tdc2.data[11],(DATA12,float));
+SIGNAL(ZERO_SUPPRESS: TGL1_1_F_3);
 
 SIGNAL(MAPA1_1,vme.tdc1.data[0],
        MAPA1_3,vme.tdc1.data[2],
@@ -442,3 +545,31 @@ SIGNAL(ZERO_SUPPRESS_MULTI(200): NNvb_P1_B1_T1_tf);
 SIGNAL(NNvb_P60_B50_T2_tc, ,DATA12);
 SIGNAL(NNvb_P60_B50_T2_tf, ,DATA12);
 */
+
+
+SIGNAL(ZZP1_1_E_1,vme.qdc1.data[2],DATA12);
+SIGNAL(ZERO_SUPPRESS: ZZP1_1_E_10);
+SIGNAL(ZZP1_1_F_1,vme.tdc2.data[5],(DATA12,float));
+SIGNAL(ZERO_SUPPRESS: ZZP1_1_F_10);
+SIGNAL(ZZP1_1_D_1,vme.tdc2.data[6],(DATA12,double));
+SIGNAL(ZERO_SUPPRESS: ZZP1_1_D_10);
+SIGNAL(ZZP1_1_U_1,vme.tdc2.data[7],(DATA12,uint32));
+SIGNAL(ZERO_SUPPRESS: ZZP1_1_U_10);
+SIGNAL(ZZP1_1_L_1,vme.tdc2.data[8],(DATA12,uint64));
+SIGNAL(ZERO_SUPPRESS: ZZP1_1_L_10);
+
+SIGNAL(STCORR,regress[0].sticky_active.corr,uint32);
+
+SUBEVENT(XTST_STICKY_CORR)
+{
+  UINT32 base;
+}
+
+STICKY_EVENT
+{
+  corr = XTST_STICKY_CORR(type=0x0cae,subtype=0x0caf);
+
+  ignore_unknown_subevent;
+}
+
+STICKY(corrbase, corr.base, UINT32);

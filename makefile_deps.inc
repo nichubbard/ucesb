@@ -25,12 +25,12 @@
 #
 # we then do $(BASENAME).dep on request
 
-CPP_DEFINES_FREEBSD = $(shell cpp -dM /dev/null | grep __FreeBSD__)
-CPP_DEFINES_NETBSD = $(shell cpp -dM /dev/null | grep __NetBSD__)
-CPP_DEFINES_OPENBSD = $(shell cpp -dM /dev/null | grep __OpenBSD__)
-CPP_DEFINES_SVR4 = $(shell cpp -dM /dev/null | grep __svr4__)
-CPP_DEFINES_CYGWIN = $(shell cpp -dM /dev/null | grep __CYGWIN__)
-CPP_DEFINES_APPLE = $(shell cpp -dM /dev/null | grep __APPLE__)
+CPP_DEFINES_FREEBSD = $(shell $(CPP) -x c -dM /dev/null | grep __FreeBSD__)
+CPP_DEFINES_NETBSD = $(shell $(CPP) -x c -dM /dev/null | grep __NetBSD__)
+CPP_DEFINES_OPENBSD = $(shell $(CPP) -x c -dM /dev/null | grep __OpenBSD__)
+CPP_DEFINES_SVR4 = $(shell $(CPP) -x c -dM /dev/null | grep __svr4__)
+CPP_DEFINES_CYGWIN = $(shell $(CPP) -x c -dM /dev/null | grep __CYGWIN__)
+CPP_DEFINES_APPLE = $(shell $(CPP) -x c -dM /dev/null | grep __APPLE__)
 
 GCC_IS_3_3 = $(shell echo "__GNUC__ : __GNUC_MINOR__" | $(CXX) -E - | grep "3 : 3")
 GCC_IS_4_3 = $(shell echo "__GNUC__ : __GNUC_MINOR__" | $(CXX) -E - | grep "4 : 3")

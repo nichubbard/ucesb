@@ -20,7 +20,7 @@
  * MA  02110-1301  USA
  */
 
-#include "midas32_caen_item_limited.spec" 
+#include "midas32_caen_item_limited.spec"
 #include "spec/midas32.spec"
 
 SUBEVENT(EV_EVENT)

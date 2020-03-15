@@ -46,8 +46,13 @@
                             NTUPLE_CASE_UPPER | NTUPLE_CASE_LOWER | \
                             NTUPLE_CASE_H2ROOT)
 
-#define NTUPLE_WRITER_NO_SHM     0x4000
-#define NTUPLE_READER_INPUT      0x8000 // use as a reader!
+// Separate variable: (could reuse bits)
+
+#define NTUPLE_OPT_WRITER_NO_SHM     0x4000
+#define NTUPLE_OPT_READER_INPUT      0x8000 // use as a reader!
+
+#define NTUPLE_OPT_EXT_GDB         0x010000
+#define NTUPLE_OPT_EXT_VALGRIND    0x020000
 
 class ext_writer_buf
 {
@@ -91,7 +96,7 @@ public:
   int    _fd_mem;
   char  *_ptr; // shm
   size_t _len;
-  
+
   external_writer_shm_control *_ctrl;
 
 public:
@@ -171,20 +176,22 @@ public:
   void *insert_buf_string(void *ptr,const char *str);
 
 public:
-  void init(unsigned int type,bool no_shm,
-	    const char *filename,const char *ftitle,
-	    int server_port,int generate_header,
-	    int timeslice,int timeslice_subdir,
-	    int autosave);
+  void init_x(unsigned int type,unsigned int opt,
+	      const char *filename,const char *ftitle,
+	      int server_port,int generate_header,
+	      int timeslice,int timeslice_subdir,
+	      int autosave);
   void close();
 
 public:
-  void send_file_open();
-  void send_book_ntuple(int hid,
-			const char *id,const char *title,
-			uint32_t ntuple_index = 0,
-			uint32_t sort_u32_words = 0,
-			uint32_t max_raw_words = 0);
+  void send_file_open(uint32_t sort_u32_words);
+  void send_book_ntuple_x(int hid,
+			  const char *id,const char *title,
+			  const char *index_major = "",
+			  const char *index_minor = "",
+			  uint32_t struct_index = 0,
+			  uint32_t ntuple_index = 0,
+			  uint32_t max_raw_words = 0);
   void send_alloc_array(uint32_t size);
   void send_hbname_branch(const char *block,
 			  uint32_t offset,uint32_t length,
@@ -196,11 +203,14 @@ public:
   uint32_t *prepare_send_offsets(uint32_t size);
   void send_offsets_fill(uint32_t *po);
   void send_setup_done(bool reader = false);
-  uint32_t *prepare_send_fill(uint32_t size,uint32_t ntuple_index = 0,
-			      uint32_t *sort_u32 = NULL,
-			      uint32_t **raw = NULL,
-			      uint32_t raw_words = 0);
+  uint32_t *prepare_send_fill_x(uint32_t size,
+				uint32_t struct_index = 0,
+				uint32_t ntuple_index = 0,
+				uint32_t *sort_u32 = NULL,
+				uint32_t **raw = NULL,
+				uint32_t raw_words = 0);
   void send_done();
+  void send_flush(); /* Used when data is sent seldomly...  Hmmm */
 
   uint32_t max_h1i_size(size_t max_id_title_len,uint32_t bins);
   void send_hist_h1i(int hid,const char *id,const char *title,
@@ -242,15 +252,18 @@ inline uint32_t external_write_float_as_uint32(float src)
  *                 defined in staged_ntuple.hh  (except for this, that
  *                 header file is not needed.)  Basically, one of the
  *                 NTUPLE_TYPE_... values, and on of NTUPLE_CASE_...
- *                 should be or|ed together.  The NTUPLE_WRITER_... are 
+ *                 should be or|ed together.  The NTUPLE_WRITER_... are
  *                 not used by the external_writer.
  *
- *   @no_shm       Set to true to disable the shared memory communication, 
+ *   @no_shm       Set to true to disable the shared memory communication,
  *                 should not be needed.
  *
  *   @filename     Name of the output file.  (Not used for NTUPLE_TYPE_STRUCT)
  *
  *   @ftitle       File title.  (part of hbook and root files).
+ *
+ *   @sort_u32_words  Number of words used for sorting multiple streams.
+ *                    (Only for ntuple_index = 0).
  *
  *   @server_port  Used for NTUPLE_TYPE_STRUCT.
  *
@@ -264,7 +277,7 @@ inline uint32_t external_write_float_as_uint32(float src)
  *
  * - Call send_file_open() to make it open the output file.
  *
- * - Call send_book_ntuple() to create the ntuple/tree object.
+ * - Call send_book_ntuple_x() to create the ntuple/tree object.
  *
  *   @hid           [NTUPLE] Ntuple id.
  *
@@ -272,27 +285,31 @@ inline uint32_t external_write_float_as_uint32(float src)
  *
  *   @title         Title of the ntuple/tree.
  *
+ *   @index_major   For BuildIndex (if wanted).
+ *
+ *   @index_minor   See previous.
+ *
  *   @ntuple_index  (Usually 0) For having several ntuples (of
  *                  same layout) in the output file.
- *
- *   @sort_u32_words  Number of words used for sorting multiple streams.
- *                    (Only for ntuple_index = 0).
  *
  *   @max_raw_words  Maximum size of raw data.
  *                   (Only for ntuple_index = 0).
  *
- * - Call send_alloc_array() to allocate the staging array.  
+ *   @struct_index  (Usually/first 0) For having several ntuples (of
+ *                  different layout) in the output file.
  *
- *   @size       This should have the length of the structure that 
- *               you want to dump.  NOTE: it can (currently) only 
- *               contain 32-bit entries, i.e.  basically 32-bit int, 
- *		 uint, and floats.  int32_t and uint32_t are 
+ * - Call send_alloc_array() to allocate the staging array.
+ *
+ *   @size       This should have the length of the structure that
+ *               you want to dump.  NOTE: it can (currently) only
+ *               contain 32-bit entries, i.e. basically 32-bit int,
+ *		 uint, and floats.  int32_t and uint32_t are
  *		 recommended.  It may be arrays whose length are
  *		 controlled by some earlier integer.
  *
  * - For each member of the ntuple/tree, call send_hbname_branch().
  *
- *   @block        [NTUPLE] Name of the block to put the variable in.  
+ *   @block        [NTUPLE] Name of the block to put the variable in.
  *
  *   @offset       Offset of the item in the staging structure (bytes).
  *
@@ -314,12 +331,11 @@ inline uint32_t external_write_float_as_uint32(float src)
  *   @limit_max    [NTUPLE] Maximum value.  Flag needed:
  *                 var_type |= EXTERNAL_WRITER_FLAG_HAS_LIMIT).
  *
- * - Call set_max_message_size() to make the reallocate the 
- *   communication shm/pipe with enough space to handle the worst case
- *   message.  
+ * - Call set_max_message_size() to reallocate the communication
+ *   shm/pipe with enough space to handle the worst case message.
  *
- *   @size          The maximum message length is protocol dependent 
- *                  (see below), currently 2 32-bit word + 1 32-bit 
+ *   @size          The maximum message length is protocol dependent
+ *                  (see below), currently 2 32-bit word + 1 32-bit
  *                  words per item sent.  Also consider the offset
  *                  message.  Specified in bytes.
  *
@@ -332,7 +348,7 @@ inline uint32_t external_write_float_as_uint32(float src)
  *
  *   @size          The length of the offset array.  Equal to the number
  *                  of items.
- *   
+ *
  *   The information consists of, for each data item:
  *
  *   uint32_t       offset   (offset in the staging array of the item)
@@ -340,17 +356,17 @@ inline uint32_t external_write_float_as_uint32(float src)
  *                           In case of zero-suppressed arrays, they
  *                           must be directly preceeded by the
  *                           controlling variable, which offset is to
- *                           be OR marked with 0x80000000.  This is 
+ *                           be OR marked with 0x80000000.  This is
  *                           followed by two values, max_loops and
  *                           loop_size, describing the following arrays.
- *                           The items of the arrays are then to be 
+ *                           The items of the arrays are then to be
  *                           given in round-robin order).
  *
  *                           All @offset are to written with htonl(), to
  *                           avoid endianess issues.
  *
- *                           Items that are to be cleared with 0 (e.g. 
- *                           integers), should have a marker 0x40000000.  
+ *                           Items that are to be cleared with 0 (e.g.
+ *                           integers), should have a marker 0x40000000.
  *                           Otherwise, they are cleared with NaN.
  *
  * - When the information has been filled, call send_offsets_fill() to
@@ -369,6 +385,8 @@ inline uint32_t external_write_float_as_uint32(float src)
  *   @size          Maximum size that will be used for the protocol data.
  *                  Can safely use the value sent to set_max_message_size().
  *
+ *   @struct_index  (Usually 0) which ntuple to fill.
+ *
  *   @ntuple_index  (Usually 0) which ntuple to fill.
  *
  *   @sort_u32      Pointer to words used for sorting multiple streams.
@@ -377,10 +395,14 @@ inline uint32_t external_write_float_as_uint32(float src)
  *                  where to write ancillary raw data of size @raw_words.
  *
  *   @raw_words     Size of raw data (bytes).
- *   
+ *
  *   The protocol consists of:
  *
- *   uint32_t       ntuple_index  (usually zero, used with multiple
+ *   uint32_t       struct_index  (usually zero, non-zero with multiple
+ *                                ntuples (of different layout) in the
+ *                                output file)
+ *
+ *   uint32_t       ntuple_index  (usually zero, non- with multiple
  *                                ntuples (of same layout) in the
  *                                output file)
  *
@@ -388,12 +410,13 @@ inline uint32_t external_write_float_as_uint32(float src)
  *                                            multiple streams.  Highest word
  *                                            first.
  *
- *   uint32_t       marker = 0  (used internally by the external writer,
+ *   uint32_t       marker = 0x40000000
+ *                              (used internally by the external writer,
  *                              when sending data by the STRUCT server)
  *
  *   For each data item:
  *
- *   uint32_t       value    (value, see writing_ntuple.hh for 
+ *   uint32_t       value    (value, see writing_ntuple.hh for
  *                           type-punning of floats) Both @offset and
  *                           @value are to be written with htonl(), to
  *                           avoid endianess issues.
@@ -414,83 +437,7 @@ inline uint32_t external_write_float_as_uint32(float src)
  *
  * - Delete the external_writer object.  This will call close() if needed.
  *
- * Example:
- */
-#if 0
-external_writer *ew;
-
-struct mystruct
-{
-  int32_t a;
-  float c;
-  int32_t b;
-  float d[4 EXT_STRUCT_CTRL(b)];
-  float e[7];
-};
-
-#define offsetof(type,member) ((size_t) &((type *) 0)->member)
-
-mystruct event;
-
-void example()
-{
-  ew = new external_writer();
-  
-  ew->init(NTUPLE_TYPE_ROOT | NTUPLE_CASE_KEEP, false,
-	   "monsterfile.root","Title",-1,false,false,false);
-  
-  ew->send_file_open();
-
-  ew->send_book_ntuple(101,"h101","CoolTree");
-  
-  ew->send_alloc_array(sizeof(mystruct));
-
-  ew->send_hbname_branch("DEF",offsetof(mystruct,a),sizeof(event.a),
-			 "a",-1,"",EXTERNAL_WRITER_FLAG_TYPE_INT32);
-  ew->send_hbname_branch("DEF",offsetof(mystruct,c),sizeof(event.c),
-			 "c",-1,"",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
-  ew->send_hbname_branch("DEF",offsetof(mystruct,b),sizeof(event.b),
-			 "b",-1,"",EXTERNAL_WRITER_FLAG_TYPE_INT32);
-  ew->send_hbname_branch("DEF",offsetof(mystruct,d),sizeof(event.d),
-			 "d",4,"b",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
-  ew->send_hbname_branch("DEF",offsetof(mystruct,e),sizeof(event.e),
-			 "e",7,"",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
-  
-  uint32_t maxmsgsize = (1 + 2 * (1+1+1+4+7)) * sizeof(uint32_t);
-
-  ew->set_max_message_size(maxmsgsize);
-
-  {
-    uint32_t *o = ew->prepare_send_offsets(/*TODO*/);
-
-    /* TODO - incomplete! */
-    *(p++) = htonl(offsetof(mystruct,a));
-
-    ew->send_offsets_fill(o);
-  }
-
-  ew->send_setup_done();
-
-  for ( ; /* loop over events */ ; )
-    {
-      uint32_t *p = ew->prepare_send_fill(maxmsgsize);
-
-      *(p++) = htonl(0); /* ntuple index */
-      *(p++) = htonl(0); /* marker */
-
-      /* TODO - incomplete! */
-      /* Fill in the value a */
-      *(p++) = htonl(42);
-
-      ew->send_offsets_fill(p);
-    }
-
-  ew->close(); // not required, done in destructor below
-  
-  delete ew;
-}
-#endif
-/* End example.  :-)
+ * Example: see example/ext_writer_test.cc
  */
 
 #endif//__EXTERNAL_WRITER_HH__

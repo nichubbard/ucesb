@@ -35,18 +35,18 @@ public:
   int _index;
 
 public:
-  bool enumerate_correlations(const signal_id &id,enumerate_correlations_info *info) 
-  { 
+  bool enumerate_correlations(const signal_id &id,enumerate_correlations_info *info)
+  {
     if (!info->_requests->is_channel_requested(id,false,0,false))
       return false;
 
     _index = info->_next_index;
     info->_next_index += 256;
-    
-    return true; 
+
+    return true;
   }
 
-  void add_corr_members(const CROS3_REWRITE &src,correlation_list *list) const 
+  void add_corr_members(const CROS3_REWRITE &src,correlation_list *list) const
   {
     if (_index == -1)
       return;
@@ -58,10 +58,10 @@ public:
 
     // bitsone<256> wires;
 
-    
 
 
-    
+
+
   }
 };
 

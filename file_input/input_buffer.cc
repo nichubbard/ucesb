@@ -117,7 +117,7 @@ void input_buffer_cont::take_over(input_buffer_cont &src)
 {
   _input = src._input;
   _cur   = src._cur;
-  
+
   src._input = NULL;
   src._cur   = -1;
 }
@@ -157,16 +157,16 @@ void print_remaining_event(buf_chunk *chunk_cur,
     return;
 
   size_t leftovers = 0;
-  
+
   printf("  %sLeftovers:%s\n",CT_OUT(RED),CT_OUT(DEF_COL));
-  
+
   {
     hex_dump_buf buf;
-  
+
     while (chunk_cur < chunk_end)
       {
 	leftovers += chunk_cur->_length - offset_cur;
-	
+
 	if (((chunk_cur->_length - offset_cur) & 3) == 0) // length is divisible by 4
 	  hex_dump(stdout,
 		   (uint32*) (chunk_cur->_ptr + offset_cur),
@@ -177,7 +177,7 @@ void print_remaining_event(buf_chunk *chunk_cur,
 		   (uint16*) (chunk_cur->_ptr + offset_cur),
 		   chunk_cur->_ptr + chunk_cur->_length,swapping,
 		   "%c%04x",5,buf,NULL);
-	
+
 	chunk_cur++;
 	offset_cur = 0;
       }

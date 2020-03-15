@@ -52,7 +52,7 @@
 
 
 #ifdef __MACH__
-#include <sys/time.h>
+# include <sys/time.h>
 //clock_gettime is not implemented on OSX
 int clock_gettime(int /*clk_id*/, struct timespec* t) {
     struct timeval now;
@@ -62,7 +62,9 @@ int clock_gettime(int /*clk_id*/, struct timespec* t) {
     t->tv_nsec = now.tv_usec * 1000;
     return 0;
 }
-#define CLOCK_REALTIME 1
+# ifndef CLOCK_REALTIME
+#  define CLOCK_REALTIME 1
+# endif
 #endif
 
 
@@ -83,6 +85,11 @@ void usage(char *cmdname)
   printf ("  --bad-stamp=N     Write bad stamps every so often.\n");
   printf ("  --caen-v775=N     Write CAEN V775 subevent.\n");
   printf ("  --caen-v1290=N    Write CAEN V1290 subevent.\n");
+  printf ("  --trloii-mtrig    Write TRLO II multi-trigger data.\n");
+  printf ("  --max-multi=N     Max multi-events per event.\n");
+  printf ("  --toggle          Toggle mode for module geom %% 3 == 1, 2.\n");
+  printf ("  --sticky-fraction=N  Write sticky events every ~N events.\n");
+  printf ("  --crate=N         Mark all subevents with this crate number.\n");
   printf ("  --empty-buffers   No events.\n");
   printf ("  --rate=N          At most, output N events/s.\n");
 
@@ -95,7 +102,7 @@ void usage(char *cmdname)
 #define WRITE_FORMAT_LMD   1
 #define WRITE_FORMAT_EBYE  2
 #define WRITE_FORMAT_PAX   3
-#define WRITE_FORMAT_HLD   4 
+#define WRITE_FORMAT_HLD   4
 
 struct config
 {
@@ -116,10 +123,18 @@ struct config
   int  _caen_v775;
   int  _caen_v1290;
 
+  int  _trloii_mtrig;
+  int  _max_multi;
+  int  _toggle;
+
+  int  _crate;
+
+  int  _sticky_fraction;
+
   uint64 _max_buffers;
   uint64 _max_events;
 
-  int  _max_rate;
+  uint64 _max_rate;
 
   uint _format;
 };
@@ -141,65 +156,80 @@ int main(int argc,char *argv[])
 
 #define MATCH_PREFIX(prefix,post) (strncmp(argv[i],prefix,strlen(prefix)) == 0 && *(post = argv[i] + strlen(prefix)) != '\0')
 #define MATCH_ARG(name) (strcmp(argv[i],name) == 0)
-      
+
       if (MATCH_ARG("--help")) {
 	usage(argv[0]);
 	exit(0);
       }
       else if (MATCH_PREFIX("--buffer-size=",post)) {
 	_conf._buffer_size = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--buffers=",post)) {
 	_conf._max_buffers = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--event-size=",post)) {
 	_conf._event_size = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--subevent-size=",post)) {
 	_conf._subevent_size = atol(post);
-      }	      
+      }
       else if (MATCH_ARG("--random-size")) {
 	_conf._random_size = 1;
-      }	      
+      }
       else if (MATCH_ARG("--random-trig")) {
 	_conf._random_trig = 1;
-      }	      
+      }
       else if (MATCH_PREFIX("--titris-stamp=",post)) {
 	_conf._titris_stamp = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--wr-stamp=",post)) {
 	_conf._wr_stamp = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--bad-stamp=",post)) {
 	_conf._bad_stamp = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--caen-v775=",post)) {
-      _conf._caen_v775 = atol(post);
-      }	      
+	_conf._caen_v775 = atol(post);
+      }
       else if (MATCH_PREFIX("--caen-v1290=",post)) {
-      _conf._caen_v1290 = atol(post);
-      }	      
+	_conf._caen_v1290 = atol(post);
+      }
+      else if (MATCH_ARG("--trloii-mtrig")) {
+	_conf._trloii_mtrig = 1;
+      }
+      else if (MATCH_PREFIX("--max-multi=",post)) {
+	_conf._max_multi = atol(post);
+      }
+      else if (MATCH_ARG("--toggle")) {
+	_conf._toggle = 1;
+      }
+      else if (MATCH_PREFIX("--crate=",post)) {
+	_conf._crate = atol(post);
+      }
+      else if (MATCH_PREFIX("--sticky-fraction=",post)) {
+	_conf._sticky_fraction = atol(post);
+      }
       else if (MATCH_PREFIX("--events=",post)) {
 	_conf._max_events = atol(post);
-      }	      
+      }
       else if (MATCH_PREFIX("--rate=",post)) {
 	_conf._max_rate = atol(post);
-      }	      
+      }
       else if (MATCH_ARG("--empty-buffers")) {
 	_conf._empty_buffers = 1;
-      }	      
+      }
       else if (MATCH_ARG("--lmd")) {
 	_conf._format = WRITE_FORMAT_LMD;
-      }	      
+      }
       else if (MATCH_ARG("--ebye")) {
 	_conf._format = WRITE_FORMAT_EBYE;
-      }	      
+      }
       else if (MATCH_ARG("--pax")) {
 	_conf._format = WRITE_FORMAT_PAX;
-      }	      
+      }
       else if (MATCH_ARG("--hld")) {
 	_conf._format = WRITE_FORMAT_HLD;
-      }	      
+      }
       else {
 	fprintf (stderr,"Unrecognized or invalid option: %s\n",argv[i]);
 	exit(1);
@@ -219,7 +249,7 @@ int main(int argc,char *argv[])
   if (_conf._max_events == 0)
     _conf._max_events = (sint64) -1;
 
-     
+
   switch (_conf._format)
     {
     case WRITE_FORMAT_LMD:
@@ -249,7 +279,7 @@ char *_buffer_end = NULL;
 void alloc_buffer()
 {
   _buffer = (char*) malloc(_conf._buffer_size);
-  
+
   if (!_buffer)
     {
       fprintf (stderr,
@@ -265,7 +295,7 @@ void alloc_buffer()
 size_t full_write(int fd,const void *buf,size_t count)
 {
   size_t total = 0;
-  
+
   for ( ; ; )
     {
       int nwrite = write(fd,buf,count);
@@ -275,7 +305,7 @@ size_t full_write(int fd,const void *buf,size_t count)
 	  fprintf(stderr,"Reached unexpected end of file while writing.");
 	  exit(1);
 	}
- 
+
       if (nwrite == -1)
 	{
 	  if (errno == EINTR)
@@ -307,7 +337,7 @@ void write_buffer()
 void sleep_timeslot(struct timeval *timeslot_start)
 {
   struct timeval now;
-  
+
   gettimeofday(&now, NULL);
 
   timeslot_start->tv_sec++; /* Time of next timeslot start. */
@@ -333,7 +363,7 @@ void sleep_timeslot(struct timeval *timeslot_start)
       *timeslot_start = now;
       return;
     }
-  
+
   usleep(remain.tv_usec);
 }
 
@@ -349,8 +379,8 @@ char *create_titris_stamp(char *data_write,
   // Lets write the time-stamp in units of
   // 10 ns...  This is arbitrary.
 
-  uint64_t stamp = (100000000 * now.tv_sec +
-		    (now.tv_nsec / 10));
+  uint64_t stamp = (100000000 * (uint64_t) now.tv_sec +
+		    (uint64_t) (now.tv_nsec / 10));
 
   if (_conf._bad_stamp &&
       (rxs64s(rstate_badtitris) % _conf._bad_stamp) == 0)
@@ -385,8 +415,8 @@ char *create_wr_stamp(char *data_write,
   // Lets write the time-stamp in units of
   // 10 ns...  This is arbitrary.
 
-  uint64_t stamp = (100000000 * now.tv_sec +
-		    (now.tv_nsec / 10));
+  uint64_t stamp = (1000000000 * now.tv_sec +
+		    (now.tv_nsec / 1));
 
   if (_conf._bad_stamp &&
       (rxs64s(rstate_badwr) % _conf._bad_stamp) == 0)
@@ -419,10 +449,20 @@ void write_data_lmd()
   uint64_t rstate_badtitris = 4;
   uint64_t rstate_badwr = 5;
   uint64_t rstate_sim_caen = 6;
+  uint64_t rstate_multi = 7;
+  uint64_t rstate_sticky_base = 8;
+  uint64_t rstate_sticky_corr = 9;
+  uint64_t rstate_sticky_frac = 10;
 
   uint64_t timeslot_nev = 0;
   struct timeval timeslot_start;
-  
+
+  uint32_t sticky_active = 0;
+  uint32_t sticky_mark = 0;
+  uint32_t sticky_base = 0;
+
+  uint32_t sticky_payload_count = 0;
+
   // round the buffer size up to next multiple of 1024 bytes.
   // default size is 32k
 
@@ -433,10 +473,60 @@ void write_data_lmd()
 
   alloc_buffer();
 
-  gettimeofday(&timeslot_start,NULL);  
+  gettimeofday(&timeslot_start,NULL);
+
+  // Calculate invariant size constraints
+
+  // Event header
+  ssize_t min_event_total_size = sizeof(lmd_event_10_1_host);
+
+  // (First) subevent size
+  ssize_t min_subevent_total_size = 0;
+  
+  // Payload timestamps (in first subevent)
+  if (_conf._titris_stamp)
+    min_subevent_total_size += 4 * sizeof(uint32_t);
+  if (_conf._wr_stamp)
+    min_subevent_total_size += 5 * sizeof(uint32_t);
+
+  // Separators
+  if (_conf._max_multi ||
+      _conf._caen_v775 || _conf._caen_v1290 ||
+      _conf._sticky_fraction)
+    min_subevent_total_size += 4 * sizeof(uint32_t);
+
+  // Multi-hit headers
+  if (_conf._max_multi)
+    min_subevent_total_size += 4 * sizeof(uint32_t);
+
+  // Payload ADCs
+  if (_conf._caen_v775)
+    min_subevent_total_size +=
+      (_conf._max_multi ? _conf._max_multi : 1) *
+      _conf._caen_v775 * (2 + 32) * sizeof(uint32_t);
+  if (_conf._caen_v1290)
+    min_subevent_total_size +=
+      (_conf._max_multi ? _conf._max_multi : 1) *
+      _conf._caen_v1290 * (3 + 32 * 32) * sizeof(uint32_t);
+
+  // Payload TRLOII multi-trig
+  if (_conf._trloii_mtrig)
+    min_subevent_total_size +=
+      (_conf._max_multi ? _conf._max_multi : 1) * 3 * sizeof(uint32_t);
+
+  // Active and mark words
+  if (_conf._sticky_fraction)
+    min_subevent_total_size += 3 * sizeof(uint32_t);
+
+  // If subevent data, it needs a header
+  if (min_subevent_total_size)
+    min_subevent_total_size += sizeof(lmd_subevent_10_1_host);
+
+  // Add the subevent size to the event size
+  min_event_total_size += min_subevent_total_size;
 
   for (uint64 nb = 0, nev = 0; (nb < _conf._max_buffers &&
-		       nev < _conf._max_events); nb++)
+				nev < _conf._max_events); nb++)
     {
       memset(_buffer,0,_conf._buffer_size);
 
@@ -452,216 +542,475 @@ void write_data_lmd()
 
       bufhe->l_time[0] = tv.tv_sec;
       bufhe->l_time[1] = tv.tv_usec / 1000;
-      
+
       bufhe->i_type    = LMD_BUF_HEADER_10_1_TYPE;
       bufhe->i_subtype = LMD_BUF_HEADER_10_1_SUBTYPE;
 
       bufhe->l_buf = nb;
 
-      char *data_start = (char*) (bufhe+1);
-      char *data_end = data_start;
+      char *evp_start = (char*) (bufhe+1);
+      char *evp_end = evp_start;
 
-      if (!_conf._empty_buffers)
+      if (_conf._empty_buffers)
+	goto finish_buffer;
+
+      // Write as many events as fits...
+
+      for ( ; ; )
 	{
-	  // Write as many events as fits...
+	  // Should we write a sticky event?
+	  
+	  // In order to allow checking of the sticky event handling,
+	  // we use a semi-random way of deciding when and what
+	  // sticky events to modify.
 
-	  // If we are to dump titris stamps, we require each event
-	  // to have at least one subevent.
-
-	  size_t min_event_total_size = sizeof(lmd_event_10_1_host);
-
-	  if (_conf._titris_stamp || _conf._wr_stamp ||
-	      _conf._caen_v775 || _conf._caen_v1290)
-	    min_event_total_size += sizeof(lmd_subevent_10_1_host);
-	  if (_conf._titris_stamp)
-	    min_event_total_size += 4 * sizeof(uint32_t);
-	  if (_conf._wr_stamp)
-	    min_event_total_size += 5 * sizeof(uint32_t);
-
-	  if (_conf._caen_v775 || _conf._caen_v1290)
-	    min_event_total_size += 2 * sizeof(uint32_t);
-
-	  if (_conf._caen_v775)
-	    min_event_total_size +=
-	      _conf._caen_v775 * (2 + 32) * sizeof(uint32_t);
-	  if (_conf._caen_v1290)
-	    min_event_total_size +=
-	      _conf._caen_v1290 * (3 + 32 * 32) * sizeof(uint32_t);
-
-	  while (_buffer_end - data_end >= min_event_total_size &&
-		 nev < _conf._max_events)
+	  if (_conf._sticky_fraction &&
+	      rxs64s(&rstate_sticky_frac) % _conf._sticky_fraction == 0)
 	    {
-	      nev++;
-	      timeslot_nev++;
+	      // We after this sticky event want to have sticky
+	      // subevents active given by the 8 low bits of the to-be
+	      // event counter.  Also, driven by the next 8 bits, if set,
+	      // (and the corresponding low bit also set), we want to
+	      // update the sticky subevent even if present.
 
-	      lmd_event_10_1_host *ev = (lmd_event_10_1_host *) data_end;
+	      uint32_t sticky_after  = nev & 0xff;
+	      uint32_t sticky_update = (nev >> 8) & 0xff;
+	      uint32_t sticky_new    =  sticky_after  & ~sticky_active;
+	      uint32_t sticky_kill   = ~sticky_after  &  sticky_active;
+	      uint32_t sticky_renew  =  sticky_update &  sticky_active;
+	      /*
+	      fprintf (stderr,
+		       "%02x %02x %02x\n",
+		       sticky_new,sticky_kill,sticky_renew);
+	      */
+	      // In order to further cause some mess for the receiver,
+	      // we want to inject some varying amount of payload
+	      // (after the minimum, since 0 payload means revoke)
 
-	      ev->_header.l_dlen    = 
-		DLEN_FROM_EVENT_DATA_LENGTH(sizeof(lmd_event_info_host));
-	      ev->_header.i_type    = LMD_EVENT_10_1_TYPE;
-	      ev->_header.i_subtype = LMD_EVENT_10_1_SUBTYPE;
-	      ev->_info.i_trigger   = 
-		_conf._random_trig ? rxs64s(&rstate_trig) % 15 + 1 : 1;
-	      ev->_info.l_count     = nev;	      
+	      ssize_t need_sticky_event_total_size =
+		sizeof(lmd_event_10_1_host);
+
+	      for (int isev = 0; isev < 8; isev++)
+		{
+		  if (!((sticky_kill |
+			 sticky_new | sticky_renew) & (1 << isev)))
+		    continue;
+
+		  need_sticky_event_total_size +=
+		    sizeof(lmd_subevent_10_1_host);
+
+		  if (sticky_kill & (1 << isev))
+		    continue;
+
+		  need_sticky_event_total_size += sizeof (uint32_t);
+		}
+
+	      // For the correlation base sticky, we follow [0]
+	      if (sticky_update & 1)
+		{
+		  need_sticky_event_total_size +=
+		    sizeof(lmd_subevent_10_1_host);
+		  need_sticky_event_total_size += sizeof (uint32_t);
+		}
+
+	      // If this buffer cannot hold the sticky event, go for the
+	      // next one!
+	      
+	      if (_buffer_end - evp_end < need_sticky_event_total_size)
+		break;
+
+	      // We have space enough for the sticky event!
+
+	      nev++;  /// ??
+
+	      lmd_event_10_1_host *ev = (lmd_event_10_1_host *) evp_end;
+
+	      ev->_header.i_type    = LMD_EVENT_STICKY_TYPE;
+	      ev->_header.i_subtype = LMD_EVENT_STICKY_SUBTYPE;
+	      ev->_info.i_trigger   = 16;
+	      ev->_info.l_count     = nev;
 
 	      bufhe->l_evt++;
+	      bufhe->i_type    = LMD_BUF_HEADER_HAS_STICKY_TYPE;
+	      bufhe->i_subtype = LMD_BUF_HEADER_HAS_STICKY_SUBTYPE;
 
-	      data_end = (char*) (ev + 1);
+	      evp_end = (char*) (ev + 1);
 
-	      size_t min_subevent_total_size = sizeof(lmd_subevent_10_1_host);
-
-	      if (_conf._titris_stamp)
-		min_subevent_total_size += 4 * sizeof(uint32_t);
-	      if (_conf._wr_stamp)
-		min_subevent_total_size += 5 * sizeof(uint32_t);
-
-	      if (_conf._caen_v775 || _conf._caen_v1290)
-		min_subevent_total_size += 2 * sizeof(uint32_t);
-
-	      if (_conf._caen_v775)
-		min_subevent_total_size +=
-		  _conf._caen_v775 * (2 + 32) * sizeof(uint32_t);
-	      if (_conf._caen_v1290)
-		min_subevent_total_size +=
-		  _conf._caen_v1290 * (3 + 32 * 32) * sizeof(uint32_t);
-
-	      bool write_titris_stamp = !!_conf._titris_stamp;
-	      bool write_wr_stamp = !!_conf._wr_stamp;
-	      bool write_caen_vxxx = !!_conf._caen_v775 || !!_conf._caen_v1290;
-
-	      uint event_size = _conf._event_size;
-	      if (_conf._random_size && event_size)
-		event_size = rxs64s(&rstate_evsize) % (event_size+1);
-
-	      while ((write_titris_stamp ||
-		      write_wr_stamp ||
-		      write_caen_vxxx ||
-		      data_end - (char*) ev < event_size) &&
-		     _buffer_end - data_end >= min_subevent_total_size)
+	      for (int isev = 0; isev < 8; isev++)
 		{
-		  lmd_subevent_10_1_host *sev = 
-		    (lmd_subevent_10_1_host *) data_end;
+		  if (!((sticky_kill |
+			 sticky_new | sticky_renew) & (1 << isev)))
+		    continue;
 
-		  uint data_len =
-		    _buffer_end - data_end - sizeof(lmd_subevent_10_1_host);
+		  lmd_subevent_10_1_host *sev =
+		    (lmd_subevent_10_1_host *) evp_end;
 
-		  uint subevent_size = _conf._subevent_size;
-		  if (_conf._random_size && subevent_size)
-		    subevent_size = rxs64s(&rstate_sevsize) % (subevent_size+1);
-
-		  if (data_len > subevent_size)
-		    data_len = subevent_size;
-
-		  size_t min_subevent_data_size =
-		    min_subevent_total_size - sizeof(lmd_subevent_10_1_host);
-
-		  if (data_len < min_subevent_data_size)
-		    data_len = min_subevent_data_size;
-
-		  data_len &= ~0x03; // align to 32-bit words
-		  
-		  sev->_header.i_type    = 1234; // dummy (I refuse 10/1: nuts)
-		  sev->_header.i_subtype = 5678;
-		  sev->h_control  = 0;
-		  sev->h_subcrate = 0;
+		  sev->_header.i_type    = 0x789a; // test value
+		  sev->_header.i_subtype = 0xbad0;
+		  sev->h_control  = isev;
+		  sev->h_subcrate = _conf._crate;
 		  sev->i_procid   = 0;
 
-		  char *data_start = (char*) (sev + 1);
-		  char *data_write = data_start;
-		  char *data_cut = NULL;
+		  char *sev_start = (char*) (sev + 1);
 
-		  if (write_titris_stamp)
+		  if (sticky_kill & (1 << isev))
 		    {
-		      data_write = create_titris_stamp(data_write,
-						       &rstate_badtitris);
-		      write_titris_stamp = false;
+		      sev->_header.l_dlen = -1;
+		      evp_end = sev_start;
+		      continue;
 		    }
-		  if (write_wr_stamp)
+
+		  // So new or renew.
+
+		  uint32_t *p = (uint32_t *) sev_start;
+
+		  sticky_payload_count++;
+		  *(p++) = sticky_payload_count;
+
+		  sticky_mark = (sticky_mark & ~(1 << isev)) |
+		    ((sticky_payload_count & 1) << isev);
+
+		  char *sevp_end = (char *) p;
+
+		  sev->_header.l_dlen =
+		    SUBEVENT_DLEN_FROM_DATA_LENGTH(sevp_end - sev_start);
+
+		  evp_end = sevp_end;
+		}
+	      
+	      // For the correlation base sticky, we follow [0]
+	      if (sticky_update & 1)
+		{
+		  lmd_subevent_10_1_host *sev =
+		    (lmd_subevent_10_1_host *) evp_end;
+
+		  sev->_header.i_type    = 0x0cae;
+		  sev->_header.i_subtype = 0x0caf;
+		  sev->h_control  = 0;
+		  sev->h_subcrate = _conf._crate;
+		  sev->i_procid   = 0;
+
+		  char *sev_start = (char*) (sev + 1);
+
+		  if (sticky_kill & 1)
 		    {
-		      data_write = create_wr_stamp(data_write,
-						   &rstate_badwr);
-		      write_wr_stamp = false;
+		      sev->_header.l_dlen = -1;
+		      evp_end = sev_start;
+		      sticky_base = 0;
 		    }
-		  if (write_caen_vxxx)
+		  else
 		    {
-		      data_end = data_write;
+		      uint32_t *p = (uint32_t *) sev_start;
 
-		      sev->_header.i_type    = 0x0cae;
-		      sev->_header.i_subtype = 0x0cae;
+		      sticky_base = rxs64s(&rstate_sticky_base) % 20;
+		      *(p++) = sticky_base;
+		  
+		      char *sevp_end = (char *) p;
 
-		      uint32 seed = (uint32) rxs64s(&rstate_sim_caen);
+		      sev->_header.l_dlen =
+			SUBEVENT_DLEN_FROM_DATA_LENGTH(sevp_end - sev_start);
 
-		      uint32_t *p = (uint32_t *) data_write;
+		      evp_end = sevp_end;
+		    }
+		}
 
-		      *(p++) = seed;
+	      ev->_header.l_dlen    =
+		DLEN_FROM_EVENT_DATA_LENGTH(evp_end - (char *) &ev->_info);
 
-		      data_write = (char *) p;
+	      sticky_active = sticky_after;
 
-		      for (int geom = 1; geom <= _conf._caen_v775 &&
-			     geom < 32; geom++)
+	      continue;
+	    }
+	  
+	  // Space enough for a normal event?
+	  
+	  if (_buffer_end - evp_end < min_event_total_size ||
+	      nev >= _conf._max_events)
+	    break;
+
+	  nev++;
+	  timeslot_nev++;
+
+	  lmd_event_10_1_host *ev = (lmd_event_10_1_host *) evp_end;
+
+	  ev->_header.i_type    = LMD_EVENT_10_1_TYPE;
+	  ev->_header.i_subtype = LMD_EVENT_10_1_SUBTYPE;
+	  ev->_info.i_trigger   =
+	    _conf._random_trig ? rxs64s(&rstate_trig) % 15 + 1 : 1;
+	  ev->_info.l_count     = nev;
+
+	  bufhe->l_evt++;
+
+	  evp_end = (char*) (ev + 1);
+
+	  ssize_t need_subevent_total_size = min_subevent_total_size;
+
+	  // If we reach this point, and intend to write some subevents,
+	  // we better be able to fit the header.
+	  if (!need_subevent_total_size)
+	    need_subevent_total_size = sizeof(lmd_subevent_10_1_host);	    
+
+	  bool write_titris_stamp = !!_conf._titris_stamp;
+	  bool write_wr_stamp = !!_conf._wr_stamp;
+	  bool write_multi_info = !!_conf._max_multi;
+	  bool write_trloii_mtrig = !!_conf._trloii_mtrig;
+	  bool write_caen_vxxx = !!_conf._caen_v775 || !!_conf._caen_v1290;
+	  bool write_sticky_mark = !!_conf._sticky_fraction;
+
+	  uint event_size = _conf._event_size;
+	  if (_conf._random_size && event_size)
+	    event_size = rxs64s(&rstate_evsize) % (event_size+1);
+
+	  while ((write_titris_stamp ||
+		  write_wr_stamp ||
+		  write_multi_info ||
+		  write_caen_vxxx ||
+		  write_sticky_mark ||
+		  evp_end - (char*) ev < (ssize_t) event_size) &&
+		 _buffer_end - evp_end >= need_subevent_total_size)
+	    {
+	      lmd_subevent_10_1_host *sev =
+		(lmd_subevent_10_1_host *) evp_end;
+
+	      char *sevp_start = (char*) (sev + 1);
+	      char *sevp_write = sevp_start;
+	      char *sevp_cut = NULL;
+
+	      ssize_t sev_len =
+		_buffer_end - sevp_start;
+
+	      uint subevent_size = _conf._subevent_size;
+	      if (_conf._random_size && subevent_size)
+		subevent_size = rxs64s(&rstate_sevsize) % (subevent_size+1);
+
+	      if (sev_len > (ssize_t) subevent_size)
+		sev_len = subevent_size;
+
+	      ssize_t need_subevent_data_size =
+		need_subevent_total_size - sizeof(lmd_subevent_10_1_host);
+
+	      if (sev_len < need_subevent_data_size)
+		sev_len = need_subevent_data_size;
+
+	      sev_len &= ~0x03; // align to 32-bit words
+
+	      char *sevp_end = sevp_start + sev_len;
+
+	      sev->_header.i_type    = 1234; // dummy (I refuse 10/1: nuts)
+	      sev->_header.i_subtype = 5678;
+	      sev->h_control  = 0;
+	      sev->h_subcrate = _conf._crate;
+	      sev->i_procid   = 0;
+
+	      uint32 nmulti =
+		_conf._max_multi > 1 ?
+		(uint32) (rxs64s(&rstate_multi) % (_conf._max_multi-1))+1 : 1;
+
+	      if (write_titris_stamp)
+		{
+		  sevp_write = create_titris_stamp(sevp_write,
+						   &rstate_badtitris);
+		  write_titris_stamp = false;
+		}
+	      if (write_wr_stamp)
+		{
+		  sevp_write = create_wr_stamp(sevp_write,
+					       &rstate_badwr);
+		  write_wr_stamp = false;
+		}
+	      uint32_t *p_num_toggle_ev = NULL;
+	      if (write_multi_info)
+		{
+		  uint32_t *p = (uint32_t *) sevp_write;
+
+		  *(p++) = 9; /* separator */
+
+		  *(p++) = nmulti; /* num multi-events */
+		  *(p++) = nev + 0xdef; /* first adc count value */
+		  p_num_toggle_ev = p++;
+		  *p_num_toggle_ev = 0;
+		  
+		  sevp_write = (char *) p;
+
+		  write_multi_info = false;
+		}
+	      if (write_caen_vxxx ||
+		  write_sticky_mark ||
+		  write_trloii_mtrig)
+		{
+		  sev->_header.i_type    = 0x0cae;
+		  sev->_header.i_subtype = 0x0cae;
+
+		  uint32 seed = (uint32) rxs64s(&rstate_sim_caen);
+
+		  uint32_t *p = (uint32_t *) sevp_write;
+
+		  *(p++) = 0;
+		  *(p++) = seed;
+
+		  sevp_write = (char *) p;
+
+		  uint32_t num_toggle_ev[3];
+
+		  num_toggle_ev[0] = nmulti;
+		  num_toggle_ev[1] = _conf._toggle ? 0 : nmulti;
+		  num_toggle_ev[2] = _conf._toggle ? 0 : nmulti;
+
+		  if (write_trloii_mtrig)
+		    {
+		      p = (uint32_t *) sevp_write;
+
+		      uint64_t rstate =
+			(((uint64_t) nev) << 32) | seed;
+
+		      *(p++) = 0xdf000000 | nmulti;
+
+		      for (uint32 j = 0; j < nmulti; j++)
 			{
-			  int crate = 0x80 - geom; // for fun!
+			  *(p++) =
+			    (uint32_t) rxs64s(&rstate); // lo time
+			  *(p++) =
+			    (uint32_t) rxs64s(&rstate) & 0x7fffffff; // hi time
 
+			  uint32_t tpat =
+			    rxs64s(&rstate) & 0x0000ffff;
+			  uint32_t trig =
+			    j < nmulti - 1 ? 0 : ev->_info.i_trigger;
+			  uint32_t cnt = j;
+
+			  uint32_t toggle_mask = 0;
+
+			  if (_conf._toggle)
+			    {
+			      uint32_t toggle_i = rxs64s(&rstate) & 1;
+
+			      toggle_mask = (1 << toggle_i);
+
+			      if (toggle_mask & 0x01)
+				num_toggle_ev[1]++;
+			      if (toggle_mask & 0x02)
+				num_toggle_ev[2]++;
+			    }
+
+			  *(p++) =
+			    (cnt << 28) | (trig << 24) |
+			    (toggle_mask << 22) | tpat;
+			}
+
+		      sevp_write = (char *) p;
+
+		      if (p_num_toggle_ev && _conf._toggle)
+			*p_num_toggle_ev =
+			  (num_toggle_ev[2] << 16) | num_toggle_ev[1];
+
+		      write_trloii_mtrig = false;
+		    }
+
+		  /* num_toggle_ev[1]++; inject error - too many events */
+
+		  for (int geom = 1; geom <= _conf._caen_v775 &&
+			 geom < 32; geom++)
+		    {
+		      int crate = 0x80 - geom; // for fun!
+
+		      for (uint32_t j = 0; j < num_toggle_ev[geom % 3]
+			     /*_conf._toggle ?
+			       num_toggle_ev[geom % 3] : nmulti*/; j++)
+			{
 			  caen_v775_data cev;
 
 			  create_caen_v775_event(&cev, geom, crate,
-						 nev + 0xdef, seed);
+						 nev + j + 0xdef, seed);
 
-			  data_write = (char *)
-			    create_caen_v775_data((uint32 *) data_write,
+			  sevp_write = (char *)
+			    create_caen_v775_data((uint32 *) sevp_write,
 						  &cev, geom, crate);
 			}
+		    }
 
-		      p = (uint32_t *) data_write;
+		  p = (uint32_t *) sevp_write;
 
-		      *(p++) = 0;
+		  *(p++) = 0;
 
-		      data_write = (char *) p;
+		  sevp_write = (char *) p;
 
-		      for (int geom = 1; geom <= _conf._caen_v1290 &&
-			     geom < 32; geom++)
+		  for (int geom = 1; geom <= _conf._caen_v1290 &&
+			 geom < 32; geom++)
+		    {
+		      for (uint32 j = 0; j < nmulti; j++)
 			{
 			  caen_v1290_data cev;
 
 			  create_caen_v1290_event(&cev, geom,
-						  nev + 0xdef, seed);
+						  nev + j + 0xdef, seed);
 
-			  data_write = (char *)
-			    create_caen_v1290_data((uint32 *) data_write,
-						  &cev, geom);
+			  sevp_write = (char *)
+			    create_caen_v1290_data((uint32 *) sevp_write,
+						   &cev, geom);
 			}
-
-		      data_cut = data_write;
-
-		      write_caen_vxxx = false;
 		    }
 
-		  if (data_cut)
+		  if (write_sticky_mark)
 		    {
-		      data_len = data_cut - data_start;
+		      p = (uint32_t *) sevp_write;
+
+		      *(p++) = 7; /* separator */
+		      /* Tell which sticky subevents should be active
+		       * during this event.  If wrong, then the guaranteed
+		       * delivery mechanism has failed.
+		       */
+		      *(p++) = sticky_active;
+		      *(p++) = sticky_mark;
+		      *(p++) = sticky_base * 100 +
+			rxs64s(&rstate_sticky_corr) % 100;
+
+		      sevp_write = (char *) p;
+
+		      write_sticky_mark = false;
 		    }
 
-		  sev->_header.l_dlen    = 
-		    SUBEVENT_DLEN_FROM_DATA_LENGTH(data_len);
-		  ev->_header.l_dlen +=
-		    (sizeof(lmd_subevent_10_1_host) + data_len) / 2;
+		  sevp_cut = sevp_write;
 
-		  data_end = data_start + data_len;
-
-		  min_subevent_total_size = sizeof(lmd_subevent_10_1_host);
+		  write_caen_vxxx = false;
 		}
 
-	      if (_conf._max_rate &&
-		  timeslot_nev >= _conf._max_rate)
+	      if (sevp_cut)
 		{
-		  timeslot_nev = 0;
-		  break;
+		  sevp_end = sevp_cut;
 		}
+
+	      sev->_header.l_dlen =
+		SUBEVENT_DLEN_FROM_DATA_LENGTH(sevp_end - sevp_start);
+
+	      evp_end = sevp_end;
+
+	      need_subevent_total_size = sizeof(lmd_subevent_10_1_host);
+	    }
+
+	  ev->_header.l_dlen    =
+	    DLEN_FROM_EVENT_DATA_LENGTH(evp_end - (char *) &ev->_info);
+
+	  if (_conf._max_rate &&
+	      timeslot_nev >= _conf._max_rate)
+	    {
+	      // We have used up all the events for this timeslot.
+	      timeslot_nev = 0;
+	      // Close the buffer and sleep a while
+	      break;
 	    }
 	}
 
-      bufhe->l_free[2] = IUSED_FROM_BUFFER_USED(data_end - data_start);
+    finish_buffer:
+      if (evp_end > _buffer_end)
+	{
+	  fprintf (stderr,
+		   "Internal generator error, buffer overflow (%zd bytes)\n",
+		   evp_end - _buffer_end);
+	  exit(1);
+	}
       
+      bufhe->l_free[2] = IUSED_FROM_BUFFER_USED(evp_end - evp_start);
+
       if (bufhe->l_dlen <= LMD_BUF_HEADER_MAX_IUSED_DLEN)
 	bufhe->i_used = bufhe->l_free[2];
 
@@ -692,7 +1041,7 @@ void write_data_ebye()
       ebye_record_header *rh = (ebye_record_header *) _buffer;
 
       memcpy(rh->_id,EBYE_RECORD_ID,8);
-      
+
       rh->_sequence = nb;
       rh->_tape     = 1;
       rh->_stream   = 1;
@@ -704,14 +1053,15 @@ void write_data_ebye()
 
       if (!_conf._empty_buffers)
 	{
-	  while (_buffer_end - data_end >= 2*sizeof(ebye_event_header) &&
+	  while (_buffer_end - data_end >=
+		 (ssize_t) (2*sizeof(ebye_event_header)) &&
 		 nev < _conf._max_events)
 	    {
 	      nev++;
 
 	      ebye_event_header *eh = (ebye_event_header *) data_end;
 
-	      eh->_start_end_token_length = 
+	      eh->_start_end_token_length =
 		htonl(0xffff0000 | sizeof(ebye_event_header));
 
 	      data_end = (char*) (eh + 1);
@@ -719,14 +1069,17 @@ void write_data_ebye()
 	}
 
       // write an end token
-      
+
       ebye_event_header *eh = (ebye_event_header *) data_end;
-      
+
       eh->_start_end_token_length = htonl(0xffff0000);
-      
+
       data_end = (char*) (eh + 1);
 
       rh->_data_length = data_end - data_start;
+
+      /* Filler. */
+      memset(data_end, 0x5e, _buffer_end - data_end);
 
       write_buffer();
     }
@@ -760,7 +1113,8 @@ void write_data_pax()
 
       if (!_conf._empty_buffers)
 	{
-	  while (_buffer_end - data_end >= 2*sizeof(pax_event_header) &&
+	  while (_buffer_end - data_end >=
+		 (ssize_t) (2*sizeof(pax_event_header)) &&
 		 nev < _conf._max_events)
 	    {
 	      nev++;
@@ -775,12 +1129,12 @@ void write_data_pax()
 	}
 
       // write an end token
-      
+
       pax_event_header *eh = (pax_event_header *) data_end;
-      
+
       eh->_length = 0;
       eh->_type   = 0;
-      
+
       data_end = (char*) (eh + 1);
 
       write_buffer();

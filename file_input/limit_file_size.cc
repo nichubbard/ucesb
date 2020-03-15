@@ -35,7 +35,7 @@ void limit_file_size::parse_open_first_file(const char *filename)
   // the initial number, otherwise, we add an _%d and start with 1
 
   const char *last_slash = strrchr(filename,'/');
-  
+
   if (!last_slash)
     last_slash = filename;
 
@@ -55,7 +55,7 @@ void limit_file_size::parse_open_first_file(const char *filename)
 
       if (!next_dot_lmd)
 	break;
-      dot_lmd = next_dot_lmd;      
+      dot_lmd = next_dot_lmd;
     }
 
   if (dot_lmd)

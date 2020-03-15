@@ -66,7 +66,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_EBYE_DATA::__unpack)
 		GET_BUFFER_UINT16(d);
 		if (d != 0)
 		  ERROR("Group data padding non-zero: 0x%04x",d);
-	      }	      
+	      }
 	    //printf ("\n");
 
 	    _group_data[w1 & 0xff]++;

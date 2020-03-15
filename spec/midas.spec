@@ -59,7 +59,7 @@ GROUP_DATA(group)
     {
       UINT16 value NOENCODE;
 
-      ENCODE(data APPEND_LIST,(value=value));      
+      ENCODE(data APPEND_LIST,(value=value));
     }
 
   if (!(header.item_count & 1))
@@ -102,7 +102,7 @@ EXTENDED_GROUP_DATA(group)
     {
       UINT16 value NOENCODE;
 
-      ENCODE(data APPEND_LIST,(value=value));      
+      ENCODE(data APPEND_LIST,(value=value));
     }
 
   if (header.item_count & 1)

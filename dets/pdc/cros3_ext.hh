@@ -35,7 +35,7 @@ struct wire_hit
 {
   uint8 wire;
   uint8 start;
-  uint8 stop;  
+  uint8 stop;
 
 public:
   bool operator<(const wire_hit &rhs) const
@@ -99,7 +99,7 @@ public:
   cros3_threshold_stat trc;
 
   void *_noise_stat; // (rw_cros3_tot_noisy *)
-  
+
 public:
   void __clean();
   EXT_DECL_UNPACK_ARG(uint16 ccb_id);

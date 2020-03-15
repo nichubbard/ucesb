@@ -34,7 +34,7 @@ SUBEVENT(FA192MAR09_VME)
     {
       multi scaler[0] = VME_CAEN_V830(geom=30);
       multi scaler[1] = VME_CAEN_V830(geom=31);
-      
+
       multi adc[0] = VME_CAEN_V785(geom=10,crate=1);
       multi adc[1] = VME_CAEN_V785(geom=11,crate=1);
       multi adc[2] = VME_CAEN_V785(geom=12,crate=1);
@@ -47,7 +47,7 @@ SUBEVENT(FA192MAR09_VME)
 
       multi mhtdc[0] = VME_CAEN_V1290_SHORT(geom=24);
       multi mhtdc[1] = VME_CAEN_V1290_SHORT(geom=25);
-      
+
       // For trigger 2 (and some others)
       sadc[0] = VME_M2J_MATACQ32(mod=0,ch=0);
       sadc[1] = VME_M2J_MATACQ32(mod=0,ch=1);
@@ -127,7 +127,10 @@ SIGNAL(sadc2_1, vme.sadc[1].data,DATA16);
 SIGNAL(NO_INDEX_LIST: sadcp1_2560);
 SIGNAL(sadcp2_1, ,DATA16);
 
+// Duplicate, for testing.
+SIGNAL(NO_INDEX_LIST(2560): sadcp1);
+
 SIGNAL(sadcpp_trigrec, vme.sadc_pack[0].trig_rec, uint16);
 SIGNAL(sadcpp_vernier, vme.sadc_pack[0].vernier,  uint16);
 
- 
+

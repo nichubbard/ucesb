@@ -25,6 +25,7 @@
 
 #include "endian.hh"
 #include "event_loop.hh"
+#include "parse_util.hh"
 
 #include "../common/strndup.hh"
 
@@ -75,6 +76,8 @@ lmd_output_buffered::lmd_output_buffered()
   _cur_buf_left = 0;
 
   _buffer_header.l_buf = 1;
+  _last_bufno = _buffer_header.l_buf;
+  _last_replays = _replays = 0;
 
   _write_native = true;
   _compact_buffers = false; // to be compatible with eventapi, who
@@ -186,47 +189,11 @@ uint32 parse_compression_level(const char* post) {
 
   if (level > 9)
     ERROR("compression level to large - max is 9: %s", post);
-  
+
   if (level < 1)
     ERROR("compression level to small - min is 1: %s", post);
 
   return level;
-}
-
-uint64 parse_size_postfix(const char *post,const char *allowed,
-			  const char *error_name,bool fit32bits)
-{
-  char *size_end;
-  uint64 size = (uint64) strtol(post,&size_end,10);
-
-  if (*size_end == 0)
-    return size;
-
-  if (strchr(allowed,*size_end) != NULL)
-    {
-      if (strcmp(size_end,"k") == 0)
-	{ size *= 1000; goto success; }
-      else if (strcmp(size_end,"ki") == 0)
-	{ size <<= 10; goto success; }
-      else if (strcmp(size_end,"M") == 0)
-	{ size *= 1000000; goto success; }
-      else if (strcmp(size_end,"Mi") == 0)
-	{ size <<= 20; goto success; }
-      else if (strcmp(size_end,"G") == 0)
-	{ size *= 1000000; goto success; }
-      else if (strcmp(size_end,"Gi") == 0)
-	{ size <<= 30; goto success; }
-    }
-
-  ERROR("%s request malformed (number[%s]): %s",error_name,allowed,post);
-
-  // no return needed :-)
-
- success:
-  if (fit32bits && size > 0xffffffff)
-    ERROR("%s request too large (%lld): post",error_name,size);
-
-  return size;
 }
 
 void lmd_out_common_options()
@@ -367,6 +334,8 @@ void lmd_output_file::new_file(const char *filename)
 
   if (_has_file_header)
     write_file_header(&_file_header_extra);
+
+  _sticky_store.write_events(this);
 }
 
 void lmd_output_file::open_stdout()
@@ -452,8 +421,8 @@ void lmd_output_file::open_file(const char* filename)
 
   char level[10];
   snprintf(level, 10, "-%d", _compression_level);
-  
-  
+
+
   const char *argv_gzip[3] = { "gzip", level, NULL };
   const char *argv_bzip2[3] = { "bzip2", level, NULL };
   const char *argv_xz[3] = { "xz", level, NULL };
@@ -479,11 +448,15 @@ void lmd_output_file::open_file(const char* filename)
 
 
 
-void lmd_output_file::write_buffer(size_t count)
+void lmd_output_file::write_buffer(size_t count, bool has_sticky)
 {
+  UNUSED(has_sticky);
+  
   full_write(_fd_write,_cur_buf_start,count);
 
   add_size(count);
+
+  _total_written += count;
 }
 
 void lmd_output_file::get_buffer()
@@ -512,6 +485,12 @@ void lmd_output_file::get_buffer()
 
 
 
+
+void lmd_output_buffered::mark_close_buffer()
+{
+  assert(_buffer_header.l_evt == 0);
+  _buffer_header.l_evt = (uint32_t) -1;
+}
 
 void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
 {
@@ -597,6 +576,10 @@ void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
   // Make sure the buffer header ends up in network order
   // I.e., we need to swap if we are not big endian
 
+  bool has_sticky =
+    (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
+     _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE);
+
   if (!_write_native)
     byteswap_32(_buffer_header);
 
@@ -610,7 +593,7 @@ void lmd_output_buffered::send_buffer(size_t lie_about_used_when_large_dlen)
 
   // printf ("write (%8x, %d)\n",count,_cur_buf_left);
 
-  write_buffer(count);
+  write_buffer(count, has_sticky);
 }
 
 void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
@@ -677,6 +660,31 @@ void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
   //printf ("_cur_buf_ptr : %8p .. %8p\n",_cur_buf_ptr,_cur_buf_ptr+_cur_buf_left);
 
   // We intend to write this much more data to the file...
+
+  ///////
+
+  if (do_sticky_replay())
+    {
+#if DEBUG_REPLAYS
+      printf ("Sticky replay (buf %d).\n",
+	      _buffer_header.l_buf);
+#endif
+      _replays++;
+      
+      // Before we continue with normal operation, we can (and shall)
+      // now inject the sticky events needed for replay.
+
+      mark_replay_stream(true);
+      
+      _sticky_store.write_events(this);
+
+      // Make sure the entire stream is ejected!
+
+      while (_stream_left != _stream_left_max)
+	new_buffer();
+
+      mark_replay_stream(false);      
+    }
 }
 
 void copy_to_buffer(void *dest, const void *src,
@@ -710,8 +718,15 @@ void lmd_output_buffered::copy_to_buffer(const void *data,
   _stream_left -= length;
 }
 
-void lmd_output_buffered::write_event(const lmd_event_out *event)
+void lmd_output_buffered::write_event(const lmd_event_out *event,
+				      bool sticky_replay,
+				      bool discard_revoke)
 {
+  if (!sticky_replay && // do not add from the replay
+      event->_header.i_type == LMD_EVENT_STICKY_TYPE &&
+      event->_header.i_subtype == LMD_EVENT_STICKY_SUBTYPE)
+    _sticky_store.insert(event, discard_revoke);
+  
   // We're only dealing with the topmost layer of event data, i.e. the
   // _header and the chunks.  Since these are always valid (after
   // having successfully retrieved an event, we cannot fail).  (we may
@@ -852,6 +867,13 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
       //INFO(0,"Fragmenting:  writing %d bytes, %d bytes left (%d total).",
       //	   event_size_write,event_size_left,_event._event_size);
 
+      if (event->_header.i_type == LMD_EVENT_STICKY_TYPE &&
+	  event->_header.i_subtype == LMD_EVENT_STICKY_SUBTYPE)
+	{
+	  _buffer_header.i_type    = LMD_BUF_HEADER_HAS_STICKY_TYPE;
+	  _buffer_header.i_subtype = LMD_BUF_HEADER_HAS_STICKY_SUBTYPE;
+	}
+      assert(_buffer_header.l_evt != (uint32_t) -1);
       _buffer_header.l_evt++; // we write another fragment
 
       _buffer_header.h_begin = 1; // this buffer has an unfinished event
@@ -886,6 +908,13 @@ void lmd_output_buffered::write_event(const lmd_event_out *event)
       offset_cur = 0;
     }
 
+  if (event->_header.i_type == LMD_EVENT_STICKY_TYPE &&
+      event->_header.i_subtype == LMD_EVENT_STICKY_SUBTYPE)
+    {
+      _buffer_header.i_type    = LMD_BUF_HEADER_HAS_STICKY_TYPE;
+      _buffer_header.i_subtype = LMD_BUF_HEADER_HAS_STICKY_SUBTYPE;
+    }
+  assert(_buffer_header.l_evt != (uint32_t) -1);
   _buffer_header.l_evt++; // we write another fragment
 
   while (flush_buffer())
@@ -915,19 +944,17 @@ void lmd_output_file::event_no_seen(sint32 seventno)
   _last_eventno = eventno;
 }
 
-void lmd_output_file::write_event(const lmd_event_out *event)
+void lmd_output_file::write_event(const lmd_event_out *event,
+				  bool sticky_replay,
+				  bool discard_revoke)
 {
-  /*
-  if (_event_cut &&
-      event->_header._info.l_count % _event_cut == 0 &&
-      _cur_events) // do not change an empty file
-    change_file();
-  */
-
-  lmd_output_buffered::write_event(event);
+  UNUSED(discard_revoke);
+  
+  lmd_output_buffered::write_event(event, sticky_replay, true);
 
   add_events(); // we've added an event
-  can_change_file(); // now would be a good time to change file
+  if (!sticky_replay) // Do not change file while replaying
+    can_change_file(); // now would be a good time to change file
 }
 
 
@@ -939,8 +966,8 @@ void lmd_output_file::write_file_header(const s_filhe_extra_host *file_header_ex
 
   // mark it as file header
 
-  _buffer_header.i_type    = LMD_FILE_HEADER_10_1_TYPE;
-  _buffer_header.i_subtype = LMD_FILE_HEADER_10_1_SUBTYPE;
+  _buffer_header.i_type    = LMD_FILE_HEADER_2000_1_TYPE;
+  _buffer_header.i_subtype = LMD_FILE_HEADER_2000_1_SUBTYPE;
 
   // allocate and set to zero the extra space...
 
@@ -1008,17 +1035,25 @@ lmd_output_file::set_file_header(const s_filhe_extra_host *file_header_extra,
 
   size_t comment_index;
 
-  if (_file_header_extra.filhe_lines < (int) countof(_file_header_extra.s_strings))
+  if (_file_header_extra.filhe_lines <
+      (int) countof(_file_header_extra.s_strings))
     comment_index = _file_header_extra.filhe_lines++;
   else
-    comment_index = countof(_file_header_extra.s_strings)-1; // overwrite last line
+    {
+      // overwrite last line
+      comment_index = countof(_file_header_extra.s_strings)-1;
+    }
 
   strncpy((char*) _file_header_extra.s_strings[comment_index].string,
-	  add_comment,sizeof(_file_header_extra.s_strings[comment_index].string));
-  _file_header_extra.s_strings[comment_index].len = (uint16) strlen(add_comment);
-  if (_file_header_extra.s_strings[comment_index].len >
+	  add_comment,
+	  sizeof(_file_header_extra.s_strings[comment_index].string));
+  
+  _file_header_extra.s_strings[comment_index].string_l =
+    (uint16) strlen(add_comment);
+  
+  if (_file_header_extra.s_strings[comment_index].string_l >
       sizeof(_file_header_extra.s_strings[comment_index].string))
-    _file_header_extra.s_strings[comment_index].len =
+    _file_header_extra.s_strings[comment_index].string_l =
       sizeof(_file_header_extra.s_strings[comment_index].string);
 
   _has_file_header = true;
@@ -1056,6 +1091,31 @@ void lmd_output_file::report_open_close(bool open)
   _lmd_log->append(output);
 
   delete[] output;
+}
+
+void lmd_output_file::print_status(double elapsed)
+{
+  double bufrate =
+    (double) (_buffer_header.l_buf - _last_bufno) * 1.e-3 / elapsed;
+  _last_bufno = _buffer_header.l_buf;
+  double datarate =
+    (double) (_total_written - _last_written) * 1.e-6 / elapsed;
+  _last_written = _total_written;
+  double replayrate =
+    (double) (_replays - _last_replays) / elapsed;
+  _last_replays = _replays;
+  
+  fprintf (stderr,
+	   "\nFile: %s%.1f%sMB/s (%s%.1f%skbuf/s, replay %s%.1f%sbuf/s)   \r",
+	   CT_ERR(BOLD_MAGENTA),
+	   datarate,
+	   CT_ERR(NORM),
+	   CT_ERR(BOLD),
+	   bufrate,
+	   CT_ERR(NORM),
+	   CT_ERR(BOLD),
+	   replayrate,
+	   CT_ERR(NORM));
 }
 
 lmd_event_out::lmd_event_out()
@@ -1160,9 +1220,9 @@ void lmd_event_out::clear()
   _buf_end += length;					  \
 }
 
-void lmd_event_out::add_chunk(void *ptr,size_t len,bool swapping)
+void lmd_event_out::add_chunk(const void *ptr,size_t len,bool swapping)
 {
-  ANOTHER_CHUNK((char *) ptr,len,swapping);
+  ANOTHER_CHUNK((const char *) ptr,len,swapping);
 }
 
 void lmd_event_out::copy_header(const lmd_event *event,
@@ -1263,7 +1323,8 @@ void lmd_event_out::copy(const lmd_event *event,
 
       // Do we want it?
 
-      if (!select->accept_subevent(subevent_header))
+      if (!(event->_status & LMD_EVENT_IS_STICKY) &&
+	  !select->accept_subevent(subevent_header))
 	continue;
 
       /*****************************************/
@@ -1288,15 +1349,25 @@ void lmd_event_out::copy(const lmd_event *event,
 
 	  // we already checked for space for first chunk
 
-	  size_t length = (size_t)
-	    SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
+	  size_t length;
+
+	  if ((event->_status & LMD_EVENT_IS_STICKY) &&
+	      subevent_header->_header.l_dlen ==
+	      LMD_SUBEVENT_STICKY_DLEN_REVOKE)
+	    length = 0;
+	  else
+	    length =
+	      SUBEVENT_DATA_LENGTH_FROM_DLEN((size_t) subevent_info->_header._header.l_dlen);
 
 	  // ANOTHER_CHUNK(subevent_info->_data,length,event->_swapping);
 
-	  char *buf;
+	  if (length)
+	    {
+	      char *buf;
 
-	  ADD_TO_BUF(buf,subevent_info->_data,length);
-	  ANOTHER_CHUNK(buf,length,event->_swapping);
+	      ADD_TO_BUF(buf,subevent_info->_data,length);
+	      ANOTHER_CHUNK(buf,length,event->_swapping);
+	    }
 	}
       else
 	{
@@ -1314,8 +1385,9 @@ void lmd_event_out::copy(const lmd_event *event,
 	  ADD_TO_BUF(buf,frag->_ptr,size0);
 	  ANOTHER_CHUNK(buf,size0,event->_swapping);
 
-	  size_t length = (size_t)
-	    SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen) - size0;
+	  // No guard against stciky revoke (size -1), as we had large size
+	  size_t length =
+	    SUBEVENT_DATA_LENGTH_FROM_DLEN((size_t) subevent_info->_header._header.l_dlen) - size0;
 	  frag++;
 
 	  size_t size = frag->_length;
@@ -1371,4 +1443,50 @@ size_t lmd_event_out::get_length() const
     length += c->_length;
 
   return length;
+}
+
+void lmd_event_out::write(void *dest) const
+{
+  char *p = (char *) dest;
+ 
+  p += sizeof(lmd_event_header_host);
+
+  for (const buf_chunk_swap* c = _chunk_start; c < _chunk_end; c++)
+    {
+      // printf ("%3zx [%zd]\n", p - (char *) dest, c->_length);
+      ::copy_to_buffer(p,
+		       c->_ptr, c->_length,
+		       c->_swapping);
+      p += c->_length;
+    }
+
+  size_t event_data_length = p - (char *) dest - sizeof(lmd_event_header_host);
+    
+  lmd_event_header_host header_write;
+  header_write = _header;
+  header_write.l_dlen =
+	(sint32) DLEN_FROM_EVENT_DATA_LENGTH(event_data_length);
+  
+  // printf ("%3x [%zd]\n", 0, sizeof(lmd_event_header_host));
+  ::copy_to_buffer(dest,
+		   &header_write,sizeof(lmd_event_header_host),
+		   false);
+}
+
+void lmd_event_out::dump_debug()
+{
+  fprintf (stderr, "-- Event: --\n");
+  fprintf (stderr, "t/s: %04x/%04x\n", _header.i_type, _header.i_subtype);
+  fprintf (stderr, "d: %04x  t: %04x  cnt: %08x\n",
+	   _info.i_dummy, _info.i_trigger, _info.l_count);
+
+  for (const buf_chunk_swap* c = _chunk_start; c < _chunk_end; c++)
+    {
+      const char *p = c->_ptr;
+      fprintf(stderr, "\n");
+      for (size_t i = 0; i < c->_length; i += sizeof (uint32_t))
+	fprintf (stderr, "%3zx: %08x\n", i, *((const uint32_t *) (p+i)));
+    }
+
+  fprintf (stderr, "------------\n");
 }

@@ -65,7 +65,7 @@ for (my $i = 0; $i < 1024; $i++)
 	print sprintf ("%sCALIB_PARAM( SST[%d][%4d].E , OFFSET_SLOPE , 0.0 , %6.2f ); /* %4d : %s%3d : %6.2f */\n",
 		       $valid[$i] ? "   " : "// ",$det,$i,
 		       $val,$i,$i<640?"x":"y",($i < 640 ? $i : $i - 640) / 8,$logval);
-	
+
     }
 }
 

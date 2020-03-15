@@ -35,7 +35,10 @@ def_node_list *all_definitions;
 
 void c_arg_named::dump(dumper &d,bool /*recursive*/) const
 {
-  d.text_fmt("%s",_name);
+  d.text_fmt("%s%s%s",
+	     _toggle ? "TOGGLE(" : "",
+	     _name,
+	     _toggle ? ")" : "");
   if (_array_ind)
     for (unsigned int i = 0; i < _array_ind->size(); i++)
       d.text_fmt("[%d]",(*_array_ind)[i]);
@@ -48,12 +51,15 @@ void c_arg_const::dump(dumper &d,bool /*recursive*/) const
 
 void c_typename::dump(dumper &d,bool /*recursive*/) const
 {
-  d.text_fmt("%s",_name);
+  d.text_fmt("%s%s%s",
+	     _toggle ? "TOGGLE(" : "",
+	     _name,
+	     _toggle ? ")" : "");
 }
 
-void c_typename_template::dump(dumper &d,bool /*recursive*/) const
+void c_typename_template::dump(dumper &d,bool recursive) const
 {
-  d.text_fmt("%s",_name);
+  c_typename::dump(d, recursive);
   dump_list_paren(_args,d,"<>");
 }
 
@@ -104,7 +110,9 @@ void c_struct_def::dump(dumper &d,bool recursive) const
 
 void c_typename::mirror_struct(dumper &d,bool full_template) const
 {
-  d.text_fmt("STRUCT_MIRROR_TYPE(%s) ",_name);
+  d.text_fmt("STRUCT_MIRROR_TYPE%s(%s) ",
+	     _toggle ? "_TOGGLE" : "",
+	     _name);
   if (full_template)
     d.text_fmt("STRUCT_MIRROR_TYPE_TEMPLATE_FULL");
 }
@@ -116,10 +124,14 @@ void dump_mirror_template_arg(const c_arg *arg,dumper &d)
   if (named)
     {
       if (!named->_array_ind)
-	d.text_fmt("STRUCT_MIRROR_TEMPLATE_ARG(%s)",named->_name);
+	d.text_fmt("STRUCT_MIRROR_TEMPLATE_ARG%s(%s)",
+		   named->_toggle ? "_TOGGLE" : "",
+		   named->_name);
       else
 	{
-	  d.text_fmt("STRUCT_MIRROR_TEMPLATE_ARG_N(%s,",named->_name);
+	  d.text_fmt("STRUCT_MIRROR_TEMPLATE_ARG%s_N(%s,",
+		     named->_toggle ? "_TOGGLE" : "",
+		     named->_name);
 	  for (unsigned int i = 0; i < named->_array_ind->size(); i++)
 	    d.text_fmt("[%d]",(*named->_array_ind)[i]);
 	  d.text(")");
@@ -134,24 +146,24 @@ void c_typename_template::mirror_struct(dumper &d,bool /*full_template*/) const
   c_typename::mirror_struct(d,false);
   // Cannot use, since we need to figure out what args are types...
   // dump_list_paren(_args,d,"<>");
-  
+
   d.text("< STRUCT_MIRROR_TYPE_TEMPLATE "); // '('
 
   const c_arg_list *v = _args;
-      
+
   if (v)
     {
       dumper sd(d);
-      
+
       c_arg_list::const_iterator i;
-      
+
       i = v->begin();
-      
+
       if (i != v->end())
 	{
 	  dump_mirror_template_arg(*i,sd);
 	  ++i;
-	  
+
 	  for (; i != v->end(); ++i)
 	    {
 	      sd.text(",");
@@ -160,7 +172,7 @@ void c_typename_template::mirror_struct(dumper &d,bool /*full_template*/) const
 	}
     }
   d.text(">");
-  
+
 }
 
 void c_struct_member::mirror_struct(dumper &d) const
@@ -209,11 +221,11 @@ void c_struct_def::mirror_struct(dumper &d) const
   switch (_struct_type)
     {
     case C_STR_STRUCT: d.text("struct "); break;
-    case C_STR_UNION:  
+    case C_STR_UNION:
       d.col0_text("#if STRUCT_ONLY_LAST_UNION_MEMBER\n");
-      d.text("struct \n"); 
+      d.text("struct \n");
       d.col0_text("#else\n");
-      d.text("union \n"); 
+      d.text("union \n");
       d.col0_text("#endif\n");
       break;
     case C_STR_CLASS:  d.text("class "); break;
@@ -231,7 +243,7 @@ void c_struct_def::mirror_struct(dumper &d) const
   d.text("{\n");
   d.text("public:\n");
   dumper sd(d,2);
-  
+
   if (_base_list)
     {
       for (unsigned int i = 0; i < _base_list->size(); i++)
@@ -419,7 +431,7 @@ void c_struct_member::function_call(dumper &d,
   else
     {
       // ld->text_fmt("printf (\"call: %s\\n\");",_ident);
-      
+
       ld->text_fmt("%s%s%s%s.FCNCALL_CALL",
 		   _multi_flag ? "FCNCALL_MULTI_MEMBER(" : "",
 		   sub_array_prefix,sub_array_index,
@@ -445,9 +457,9 @@ void c_struct_def::function_call(dumper &d,
 				 const char *array_prefix) const
 {
   std::stack<dumper *> dumpers;
-  
+
   char *sub_array_prefix = NULL;
-  
+
   sub_array_prefix = strdup(array_prefix);
 
   if (_ident)
@@ -475,7 +487,7 @@ void c_struct_def::function_call(dumper &d,
       const c_struct_item* item = *i;
 
       ++i;
-      
+
       if (_struct_type == C_STR_UNION &&
 	  i == _items->end())
 	d.col0_text("#endif// !STRUCT_ONLY_LAST_UNION_MEMBER\n");
@@ -546,7 +558,7 @@ void map_definitions()
     {
       def_node* node = *i;
 
-      c_struct_def *c_struct = 
+      c_struct_def *c_struct =
 	dynamic_cast<c_struct_def *>(node);
 
       if (c_struct)
@@ -564,7 +576,7 @@ void map_definitions()
 			   all_named_c_struct.find(name)->second->_loc,
 			   "Several structures with name: %s\n",
 			   name);
-	  
+
 	  all_named_c_struct.insert(named_c_struct_def_map::value_type(name,
 								       c_struct));
 	  all_named_c_struct_vect.push_back(c_struct);
@@ -586,7 +598,7 @@ void dump_definitions()
 
   {
     named_c_struct_def_vect::iterator i;
-    
+
     for (i = all_named_c_struct_vect.begin(); i != all_named_c_struct_vect.end(); ++i)
       {
 	(*i)->dump(d);
@@ -609,7 +621,7 @@ void fcn_call_per_member()
 
   {
     named_c_struct_def_vect::iterator i;
-    
+
     for (i = all_named_c_struct_vect.begin(); i != all_named_c_struct_vect.end(); ++i)
       {
 	(*i)->function_call_per_member(d);
@@ -633,7 +645,7 @@ void mirror_struct()
 
   {
     named_c_struct_def_vect::iterator i;
-    
+
     for (i = all_named_c_struct_vect.begin(); i != all_named_c_struct_vect.end(); ++i)
       {
 	(*i)->mirror_struct(d);
@@ -657,7 +669,7 @@ void mirror_struct_decl()
 
   {
     named_c_struct_def_vect::iterator i;
-    
+
     for (i = all_named_c_struct_vect.begin(); i != all_named_c_struct_vect.end(); ++i)
       {
 	(*i)->mirror_struct_decl(d);

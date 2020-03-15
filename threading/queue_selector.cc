@@ -33,7 +33,7 @@ int queue_selector::next_queue()
   if (likely(!_drained))
     {
       _current_left--;
-      
+
       if (likely(_current_left))
 	return _current;
     }
@@ -51,7 +51,7 @@ int queue_selector::next_queue()
       if (unlikely(!items))
 	{
 	  _bunches >>= 3; // send fewer items per queue (restart the round robin)
-  
+
 	  _current_left = _bunches;
 
 	  // but do not try to emit more elements than the queue has free slots!
@@ -77,7 +77,7 @@ int queue_selector::next_queue()
 	continue;
 
       min_factor = factor;
-      
+
       // Now that
 
 

@@ -121,11 +121,11 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SST::__unpack,uint32 sam,uint32 gtb,uint32 si
       for (int i = header.count; i; --i)
 	{
 	  static uint32 max_adc_channel[4] = { 320, 320, 384, 0 };
-	  
+
 	  EXT_SST_ch_data ch_data;
 
 	  __buffer.get_uint32(&ch_data.u32);
-	  
+
 	  if ((ch_data.u32 & 0xfe00c000) != 0xf0000000)
 	    ERROR("SST data fixed bits error (0x%08x & 0x%08x) != 0x%08x",
 		  ch_data.u32,0xfe00c000,0xf0000000);
@@ -138,9 +138,9 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SST::__unpack,uint32 sam,uint32 gtb,uint32 si
 
 	  if (index <= last_index)
 	    ERROR("SST data unordered (this %d <= prev %d)",index,last_index);
-	  
+
 	  DATA12 &item = data.insert_index(-1,index);
-	  
+
 	  item.value = ch_data.value;
 	}
 
@@ -194,7 +194,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SST::__unpack,uint32 sam,uint32 gtb,uint32 si
   */
   decode_stream(src,src_end,
 		dest,dest_end);
- 
+
   uint16* ped_add = _sst_ped_add[branch][sam][gtb][siderem];
 
   if (!ped_add)

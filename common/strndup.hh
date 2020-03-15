@@ -22,7 +22,7 @@
 #define __STRNDUP_HH__
 
 #include <stdlib.h>
-#include <string.h>  
+#include <string.h>
 // try to get it the normal way, hmm, won't actually
 // work as outlined below (is not a macro, but anyhow)
 

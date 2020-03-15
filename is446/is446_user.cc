@@ -220,7 +220,7 @@ void user_function(unpack_event *event,
 	printf ("%2d %2d %6.1f %6.1f | %6.1f | %6.1f %6.1f\n",
 		F_I,B_I,
 		_ntu_struct.fe,_ntu_struct.be,
-		_ntu_struct.fe-_ntu_struct.be,	    
+		_ntu_struct.fe-_ntu_struct.be,
 		_ntu_struct.ft,_ntu_struct.bt);
 	_ntu.hfnt();
       }
@@ -271,26 +271,26 @@ void user_function(unpack_event *event,
   if (_dump_ebis_clear)
     {
       // Figure out where the scaler value really belongs...
-      
+
       int nebis   = event->vme.scaler[0].data[1];
       int naccept = event->vme.scaler[0].data[2];
-      
+
       bool adc_tdc_clean = true;
-      
+
       for (int i = 0; i < NR_OF_ADCS; i++)
 	if (event->vme.adc[i].eob.event_number)
 	  adc_tdc_clean = false;
       for (int i = 0; i < NR_OF_TDCS; i++)
 	if (event->vme.tdc[i].eob.event_number)
 	  adc_tdc_clean = false;
-      
+
       printf ("SC: ");
       printf (" %8d",event->event_no);
-      
-      
+
+
       for (int i = 0; i < 3; i++)
 	printf (" %8d",event->vme.scaler[0].data[i].value);
-      
+
       printf (" %8d",event->vme.scaler[0].header.event_number);
       /*
 	for (int i = 0; i < NR_OF_ADCS; i++)
@@ -299,19 +299,19 @@ void user_function(unpack_event *event,
 	printf (" %c",event->vme.tdc[i].eob.event_number ? '*' : ' ');
       */
       printf (" ");
-      
+
       if (nebis == last_nebis)
 	printf ("-  ");
       else if (nebis == last_nebis + 1)
 	printf ("E  ");
       else
 	printf ("El ");
-      
+
       if (naccept == last_naccept + 1)
 	printf ("-  ");
       else
 	printf ("AL ");
-      
+
       if (!adc_tdc_clean)
 	printf ("- ");
       else
@@ -319,7 +319,7 @@ void user_function(unpack_event *event,
 
       last_nebis   = nebis;
       last_naccept = naccept;
-      
+
       printf ("\n");
     }
 
@@ -338,7 +338,7 @@ void user_function(unpack_event *event,
 			 &_fixed_tebis_info.tebis);
 
 	  if (n != 3)
-	    ERROR("Failure reading fixed tebis.");	  
+	    ERROR("Failure reading fixed tebis.");
 	}
 
       if (_fixed_tebis_info.mbs_ec == (int) event->event_no)
@@ -376,7 +376,7 @@ void user_function(unpack_event *event,
   bool ok_adc[NR_OF_ADCS];
   bool ok_tdc[NR_OF_TDCS];
 
-  ok_event_no = 
+  ok_event_no =
     missing_count(event->event_no,expect_event_no,false);
 
   ok_scaler0 =
@@ -405,7 +405,7 @@ void user_function(unpack_event *event,
   else
     SYNCPRINTF ((" "));
 
-  // 
+  //
 
   int off_adc[NR_OF_ADCS] = { 0, 0, 0, 0, 0, 0, 0,};
   int off_tdc[NR_OF_TDCS] = { 0, 0, 0, 0, 0,};
@@ -491,7 +491,7 @@ void user_function(unpack_event *event,
   int mindiff = INT_MAX;
 
   for (int i = 0; i < 10; i++)
-    if (hasdiff[i] && 
+    if (hasdiff[i] &&
 	diff[i] < mindiff)
       mindiff = diff[i];
 
@@ -515,7 +515,7 @@ void user_function(unpack_event *event,
 
   int fired[(NR_OF_ADCS+NR_OF_TDCS)*32];
   int nfired = 0;
-  
+
   for (int m = 0; m < NR_OF_ADCS; m++)
     {
       bitsone_iterator iter;
@@ -524,7 +524,7 @@ void user_function(unpack_event *event,
       while ((i = event->vme.adc[m].data._valid.next(iter)) >= 0)
 	fired[nfired++] = (m) * 32 + i;
     }
-  
+
   for (int m = 0; m < NR_OF_TDCS; m++)
     {
       bitsone_iterator iter;
@@ -533,7 +533,7 @@ void user_function(unpack_event *event,
       while ((i = event->vme.tdc[m].data._valid.next(iter)) >= 0)
 	fired[nfired++] = (NR_OF_ADCS + m) * 32 + i;
     }
-  
+
   // printf ("%d ",nfired);
 
   qsort(fired,nfired,sizeof(int),compare_int);
@@ -586,19 +586,19 @@ void user_function(unpack_event *event,
       (ee->ec.p.scaler & 0xff) == 0xdd)
     {
       int match = 0;
-      
+
       for (int m = 0; m < 12; m++)
 	if ((ee->ec.all[2+m] & 0xff) == 0x4c ||
 	    (ee->ec.all[2+m] & 0xff) == 0x54 ||
 	    (ee->ec.all[2+m] & 0xff) == 0x4d ||
 	    (ee->ec.all[2+m] & 0xff) == 0x3a)
 	  match++;
-      
+
       if (match == 7)
 	printf ("***\nhere\n\n");
-      
+
     }
-  
+
   delete ee;
   */
   events.push_back(ee);
@@ -669,7 +669,7 @@ void init_function()
 #if TIMING_MATCH_NTU
   char filename_wrt[1024]; //  = "ntuple.ntu";
   strcpy(filename_wrt,"ntuple.ntu");
-  
+
   _ntu.hbset_bsize(4096);
   _file.open(filename_wrt,"NTUPLE",4096);
   _ntu.hbnt(NT,"NTUPLE"," ");
@@ -835,7 +835,7 @@ void exit_function()
 		      prev->flags[2+m] |= EE_FLAG_EC_CORRECT;
 		      prev = ee;
 		      prev_i = i;
-		    }		 
+		    }
 		  else
 		    prev = NULL;
 		}
@@ -843,7 +843,7 @@ void exit_function()
 		{
 		  prev = ee;
 		  prev_i = i;
-		}	      
+		}
 	    }
 	}
     }
@@ -865,7 +865,7 @@ void exit_function()
 		  if (ee->ec.all[2+m] - prev->ec.all[2+m] != i - prev_i)
 		    ee->flags[2+m] |= EE_FLAG_EC_UNEXP;
 		}
-	      
+
 	      prev = ee;
 	      prev_i = i;
 	    }
@@ -887,7 +887,7 @@ void exit_function()
 	      ne->ec.all[2+m] &&
 	      (ne->flags[2+m] & EE_FLAG_EC_CORRECT) &&
 	      !(ee->flags[2+m] & EE_FLAG_EC_CORRECT))
-	    ee->flags[2+m] |= EE_FLAG_EC_INCORRECT;	    
+	    ee->flags[2+m] |= EE_FLAG_EC_INCORRECT;
 
 	  if (ee->ec.all[2+m])
 	    {
@@ -916,7 +916,7 @@ void exit_function()
 		printf (" ");
 	    }
 
-	    
+
 
 	  // printf();
 	}
@@ -966,8 +966,8 @@ void exit_function()
 
 	  if (from_prev)
 	    {
-	      int mismatch = 
-		(has & (has >> 7)) & 
+	      int mismatch =
+		(has & (has >> 7)) &
 		((from_next & (from_prev >> 7)) |
 		 ((from_next >> 7) & from_prev) ) &
 		0x0f;
@@ -996,20 +996,20 @@ void exit_function()
 
 
 	}
-     
+
       printf ("\n");
     }
 #endif
 
 #if CORR_PICTURES
   dam_corr.picture("dam.pgm");
-    
+
   for (int i = 0; i < 15; i++)
     {
       char filename[256];
-      
+
       sprintf (filename,"dam_m%d.pgm",i);
-      
+
       dam_corr_m[i].picture(filename);
     }
 #endif

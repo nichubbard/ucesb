@@ -107,7 +107,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXTERNAL_DATA16::__unpack,size_t length/*_ARG:,an
 	ERROR("Attempt to eat16 (%zd) past end of data (%zd).",
 	      length,__buffer.left());
     }
-  
+
   if (_alloc < length)
     {
       size_t needed = length / sizeof (_data[0]);
@@ -117,12 +117,12 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXTERNAL_DATA16::__unpack,size_t length/*_ARG:,an
       _data  = new_data;
       _alloc = needed;
     }
-  
+
   // Read all available data (or till limit)
   // We use the normal read functions (no memcpy), to
   // a) show how to use them
   // b) let the __data_src handle byte-swapping and scrambling
-  
+
   // This one uses the calculated number of 16-bit words,
   // see the 32-bit version below for a simpler (but slower) way,
   // that polls for the data end
@@ -176,7 +176,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXTERNAL_DATA32::__unpack,size_t length/*_ARG:,an
 	ERROR("Attempt to eat32 (%zd) past end of data (%zd).",
 	      length,__buffer.left());
     }
-  
+
   if (_alloc < __buffer.left())
     {
       size_t needed = __buffer.left() / sizeof (_data[0]);

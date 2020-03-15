@@ -57,7 +57,7 @@ int main(int argc,char *argv[])
   EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
 
   /* Open the output (stdout). */
-  
+
   client = ext_data_open_out();
 
   if (client == NULL)
@@ -72,7 +72,8 @@ int main(int argc,char *argv[])
   if (ext_data_setup(client,
 		     &event_layout,sizeof(event_layout),
 		     NULL,
-		     sizeof(event)) != 0)
+		     sizeof(event),
+		     "",NULL) != 0)
     {
       perror("ext_data_setup");
       fprintf (stderr,"Failed to setup output: %s\n",
@@ -83,12 +84,12 @@ int main(int argc,char *argv[])
     {
       int num_events = -1;
       int i;
-      
+
       /* Generate events. */
 
       if (argc > 1)
-	num_events = atoi(argv[1]);      
-      
+	num_events = atoi(argv[1]);
+
       for (i = 0; num_events == -1 || i < num_events; i++)
 	{
 	  /* To 'check'/'protect' against mis-use of zero-suppressed
@@ -109,7 +110,8 @@ int main(int argc,char *argv[])
 	   */
 
 	  if (ext_data_clear_event(client,&event,sizeof(event),
-				   /* clear_zzp_lists */ 0) != 0)
+				   /* clear_zzp_lists */ 0,
+				   /* struct_id */ 0) != 0)
 	    {
 	      perror("ext_data_clear_event");
 	      fprintf (stderr,"Failed to clear event: %s\n",
@@ -121,14 +123,14 @@ int main(int argc,char *argv[])
 
 	  event.EVENTNO = (uint32_t) (i+1);
 	  event.TRIGGER = (uint32_t) (1 + i % 15);
-	  
+
 	  /* ... */
-	  
+
 	  /* Write the event. */
-	  
+
 	  ret = ext_data_write_event(client,
 				     &event,sizeof(event));
-	  
+
 	  if (ret == -1)
 	    {
 	      perror("ext_data_write_event");
@@ -137,7 +139,7 @@ int main(int argc,char *argv[])
 	      /* Not more fatal than that we can disconnect. */
 	      break;
 	    }
-	  
+
 	  if ((size_t) ret < sizeof(event))
 	    {
 	      fprintf (stderr,
@@ -145,11 +147,11 @@ int main(int argc,char *argv[])
 		       ret,ret,ext_data_last_error(client));
 	      break;
 	    }
-	}  
+	}
     }
 
   /* Disconnect. */
-  
+
   ret = ext_data_close(client);
 
   if (ret != 0)

@@ -22,8 +22,9 @@
 
 VME_MESYTEC_MADC32(geom)
 {
-  MEMBER(DATA12_OVERFLOW data[32] ZERO_SUPPRESS);
+  MEMBER(DATA14_OVERFLOW data[32] ZERO_SUPPRESS);
 
+  MARK_COUNT(start);
   UINT32 header NOENCODE
   {
     0_11:  word_number; // includes end_of_event
@@ -34,23 +35,29 @@ VME_MESYTEC_MADC32(geom)
     30_31: 0b01;
   }
 
-  list(0 <= index < static_cast<uint32>(header.word_number - 1))
+  several UINT32 ch_data NOENCODE
   {
-    UINT32 ch_data NOENCODE
-    {
-      0_11:  value;
-      14:    outofrange;
-      16_20: channel;
-      21_29: 0b000100000;
-      30_31: 0b00;
+    0_12:  value; // 11-13 bit resolution
+    14:    outofrange;
+    16_20: channel;
+    21_29: 0b000100000;
+    30_31: 0b00;
 
-      ENCODE(data[channel], (value = value, overflow = outofrange));
-    }
+    ENCODE(data[channel], (value = value, overflow = outofrange));
   }
 
-  UINT32 end_of_event NOENCODE
+  // The event might be 64 bit aligned
+  optional UINT32 filler NOENCODE
+  {
+    0_31: 0x00000000;
+  }
+
+  UINT32 end_of_event
   {
     0_29:  counter;
     30_31: 0b11;
   }
+
+  MARK_COUNT(end);
+  CHECK_COUNT(header.word_number,start,end,-4,4);
 }

@@ -109,7 +109,7 @@ bool pax_source::read_record()
   _last_seq_no = _record_header._seqno;
 
   _chunk_cur = _chunk_end = _chunks;
-  
+
   // read the record itself
 
   size_t data_size = _record_header._length - sizeof(_record_header);
@@ -117,7 +117,7 @@ bool pax_source::read_record()
   /////////////////////////////////////////////
 
   int chunks = 0;
-  
+
   chunks = _input.map_range(data_size,_chunks);
 
   if (!chunks)
@@ -228,7 +228,7 @@ pax_event *pax_source::get_event()
       */
 
       if (_swapping)
-	byteswap((uint16 *) event_header,sizeof(pax_event_header));	
+	byteswap((uint16 *) event_header,sizeof(pax_event_header));
 
       if (!event_header->_length)
 	{
@@ -256,9 +256,9 @@ pax_event *pax_source::get_event()
 
       // _event_data = (uint16*) (_record_cur + sizeof (pax_event_header));
       // _event_data_end = _event_data + event_header->_length / sizeof(uint16);
-      
+
       // _record_cur += _event_header->_length;
-  
+
       return dest;
     }
 }
@@ -329,19 +329,19 @@ void pax_event::get_data_src(uint16 *&start,uint16 *&end)
       // We need to get the data from the chunks.  Since pointer has not
       // been set, we know it is two chunks (or more).  (Currently: only
       // two possible, since we do not support fragmented events)
-      
+
       // The data need to be handled with a defragment buffer.
-      
+
       void   *dest;
-      
+
 #ifdef USE_THREADING
-      dest = _wt._defrag_buffer->allocate_reclaim(_chunks[0]._length + 
+      dest = _wt._defrag_buffer->allocate_reclaim(_chunks[0]._length +
 						  _chunks[1]._length);
 #else
-      dest = _defrag_event.allocate(_chunks[0]._length + 
+      dest = _defrag_event.allocate(_chunks[0]._length +
 				    _chunks[1]._length);
-#endif      
-      
+#endif
+
       _data = (char*) dest;
 
       memcpy(_data,_chunks[0]._ptr,_chunks[0]._length);

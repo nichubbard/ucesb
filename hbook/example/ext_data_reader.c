@@ -134,12 +134,12 @@ int main(int argc,char *argv[])
 
       printf ("Forked unpacker '%s'.\n",command);
 
-      free (command); 
+      free (command);
     }
   else
     {
       /* Connect. */
-  
+
       client = ext_data_connect(argv[1]);
 
       if (client == NULL)
@@ -180,7 +180,8 @@ int main(int argc,char *argv[])
 		     NULL,0,
 		     struct_info,
 #endif
-		     sizeof(event)) != 0)
+		     sizeof(event),
+		     "", NULL) != 0)
     {
       perror("ext_data_setup");
       fprintf (stderr,"Failed to setup with data from server '%s': %s\n",
@@ -190,7 +191,7 @@ int main(int argc,char *argv[])
   else
     {
       /* Handle events. */
-      
+
       for ( ; ; )
 	{
 	  /* To 'check'/'protect' against mis-use of zero-suppressed
@@ -203,18 +204,19 @@ int main(int argc,char *argv[])
 #ifdef BUGGY_CODE
 	  ext_data_rand_fill(&event,sizeof(event));
 #endif
-	  
+
 	  /* Fetch the event. */
-	  
+
 	  ret = ext_data_fetch_event(client,
-				     &event,sizeof(event));
-	  
+				     &event,sizeof(event),
+				     0);
+
 	  if (ret == 0)
 	    {
 	      printf ("End from server.\n");
 	      break; /* Out of data. */
 	    }
-	  
+
 	  if (ret == -1)
 	    {
 	      perror("ext_data_fetch_event");
@@ -252,18 +254,18 @@ int main(int argc,char *argv[])
 		  printf ("\n");
 		}
 	    }
-	  
+
 	  /* Do whatever is wanted with the data. */
-	  
+
 	  printf ("%10d (d%10d): %2d\n",
 		  event.EVENTNO,
 		  event.EVENTNO - last_event_no,
 		  event.TRIGGER);
 
 	  last_event_no = event.EVENTNO;
-	  
+
 	  /* ... */
-	}  
+	}
     }
 
 #if USE_ITEMS_INFO
@@ -271,7 +273,7 @@ int main(int argc,char *argv[])
 #endif
 
   /* Disconnect. */
-  
+
   ret = ext_data_close(client);
 
   if (ret != 0)

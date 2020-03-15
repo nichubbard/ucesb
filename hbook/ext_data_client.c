@@ -27,15 +27,17 @@
 #include <errno.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <assert.h>
+#include <fcntl.h>
 
 #include <stdio.h>
 
 // For NetBSD, the error EPROTO does not exist, so use something else
-#ifndef EPROTO 
+#ifndef EPROTO
 #define EPROTO EBADMSG
 #endif
 
@@ -97,25 +99,18 @@ struct ext_data_structure_info
   const char *_last_error;
 };
 
-struct ext_data_client
+struct ext_data_client_struct
 {
-  int _fd;
-  int _fd_close; /* If using STDIN, we are not to close it, so -1. */
+  const char *_id;
 
-  char  *_buf;
-  size_t _buf_alloc;
-  size_t _buf_used;
-  size_t _buf_filled;
-
-  uint32_t *_raw_ptr;
-  uint32_t  _raw_words;
-  uint32_t *_raw_swapped;
+  /* Todo: the following controls _raw_ptr in ext_data_client.  With
+   * several structures...?
+   */
   uint32_t  _max_raw_words;
 
+  uint32_t _orig_xor_sum_msg;
   size_t _orig_struct_size;
   void  *_orig_array; /* for mapping */
-
-  uint32_t _sort_u32_words;
 
   size_t _struct_size;
   uint32_t _max_pack_items;
@@ -129,10 +124,41 @@ struct ext_data_client
   uint32_t *_map_list;
   uint32_t *_map_list_end;
 
+  struct ext_data_structure_info *_struct_info_msg;
+};
+
+#define EXT_DATA_STATE_INIT            0
+#define EXT_DATA_STATE_OPEN            1 /* for read */
+#define EXT_DATA_STATE_OPEN_OUT        2 /* for write */
+#define EXT_DATA_STATE_PARSED_HEADERS  3
+#define EXT_DATA_STATE_SETUP_READ      4
+#define EXT_DATA_STATE_SETUP_WRITE     5
+
+struct ext_data_client
+{
+  int _fd;
+  int _fd_close; /* If using STDIN, we are not to close it, so -1. */
+
+  char  *_buf;
+  size_t _buf_alloc;
+  size_t _buf_used;
+  size_t _buf_filled;
+
+  /* Todo: the following is never allocated?? */
+  uint32_t *_raw_ptr;
+  uint32_t  _raw_words;
+  uint32_t *_raw_swapped;
+
+  struct ext_data_client_struct *_structures;
+  int                        _num_structures;
+
+  uint32_t _sort_u32_words;
+
   const char *_last_error;
 
-  int _setup;
-  int _write;
+  int _state;
+
+  int _fetched_event;
 };
 
 /* Layout of the structure information generated.
@@ -191,9 +217,13 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info)
     {
       struct ext_data_structure_item *fi = item;
 
+      free((char *) item->_block);
+      free((char *) item->_var_name);
+      free((char *) item->_var_ctrl_name);
+
       item = item->_next_off_item;
       free(fi);
-    } 
+    }
 
   free(struct_info);
 }
@@ -229,7 +259,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
       /* struct_info->_last_error = "Struct_info context NULL."; */
       errno = EFAULT;
       return -1;
-    }    
+    }
 
   DEBUG_MATCHING("Add item: %s [%s] (0x%zx=%zd:%zd @ 0x%zx=%zd)\n",
 		 name, ctrl_name,
@@ -323,7 +353,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 	      struct_info->_last_error = "Mismatch with control item limit.";
 	      errno = EINVAL;
 	      goto failure_free_return;
-	    }	  
+	    }
 	}
     }
 
@@ -347,6 +377,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 }
 
 int ext_data_struct_match_items(struct ext_data_client *client,
+				struct ext_data_client_struct *clistr,
 				const struct ext_data_structure_info *from,
 				const struct ext_data_structure_info *to,
 				int *all_to_same_from)
@@ -407,7 +438,7 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	      DEBUG_MATCHING("no match.\n");
 	      goto no_match;
 	    }
-	  
+
 	  if (strcmp(item->_var_name, match->_var_name) == 0)
 	    break;
 
@@ -456,7 +487,7 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	*all_to_same_from = 0;
 
       DEBUG_MATCHING("ok!\n");
-      
+
       goto next_item;
     no_match:
       *all_to_same_from = 0;
@@ -513,21 +544,21 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 
   /* Allocate the map list. */
 
-  client->_map_list = 
+  clistr->_map_list =
     (uint32_t *) malloc (map_list_items * sizeof(uint32_t));
- 
-  if (!client->_map_list)
+
+  if (!clistr->_map_list)
     {
       client->_last_error = "Memory allocation failure (map list).";
       errno = ENOMEM;
       return -1;
     }
 
-  client->_map_list_end = client->_map_list + map_list_items;
+  clistr->_map_list_end = clistr->_map_list + map_list_items;
 
   /* And fill the map list. */
 
-  uint32_t *o    = client->_map_list;
+  uint32_t *o    = clistr->_map_list;
 
   item = to->_items;
 
@@ -537,7 +568,7 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	; /* We are handled inside the ctrl item. */
       else if (item->_match_item)
 	{
-	  uint *o_mark = o;
+	  uint32_t *o_mark = o;
 
 	  *(o++) = item->_match_item->_offset; /* src  */
 	  *(o++) = item->_offset;              /* dest */
@@ -546,7 +577,7 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	    {
 	      struct ext_data_structure_item *child;
 	      int child_items = 0;
-	      uint *o_loop_size;
+	      uint32_t *o_loop_size;
 	      uint32_t max_loops;
 
 	      max_loops = item->_match_item->_limit_max;
@@ -575,11 +606,11 @@ int ext_data_struct_match_items(struct ext_data_client *client,
       item = item->_next_off_item;
     }
 
-  assert (o == client->_map_list_end);
+  assert (o == clistr->_map_list_end);
 
-  o = client->_map_list;
+  o = clistr->_map_list;
 
-  for (o = client->_map_list; o < client->_map_list_end; o++)
+  for (o = clistr->_map_list; o < clistr->_map_list_end; o++)
     DEBUG_MATCHING("0x%08x\n", *o);
 
   return 0;
@@ -592,11 +623,12 @@ int ext_data_struct_match_items(struct ext_data_client *client,
  * that come with the stream, but the lists are set up internally.
  */
 
-static void ext_data_struct_map_items(struct ext_data_client *client,
-				      char *dest, char *src)
+static void
+ext_data_struct_map_items(const struct ext_data_client_struct *clistr,
+			  char *dest, char *src)
 {
-  uint32_t *o    = client->_map_list;
-  uint32_t *oend = client->_map_list_end;
+  uint32_t *o    = clistr->_map_list;
+  uint32_t *oend = clistr->_map_list_end;
 
   while (o < oend)
     {
@@ -612,7 +644,7 @@ static void ext_data_struct_map_items(struct ext_data_client *client,
       fflush(stdout);
       */
       value = *((uint32_t *) (src + offset_src));
-      
+
       if (mark)
 	{
 	  uint32_t max_loops = *(o++);
@@ -622,11 +654,11 @@ static void ext_data_struct_map_items(struct ext_data_client *client,
 	    value = max_loops;
 
 	  *((uint32_t *) (dest + offset_dest)) = value;
-	  
+
 	  uint32_t *onext = o + 2 * loop_size;
 
 	  if (value)
-	    {	  
+	    {
 	      uint32_t i, j;
 
 	      for (i = loop_size; i; i--)
@@ -643,7 +675,7 @@ static void ext_data_struct_map_items(struct ext_data_client *client,
 		    }
 		}
 	    }
-	  
+
 	  o = onext;
 	}
       else
@@ -666,30 +698,30 @@ ext_data_peek_message(struct ext_data_client *client)
   for ( ; ; )
     {
       size_t avail = client->_buf_filled - client->_buf_used;
-      
+
       if (avail >= sizeof(struct external_writer_buf_header))
 	{
-	  header = (struct external_writer_buf_header *) 
+	  header = (struct external_writer_buf_header *)
 	    (client->_buf + client->_buf_used);
-	  
+
 	  if (avail >= ntohl(header->_length))
 	    break; /* An entire message is available. */
 	}
-      
+
       if (client->_buf_filled == client->_buf_alloc)
 	{
 	  /* Buffer filled to the end. */
-	  
+
 	  if (client->_buf_used)
 	    {
 	      /* There is empty space at the beginning, first move
 	       * the data there.
 	       */
-	      
+
 	      memmove(client->_buf,
 		      client->_buf + client->_buf_used,
 		      client->_buf_filled - client->_buf_used);
-	      
+
 	      client->_buf_filled -= client->_buf_used;
 	      client->_buf_used = 0;
 	    }
@@ -699,19 +731,19 @@ ext_data_peek_message(struct ext_data_client *client)
 	       * cannot happen unless the data is corrupt, as we are
 	       * always told about the maximum size possible.
 	       */
-	      
-	      client->_last_error = 
+
+	      client->_last_error =
 		"Buffer completely full while receiving message.";
 	      errno = EBADMSG;
 	      return NULL;
 	    }
 	}
-      
+
       size_t remain = client->_buf_alloc - client->_buf_filled;
-      
-      ssize_t n = 
+
+      ssize_t n =
 	read(client->_fd,client->_buf+client->_buf_filled,remain);
-      
+
       if (n == 0)
 	{
 	  /* Out of data. */
@@ -719,62 +751,121 @@ ext_data_peek_message(struct ext_data_client *client)
 	    {
 	      client->_last_error = "Out of data.";
 	      errno = EBADMSG;
-	      return NULL; 
+	      return NULL;
 	    }
-	  
+
 	  /* Out of data, but partial message received.
 	   */
-	  
+
 	  client->_last_error = "Out of data while receiving message.";
 	  errno = EBADMSG;
 	  return NULL;
 	}
-      
+
       if (n == -1)
 	{
 	  if (errno == EINTR)
 	    continue;
+	  if (errno == EAGAIN)
+	    {
+	      client->_last_error = "No more data yet, "
+		"for non-blocking client.";
+	      /* errno already set */
+	      return NULL;
+	    }
 	  client->_last_error = "Failure reading buffer data.";
 	  /* Failure. */
 	  return NULL;
 	}
-      
+
       client->_buf_filled += (size_t) n;
     }
-  
+
   /* Unaligned messages are no good. */
-  
+
+  if ((ntohl(header->_request) & EXTERNAL_WRITER_REQUEST_HI_MASK) !=
+      EXTERNAL_WRITER_REQUEST_HI_MAGIC)
+    {
+      client->_last_error = "Message request hi magic wrong.";
+      errno = EPROTO;
+      return NULL;
+    }
+
   if (ntohl(header->_length) & 3)
     {
       client->_last_error = "Message length unaligned.";
       errno = EPROTO;
       return NULL;
     }
-  
+
   return header;
+}
+
+static void ext_data_clistr_free(struct ext_data_client_struct *clistr)
+{
+  free((char *) clistr->_id);
+
+  free(clistr->_orig_array);
+  free(clistr->_pack_list);
+  free(clistr->_reverse_pack);
+  free(clistr->_map_list);
+
+  ext_data_struct_info_free(clistr->_struct_info_msg);
 }
 
 static void ext_data_free(struct ext_data_client *client)
 {
+  int i;
+  
   free(client->_buf);
-  free(client->_orig_array);
-  free(client->_pack_list);
-  free(client->_reverse_pack);
-  free(client->_map_list);
+
+  for (i = 0; i < client->_num_structures; i++)
+    ext_data_clistr_free(client->_structures+i);
+
+  free(client->_structures);
+
   free(client); /* Note! we also free the structure itself. */
+}
+
+void ext_data_clear_client_struct(struct ext_data_client_struct *clistr)
+{
+  clistr->_id = NULL;
+
+  clistr->_max_raw_words = 0;
+
+  clistr->_orig_xor_sum_msg = 0;
+  clistr->_orig_struct_size = 0;
+  clistr->_orig_array = NULL;
+  clistr->_struct_size = 0;
+  clistr->_max_pack_items = 0;
+  clistr->_static_pack_items = 0;
+
+  clistr->_pack_list = NULL;
+  clistr->_pack_list_end = NULL;
+  clistr->_reverse_pack = NULL;
+
+  clistr->_map_list = NULL;
+  clistr->_map_list_end = NULL;
+
+  clistr->_struct_info_msg = NULL;
 }
 
 struct ext_data_client *ext_data_create_client(size_t buf_alloc)
 {
   struct ext_data_client *client;
-  
+
   client = (struct ext_data_client *) malloc (sizeof (struct ext_data_client));
-  
+
   if (!client)
     {
-      errno = ENOMEM; 
+      errno = ENOMEM;
       return NULL;
     }
+
+  client->_structures = NULL;
+  client->_num_structures = 0;
+
+  client->_sort_u32_words = (uint32_t) -1;
 
   client->_fd_close = -1;
 
@@ -786,32 +877,19 @@ struct ext_data_client *ext_data_create_client(size_t buf_alloc)
   client->_raw_ptr = NULL;
   client->_raw_words = 0;
   client->_raw_swapped = NULL;
-  client->_max_raw_words = 0;
-
-  client->_orig_struct_size = 0;
-  client->_orig_array = NULL;
-  client->_sort_u32_words = 0;
-  client->_struct_size = 0;
-  client->_setup = 0;
-  client->_write = 0;
-  client->_max_pack_items = 0;
-  client->_static_pack_items = 0;
-
-  client->_pack_list = NULL;
-  client->_pack_list_end = NULL;
-  client->_reverse_pack = NULL;
-
-  client->_map_list = NULL;
-  client->_map_list_end = NULL;
 
   client->_last_error = NULL;
+
+  client->_state = EXT_DATA_STATE_INIT;
+
+  client->_fetched_event = 0;
 
   if (buf_alloc)
     {
       /* Get us a buffer for reading. */
 
       client->_buf = (char *) malloc (EXTERNAL_WRITER_MIN_SHARED_SIZE);
-  
+
       if (!client->_buf)
 	{
 	  client->_last_error = "Memory allocation failure (buf).";
@@ -825,6 +903,34 @@ struct ext_data_client *ext_data_create_client(size_t buf_alloc)
   return client;
 }
 
+static struct ext_data_client_struct *
+ext_data_alloc_client_struct(struct ext_data_client *client)
+{
+  struct ext_data_client_struct *clistr;
+
+  client->_structures =
+    (struct ext_data_client_struct *)
+    realloc (client->_structures,
+	     (client->_num_structures + 1) *
+	     sizeof (struct ext_data_client_struct));
+
+  if (!client->_structures)
+    {
+      client->_last_error =
+	"Memory allocation failure (client structure).";
+      errno = ENOMEM;
+      return NULL;
+    }
+
+  clistr = &client->_structures[client->_num_structures];
+
+  client->_num_structures++;
+
+  ext_data_clear_client_struct(clistr);
+
+  return clistr;
+}
+
 static int ext_data_send_magic(struct ext_data_client *client)
 {
   size_t sent;
@@ -835,7 +941,7 @@ static int ext_data_send_magic(struct ext_data_client *client)
    */
 
   sent = 0;
-  
+
   while (sent < sizeof(magic))
     {
       fd_set writefds;
@@ -844,33 +950,33 @@ static int ext_data_send_magic(struct ext_data_client *client)
       int ret;
       size_t left;
       ssize_t n;
-      
+
       FD_ZERO(&writefds);
       FD_SET(client->_fd,&writefds);
       nfd = client->_fd;
-      
+
       timeout.tv_sec = 2;
       timeout.tv_usec = 0;
-      
+
       ret = select(nfd+1,NULL,&writefds,NULL,&timeout);
-      
+
       if (ret == -1)
 	{
 	  if (errno == EINTR)
 	    continue;
 	  return 0;
 	}
-      
+
       if (ret == 0) /* Can only happen on timeout. */
 	{
 	  errno = ETIMEDOUT;
 	  return 0;
 	}
-      
+
       left = sizeof(magic) - sent;
-      
+
       n = write(client->_fd,((char*) &magic)+sent,left);
-      
+
       if (n == -1)
 	{
 	  if (errno == EINTR)
@@ -882,8 +988,8 @@ static int ext_data_send_magic(struct ext_data_client *client)
 	  errno = EPROTO;
 	  return 0;
 	}
-      
-      sent += (size_t) n;	  
+
+      sent += (size_t) n;
     }
 
   return 1;
@@ -902,6 +1008,7 @@ struct ext_data_client *ext_data_connect(const char *server)
       /* Read data from stdin. */
 
       client->_fd = STDIN_FILENO;
+      client->_state = EXT_DATA_STATE_OPEN;
 
       return client;
     }
@@ -914,24 +1021,24 @@ struct ext_data_client *ext_data_connect(const char *server)
       unsigned short port = (unsigned short) EXTERNAL_WRITER_DEFAULT_PORT;
       struct external_writer_portmap_msg portmap_msg;
       size_t got;
-      
+
       /* If there is a colon in the hostname, interpret what follows
        * as a port number, overriding the default port.
        */
       hostname = strdup(server);
       colon = strchr(hostname,':');
-      
+
       if (colon)
 	{
 	  port = (unsigned short) atoi(colon+1);
 	  *colon = 0; // cut the hostname
 	}
-      
+
       /* Get server IP address. */
       h = gethostbyname(hostname);
       free(hostname);
 
-      if(h == NULL) 
+      if(h == NULL)
 	{
 	  /* EHOSTDOWN is not really correct, but the best I could find. */
 	  errno = EHOSTDOWN;
@@ -944,18 +1051,18 @@ struct ext_data_client *ext_data_connect(const char *server)
       */
 
       /* Create the socket. */
-      client->_fd_close = client->_fd = 
+      client->_fd_close = client->_fd =
 	socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
       if (client->_fd == -1)
 	goto errno_return_NULL;
 
       /* Bind to the port. */
       serv_addr.sin_family = (sa_family_t) h->h_addrtype;
-      memcpy((char *) &serv_addr.sin_addr.s_addr, 
+      memcpy((char *) &serv_addr.sin_addr.s_addr,
 	     h->h_addr_list[0], (size_t) h->h_length);
       serv_addr.sin_port = htons(port);
-      
-      rc = connect(client->_fd, 
+
+      rc = connect(client->_fd,
 		   (struct sockaddr *) &serv_addr, sizeof(serv_addr));
       if (rc == -1)
 	goto errno_return_NULL;
@@ -973,7 +1080,7 @@ struct ext_data_client *ext_data_connect(const char *server)
        */
 
       got = 0;
-      
+
       while (got < sizeof(portmap_msg))
 	{
 	  fd_set readfds;
@@ -986,7 +1093,7 @@ struct ext_data_client *ext_data_connect(const char *server)
 	  FD_ZERO(&readfds);
 	  FD_SET(client->_fd,&readfds);
 	  nfd = client->_fd;
-  
+
 	  timeout.tv_sec = 2;
 	  timeout.tv_usec = 0;
 
@@ -1020,8 +1127,8 @@ struct ext_data_client *ext_data_connect(const char *server)
 	      errno = EPROTO;
 	      goto errno_return_NULL;
 	    }
-	  
-	  got += (size_t) n;	  
+
+	  got += (size_t) n;
 	}
 
       for ( ; ; )
@@ -1044,22 +1151,22 @@ struct ext_data_client *ext_data_connect(const char *server)
       // Now, connect to the data port!
 
       /* Create the socket. */
-      client->_fd_close = client->_fd = 
+      client->_fd_close = client->_fd =
 	socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
       if (client->_fd == -1)
 	goto errno_return_NULL;
-      
+
       /* Connect to the port. */
       serv_addr.sin_family = (sa_family_t) h->h_addrtype;
-      memcpy((char *) &serv_addr.sin_addr.s_addr, 
+      memcpy((char *) &serv_addr.sin_addr.s_addr,
 	     h->h_addr_list[0], (size_t) h->h_length);
       serv_addr.sin_port = portmap_msg._port;
-      
-      rc = connect(client->_fd, 
+
+      rc = connect(client->_fd,
 		   (struct sockaddr *) &serv_addr, sizeof(serv_addr));
       if (rc == -1)
 	goto errno_return_NULL;
-     
+
       /* We have successfully connected. */
 
       /* Send a 32-bit magic, to distinguish us from a possible http
@@ -1069,14 +1176,16 @@ struct ext_data_client *ext_data_connect(const char *server)
       if (!ext_data_send_magic(client))
 	goto errno_return_NULL;
 
+      client->_state = EXT_DATA_STATE_OPEN;
+
       return client;
     }
 
   /* We never come this way. */
 
  errno_return_NULL:
-  /* Free the allocated client buffer. 
-   * The data buffer also, if allocated. 
+  /* Free the allocated client buffer.
+   * The data buffer also, if allocated.
    */
   {
     int errsv = errno;
@@ -1098,6 +1207,7 @@ struct ext_data_client *ext_data_from_fd(int fd)
     return NULL; // errno already set
 
   client->_fd = fd;
+  client->_state = EXT_DATA_STATE_OPEN;
 
   return client;
 }
@@ -1110,9 +1220,36 @@ struct ext_data_client *ext_data_open_out()
     return NULL; // errno already set
 
   client->_fd = STDOUT_FILENO;
-  client->_write = 1;
+  client->_state = EXT_DATA_STATE_OPEN_OUT;
 
   return client;
+}
+
+int ext_data_nonblocking_fd(struct ext_data_client *client)
+{
+  if (!client)
+    {
+      /* client->_last_error = "Client context NULL."; */
+      errno = EFAULT;
+      return -1;
+    }
+
+  if (client->_state < EXT_DATA_STATE_SETUP_READ)
+    {
+      client->_last_error = "Client context has not had setup.";
+      errno = EFAULT;
+      return -1;
+    }
+
+  if (fcntl(client->_fd,F_SETFL,
+	    fcntl(client->_fd,F_GETFL) | O_NONBLOCK) == -1)
+    {
+      client->_last_error = "Failure making file descriptor non-blocking";
+      /* errno already set */
+      return -1;
+    }
+
+  return client->_fd;
 }
 
 const char *ext_data_extr_str(uint32_t **p, uint32_t *length_left)
@@ -1135,21 +1272,443 @@ const char *ext_data_extr_str(uint32_t **p, uint32_t *length_left)
   return str;
 }
 
+/* Handle messages that come during setup phase. */
+static int ext_data_setup_messages(struct ext_data_client *client)
+{
+  struct ext_data_client_struct *clistr = NULL;
+
+  for ( ; ; )
+    {
+      struct external_writer_buf_header *header;
+
+      header = ext_data_peek_message(client);
+
+      if (header == NULL)
+	return -1;
+
+      switch (ntohl(header->_request) & EXTERNAL_WRITER_REQUEST_LO_MASK)
+	{
+	case EXTERNAL_WRITER_BUF_OPEN_FILE:
+	  {
+	    uint32_t magic;
+	    uint32_t sort_u32_words;
+	    uint32_t *p = (uint32_t *) (header+1);
+
+	    if (ntohl(header->_length) <
+		sizeof(struct external_writer_buf_header) + 2*sizeof(uint32_t))
+	      {
+		client->_last_error =
+		  "Bad open message size during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    magic = ntohl(p[0]);
+
+	    if (magic != EXTERNAL_WRITER_MAGIC)
+	      {
+		client->_last_error =
+		  "Bad open message magic during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    sort_u32_words = ntohl(p[1]);
+	    client->_sort_u32_words = sort_u32_words;
+
+	    break;
+	  }
+
+	case EXTERNAL_WRITER_BUF_ALLOC_ARRAY:
+	  {
+	    uint32_t *p = (uint32_t *) (header+1);
+
+	    if (ntohl(header->_length) <
+		sizeof(struct external_writer_buf_header) + sizeof(uint32_t))
+	      {
+		client->_last_error =
+		  "Bad alloc message size during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    if (!clistr)
+	      {
+		client->_last_error =
+		  "Cannot handle alloc message without structure.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    clistr->_orig_struct_size = ntohl(p[0]);
+
+	    break;
+	  }
+
+	case EXTERNAL_WRITER_BUF_ARRAY_OFFSETS:
+	  {
+	    uint32_t *p = (uint32_t *) (header+1);
+
+	    if (ntohl(header->_length) <
+		sizeof(struct external_writer_buf_header) + sizeof(uint32_t))
+	      {
+		client->_last_error =
+		  "Bad array offsets message size during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    if (!clistr)
+	      {
+		client->_last_error =
+		  "Cannot handle offset message without structure.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    clistr->_orig_xor_sum_msg = ntohl(p[0]);
+
+	    /* And then follows the actual offset array... */
+
+	    /* TODO: verify that offsets match the list we have! */
+	    /* Note: if it is from a writer, there will be no offsets
+	     * (at least yet), only the xor.
+	     */
+
+	    clistr = NULL;
+
+	    break;
+	  }
+	  
+	case EXTERNAL_WRITER_BUF_BOOK_NTUPLE:
+	  {
+	    uint32_t *p = (uint32_t *) (header+1);
+
+	    uint32_t struct_index;
+	    uint32_t ntuple_index;
+	    uint32_t hid;
+	    uint32_t max_raw_words;
+
+	    const char *id = NULL;
+	    const char *title = NULL;
+	    const char *index_major = NULL;
+	    const char *index_minor = NULL;
+
+	    uint32_t length_left = ntohl(header->_length) -
+	      sizeof(struct external_writer_buf_header);
+
+	    if (length_left < 3 * sizeof(uint32_t))
+	      {
+		client->_last_error =
+		  "Bad ntuple booking message size during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    if (clistr)
+	      {
+		client->_last_error =
+		  "Cannot do ntuple booking with active structure.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    struct_index = ntohl(p[0]);
+	    ntuple_index = ntohl(p[1]);
+	    hid = ntohl(p[2]);
+	    (void) hid;
+
+	    p += 3;
+	    length_left -= 3 * sizeof(uint32_t);
+
+	    if ((int) struct_index != client->_num_structures)
+	      {
+		client->_last_error =
+		  "Ntuple structure index not in order during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    clistr = ext_data_alloc_client_struct(client);
+
+	    if (!clistr)
+	      return -1;
+
+	    if (ntuple_index == 0)
+	      {
+		if (length_left < 1 * sizeof(uint32_t))
+		  {
+		    client->_last_error =
+		      "Bad ntuple booking message size (ii) during setup.";
+		    errno = EPROTO;
+		    return -1;
+		  }
+
+		max_raw_words = ntohl(p[0]);
+		clistr->_max_raw_words = max_raw_words;
+
+		p += 1;
+		length_left -= 1 * sizeof(uint32_t);
+
+		if (ntohl(0x01020304) != 0x01020304)
+		  {
+		    /* We need a temporary array. */
+		    client->_raw_swapped = (uint32_t *)
+		      malloc (clistr->_max_raw_words * sizeof (uint32_t));
+		    if (!client->_raw_swapped)
+		      {
+			client->_last_error =
+			  "Memory allocation failure (raw swapped).";
+			errno = ENOMEM;
+			return -1;
+		      }
+		  }
+	      }
+
+	    if ((id = ext_data_extr_str(&p, &length_left)) == NULL ||
+		(title = ext_data_extr_str(&p, &length_left)) == NULL ||
+		(index_major = ext_data_extr_str(&p, &length_left)) == NULL ||
+		(index_minor = ext_data_extr_str(&p, &length_left)) == NULL)
+	      goto book_ntuple_protocol_error;
+
+	    (void) id;
+	    (void) title;
+
+	    if (ntuple_index == 0)
+	      {
+		clistr->_id = strdup(id);
+	      }
+
+	    if (length_left)
+	      goto book_ntuple_protocol_error;
+
+	    /* Retain the information to be able to handle multiple
+	     * setups, in arbitrary order.
+	     */
+	    clistr->_struct_info_msg = ext_data_struct_info_alloc();
+
+	    if (clistr->_struct_info_msg == NULL)
+	      {
+		client->_last_error =
+		  "Memory allocation failure (struct info).";
+		return -1; // errno already set
+	      }
+
+	    break;
+	  }
+	  {
+	  book_ntuple_protocol_error:
+	    client->_last_error =
+	      "Bad ntuple booking message content during setup.";
+	    errno = EPROTO;
+	    return -1;
+	  }
+
+	case EXTERNAL_WRITER_BUF_CREATE_BRANCH:
+	  {
+	    uint32_t offset;
+	    uint32_t length;
+	    uint32_t var_array_len;
+	    uint32_t var_type;
+	    uint32_t limit_min;
+	    uint32_t limit_max;
+	    uint32_t *p = (uint32_t *) (header+1);
+	    const char *block = NULL;
+	    const char *var_name = NULL;
+	    const char *var_ctrl_name = NULL;
+
+	    uint32_t length_left = ntohl(header->_length) -
+	      sizeof(struct external_writer_buf_header);
+
+	    if (length_left < 6 * sizeof(uint32_t))
+	      {
+		client->_last_error =
+		  "Bad create branch message size during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    if (!clistr)
+	      {
+		client->_last_error =
+		  "Cannot handle create branch message without structure.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    offset    = ntohl(p[0]);
+	    length    = ntohl(p[1]);
+	    var_array_len = ntohl(p[2]);
+	    var_type  = ntohl(p[3]);
+	    limit_min = ntohl(p[4]);
+	    limit_max = ntohl(p[5]);
+
+	    p += 6;
+	    length_left -= 6 * sizeof(uint32_t);
+
+	    if ((block = ext_data_extr_str(&p, &length_left)) == NULL ||
+		(var_name = ext_data_extr_str(&p, &length_left)) == NULL ||
+		(var_ctrl_name = ext_data_extr_str(&p, &length_left)) == NULL)
+	      goto create_branch_protocol_error;
+
+	    if (length_left)
+	      goto create_branch_protocol_error;
+
+	    (void) var_array_len;
+	    (void) var_type;
+            (void) limit_min;
+
+	    //printf ("Q: %s %s %s\n",block, var_name, var_ctrl_name);
+
+	    ext_data_struct_info_item(clistr->_struct_info_msg,
+				      offset, length,
+				      var_type,
+				      "", -1,
+				      var_name, var_ctrl_name,
+				      limit_max);
+
+	    break;
+	  }
+	  {
+	  create_branch_protocol_error:
+	    client->_last_error =
+	      "Bad create branch message content during setup.";
+	    errno = EPROTO;
+	    return -1;
+	  }
+
+	case EXTERNAL_WRITER_BUF_NAMED_STRING:
+	  /* fprintf (stderr, "named string ignored in setup\n"); */
+	  break;
+
+	case EXTERNAL_WRITER_BUF_NTUPLE_FILL:
+	case EXTERNAL_WRITER_BUF_DONE:
+	case EXTERNAL_WRITER_BUF_ABORT:
+	  /* Not allowed until we're set up. */
+	default:
+	  /* Unexpected message, not allowed. */
+	  client->_last_error = "Unexpected message during setup.";
+	  errno = EPROTO;
+	  return -1;
+
+	case EXTERNAL_WRITER_BUF_RESIZE:
+	  {
+	    uint32_t newsize, magic;
+	    uint32_t *p = (uint32_t *) (header+1);
+
+	    /* Resize our recieve buffer, to be able to receive the
+	     * maximum size messages that may arrive.
+	     */
+
+	    if (ntohl(header->_length) <
+		sizeof(struct external_writer_buf_header) + 2*sizeof(uint32_t))
+	      {
+		client->_last_error =
+		  "Bad resize message during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    newsize = ntohl(p[0]);
+	    magic   = ntohl(p[1]);
+
+	    if (magic != EXTERNAL_WRITER_MAGIC)
+	      {
+		client->_last_error =
+		  "Bad resize message magic during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    char *newbuf = (char *) realloc (client->_buf,newsize);
+
+	    if (!newbuf)
+	      {
+		client->_last_error =
+		  "Memory allocation failure (buf resize).";
+		errno = ENOMEM;
+		return -1;
+	      }
+
+	    client->_buf       = newbuf;
+	    client->_buf_alloc = newsize;
+
+	    /* Since we did a reallocation. */
+
+	    header = (struct external_writer_buf_header *)
+	      (client->_buf + client->_buf_used);
+	    break;
+	  }
+
+	case EXTERNAL_WRITER_BUF_SETUP_DONE:
+	case EXTERNAL_WRITER_BUF_SETUP_DONE_WR:
+	  {
+	    uint32_t *p = (uint32_t *) (header+1);
+
+	    if (ntohl(header->_length) <
+		sizeof(struct external_writer_buf_header))
+	      {
+		client->_last_error =
+		  "Bad setup done message size during setup.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    if (clistr)
+	      {
+		client->_last_error =
+		  "Cannot handle setup done with active structure.";
+		errno = EPROTO;
+		return -1;
+	      }
+
+	    (void) p;
+
+	    /* Consume the message. */
+	    client->_buf_used += ntohl(header->_length);
+
+	    /* Goto while we develop the movement of the message handling. */
+	    goto messages_done;
+	  }
+	}
+
+      /* Consume the accepted/ignored message. */
+
+      client->_buf_used += ntohl(header->_length);
+    }
+
+ messages_done:
+
+  return 0;
+}
+
 int ext_data_setup(struct ext_data_client *client,
 		   const void *struct_layout_info,size_t size_info,
 		   struct ext_data_structure_info *struct_info,
-		   size_t size_buf)
+		   size_t size_buf,
+		   const char *name_id, int *struct_id)
 {
+  struct ext_data_client_struct *clistr = NULL;
   const struct ext_data_structure_layout *slo =
     (const struct ext_data_structure_layout *) struct_layout_info;
   const struct ext_data_structure_layout_item *slo_items;
   const uint32_t *slo_pack_list;
-  struct ext_data_structure_info *struct_info_msg = NULL;
   uint32_t i;
 
   if (!client)
     {
       /* client->_last_error = "Client context NULL."; */
+      errno = EFAULT;
+      return -1;
+    }
+
+  if (client->_state < EXT_DATA_STATE_OPEN)
+    {
+      /* This error shall not happen, since to create a structure, it
+       * will be connected or opened.
+       */
+      client->_last_error =
+	"Client context has not been opened (internal error).";
       errno = EFAULT;
       return -1;
     }
@@ -1172,6 +1731,80 @@ int ext_data_setup(struct ext_data_client *client,
       errno = EFAULT;
       return -1;
     }
+
+  /* Before we start to investigate the information given, see if we
+   * can find the requested structure at all.  First thing to do is to
+   * parse the data from the server.
+   */
+
+  if (client->_state == EXT_DATA_STATE_OPEN)
+    {
+      /* To allow handling of multiple structures, the messages are only
+       * read once, and then verified.
+       */
+
+      if (ext_data_setup_messages(client) == -1)
+	return -1;
+
+      if (client->_num_structures < 1)
+	{
+	  client->_last_error = "No structure (ntuple) from server.";
+	  errno = EPROTO;
+	  return -1;
+	}
+
+      client->_state = EXT_DATA_STATE_PARSED_HEADERS;
+    }
+
+  if (client->_state == EXT_DATA_STATE_OPEN_OUT)
+    {
+      assert(client->_num_structures == 0);
+
+      clistr = ext_data_alloc_client_struct(client);
+
+      if (!clistr)
+	return -1;
+    }
+
+  if (client->_state != EXT_DATA_STATE_OPEN_OUT)
+    {
+      /* TODO: Match the name requested!!! */
+
+      if (strcmp(name_id, "") == 0)
+	{
+	  clistr = &client->_structures[0];
+	  if (struct_id)
+	    *struct_id = 0;
+	}
+      else
+	{
+	  int i;
+
+	  for (i = 0; i < client->_num_structures; i++)
+	    {
+	      struct ext_data_client_struct *clistr_chk =
+		client->_structures+i;
+
+	      if (strcmp(name_id, clistr_chk->_id) == 0)
+		{
+		  clistr = clistr_chk;
+		  if (struct_id)
+		    *struct_id = i;
+		  break;
+		}
+	    }
+	}
+
+      if (clistr == NULL)
+	{
+	  client->_last_error = "Requested structure (ntuple) "
+	    "not existing from server.";
+	  errno = ENOMSG;
+	  return -1;
+	}
+    }
+
+  /* */
 
   if (slo)
     {
@@ -1213,16 +1846,17 @@ int ext_data_setup(struct ext_data_client *client,
 
       if (slo->_size_struct != size_buf)
 	{
-	  client->_last_error = "Structure layout gives different buffer size.";
+	  client->_last_error =
+	    "Structure layout gives different buffer size.";
 	  errno = EINVAL;
 	  return -1;
 	}
-  
+
       if (slo->_items[0]._offset != 0 ||
 	  slo->_items[0]._size != size_buf)
 	{
 	  // fprintf(stderr,"err 2\n");
-	  client->_last_error = 
+	  client->_last_error =
 	    "Structure layout item 0 information inconsistent.";
 	  errno = EINVAL;
 	  return -1;
@@ -1234,7 +1868,7 @@ int ext_data_setup(struct ext_data_client *client,
 	      slo->_items[i]._offset + slo->_items[i]._size > size_buf)
 	    {
 	      // fprintf(stderr,"err 3\n");
-	      client->_last_error = 
+	      client->_last_error =
 		"Structure layout item information inconsistent.";
 	      errno = EINVAL;
 	      return -1;
@@ -1245,23 +1879,23 @@ int ext_data_setup(struct ext_data_client *client,
        * program just had it as a temporary variable).
        */
 
-      client->_pack_list = 
+      clistr->_pack_list =
 	(uint32_t *) malloc (slo->_pack_list_items * sizeof(uint32_t));
-  
-      if (!client->_pack_list)
+
+      if (!clistr->_pack_list)
 	{
 	  client->_last_error = "Memory allocation failure (pack list).";
 	  errno = ENOMEM;
 	  return -1;
 	}
 
-      client->_pack_list_end = client->_pack_list + slo->_pack_list_items;
+      clistr->_pack_list_end = clistr->_pack_list + slo->_pack_list_items;
 
       slo_items =
 	((const struct ext_data_structure_layout_item *) (slo + 1)) - 1;
       slo_pack_list = (const uint32_t *) (slo_items + slo->_num_items);
 
-      memcpy(client->_pack_list,slo_pack_list,
+      memcpy(clistr->_pack_list,slo_pack_list,
 	     slo->_pack_list_items * sizeof(uint32_t));
 
       /* Make the reverse list, to be able to quickly (directly) look any
@@ -1269,34 +1903,34 @@ int ext_data_setup(struct ext_data_client *client,
        * worst case message size.
        */
 
-      client->_reverse_pack = 
+      clistr->_reverse_pack =
 	(uint32_t *) malloc (size_buf * sizeof(uint32_t));
 
-      if (!client->_reverse_pack)
+      if (!clistr->_reverse_pack)
 	{
 	  client->_last_error = "Memory allocation failure (reverse pack).";
 	  errno = ENOMEM;
 	  return -1;
 	}
 
-      memset(client->_reverse_pack,0,size_buf * sizeof(uint32_t));
+      memset(clistr->_reverse_pack,0,size_buf * sizeof(uint32_t));
 
       // Loop over the entire offset buffer...
 
       {
-	uint32_t *o    = client->_pack_list;
-	uint32_t *oend = client->_pack_list_end;
+	uint32_t *o    = clistr->_pack_list;
+	uint32_t *oend = clistr->_pack_list_end;
 
-	client->_max_pack_items = 0;
-	client->_static_pack_items = 0;
-    
+	clistr->_max_pack_items = 0;
+	clistr->_static_pack_items = 0;
+
 	while (o < oend)
 	  {
 	    uint32_t offset_mark = *(o++);
 	    uint32_t offset = offset_mark & 0x3fffffff;
 	    uint32_t mark = offset_mark & 0x80000000;
 
-	    client->_static_pack_items++;
+	    clistr->_static_pack_items++;
 
 	    if (mark)
 	      {
@@ -1304,24 +1938,24 @@ int ext_data_setup(struct ext_data_client *client,
 		uint32_t loop_size = *(o++);
 
 		uint32_t items = max_loops * loop_size;
-	    
+
 		uint32_t *onext = o + items;
 
-		client->_max_pack_items += items;
+		clistr->_max_pack_items += items;
 
-		client->_reverse_pack[offset] = 
-		  (uint32_t) (o - client->_pack_list);
-	    
+		clistr->_reverse_pack[offset] =
+		  (uint32_t) (o - clistr->_pack_list);
+
 		o = onext;
 	      }
 	  }
-	client->_max_pack_items += client->_static_pack_items;
+	clistr->_max_pack_items += clistr->_static_pack_items;
       }
     }
 
-  client->_struct_size = size_buf;
+  clistr->_struct_size = size_buf;
 
-  if (client->_write)
+  if (client->_state == EXT_DATA_STATE_OPEN_OUT)
     {
       struct external_writer_buf_header *header;
       uint32_t *p;
@@ -1337,12 +1971,12 @@ int ext_data_setup(struct ext_data_client *client,
 	  return -1;
 	}
 
-      /* We need to allocate the write buffer. 
+      /* We need to allocate the write buffer.
        *
        * The size is limited by the pack list.  Plus the message header.
        */
 
-      size_t bufsize = client->_max_pack_items * sizeof(uint32_t) +
+      size_t bufsize = clistr->_max_pack_items * sizeof(uint32_t) +
 	sizeof(struct external_writer_buf_header) + 2 * sizeof(uint32_t);
 
       /* The other messages we send first are fixed length, and
@@ -1352,14 +1986,14 @@ int ext_data_setup(struct ext_data_client *client,
       bufsize = (bufsize + 0x1000-(uint32_t) 1) & ~(0x1000-(uint32_t) 1);
 
       client->_buf = (char *) malloc (bufsize);
-  
+
       if (!client->_buf)
 	{
 	  client->_last_error = "Memory allocation failure (buf).";
 	  errno = ENOMEM;
 	  return -1;
 	}
-      
+
       client->_buf_alloc = bufsize;
 
       /* We send some minimum messages to the recepient so that it at
@@ -1370,37 +2004,72 @@ int ext_data_setup(struct ext_data_client *client,
 
       header = (struct external_writer_buf_header *) client->_buf;
 
-      header->_request = htonl(EXTERNAL_WRITER_BUF_OPEN_FILE);
+      header->_request = htonl(EXTERNAL_WRITER_BUF_OPEN_FILE |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
       p = (uint32_t *) (header+1);
       *(p++) = htonl(EXTERNAL_WRITER_MAGIC);
+      *(p++) = htonl(0);
+      header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
+
+      // EXTERNAL_WRITER_BUF_BOOK_NTUPLE /* size */
+
+      header = (struct external_writer_buf_header *) p;
+
+      header->_request = htonl(EXTERNAL_WRITER_BUF_BOOK_NTUPLE |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
+      p = (uint32_t *) (header+1);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
+      *(p++) = htonl(0);
       header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
 
       // EXTERNAL_WRITER_BUF_ALLOC_ARRAY /* size */
 
       header = (struct external_writer_buf_header *) p;
-      
-      header->_request = htonl(EXTERNAL_WRITER_BUF_ALLOC_ARRAY);
+
+      header->_request = htonl(EXTERNAL_WRITER_BUF_ALLOC_ARRAY |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
       p = (uint32_t *) (header+1);
-      *(p++) = htonl((uint32_t) client->_struct_size);
+      *(p++) = htonl((uint32_t) clistr->_struct_size);
       header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
 
       // EXTERNAL_WRITER_BUF_RESIZE      /* tell size? */
 
       header = (struct external_writer_buf_header *) p;
-      
-      header->_request = htonl(EXTERNAL_WRITER_BUF_RESIZE);
+
+      header->_request = htonl(EXTERNAL_WRITER_BUF_RESIZE |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
       p = (uint32_t *) (header+1);
       *(p++) = htonl((uint32_t) bufsize);
       *(p++) = htonl(EXTERNAL_WRITER_MAGIC);
       header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
 
+      // EXTERNAL_WRITER_BUF_ARRAY_OFFSETS
+
+      header = (struct external_writer_buf_header *) p;
+
+      header->_request = htonl(EXTERNAL_WRITER_BUF_ARRAY_OFFSETS |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
+      p = (uint32_t *) (header+1);
+      *(p++) = htonl(slo->_items[0]._xor);
+      header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
+
       // EXTERNAL_WRITER_BUF_SETUP_DONE_WR
 
       header = (struct external_writer_buf_header *) p;
-      
-      header->_request = htonl(EXTERNAL_WRITER_BUF_SETUP_DONE_WR);
+
+      header->_request = htonl(EXTERNAL_WRITER_BUF_SETUP_DONE_WR |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
       p = (uint32_t *) (header+1);
-      *(p++) = htonl(slo->_items[0]._xor);
       header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
 
       // And then dump it to the reader - after this, we'll start to
@@ -1409,362 +2078,89 @@ int ext_data_setup(struct ext_data_client *client,
       client->_buf_filled = (size_t) (((char *) p) - ((char *) client->_buf));
 
       /* It's ok to start writing data. */
-      client->_setup = 1;
+      client->_state = EXT_DATA_STATE_SETUP_WRITE;
 
       if (ext_data_flush_buffer(client) != 0)
 	return -1; // errno already set
-      
+
       return 0;
     }
 
-  if (struct_info)
-    {
-      struct_info_msg = ext_data_struct_info_alloc();
-
-      if (struct_info_msg == NULL)
-	{
-	  client->_last_error = "Memory allocation failure (struct info).";
-	  return -1; // errno already set
-	}
-    }
-  
   /* Before we're happy with the server, we want to see the magic and
    * the setup done event, so that the structure xor_sum can be
    * verified.
    */
 
-  for ( ; ; )
+  /* Now do the checking. */
+
+  if (!struct_info &&
+      clistr->_struct_size != clistr->_orig_struct_size)
     {
-      struct external_writer_buf_header *header;
+      client->_last_error =
+	"Bad alloc message struct size during setup.";
+      errno = EPROTO;
+      return -1;
+    }
 
-      header = ext_data_peek_message(client);
-
-      if (header == NULL)
-	return -1;
-
-      switch (ntohl(header->_request))
+  if (slo)
+    {
+      /*
+      fprintf (stderr,
+	       "xor: %x vx %x\n",
+	       slo->_items[0]._xor,clistr->_orig_xor_sum_msg);
+      */
+      if (slo->_items[0]._xor != clistr->_orig_xor_sum_msg)
 	{
-	case EXTERNAL_WRITER_BUF_OPEN_FILE:
-	  {
-	    uint32_t magic;
-	    uint32_t *p = (uint32_t *) (header+1);
-	    
-	    if (ntohl(header->_length) < 
-		sizeof(struct external_writer_buf_header) + sizeof(uint32_t))
-	      {
-		client->_last_error =
-		  "Bad open message size during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-	    
-	    magic = ntohl(p[0]);
-
-	    if (magic != EXTERNAL_WRITER_MAGIC)
-	      {
-		client->_last_error =
-		  "Bad open message magic during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-
-	    break;
-	  }
-
-	case EXTERNAL_WRITER_BUF_ALLOC_ARRAY:
-	  {
-	    uint32_t *p = (uint32_t *) (header+1);
-
-	    if (ntohl(header->_length) < 
-		sizeof(struct external_writer_buf_header) + sizeof(uint32_t))
-	      {
-		client->_last_error =
-		  "Bad alloc message size during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-
-	    client->_orig_struct_size = ntohl(p[0]);
-
-	    if (!struct_info &&
-		client->_struct_size != ntohl(p[0]))
-	      {
-		client->_last_error =
-		  "Bad alloc message struct size during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-	    
-	    break;
-	  }
-
-	case EXTERNAL_WRITER_BUF_ARRAY_OFFSETS:
-	  // TODO: verify that offsets match the list we have!
-	  break;
-
-	case EXTERNAL_WRITER_BUF_BOOK_NTUPLE:
-	  {
-	    uint32_t *p = (uint32_t *) (header+1);
-
-	    uint32_t ntuple_index;
-	    uint32_t sort_u32_words;
-	    uint32_t max_raw_words;
-
-	    uint32_t length_left = ntohl(header->_length) -
-	      sizeof(struct external_writer_buf_header);
-
-	    if (length_left < 2 * sizeof(uint32_t))
-	      {
-		client->_last_error =
-		  "Bad ntuple booking message size during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-
-	    ntuple_index = ntohl(p[0]);
-	    // hid = ntohl(p[1]);
-
-	    if (ntuple_index == 0)
-	      {
-		if (length_left < 4 * sizeof(uint32_t))
-		  {
-		    client->_last_error =
-		      "Bad ntuple booking message size (ii) during setup.";
-		    errno = EPROTO;
-		    return -1;
-		  }
-
-		sort_u32_words = ntohl(p[2]);
-		client->_sort_u32_words = sort_u32_words;
-
-		max_raw_words = ntohl(p[3]);
-		client->_max_raw_words = max_raw_words;
-
-		if (ntohl(0x01020304) != 0x01020304)
-		  {
-		    /* We need a temporary array. */
-		    client->_raw_swapped = (uint32_t *)
-		      malloc (client->_max_raw_words * sizeof (uint32_t));
-		    if (!client->_raw_swapped)
-		      {
-			client->_last_error =
-			  "Memory allocation failure (raw swapped).";
-			errno = ENOMEM;
-			return -1;
-		      }
-		  }
-	      }
-	  }
-	  break;
-
-	case EXTERNAL_WRITER_BUF_CREATE_BRANCH:
-	  if (!struct_info)
-	    break;
-
-	  {
-	    uint32_t offset;
-	    uint32_t length;
-	    uint32_t var_array_len;
-	    uint32_t var_type;
-	    uint32_t limit_min;
-	    uint32_t limit_max;
-	    uint32_t *p = (uint32_t *) (header+1);
-	    const char *block = NULL;
-	    const char *var_name = NULL;
-	    const char *var_ctrl_name = NULL;
-
-	    uint32_t length_left = ntohl(header->_length) -
-	      sizeof(struct external_writer_buf_header);
-
-	    if (length_left < 6 * sizeof(uint32_t))
-	      {
-		client->_last_error =
-		  "Bad create branch message size during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-
-	    offset    = ntohl(p[0]);
-	    length    = ntohl(p[1]);
-	    var_array_len = ntohl(p[2]);
-	    var_type  = ntohl(p[3]);
-	    limit_min = ntohl(p[4]);
-	    limit_max = ntohl(p[5]);
-
-	    p += 6;
-	    length_left -= 6 * sizeof(uint32_t);
-
-	    if ((block = ext_data_extr_str(&p, &length_left)) == NULL ||
-		(var_name = ext_data_extr_str(&p, &length_left)) == NULL ||
-		(var_ctrl_name = ext_data_extr_str(&p, &length_left)) == NULL)
-	      goto protocol_error;
-	    
-	    (void) var_array_len;
-	    (void) var_type;
-            (void) limit_min;
-
-	    //printf ("Q: %s %s %s\n",block, var_name, var_ctrl_name);
-
-	    ext_data_struct_info_item(struct_info_msg,
-				      offset, length,
-				      var_type,
-				      "", -1,
-				      var_name, var_ctrl_name,
-				      limit_max);
-
-	    break;
-	  }
-	  {
-	  protocol_error:
-	    client->_last_error =
-	      "Bad create branch message content during setup.";
-	    errno = EPROTO;
-	    return -1;
-	  }
-
-	case EXTERNAL_WRITER_BUF_NAMED_STRING:
-	  /* fprintf (stderr, "named string ignored in setup\n"); */
-	  break;
-      
-	case EXTERNAL_WRITER_BUF_NTUPLE_FILL:
-	case EXTERNAL_WRITER_BUF_DONE:
-	case EXTERNAL_WRITER_BUF_ABORT:
-	  /* Not allowed until we're set up. */
-	default:
-	  /* Unexpected message, not allowed. */
-	  client->_last_error = "Unexpected message during setup.";
+	  /*
+	  fprintf(stderr,"mismatch %x vs %x\n",
+		  slo->_items[0]._xor, clistr->_orig_xor_sum_msg);
+	  */
+	  client->_last_error =
+	    "Bad setup done message xor vs. provided during setup.";
 	  errno = EPROTO;
 	  return -1;
-	  
-	case EXTERNAL_WRITER_BUF_RESIZE:
-	  {
-	    uint32_t newsize, magic;
-	    uint32_t *p = (uint32_t *) (header+1);
-	    
-	    /* Resize our recieve buffer, to be able to receive the
-	     * maximum size messages that may arrive.
-	     */
-	  
-	    if (ntohl(header->_length) < 
-		sizeof(struct external_writer_buf_header) + 2*sizeof(uint32_t))
-	      {
-		client->_last_error =
-		  "Bad resize message during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-	    
-	    newsize = ntohl(p[0]);
-	    magic   = ntohl(p[1]);
-	    
-	    if (magic != EXTERNAL_WRITER_MAGIC)
-	      {
-		client->_last_error =
-		  "Bad resize message magic during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-
-	    char *newbuf = (char *) realloc (client->_buf,newsize);
-
-	    if (!newbuf)
-	      {
-		client->_last_error =
-		  "Memory allocation failure (buf resize).";
-		errno = ENOMEM;
-		return -1;
-	      }
-	    
-	    client->_buf       = newbuf;
-	    client->_buf_alloc = newsize;
-
-	    /* Since we did a reallocation. */
-	    
-	    header = (struct external_writer_buf_header *) 
-	      (client->_buf + client->_buf_used);
-	    break;
-	  }  
-
-	case EXTERNAL_WRITER_BUF_SETUP_DONE:
-	case EXTERNAL_WRITER_BUF_SETUP_DONE_WR:
-	  {
-	    uint32_t xor_sum_msg;
-	    uint32_t *p = (uint32_t *) (header+1);
-	    
-	    if (ntohl(header->_length) < 
-		sizeof(struct external_writer_buf_header) + sizeof(uint32_t))
-	      {
-		client->_last_error =
-		  "Bad setup done message size during setup.";
-		errno = EPROTO;
-		return -1;
-	      }
-	    
-	    xor_sum_msg = ntohl(p[0]);
-
-	    if (slo)
-	      {
-		if (xor_sum_msg != slo->_items[0]._xor)
-		  {
-		    client->_last_error =
-		      "Bad setup done message xor during setup.";
-		    errno = EPROTO;
-		    return -1;
-		  }
-	      }
-
-	    /* Consume the message. */	    
-	    client->_buf_used += ntohl(header->_length);
-
-	    if (struct_info)
-	      {
-		int ret;
-		int all_to_same_from;
-
-		/* Create mapping between the two structures. */
-
-		ret = ext_data_struct_match_items(client,
-						  struct_info_msg,
-						  struct_info,
-						  &all_to_same_from);
-
-		if (ret)
-		  return ret; /* -1 ? */
-
-		ext_data_struct_info_free(struct_info_msg);
-
-		/* We as an optimisation do *not* use the temporary
-		 * orig_array buffer if we have an exact structure
-		 * match.  It must also match in size.
-		 */
-
-		if (!all_to_same_from ||
-		    client->_orig_struct_size != client->_struct_size)
-		  {
-		    client->_orig_array = malloc (client->_orig_struct_size);
-
-		    if (client->_orig_array == NULL)
-		      {
-			client->_last_error =
-			  "Memory allocation failure (orig array).";
-			errno = ENOMEM;
-			return -1;
-		      }
-		  }
-	      }
-
-
-	    /* It's ok to read data. */
-	    client->_setup = 1;
-
-	    return 0;
-	  }
 	}
-
-      /* Consume the accepted/ignored message. */
-
-      client->_buf_used += ntohl(header->_length);
     }
+
+  if (struct_info)
+    {
+      int ret;
+      int all_to_same_from;
+
+      /* Create mapping between the two structures. */
+
+      ret = ext_data_struct_match_items(client, clistr,
+					clistr->_struct_info_msg,
+					struct_info,
+					&all_to_same_from);
+
+      if (ret)
+	return ret; /* -1 ? */
+
+      /* We as an optimisation do *not* use the temporary
+       * orig_array buffer if we have an exact structure
+       * match.  It must also match in size.
+       */
+
+      if (!all_to_same_from ||
+	  clistr->_orig_struct_size != clistr->_struct_size)
+	{
+	  clistr->_orig_array = malloc (clistr->_orig_struct_size);
+
+	  if (clistr->_orig_array == NULL)
+	    {
+	      client->_last_error =
+		"Memory allocation failure (orig array).";
+	      errno = ENOMEM;
+	      return -1;
+	    }
+	}
+    }
+
+  /* It's ok to read data. */
+  client->_state = EXT_DATA_STATE_SETUP_READ;
+
+  return 0;
 }
 
 /* This function is for internal use.  It is shared with the
@@ -1774,7 +2170,7 @@ int ext_data_setup(struct ext_data_client *client,
 int ext_data_write_bitpacked_event(char *dest,size_t dest_size,
 				   uint8_t *src,uint8_t *end_src)
 {
-  uint32_t offset = 0;  
+  uint32_t offset = 0;
 
   for ( ; src < end_src; )
     {
@@ -1822,7 +2218,7 @@ int ext_data_write_bitpacked_event(char *dest,size_t dest_size,
 	}
 	case 3:
 	  offset += ((uint32_t) (v & 0x0f)) << shift_offset;
-	  // Next is a trick, if *(src++) & 0x10, 
+	  // Next is a trick, if *(src++) & 0x10,
 	  // the value will be shifted out -> 0 remains
 	  value = (uint32_t) 0x7fc00000 << (v & 0x10);
 	  //fprintf(stderr,"WBP:3: @ 0x%08x : 0x%08x\n",
@@ -1855,56 +2251,68 @@ int ext_data_write_packed_event(struct ext_data_client *client,
 				char *dest,
 				uint32_t *src,uint32_t *end_src)
 {
+  const struct ext_data_client_struct *clistr;
+
   uint32_t *p    = src;
   uint32_t *pend = end_src;
 
-  uint32_t *o    = client->_pack_list;
-  uint32_t *oend = client->_pack_list_end;
+  uint32_t *o;
+  uint32_t *oend;
 
-  if (pend - p < (ssize_t) client->_static_pack_items)
+  int struct_id = 0;
+
+  if (struct_id >= client->_num_structures)
+    return -5;
+
+  clistr = &client->_structures[struct_id];
+
+  o    = clistr->_pack_list;
+  oend = clistr->_pack_list_end;
+
+  if (pend - p < (ssize_t) clistr->_static_pack_items)
     return -1;
-  
-  uint32_t *pcheck = p + client->_static_pack_items;
-  
+
+  uint32_t *pcheck = p + clistr->_static_pack_items;
+
   while (o < oend)
     {
       uint32_t offset_mark = *(o++);
       uint32_t offset = offset_mark & 0x3fffffff;
       uint32_t mark = offset_mark & 0x80000000;
       uint32_t value = ntohl(*(p++));
-      
+
       *((uint32_t *) (dest + offset)) = value;
-      
+
       if (mark)
 	{
 	  uint32_t max_loops = *(o++);
 	  uint32_t loop_size = *(o++);
-	  
+
 	  uint32_t *onext = o + max_loops * loop_size;
-	  
+
 	  if (value > max_loops)
 	    return -2;
-	  
+
 	  uint32_t items = value * loop_size;
 	  uint32_t i;
 
 	  if (pend - pcheck < (ssize_t) items)
 	    return -3;
-	  
+
 	  pcheck += items;
-	  
+
 	  for (i = items; i; i--)
 	    {
 	      offset = (*(o++)) & 0x3fffffff;
 	      value = ntohl(*(p++));
-	      
+
 	      *((uint32_t *) (dest + offset)) = value;
 	    }
-	  
+
 	  o = onext;
 	}
     }
-  
+
   if (p != pend)
     return -4;
 
@@ -1912,16 +2320,137 @@ int ext_data_write_packed_event(struct ext_data_client *client,
 }
 
 
+/* Handle messages up to the next ntuple fill event. */
+static int
+ext_data_fetch_event_message(struct ext_data_client *client,
+			     struct external_writer_buf_header **get_header,
+			     uint32_t *struct_index)
+{
+  /* Data read from the source until we have an entire message. */
+  struct external_writer_buf_header *header;
+
+  header = ext_data_peek_message(client);
+
+  *get_header = header;
+
+  if (header == NULL)
+    return -1; /* errno already set */
+
+  uint32_t length = ntohl(header->_length);
+
+  switch (ntohl(header->_request) & EXTERNAL_WRITER_REQUEST_LO_MASK)
+    {
+    case EXTERNAL_WRITER_BUF_DONE:
+    case EXTERNAL_WRITER_BUF_ABORT:
+      /* In either case, we're out of data.  Not consumed. */
+      return 0;
+
+    case EXTERNAL_WRITER_BUF_NAMED_STRING:
+      /* This one should be part of the init, i.e. not appear here. */
+      errno = EPROTO;
+      client->_last_error = "Named string in fetch, after setup.";
+      return -1;
+
+    default:
+      /* Unexpected message, not allowed.  Not consumed. */
+      errno = EPROTO;
+      client->_last_error = "Unexpected message in fetch.";
+      return -1;
+
+    case EXTERNAL_WRITER_BUF_NTUPLE_FILL:
+      {
+	uint32_t *p = (uint32_t *) (header+1);
+	uint32_t *end = (uint32_t *) (((char*) header) + length);
+
+	if (p + (client->_sort_u32_words + 3) > end)
+	  {
+	    client->_last_error = "Event message too short for headers.";
+	    errno = EBADMSG;
+	    return -1;
+	  }
+
+	p += client->_sort_u32_words;
+
+	*struct_index = ntohl(*(p++));
+
+	if (*struct_index >= (uint32_t) client->_num_structures)
+	  {
+	    client->_last_error = "Event structure index outside bounds.";
+	    errno = EBADMSG;
+	    return -1;
+	  }
+
+	return 1;
+      }
+    }
+}
+
+int ext_data_next_event(struct ext_data_client *client,
+			int *struct_id)
+{
+  uint32_t struct_index;
+
+  if (!client)
+    {
+      /* client->_last_error = "Client context NULL."; */
+      errno = EFAULT;
+      return -1;
+    }
+
+  if (client->_state != EXT_DATA_STATE_SETUP_READ)
+    {
+      client->_last_error = "Client context has not had setup (for reading).";
+      errno = EFAULT;
+      return -1;
+    }
+
+  for ( ; ; )
+    {
+      struct external_writer_buf_header *header;
+
+      int ret = ext_data_fetch_event_message(client, &header, &struct_index);
+
+      if (ret != 1)
+	return ret;
+
+      if (client->_fetched_event)
+	{
+	  /* We shall discard one event first. */
+
+	  uint32_t length = ntohl(header->_length);
+
+	  client->_buf_used += length;
+
+	  client->_fetched_event = 0;
+	  continue;
+	}
+      break;
+    }
+
+  *struct_id = (int) struct_index;
+
+  client->_fetched_event = 1;
+
+  return 1;
+}
+
 int ext_data_fetch_event(struct ext_data_client *client,
 			 void *buf,size_t size
+#if !STRUCT_WRITER
+			 ,int struct_id
+#endif
 #if STRUCT_WRITER
 			 ,struct external_writer_buf_header **header_in
 			 ,uint32_t *length_in
 #endif
 			 )
 {
+  const struct ext_data_client_struct *clistr;
+#if STRUCT_WRITER
+  int struct_id = 0; /* fix to accept whatever event, call next_event */
+#endif
+
   /* Data read from the source until we have an entire message. */
-  
   struct external_writer_buf_header *header;
 
   if (!client)
@@ -1929,24 +2458,25 @@ int ext_data_fetch_event(struct ext_data_client *client,
       /* client->_last_error = "Client context NULL."; */
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (!client->_setup)
+  if (client->_state != EXT_DATA_STATE_SETUP_READ)
     {
-      client->_last_error = "Client context has not had setup.";
+      client->_last_error = "Client context has not had setup (for reading).";
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (client->_write)
+  if (struct_id < 0 || struct_id >= client->_num_structures)
     {
-      client->_last_error = "Client context setup for writing "
-	"instead of reading.";
-      errno = EFAULT;
+      client->_last_error = "Request for non-existing structure index (key).";
+      errno = EINVAL;
       return -1;
-    }    
+    }  
 
-  if (size != client->_struct_size)
+  clistr = &client->_structures[struct_id];
+
+  if (size != clistr->_struct_size)
     {
       client->_last_error = "Buffer size mismatch.";
       errno = EINVAL;
@@ -1956,188 +2486,202 @@ int ext_data_fetch_event(struct ext_data_client *client,
   client->_raw_ptr = NULL;
   client->_raw_words = 0;
 
-  header = ext_data_peek_message(client);
-  
-  if (header == NULL)
-    return -1; /* errno already set */
-  
-  /* So, try to treat the message. 
+  /* So, try to treat the message.
    *
    * Note that we ignore most messages, and only partially treat some.
-   * 
-   * We do however make sure that (given correctness of the buf and
+   */
+
+  for ( ; ; )
+    {
+      uint32_t struct_index = -1; /* make compiler happy */
+
+      int ret = ext_data_fetch_event_message(client, &header, &struct_index);
+
+      uint32_t length = ntohl(header->_length);
+
+      if (ret == 0)
+	{
+#ifdef STRUCT_WRITER
+
+	  *header_in = header;
+	  *length_in = length;
+#endif
+	  return 0;
+	}
+
+      if (ret != 1)
+	return ret;
+
+      if (struct_index != (uint32_t) struct_id)
+	{
+	  /* Discard this event. */
+	  client->_buf_used += length;
+	  continue;
+	}
+
+      /* This event is for us. */
+      break;
+    }
+
+  /* We do however make sure that (given correctness of the buf and
    * size parameters, this function can never crash on bad network
    * input, but rather produces some error message).
    */
-  
+
   uint32_t length = ntohl(header->_length);
 
-  switch (ntohl(header->_request))
-    {
-    case EXTERNAL_WRITER_BUF_DONE:
-    case EXTERNAL_WRITER_BUF_ABORT:
-      /* In either case, we're out of data.  Not consumed. */
-#ifdef STRUCT_WRITER
-      *header_in = header;
-      *length_in = length;
-#endif
-      return 0;
-      
-    case EXTERNAL_WRITER_BUF_NAMED_STRING:
-      /* This one should be part of the init, i.e. not appear here. */
-      errno = EPROTO;
-      client->_last_error = "Named string in fetch, after setup.";
-      return -1;
-
-    case EXTERNAL_WRITER_BUF_NTUPLE_FILL:
-      {
-	/* The main message, prompting fill of the structure.
-	 */
+  assert ((ntohl(header->_request) & EXTERNAL_WRITER_REQUEST_LO_MASK) ==
+	  EXTERNAL_WRITER_BUF_NTUPLE_FILL);
+  
+  {
+    /* The main message, prompting fill of the structure.
+     */
 #if 0
-	uint32_t *p   = (uint32_t *) (header+1);
-	uint32_t *end = (uint32_t *) (((char*) header) + 
-				      ntohl(header->_length));
-#endif	
+    uint32_t *p   = (uint32_t *) (header+1);
+    uint32_t *end = (uint32_t *) (((char*) header) +
+				  ntohl(header->_length));
+#endif
 
-	uint32_t *p = (uint32_t *) (header+1);
-	uint32_t *end = (uint32_t *) (((char*) header) + length);
-	uint8_t *start;
-	uint32_t ntuple_index;
-	uint32_t marker, real_len;
+    uint32_t *p = (uint32_t *) (header+1);
+    uint32_t *end = (uint32_t *) (((char*) header) + length);
+    uint8_t *start;
+    uint32_t struct_index;
+    uint32_t ntuple_index;
+    uint32_t marker, compact_marker, real_len;
 
-	char *unpack_buf = (char *) buf;
-	size_t unpack_size = size;
-	
-	if (client->_orig_array)
+    char *unpack_buf = (char *) buf;
+    size_t unpack_size = size;
+
+    if (p + (client->_sort_u32_words + 3) > end)
+      {
+	client->_last_error = "Event message too short for headers.";
+	errno = EBADMSG;
+	return -1;
+      }
+
+    p += client->_sort_u32_words;
+
+    struct_index = ntohl(*(p++));
+    ntuple_index = ntohl(*(p++));
+
+    // printf ("index: %d\n",ntuple_index);
+
+    (void) struct_index; /* Handled above. */
+
+    if (ntuple_index != 0)
+      {
+	client->_last_error = "Non-zero ntuple_index - "
+	  "do not know how to handle.";
+	/* Or rather, do not know if it is properly propagated. */
+	/* Especially to a struct_writer continuation server. */
+	errno = EBADMSG;
+	return -1;
+      }
+
+    if (clistr->_orig_array)
+      {
+	unpack_buf = (char *) clistr->_orig_array;
+	unpack_size = clistr->_orig_struct_size;
+      }
+
+    if (clistr->_max_raw_words)
+      {
+	client->_raw_words = ntohl(*(p++));
+
+	if (p + (client->_raw_words + 1) > end)
 	  {
-	    unpack_buf = (char *) client->_orig_array;
-	    unpack_size = client->_orig_struct_size;
-	  }
-
-	if (p + (client->_sort_u32_words + 2) > end)
-	  {
-	    client->_last_error = "Event message too short for headers.";
+	    client->_last_error = "Event message too short for raw data.";
 	    errno = EBADMSG;
 	    return -1;
 	  }
 
-	p += client->_sort_u32_words;
-	
-	ntuple_index = ntohl(*(p++));
+	client->_raw_ptr = p;
+	p += client->_raw_words;
+      }
 
-	// printf ("index: %d\n",ntuple_index);
+    marker = ntohl(*(p++));
+    compact_marker = marker & 0xc0000000;
 
-	if (ntuple_index != 0)
-	  {
-	    client->_last_error = "Non-zero ntuple_index - "
-	      "do not know how to handle.";
-	    /* Or rather, do not know if it is properly propagated. */
-	    /* Especially to a struct_writer continuation server. */
-	    errno = EBADMSG;
-	    return -1;    
-	  }
+    if (compact_marker != 0x80000000 &&
+	compact_marker != 0x40000000)
+      {
+	client->_last_error = "Compact marker invalid.";
+	errno = EBADMSG;
+	return -1;
+      }
 
-	if (client->_max_raw_words)
-	  {
-	    client->_raw_words = ntohl(*(p++));
+    if (compact_marker & 0x40000000)
+      {
+	/* It is not bit-packed.  Use the pack list.
+	 */
 
-	    if (p + (client->_raw_words + 1) > end)
-	      {
-		client->_last_error = "Event message too short for raw data.";
-		errno = EBADMSG;
-		return -1;
-	      }
+	client->_buf_used += length;
 
-	    client->_raw_ptr = p;
-	    p += client->_raw_words;	    
-	  }
-
-	marker = ntohl(*(p++));
-
-	if (marker == 0)
-	  {
-	    /* It is not bit-packed.  Use the pack list.
-	     */
-
-	    client->_buf_used += length;
-	    
 #ifdef STRUCT_WRITER
-	    /* We actually do not want to get it unpacked for us.  We will
-	     * handle it ourselves.
-	     */
-	    *header_in = header;
-	    *length_in = length;
-	    return 2;
+	/* We actually do not want to get it unpacked for us.  We will
+	 * handle it ourselves.
+	 */
+	*header_in = header;
+	*length_in = length;
+	return 2;
 #endif
 
-	    if (ext_data_write_packed_event(client,unpack_buf,
-					    p,end))
-	      {
-		client->_last_error = "Event message unpack failure.";
-		errno = EBADMSG;
-		return -1;
-	      }
-	  }
-	else
+	if (ext_data_write_packed_event(client,unpack_buf,
+					p,end))
 	  {
-	    int ret;
-
-	    if (!(marker & 0x80000000))
-	      {
-		client->_last_error = "Event message not packed.";
-		errno = EBADMSG;
-		return -1;
-	      }
-
-	    real_len = marker & 0x7fffffff;
-
-	    if ((end - p) * sizeof (uint32_t) !=
-		((real_len + 3) & (uint32_t) ~3))
-	      {
-		client->_last_error = "Event message packed length mismatch.";
-		errno = EBADMSG;
-		return -1;
-	      }
-	    
-	    /* Either we strike an error or not, we declare this event
-	     * as consumed.  Note: there is not much sense for clients
-	     * to continue, and they can anyhow not distinguish the
-	     * error message from other (more fatal) failures that give
-	     * the same error code.
-	     */
-	
-	    client->_buf_used += length;
-
-	    start = (uint8_t *) p;
-		
-	    ret = ext_data_write_bitpacked_event(unpack_buf,
-						 unpack_size,
-						 start,start + real_len);
-
-	    if (ret)
-	      {
-		client->_last_error = "Event message bit-unpack failure.";
-		errno = EBADMSG;
-		return -1;
-	      }
+	    client->_last_error = "Event message unpack failure.";
+	    errno = EBADMSG;
+	    return -1;
 	  }
+      }
+    else
+      {
+	int ret;
 
-	if (client->_orig_array)
+	real_len = marker & 0x3fffffff;
+
+	if ((end - p) * sizeof (uint32_t) !=
+	    ((real_len + 3) & (uint32_t) ~3))
 	  {
-	    ext_data_struct_map_items(client,
-				      (char *) buf,
-				      (char *) unpack_buf);	    
+	    client->_last_error = "Event message packed length mismatch.";
+	    errno = EBADMSG;
+	    return -1;
 	  }
-	
-	/* We got an event! */
-	return 1;
-      }  
-    }
-  
-  /* Unexpected message, not allowed.  Not consumed. */
-  errno = EPROTO;
-  client->_last_error = "Unexpected message.";
-  return -1;
+
+	/* Either we strike an error or not, we declare this event
+	 * as consumed.  Note: there is not much sense for clients
+	 * to continue, and they can anyhow not distinguish the
+	 * error message from other (more fatal) failures that give
+	 * the same error code.
+	 */
+
+	client->_buf_used += length;
+
+	start = (uint8_t *) p;
+
+	ret = ext_data_write_bitpacked_event(unpack_buf,
+					     unpack_size,
+					     start,start + real_len);
+
+	if (ret)
+	  {
+	    client->_last_error = "Event message bit-unpack failure.";
+	    errno = EBADMSG;
+	    return -1;
+	  }
+      }
+
+    if (clistr->_orig_array)
+      {
+	ext_data_struct_map_items(clistr,
+				  (char *) buf,
+				  (char *) unpack_buf);
+      }
+
+    client->_fetched_event = 0;
+    /* We got an event! */
+    return 1;
+  }
 }
 
 int ext_data_get_raw_data(struct ext_data_client *client,
@@ -2180,7 +2724,7 @@ int ext_data_get_raw_data(struct ext_data_client *client,
 	*(d32++) = ntohl(*(s32++));
 
       client->_raw_ptr = client->_raw_swapped;
-    }  
+    }
 
   *raw = client->_raw_ptr;
   *raw_words = client->_raw_words;
@@ -2188,35 +2732,48 @@ int ext_data_get_raw_data(struct ext_data_client *client,
 }
 
 int ext_data_clear_event(struct ext_data_client *client,
-			 void *buf,size_t size,int clear_zzp_lists)
+			 void *buf,size_t size,int clear_zzp_lists,
+			 int struct_id)
 {
+  const struct ext_data_client_struct *clistr;
+
   uint32_t *o, *oend;
   char *b;
 
   /* Data read from the source until we have an entire message. */
-  
+
   if (!client)
     {
       /* client->_last_error = "Client context NULL."; */
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (!client->_setup)
+  if (client->_state != EXT_DATA_STATE_SETUP_READ &&
+      client->_state != EXT_DATA_STATE_SETUP_WRITE)
     {
       client->_last_error = "Client context has not had setup.";
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (size != client->_struct_size)
+  if (struct_id < 0 || struct_id >= client->_num_structures)
+    {
+      client->_last_error = "Request for non-existing structure index (key).";
+      errno = EINVAL;
+      return -1;
+    }  
+
+  clistr = &client->_structures[struct_id];
+
+  if (size != clistr->_struct_size)
     {
       client->_last_error = "Buffer size mismatch.";
       errno = EINVAL;
       return -1;
     }
 
-  if (!client->_pack_list)
+  if (!clistr->_pack_list)
     {
       /* Setup was called without struct_layout_info (i.e. only with
        * struct_info) - we have no pack list, so do not know where
@@ -2233,48 +2790,48 @@ int ext_data_clear_event(struct ext_data_client *client,
   /* Run through the offset list and clean the data structure.
    */
 
-  o    = client->_pack_list;
-  oend = client->_pack_list_end;
+  o    = clistr->_pack_list;
+  oend = clistr->_pack_list_end;
 
   b = (char*) buf;
-    
+
   while (o < oend)
     {
       uint32_t offset_mark = *(o++);
       uint32_t offset = offset_mark & 0x3fffffff;
       uint32_t mark = offset_mark & 0x80000000;
       uint32_t clear_nan_zero = offset_mark & 0x40000000;
-      
+
       // Dirty trick with the NaN clearing, to avoid branching.  If
       // marker (bit 30) shifted down to bit 4, i.e. value 16 is set,
       // then we'll shift the NaN bits out and the value used for
       // clearing will be 0.
-      (*((uint32_t *) (b + offset))) = 
+      (*((uint32_t *) (b + offset))) =
 	(uint32_t) 0x7fc00000 << (clear_nan_zero >> 26);
-      
+
       if (mark)
 	{
 	  // It's a loop control.  Make sure the value was within
 	  // limits.
-	  
+
 	  uint32_t max_loops = *(o++);
 	  uint32_t loop_size = *(o++);
-	  
+
 	  uint32_t *onext = o + max_loops * loop_size;
 
 	  if (clear_zzp_lists)
 	    {
 	      uint32_t items = max_loops * loop_size;
 	      uint32_t i;
-	      
+
 	      for (i = items; i; i--)
 		{
 		  uint32_t item_offset_mark = *(o++);
 		  uint32_t item_offset = item_offset_mark & 0x3fffffff;
 		  uint32_t item_clear_nan_zero = item_offset_mark & 0x40000000;
-		  
+
 		  // Dirty trick (nan <-> zero)...
-		  (*((uint32_t *) (b + item_offset))) = 
+		  (*((uint32_t *) (b + item_offset))) =
 		    (uint32_t) 0x7fc00000 << (item_clear_nan_zero >> 26);
 		}
 	    }
@@ -2287,8 +2844,11 @@ int ext_data_clear_event(struct ext_data_client *client,
 
 
 void ext_data_clear_zzp_lists(struct ext_data_client *client,
-			      void *buf,void *item)
+			      void *buf,void *item,
+			      int struct_id)
 {
+  const struct ext_data_client_struct *clistr;
+
   uint32_t *o;
   char *b;
   uint32_t value;
@@ -2308,45 +2868,47 @@ void ext_data_clear_zzp_lists(struct ext_data_client *client,
   // look-up table for the control items to find the associated offset
   // item in the pack list.  Then clear so many values.
 
+  clistr = &client->_structures[struct_id];
+
   b = (char*) buf;
 
   item_offset = (int) ((char *) item - (char *) buf);
-  
-  item_info = client->_reverse_pack[item_offset];
 
-  o = client->_pack_list + item_info;
+  item_info = clistr->_reverse_pack[item_offset];
+
+  o = clistr->_pack_list + item_info;
 
   value = *((uint32_t *) item);
 
   // It's a loop control.  Make sure the value was within
   // limits.
-  
+
   uint32_t max_loops = *(o++);
   uint32_t loop_size = *(o++);
-  
+
   // This will put an end to things!
   if (value > max_loops)
     {
       // Just clamp the value here.  The write / pack routine will
       // also detect the error, and return it as a fault.
-      
+
       // No use in setting error message, as we will not report it.
       // client->_last_error = "Array ctrl item value out of bounds.";
 
       value = max_loops;
     }
-  
+
   uint32_t items = value * loop_size;
   uint32_t i;
-  
+
   for (i = items; i; i--)
     {
       uint32_t offset_mark = *(o++);
       uint32_t offset = offset_mark & 0x3fffffff;
       uint32_t clear_nan_zero = offset_mark & 0x40000000;
-      
+
       // Dirty trick (nan <-> zero)...
-      (*((uint32_t *) (b + offset))) = 
+      (*((uint32_t *) (b + offset))) =
 	(uint32_t) 0x7fc00000 << (clear_nan_zero >> 26);
     }
 }
@@ -2355,37 +2917,41 @@ void ext_data_clear_zzp_lists(struct ext_data_client *client,
 int ext_data_write_event(struct ext_data_client *client,
 			 void *buf,size_t size)
 {
+  const struct ext_data_client_struct *clistr;
+
   /* Data read from the source until we have an entire message. */
-  
+
   struct external_writer_buf_header *header;
   uint32_t *cur;
   uint32_t length;
   uint32_t *o, *oend;
   char *b;
 
+  int struct_id = 0;
+
   if (!client)
     {
       /* client->_last_error = "Client context NULL."; */
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (!client->_setup)
+  if (client->_state != EXT_DATA_STATE_SETUP_WRITE)
     {
-      client->_last_error = "Client context has not had setup.";
+      client->_last_error = "Client context has not had setup (for writing).";
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (!client->_write)
+  if (struct_id >= client->_num_structures)
     {
-      client->_last_error = "Client context setup for reading "
-	"instead of writing.";
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (size != client->_struct_size)
+  clistr = &client->_structures[struct_id];
+
+  if (size != clistr->_struct_size)
     {
       client->_last_error = "Buffer size mismatch.";
       errno = EINVAL;
@@ -2395,28 +2961,29 @@ int ext_data_write_event(struct ext_data_client *client,
   /* Is there enough space in the buffer to hold a worst case event?
    */
 
-  if (client->_buf_alloc - client->_buf_filled < 
-      sizeof (struct external_writer_buf_header) + 2 * sizeof(uint32_t) +
-      client->_max_pack_items * sizeof(uint32_t))
+  if (client->_buf_alloc - client->_buf_filled <
+      sizeof (struct external_writer_buf_header) + 3 * sizeof(uint32_t) +
+      clistr->_max_pack_items * sizeof(uint32_t))
     {
       if (ext_data_flush_buffer(client))
 	return -1; // errno has been set
     }
 
-  header = 
+  header =
     (struct external_writer_buf_header *) (client->_buf + client->_buf_filled);
 
   cur = (uint32_t *) (header + 1);
 
-  *(cur++) = 0; /* ntuple_index */
-  *(cur++) = 0; /* marker for non-packed event */
+  *(cur++) = htonl(0); /* struct_index */
+  *(cur++) = htonl(0); /* ntuple_index */
+  *(cur++) = htonl(0x40000000); /* marker for non-packed event */
 
   /* Run through the offset list and write the data to the buffer.
    */
 
-  o    = client->_pack_list;
-  oend = client->_pack_list_end;
-    
+  o    = clistr->_pack_list;
+  oend = clistr->_pack_list_end;
+
   b = (char*) buf;
 
   while (o < oend)
@@ -2425,16 +2992,16 @@ int ext_data_write_event(struct ext_data_client *client,
       uint32_t offset = offset_mark & 0x3fffffff;
       uint32_t mark = offset_mark & 0x80000000;
       // uint32_t clear_nan_zero = offset_mark & 0x40000000;
-      
+
       uint32_t value = (*((uint32_t *) (b + offset)));
 
       *(cur++) = htonl(value);
-      
+
       if (mark)
 	{
 	  // It's a loop control.  Make sure the value was within
 	  // limits.
-	  
+
 	  uint32_t max_loops = *(o++);
 	  uint32_t loop_size = *(o++);
 
@@ -2444,19 +3011,19 @@ int ext_data_write_event(struct ext_data_client *client,
 	      client->_last_error = "Array ctrl item value out of bounds.";
 	      return (int) offset;
 	    }
-	  
+
 	  uint32_t *onext = o + max_loops * loop_size;
 	  uint32_t items = value * loop_size;
 	  uint32_t i;
-	      
+
 	  for (i = items; i; i--)
 	    {
 	      uint32_t item_offset_mark = *(o++);
 	      uint32_t item_offset = item_offset_mark & 0x3fffffff;
 	      // uint32_t clear_nan_zero = offset_mark & 0x40000000;
-	      
+
 	      value = (*((uint32_t *) (b + item_offset)));
-	      
+
 	      *(cur++) = htonl(value);
 	    }
 	  o = onext;
@@ -2465,7 +3032,8 @@ int ext_data_write_event(struct ext_data_client *client,
 
   length = (uint32_t) (((char*) cur) - ((char*) header));
 
-  header->_request = htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL);
+  header->_request = htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL |
+			   EXTERNAL_WRITER_REQUEST_HI_MAGIC);
   header->_length = htonl(length);
 
   /* fprintf (stderr, "wrote: %d\n", length); */
@@ -2482,21 +3050,14 @@ int ext_data_flush_buffer(struct ext_data_client *client)
       /* client->_last_error = "Client context NULL."; */
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (!client->_setup)
+  if (client->_state != EXT_DATA_STATE_SETUP_WRITE)
     {
-      client->_last_error = "Client context has not had setup.";
+      client->_last_error = "Client context has not had setup (for writing).";
       errno = EFAULT;
       return -1;
-    }    
-
-  if (!client->_write)
-    {
-      client->_last_error = "Client context setup for reading.";
-      errno = EFAULT;
-      return -1;
-    }    
+    }
 
   // Write any data available in the buffer.
 
@@ -2539,9 +3100,9 @@ int ext_data_close(struct ext_data_client *client)
       /* client->_last_error = "Client context NULL."; */
       errno = EFAULT;
       return -1;
-    }    
+    }
 
-  if (client->_setup && client->_write)
+  if (client->_state == EXT_DATA_STATE_SETUP_WRITE)
     {
       struct external_writer_buf_header *header;
 
@@ -2555,17 +3116,19 @@ int ext_data_close(struct ext_data_client *client)
 
       /* Then, we should write a done message, and flush again. */
 
-      header = 
-	(struct external_writer_buf_header *) (client->_buf + client->_buf_filled);
-      
-      header->_request = htonl(EXTERNAL_WRITER_BUF_DONE);
+      header =
+	(struct external_writer_buf_header *) (client->_buf +
+					       client->_buf_filled);
+
+      header->_request = htonl(EXTERNAL_WRITER_BUF_DONE |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
       header->_length = htonl(sizeof(struct external_writer_buf_header));
-      
+
       client->_buf_filled += sizeof(struct external_writer_buf_header);
-      
+
       if (ext_data_flush_buffer(client) != 0)
 	return -1; // errno already set
-    }    
+    }
 
   /* Only close the file handle if opened by us. */
 
@@ -2582,7 +3145,7 @@ int ext_data_close(struct ext_data_client *client)
       /* Cannot fail, could possibly change errno? */
       ext_data_free(client);
       errno = errsv;
-      return -1;      
+      return -1;
     }
 
   /* Cannot fail. */
@@ -2595,7 +3158,7 @@ void ext_data_rand_fill(void *buf,size_t size)
 {
   char *p = (char*) buf;
   size_t i;
-  
+
   static unsigned long next = 123456789;
 
   for (i = size; i; --i)
@@ -2680,10 +3243,12 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  const void *struct_layout_info,
 			  size_t size_info,
 			  struct ext_data_structure_info *struct_info,
-			  size_t size_buf)
+			  size_t size_buf,
+			  const char *name_id, int *struct_id)
 {
   int ret = ext_data_setup(client,
-			   struct_layout_info,size_info,struct_info,size_buf);
+			   struct_layout_info,size_info,struct_info,size_buf,
+			   name_id,struct_id);
 
   if (ret == -1)
     {
@@ -2697,19 +3262,64 @@ int ext_data_setup_stderr(struct ext_data_client *client,
   return 1;
 }
 
-int ext_data_fetch_event_stderr(struct ext_data_client *client,
-				void *buf,size_t size)
+int ext_data_nonblocking_fd_stderr(struct ext_data_client *client)
 {
-  int ret = ext_data_fetch_event(client,buf,size);
+  int fd = ext_data_nonblocking_fd(client);
+
+  if (fd == -1)
+    {
+      perror("ext_data_fetch_event");
+      fprintf (stderr,"Failed to make file descriptor non-blocking: %s\n",
+	       client->_last_error);
+      return -1;
+    }
+
+  return fd;
+}
+
+int ext_data_next_event_stderr(struct ext_data_client *client,
+			       int *struct_id)
+{
+  int ret = ext_data_next_event(client, struct_id);
 
   if (ret == 0)
     {
       fprintf (stderr,"End from server.\n");
       return 0; /* Out of data. */
     }
-  
+
   if (ret == -1)
     {
+      if (errno == EAGAIN)
+	return -1;
+
+      perror("ext_data_next_event");
+      fprintf (stderr,"Failed to query next event: %s\n",
+	       client->_last_error);
+      /* Not more fatal than that we can disconnect. */
+      return 0;
+    }
+
+  return 1;
+}
+
+int ext_data_fetch_event_stderr(struct ext_data_client *client,
+				void *buf,size_t size,
+				int struct_id)
+{
+  int ret = ext_data_fetch_event(client,buf,size,struct_id);
+
+  if (ret == 0)
+    {
+      fprintf (stderr,"End from server.\n");
+      return 0; /* Out of data. */
+    }
+
+  if (ret == -1)
+    {
+      if (errno == EAGAIN)
+	return -1;
+
       perror("ext_data_fetch_event");
       fprintf (stderr,"Failed to fetch event: %s\n",
 	       client->_last_error);

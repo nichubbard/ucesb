@@ -26,7 +26,7 @@ TACQUILA_GTB(sam,gtb)
 {
   MEMBER(DATA12 tac[32][16] ZERO_SUPPRESS);
   MEMBER(DATA12 adc[32][16] ZERO_SUPPRESS);
-  
+
   UINT32 header
     {
       0_9:   count;

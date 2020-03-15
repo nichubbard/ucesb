@@ -38,6 +38,17 @@ struct config_output
   const char *_name;
 };
 
+struct time_slope
+{
+  time_slope(): proc(-1), ctrl(-1), crate(-1), tsid(-1), mult(-1), add(-1) {}
+  int proc;
+  int ctrl;
+  int crate;
+  int tsid;
+  int mult;
+  int add;
+};
+
 typedef std::vector<config_input> config_input_vect;
 
 typedef std::vector<config_output> config_output_vect;
@@ -51,6 +62,7 @@ struct config_opts
   // General info control
   int _debug;
   int _quiet;
+  int _monitor_port;
 
   int _io_error_fatal;
 
@@ -65,17 +77,19 @@ struct config_opts
   int _show_members;
   int _event_sizes;
   int _show_calib;
-  int _ts_align_hist_mode;
 
-  uint64_t _max_events;
-  int _skip_events;
-  int _first_event;
-  int _last_event;
-  int _downscale;
+  char const *_ts_align_hist_command;
+
+  int64_t _max_events;
+  int64_t _skip_events;
+  int64_t _first_event;
+  int64_t _last_event;
+  int64_t _downscale;
 
 #ifdef USE_LMD_INPUT
   int _scramble;
 #endif
+  uint64_t _input_buffer;
 
 #ifdef USE_INPUTFILTER
   int _enable_eventbuilder;
@@ -134,5 +148,9 @@ extern config_output_vect _outputs;
 extern config_calib_vect _conf_calib;
 
 extern config_command_vect _corr_commands;
+
+#ifdef USE_LMD_INPUT
+extern std::vector<time_slope> _conf_time_slope_vector;
+#endif
 
 #endif /* __CONFIG_HH__ */

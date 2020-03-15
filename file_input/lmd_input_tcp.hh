@@ -25,16 +25,26 @@
 #include "endian.hh"
 
 #include <stdlib.h>
+#include <stdint.h>
 
-#define LMD_TCP_PORT_TRANS    6000
-#define LMD_TCP_PORT_STREAM   6002
-#define LMD_TCP_PORT_EVENT    6003
+#define LMD_TCP_PORT_TRANS          6000
+#define LMD_TCP_PORT_STREAM         6002
+#define LMD_TCP_PORT_EVENT          6003
+
+#define LMD_TCP_PORT_TRANS_MAP_ADD  1234
+
+#define LMD_TCP_INFO_BUFSIZE_NODATA     -1
+#define LMD_TCP_INFO_BUFSIZE_MAXCLIENTS -2
+
+#define LMD_PORT_MAP_MARK         0x50540000
+#define LMD_PORT_MAP_MARK_MASK    0xffff0000
+#define LMD_PORT_MAP_PORT_MASK    0x0000ffff
 
 struct ltcp_filter_opcode
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
   uint8   length;        // length of filter
-  uint8   next_filter_block; // 
+  uint8   next_filter_block; //
   uint8   filter_spec;
   uint8   link_f2   : 1;
   uint8   link_f1   : 1; // 1=and 0=or
@@ -51,7 +61,7 @@ struct ltcp_filter_opcode
   uint8   link_f1   : 1; // 1=and 0=or
   uint8   link_f2   : 1;
   uint8   filter_spec;
-  uint8   next_filter_block; // 
+  uint8   next_filter_block; //
   uint8   length;        // length of filter
 #endif
 };
@@ -68,7 +78,7 @@ struct ltcp_filter_item
 struct ltcp_base_filter_struct
 {
   uint32  testbit;       // 0x00000001
-  uint32  endian;        // 0x0 for little endian, 
+  uint32  endian;        // 0x0 for little endian,
                          // 0xffffffff for big endian (stupid!!)
   sint32  numev;         // number of events to send (-1 for many...)
   sint32  sample;        // downscale factor
@@ -148,8 +158,8 @@ struct ltcp_event_client_ack_struct
 
 struct ltcp_stream_trans_open_info
 {
-  uint32   testbit;          
-  uint32   bufsize;          
+  uint32   testbit;
+  uint32   bufsize;
   uint32   bufs_per_stream;
   uint32   streams;
 };
@@ -167,8 +177,12 @@ public:
   int _fd;
 
 protected:
-  void open_connection(const char *server,
-		       int port);
+  bool parse_connection(const char *server,
+			struct sockaddr_in *p_serv_addr,
+			uint16_t *port,
+			uint16_t default_port);
+  bool open_connection(const struct sockaddr_in *p_serv_addr,
+		       uint16_t port, bool error_on_failure);
   void close_connection();
 
   void do_read(void *buf,size_t count,int timeout = -1);
@@ -195,9 +209,13 @@ public:
   ltcp_stream_trans_open_info _info;
 
 protected:
-  size_t read_info();
+  size_t read_info(int *data_port);
 
-  size_t read_buffer(void *buf,size_t count,int *nbufs = NULL);
+  size_t read_buffer(void *buf,size_t count,int *nbufs);
+
+protected:
+  size_t do_map_connect(const char *server,
+			int port_map_add, uint16_t default_port);
 
 };
 
@@ -213,7 +231,7 @@ public:
   virtual void close();
 
   virtual size_t get_buffer(void *buf,size_t count);
-  
+
   virtual size_t preferred_min_buffer_size();
 };
 
@@ -225,7 +243,7 @@ public:
   lmd_input_tcp_stream();
   virtual ~lmd_input_tcp_stream() { }
 
-public:  
+public:
   int _buffers_to_read;
 
 public:
@@ -233,7 +251,7 @@ public:
   virtual void close();
 
   virtual size_t get_buffer(void *buf,size_t count);
-  
+
   virtual size_t preferred_min_buffer_size();
 };
 
@@ -264,7 +282,7 @@ public:
   virtual void close();
 
   virtual size_t get_buffer(void *buf,size_t count);
-  
+
   virtual size_t preferred_min_buffer_size();
 };
 

@@ -61,7 +61,7 @@ typedef std::vector<ebis_offsets> ebis_offsets_v;
 typedef std::map<int,int> ii_map;
 
 #define MAX_DESYNC 4
- 
+
 void agree_offset(ebis_offsets_v::iterator f,
 		  ebis_offsets_v::iterator e)
 {
@@ -97,7 +97,7 @@ void agree_offset(ebis_offsets_v::iterator f,
   int max_occur = 0;
   int max_off   = -1;
 
-  for (ii_map::iterator i = offset_count.begin(); 
+  for (ii_map::iterator i = offset_count.begin();
        i != offset_count.end(); ++i)
     {
       // printf ("[%d:%d]",i->first,i->second);
@@ -117,7 +117,7 @@ void agree_offset(ebis_offsets_v::iterator f,
   if (max_off != -1 && n >= 3 && max_occur >= 3 && max_occur >= n-1)
     {
       // printf ("[%d:%d/%d]",max_off,max_occur,n);
-      
+
       i = f;
 
       for ( ; ; ++i)
@@ -135,7 +135,7 @@ void agree_offset(ebis_offsets_v::iterator f,
 		    }
 		}
 	    }
-  
+
 	  if (i == e)
 	    break;
 	}
@@ -157,7 +157,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 
   {
     ebis_offsets eo;
-    
+
     eo.mbs_ec = f->mbs_ec;
     eo.best_off = -1;
     eo.num_best_off = -1;
@@ -202,7 +202,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 
   {
     ebis_offsets eo;
-    
+
     eo.mbs_ec = (e-1)->mbs_ec;
     eo.best_off = -1;
     eo.num_best_off = -1;
@@ -266,11 +266,11 @@ void do_sync (ecv::iterator f,ecv::iterator e)
       removed = false;
 
       ebis_offsets_v::iterator eoi1 = eov.begin();
-      
+
       for ( ; eoi1 != eov.end(); ++eoi1)
 	{
 	  ebis_offsets_v::iterator eoi3 = eoi1;
-	  
+
 	  for (++eoi3; eoi3 != eov.end(); ++eoi3)
 	    {
 	      if (eoi3->best_off != -1)
@@ -302,7 +302,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 	  // assignment (if any)
 
 	  ebis_offsets_v::iterator next_eoi = eoi;
-	  
+
 	  for (++next_eoi; next_eoi != eov.end(); ++next_eoi)
 	    {
 	      if (next_eoi->best_off != -1)
@@ -335,7 +335,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 		continue;
 
 	      ebis_offsets_v::iterator eoj = eoi;
-	      
+
 	      for (int q = 0; q < 4; ++eoj, q++)
 		{
 		  for (int_v::iterator j = eoj->offsets.begin();
@@ -358,7 +358,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 	      // steps
 
 	      ebis_offsets_v::iterator eoj = eoi;
-	      
+
 	      for (int q = 0; q < 4; --eoj, q++)
 		{
 		  for (int_v::iterator j = eoj->offsets.begin();
@@ -402,7 +402,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 			    goto fail_previous;
 		      }
 		    eoi->best_off     = next_eoi->best_off;
-		    eoi->num_best_off = 0; 
+		    eoi->num_best_off = 0;
 		    goto done;
 		  }
 	    }
@@ -425,19 +425,19 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 			    goto fail_next;
 		      }
 		    eoi->best_off     = prev_eoi->best_off;
-		    eoi->num_best_off = 0; 
+		    eoi->num_best_off = 0;
 		    goto done;
 		  }
 	    }
 	fail_next:
 	done:
 	  ;
-	  
+
 
 
 	  /*
 	  ebis_offsets_v::iterator eoj = eoi;
-	  
+
 	  for ( ; eoj != prev_eoi; --eoj)
 	    {
 	      for (int_v::iterator j = eoj->offsets.begin();
@@ -445,14 +445,14 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 		if (*j == next_eoi->best_off)
 		  goto fail_backward;
 	    }
-	  
+
 	  eoi->best_off     = prev_eoi->best_off;
 	  eoi->num_best_off = 1;
 	fail_backward:
 	  ;
-	  
+
 	  eoj = eoi;
-	  
+
 	  for ( ; eoj != next_eoi; ++eoj)
 	    {
 	      for (int_v::iterator j = eoj->offsets.begin();
@@ -460,10 +460,10 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 		if (*j == prev_eoi->best_off)
 		  goto fail_forward;
 	    }
-	  
+
 	  eoi->best_off     = next_eoi->best_off;
 	  eoi->num_best_off = 1;
-	  
+
 	fail_forward:
 	  ;
 	  */
@@ -568,7 +568,7 @@ int main()
     {
       int n;
       ec_event e;
-      
+
       char str_ebis[64];
       char str_nacc[64];
       char str_clr[64];
@@ -593,7 +593,7 @@ int main()
 	  printf ("Cannot convert... (got %d)!",n);
 	  exit(1);
 	}
-      
+
       v.push_back(e);
     }
 
@@ -613,7 +613,7 @@ int main()
 	  i_reset = i;
 	}
     }
- 
+
   do_sync(i_reset,v.end());
 
   for (unsigned int i = 0; i < v.size(); i++)

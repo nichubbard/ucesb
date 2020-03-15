@@ -53,7 +53,7 @@
 // For the thread reading from the pipe (writing buffer), we'll:
 //
 // * Check to see if we have buffer space available
-//   - If no space is available, we must sleep/wait/select(signal) 
+//   - If no space is available, we must sleep/wait/select(signal)
 //     until told by consumer (release_to)
 //   - When space is available, select for reading on the incoming pipe
 //     when data is available, read as much as we get, update the write
@@ -123,7 +123,7 @@ void *pipe_buffer::reader()
       perror("fcntl()");
       exit(1);
     }
-  
+
   for ( ; ; )
     {
       fd_set rfds;
@@ -132,7 +132,7 @@ void *pipe_buffer::reader()
       int nfds = 0;
 
       assert((ssize_t) (_avail - _done) >= 0);
-      
+
       if (_avail - _done >= _size)
 	{
 	  // Buffer is currently FULL, no need to issue a read
@@ -170,7 +170,7 @@ void *pipe_buffer::reader()
 	}
 
       // Buffer not full
-      
+
       if (_fd != -1)
 	{
 	  FD_SET(_fd,&rfds);
@@ -195,15 +195,15 @@ void *pipe_buffer::reader()
 
 	  size_t space  = _size - (_avail - _done);
 	  size_t offset = _avail & (_size - 1);
-	  
+
 	  // But in case of wraparound, i.e. when write pointer
 	  // is not at the buffer start
-	  
+
 	  size_t segment = _size - offset;
-	  
+
 	  if (segment > space)
 	    segment = space;
-	  
+
 	  ssize_t n = read(_fd,_buffer + offset,segment);
 
 	  if (n == 0)
@@ -222,7 +222,7 @@ void *pipe_buffer::reader()
 		{
 		  // The consumer was waiting for us.  wake him up to
 		  // tell him that data till never be available :-(
-		  
+
 		  const thread_block *blocked =
 		    (const thread_block *) _need_consumer_wakeup;
 		  _need_consumer_wakeup = NULL;
@@ -233,7 +233,7 @@ void *pipe_buffer::reader()
 	      break;
 
 	      // We are done reading.
-	      
+
 	      ::close(_fd);
 	      _fd = -1;
 
@@ -254,7 +254,7 @@ void *pipe_buffer::reader()
 
 	  _avail += (size_t) n;
 
-	  if (_need_consumer_wakeup && 
+	  if (_need_consumer_wakeup &&
 	      ((ssize_t) (_avail - _wakeup_avail)) >= 0)
 	    {
 	      // The consumer was waiting for us.
@@ -275,24 +275,24 @@ int pipe_buffer::read_now(off_t end)
 {
   // We have no reader thread.  We are responsible for making sure the
   // requested range exist in the buffer
-  
+
   while (((ssize_t) _avail - (ssize_t) end) < 0)
     {
       if (_reached_eof)
 	return 0; // data requested is NOT available
-      
+
       size_t space  = _size - (_avail - _done);
       size_t offset = _avail & (_size - 1);
-      
+
       size_t segment = _size - offset;
       size_t need = end - _avail;
-      
+
       if (UNLIKELY(space <= 0))
 	ERROR("pipe_buffer too small");
-      
+
       if (segment > space)
 	segment = space;
-      
+
       if (segment > need)
 	segment = need;
       /*
@@ -300,7 +300,7 @@ int pipe_buffer::read_now(off_t end)
 	      (int) offset,(int) segment);
       */
       ssize_t n = read(_fd,_buffer + offset,segment);
-      
+
       if (n == 0)
 	{
 	  _reached_eof = true;
@@ -317,7 +317,7 @@ int pipe_buffer::read_now(off_t end)
 	      ERROR("Error while reading");
 	    }
 	}
-      
+
       _avail += (size_t) n;
     }
   return 1;
@@ -350,7 +350,7 @@ int pipe_buffer_base::map_range(off_t start,off_t end,buf_chunk chunks[2])
       // requested so much that, such amounts will not be available by
       // the first read done by the reader.  And there is no sense in
       // waking us up before all that is needed is available)
-      
+
       MFENCE;
       _wakeup_avail = (size_t) end;
       MFENCE;
@@ -433,7 +433,7 @@ int pipe_buffer_base::map_range(off_t start,off_t end,buf_chunk chunks[2])
   // Also, simply returning two fragments is a constant cost solution,
   // since we do not copy data.  It means that events which finally get
   // ignored ar handled as cheaply as possible, i.e. minimum copy operations
-  
+
   chunks[0]._ptr    = _buffer + offset;
   chunks[0]._length = segment;
   chunks[1]._ptr    = _buffer;
@@ -478,7 +478,7 @@ void pipe_buffer_base::release_to(off_t end)
 #ifdef USE_THREADING
 void pipe_buffer_base::arrange_release_to(off_t end)
 {
-  pbf_reclaim *pbfr = 
+  pbf_reclaim *pbfr =
     _wt._defrag_buffer->allocate_reclaim_item<pbf_reclaim>(RECLAIM_PBUF_RELEASE_TO);
 
   pbfr->_pb = this;
@@ -486,8 +486,16 @@ void pipe_buffer_base::arrange_release_to(off_t end)
 }
 #endif
 
+size_t pipe_buffer_base::buffer_size()
+{
+  return _size;
+}
 
-
+size_t pipe_buffer_base::max_item_length()
+{
+  // See comment in decompress.cc
+  return _size / 3;
+}
 
 
 void pipe_buffer_base::init(unsigned char *push_magic,size_t push_magic_len,
@@ -499,14 +507,14 @@ void pipe_buffer_base::init(unsigned char *push_magic,size_t push_magic_len,
 {
   // Hmm, we should really try to make sure we get a page-aligned
   // buffer!
-  
+
   _buffer = (char *) malloc(bufsize);
-  
+
   if (!_buffer)
     ERROR("Memory allocation failure.");
- 
+
   _size = bufsize;
-  
+
   if (push_magic)
     {
       memcpy(_buffer,push_magic,push_magic_len);
@@ -515,9 +523,9 @@ void pipe_buffer_base::init(unsigned char *push_magic,size_t push_magic_len,
 
 #ifdef USE_PTHREAD
   _block_reader = block_reader;
-  
+
   // _thread_consumer = pthread_self();
-  
+
   if (create_thread)
     {
       _block.init();
@@ -529,9 +537,9 @@ void pipe_buffer_base::init(unsigned char *push_magic,size_t push_magic_len,
 	}
 
       set_thread_name(_thread, "NETIN", 5);
-      
+
       _active = true;
-    }  
+    }
 #endif
 }
 
@@ -558,7 +566,7 @@ void pipe_buffer::init(int fd,unsigned char *push_magic,size_t push_magic_len,
 		       )
 {
   _fd = fd;
-  
+
   pipe_buffer_base::init(push_magic,push_magic_len,bufsize
 #ifdef USE_PTHREAD
 			 ,block_reader,true
@@ -573,7 +581,7 @@ void pipe_buffer_base::close()
   if (_active)
     {
       pthread_cancel(_thread);
-      
+
       if (pthread_join(_thread,NULL) != 0)
 	{
 	  perror("pthread_join()");
@@ -641,7 +649,7 @@ pipe_buffer_base::~pipe_buffer_base()
 }
 
 
-// Events: 443720   443701             (19 errors)                
-// Events: 443720   443701             (19 errors)                
-// Events: 443720   443701             (19 errors)       
+// Events: 443720   443701             (19 errors)
+// Events: 443720   443701             (19 errors)
+// Events: 443720   443701             (19 errors)
 

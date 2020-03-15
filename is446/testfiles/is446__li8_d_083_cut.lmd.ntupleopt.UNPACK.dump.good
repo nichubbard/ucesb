@@ -1,0 +1,2534 @@
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744691
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                 9788403         98        416
+vme_scaler1header =
+              4245422495
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     237
+vme_adc7eob =
+              4237156430
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744692
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                 9797365         99        417
+vme_scaler1header =
+              4245422496
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744693
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                 9897221        100        418
+vme_scaler1header =
+              4245422497
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744694
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                 9969986        100        419
+vme_scaler1header =
+              4245422498
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     304
+vme_adc7eob =
+              4237156433
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744695
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                 9997078        101        420
+vme_scaler1header =
+              4245422499
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744696
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            1
+vme_tdc3nI[vme_tdc3n] =
+                       8
+vme_tdc3data[vme_tdc3n] =
+                    1561
+vme_tdc3eob =
+              4237161013
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    3696
+vme_tdc5eob =
+              4237161012
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10009406        101        421
+vme_scaler1header =
+              4245422500
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744697
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10055283        101        422
+vme_scaler1header =
+              4245422501
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       3
+vme_adc7data[vme_adc7n] =
+                     404
+vme_adc7eob =
+              4237156436
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744698
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    4051
+vme_tdc5eob =
+              4237161014
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10059936        101        423
+vme_scaler1header =
+              4245422502
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     224
+vme_adc7eob =
+              4237156437
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744699
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            1
+vme_tdc3nI[vme_tdc3n] =
+                       8
+vme_tdc3data[vme_tdc3n] =
+                    1556
+vme_tdc3eob =
+              4237161016
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    3252
+vme_tdc5eob =
+              4237161015
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10061634        101        424
+vme_scaler1header =
+              4245422503
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744700
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            2
+vme_tdc5nI[vme_tdc5n] =
+                       1          2
+vme_tdc5data[vme_tdc5n] =
+                    1558       2206
+vme_tdc5eob =
+              4237161016
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10062517        101        425
+vme_scaler1header =
+              4245422504
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     506
+vme_adc7eob =
+              4237156439
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744701
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10096933        102        426
+vme_scaler1header =
+              4245422505
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744702
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10133795        102        427
+vme_scaler1header =
+              4245422506
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     330
+vme_adc7eob =
+              4237156441
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744703
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10141923        102        428
+vme_scaler1header =
+              4245422507
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     230
+vme_adc7eob =
+              4237156442
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744704
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10145999        102        429
+vme_scaler1header =
+              4245422508
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     264
+vme_adc7eob =
+              4237156443
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744705
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10196789        103        430
+vme_scaler1header =
+              4245422509
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744706
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                     989
+vme_tdc5eob =
+              4237161022
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10269097        103        431
+vme_scaler1header =
+              4245422510
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     203
+vme_adc7eob =
+              4237156445
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744707
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10278865        103        432
+vme_scaler1header =
+              4245422511
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     184
+vme_adc7eob =
+              4237156446
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744708
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10296645        104        433
+vme_scaler1header =
+              4245422512
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744709
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10309124        104        434
+vme_scaler1header =
+              4245422513
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     431
+vme_adc7eob =
+              4237156448
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744710
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10396502        105        435
+vme_scaler1header =
+              4245422514
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744711
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    2144
+vme_tdc5eob =
+              4237161027
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10431110        105        436
+vme_scaler1header =
+              4245422515
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     337
+vme_adc7eob =
+              4237156450
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744712
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10496360        106        437
+vme_scaler1header =
+              4245422516
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744713
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10596214        107        438
+vme_scaler1header =
+              4245422517
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744714
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10696071        108        439
+vme_scaler1header =
+              4245422518
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744715
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10728582        108        440
+vme_scaler1header =
+              4245422519
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     502
+vme_adc7eob =
+              4237156454
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744716
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10795911        109        441
+vme_scaler1header =
+              4245422520
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744717
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10895046        109        442
+vme_scaler1header =
+              4245422521
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     245
+vme_adc7eob =
+              4237156456
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744718
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10895764        110        443
+vme_scaler1header =
+              4245422522
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744719
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10900823        110        444
+vme_scaler1header =
+              4245422523
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     247
+vme_adc7eob =
+              4237156458
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744720
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    2223
+vme_tdc5eob =
+              4237161036
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10930792        110        445
+vme_scaler1header =
+              4245422524
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     344
+vme_adc7eob =
+              4237156459
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744721
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            1
+vme_tdc3nI[vme_tdc3n] =
+                       8
+vme_tdc3data[vme_tdc3n] =
+                    1560
+vme_tdc3eob =
+              4237161038
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                     773
+vme_tdc5eob =
+              4237161037
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10991311        110        446
+vme_scaler1header =
+              4245422525
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744722
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                10995634        111        447
+vme_scaler1header =
+              4245422526
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744723
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11017918        111        448
+vme_scaler1header =
+              4245422527
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     268
+vme_adc7eob =
+              4237156462
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744724
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            1
+vme_tdc3nI[vme_tdc3n] =
+                       8
+vme_tdc3data[vme_tdc3n] =
+                    1556
+vme_tdc3eob =
+              4237161041
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11080101        111        449
+vme_scaler1header =
+              4245422528
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744725
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       1
+vme_tdc5data[vme_tdc5n] =
+                    1922
+vme_tdc5eob =
+              4237161041
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11092528        111        450
+vme_scaler1header =
+              4245422529
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     526
+vme_adc7eob =
+              4237156464
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744726
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11095494        112        451
+vme_scaler1header =
+              4245422530
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744727
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11195349        113        452
+vme_scaler1header =
+              4245422531
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744728
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    2019
+vme_tdc5eob =
+              4237161044
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11261686        113        453
+vme_scaler1header =
+              4245422532
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     330
+vme_adc7eob =
+              4237156467
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744729
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11267081        113        454
+vme_scaler1header =
+              4245422533
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     265
+vme_adc7eob =
+              4237156468
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744730
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11295206        114        455
+vme_scaler1header =
+              4245422534
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744731
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    2898
+vme_tdc5eob =
+              4237161047
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11316949        114        456
+vme_scaler1header =
+              4245422535
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     261
+vme_adc7eob =
+              4237156470
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744732
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    2365
+vme_tdc5eob =
+              4237161048
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11322374        114        457
+vme_scaler1header =
+              4245422536
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     275
+vme_adc7eob =
+              4237156471
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744733
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            1
+vme_tdc3nI[vme_tdc3n] =
+                       8
+vme_tdc3data[vme_tdc3n] =
+                    1558
+vme_tdc3eob =
+              4237161050
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11336024        114        458
+vme_scaler1header =
+              4245422537
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744734
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11354805        114        459
+vme_scaler1header =
+              4245422538
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            2
+vme_adc7nI[vme_adc7n] =
+                       1          2
+vme_adc7data[vme_adc7n] =
+                     263        291
+vme_adc7eob =
+              4237156473
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744735
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11395040        115        460
+vme_scaler1header =
+              4245422539
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744736
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       2
+vme_tdc5data[vme_tdc5n] =
+                    2905
+vme_tdc5eob =
+              4237161052
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11458902        115        461
+vme_scaler1header =
+              4245422540
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     255
+vme_adc7eob =
+              4237156475
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744737
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11481858        115        462
+vme_scaler1header =
+              4245422541
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     242
+vme_adc7eob =
+              4237156476
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744738
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11494917        116        463
+vme_scaler1header =
+              4245422542
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            0
+vme_adc7eob =
+                       0
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744739
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            0
+vme_tdc5eob =
+                       0
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11531342        116        464
+vme_scaler1header =
+              4245422543
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       2
+vme_adc7data[vme_adc7n] =
+                     206
+vme_adc7eob =
+              4237156478
+--- === --- === ---
+TRIGGER =              2
+EVENTNO =       27744740
+vme_tdc1n =            0
+vme_tdc1eob =
+                       0
+vme_tdc2n =            0
+vme_tdc2eob =
+                       0
+vme_tdc3n =            0
+vme_tdc3eob =
+                       0
+vme_tdc4n =            0
+vme_tdc4eob =
+                       0
+vme_tdc5n =            1
+vme_tdc5nI[vme_tdc5n] =
+                       1
+vme_tdc5data[vme_tdc5n] =
+                    1857
+vme_tdc5eob =
+              4237161056
+vme_scaler1n =
+                       3
+vme_scaler1nI[vme_scaler1n] =
+                       1          2          3
+vme_scaler1data[vme_scaler1n] =
+                11578015        116        465
+vme_scaler1header =
+              4245422544
+vme_adc1n =            0
+vme_adc1eob =
+                       0
+vme_adc2n =            0
+vme_adc2eob =
+                       0
+vme_adc3n =            0
+vme_adc3eob =
+                       0
+vme_adc4n =            0
+vme_adc4eob =
+                       0
+vme_adc5n =            0
+vme_adc5eob =
+                       0
+vme_adc6n =            0
+vme_adc6eob =
+                       0
+vme_adc7n =            1
+vme_adc7nI[vme_adc7n] =
+                       1
+vme_adc7data[vme_adc7n] =
+                     479
+vme_adc7eob =
+              4237156479

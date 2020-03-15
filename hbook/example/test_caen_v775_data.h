@@ -36,7 +36,7 @@ void create_caen_v775_event(caen_v775_data *data,
   data->eventno = eventno & 0x00ffffff;
 
   //fprintf (stderr,"%d %d %d %d\n", geom, crate, eventno, seed);
-  
+
   uint64_t rstate =
     (((uint64_t) data->eventno) << 32) | (((geom << 8) | crate) ^ seed);
 
@@ -54,7 +54,7 @@ void create_caen_v775_event(caen_v775_data *data,
   for (i = 0; i < n; i++)
     {
       a = rxs64s(&rstate);
-      
+
       int ch = a & 0x1f;
 
       while (data->mask & (((uint32_t) 1) << ch))
@@ -105,7 +105,7 @@ int fill_caen_v775_data(caen_v775_data *data,
 
   data->mask = 0;
   data->eventno = eob & 0x00ffffff;
-  
+
   if (n > 32)
     {
       printf ("%s: n(=%d) > 32\n",__func__,n);
@@ -121,7 +121,7 @@ int fill_caen_v775_data(caen_v775_data *data,
 	{
 	  printf ("%s: I[%d] -1 (=%d) >= 32\n",__func__,i,ch);
 	  return 0;
-	} 
+	}
       else
 	{
 	  data->mask |= ((uint32_t) 1) << ch;
@@ -156,7 +156,7 @@ int compare_caen_v775_event(const caen_v775_data *good,
 	{
 	  printf ("%s: data[%d] mismatch %d != %d\n",
 		  __func__,ch,good->ch[ch],cmp->ch[ch]);
-	  ok = 0;  
+	  ok = 0;
 	}
   return ok;
 }

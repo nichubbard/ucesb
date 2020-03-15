@@ -22,11 +22,11 @@
 
 SUBEVENT(IS446_VME)
 {
-  UINT32 dummy_header NOENCODE 
-    { 
+  UINT32 dummy_header NOENCODE
+    {
       0_31: 0xfefefefe;
     }
-  
+
   select several
     {
       norevisit scaler[0] = VME_CAEN_V830(geom=31);
@@ -45,21 +45,21 @@ SUBEVENT(IS446_VME)
       norevisit tdc[3] = VME_CAEN_V785(geom=31,crate=11);
       norevisit tdc[4] = VME_CAEN_V785(geom=31,crate=12);
     }
-  
-  UINT32 dummy_footer NOENCODE 
-    { 
+
+  UINT32 dummy_footer NOENCODE
+    {
       0_31: 0xefefefef;
     }
 
   // The DAQ is broken, cannot correctly account the
   // number of data-words in the event, and therefore
   // each event has an additional 32 bits of crap...
-  
-  UINT32 garbage_footer NOENCODE 
-    { 
+
+  UINT32 garbage_footer NOENCODE
+    {
       0_31: garbage;
     }
-  
+
 }
 
 SUBEVENT(IS446_VME2)

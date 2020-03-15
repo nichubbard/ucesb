@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# x28-68 y15-36 
-# x12-50 y14-36 
-# x13-49 y0-13  
-# x32-62 y0-16  
+# x28-68 y15-36
+# x12-50 y14-36
+# x13-49 y0-13
+# x32-62 y0-16
 
 # The range in y had to be cut at the edges, due to drift in the
 # parameters.  (This comes from the log-fits not being perfect (due to

@@ -59,7 +59,7 @@ const char *find_str_identifiers(const char *str)
       size_t len = strlen (str);
 
       char *s = new char[len+1];
-      
+
       memcpy(s,str,len);
       s[len] = '\0';
 
@@ -99,7 +99,7 @@ const char *find_str_strings(const char *str,size_t len)
     {
       // We were newly inserted.
 
-      
+
     }
 
   return *result.first;
@@ -124,6 +124,6 @@ const char *find_concat_str_strings(const char *s1,const char *s2,const char *s3
 
   if (result.second == false)
     delete[] s;
-  
+
   return *result.first;
 }

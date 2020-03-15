@@ -29,7 +29,7 @@ external EXTERNAL_DATA16();
 SUBEVENT(CROS3_SUBEVENT)
 {
   // We'll eat the entire subevent...
-  
+
   external data16 = EXTERNAL_DATA16();
 }
 

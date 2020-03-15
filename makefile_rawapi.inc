@@ -32,7 +32,7 @@ ifeq ($(RAWAPI_USE_LIB),1)
 ###################################################
 # When using libraries
 
-DEFAULT_SYSTEM_64:=$(shell cpp -dM /dev/null | grep __amd64__)
+DEFAULT_SYSTEM_64:=$(shell $(CPP) -x c -dM /dev/null | grep __amd64__)
 
 ifneq (,$(DEFAULT_SYSTEM_64))
 CXXLIBS += -L $(RAWAPI_DIR)/Linux64 -lrawapiclin64 -lrawservn64

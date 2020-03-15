@@ -1,0 +1,564 @@
+---
+stages:
+  - fast-build
+  - build
+
+############################################
+#               COMMON                     #
+############################################
+
+###
+# Common tags:
+
+.docker: &docker
+  tags:
+    - docker
+
+# User-mode emulation, requires binfmt_misc to be set up
+.qemu: &qemu
+  tags:
+    - docker
+    - binfmt
+
+###
+# Build rules, these contain the 'script'
+
+.build: &build
+  script:
+    - test -d /opt/root && source /opt/root/bin/thisroot.sh || echo No ROOT installed
+    - JOB_NAME=( $CI_BUILD_NAME )
+    - export CC=${JOB_NAME[2]}
+    - export CXX=${JOB_NAME[3]}
+    - $CXX --version
+    - flex --version
+    - root-config --version || true
+    - echo RUNNER_MAKE_J $RUNNER_MAKE_J
+    - make -k ${JOB_NAME[4]} $EXTRA_MAKE_FLAGS $RUNNER_MAKE_J
+
+.build-bsd: &build-bsd
+  script:
+    - JOB_NAME=( $CI_BUILD_NAME )
+    - export CC=${JOB_NAME[2]}
+    - export CXX=${JOB_NAME[3]}
+    - $CC --version
+    - echo RUNNER_MAKE_J $RUNNER_MAKE_J
+    - gmake -k ${JOB_NAME[4]} $EXTRA_MAKE_FLAGS $RUNNER_MAKE_J
+  tags:
+    - bsd
+
+.build-mac-sierra: &build-mac-sierra
+  <<: *build
+  tags:
+    - mac
+    - sierra
+
+###
+# Preparation rules, these contain the 'before_script', and refer to build
+
+.prepare-debian: &debian
+  before_script:
+    - JOB_NAME=( $CI_BUILD_NAME )
+    - export CC=${JOB_NAME[2]}
+    - export CXX=${JOB_NAME[3]}
+    - apt-get update -yq > /dev/null
+    - apt-get install -y --no-install-recommends flex bison libncurses5-dev
+        build-essential > /dev/null
+    - apt-get install -y ${CC} > /dev/null
+    - if [[ $CXX == g++* ]] ; then
+    - apt-get install -y ${CXX} > /dev/null
+    - fi
+  <<: *build
+
+.prepare-old-debian: &old-debian
+  before_script:
+    - JOB_NAME=( $CI_BUILD_NAME )
+    - export CC=${JOB_NAME[2]}
+    - export CXX=${JOB_NAME[3]}
+    - apt-get update -yq > /dev/null
+    - apt-get install -y flex bison libncurses5-dev build-essential
+        > /dev/null
+    - apt-get install -y ${CC} > /dev/null
+    - if [[ $CXX == g++* ]] ; then
+    - apt-get install -y ${CXX} > /dev/null
+    - fi
+  <<: *build
+
+.prepare-cc7: &cc7
+  before_script:
+    # - rpm --rebuilddb && yum -y install yum-plugin-ovl # docker/overlay fix
+    # - yum install -y git bison flex ncurses-devel make perl-Digest-MD5 gcc-c++
+    #     > /dev/null
+    - export YACC=bison
+  <<: *build
+
+.prepare-slc6: &slc6
+  before_script:
+    - source /opt/rh/devtoolset-4/enable
+    - source /opt/rh/python27/enable
+    # - rpm --rebuilddb && yum -y install yum-plugin-ovl # docker/overlay fix
+    # - yum -y install yum-plugin-ovl # docker/overlay fix
+    # - yum install -y git bison flex ncurses-devel perl-Digest-MD5 > /dev/null
+    - export YACC=bison
+  <<: *build
+
+.prepare-ubuntu-gcc6-with-flex: &ubuntu-gcc6
+  <<: *debian
+  before_script:
+    - JOB_NAME=( $CI_BUILD_NAME )
+    - export FLEX=${JOB_NAME[6]}
+    - apt-get update -yq > /dev/null
+    - apt-get install -y --no-install-recommends flex bison libncurses5-dev
+        software-properties-common wget m4 help2man > /dev/null
+    - add-apt-repository ppa:ubuntu-toolchain-r/test > /dev/null
+    - apt-get update -yq > /dev/null
+    - apt-get install -y gcc-6 g++-6 > /dev/null
+    - export CC=gcc-6
+    - export CXX=g++-6
+    - export FLEXURL=https://github.com/westes/flex/releases/download
+    - wget ${FLEXURL}/v${FLEX}/flex-${FLEX}.tar.gz > /dev/null
+    - tar -xf flex-${FLEX}.tar.gz
+    - cd flex-${FLEX}
+    - ./configure
+    - make
+    - make install
+    - cd ..
+
+.prepare-opensuse: &opensuse
+  before_script:
+  # - zypper --non-interactive install git bison flex ncurses-devel
+  #     make gcc gcc-c++ clang perl which > /dev/null
+    - echo No prep needed
+  <<: *build
+
+#########################################
+### QEMU full system emulation
+
+.qemu-system: &qemu-system
+  stage: build
+  script:
+    - _DISABLE="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+    - _SSH="ssh -c 3des-cbc root@127.0.0.1 -p $PORT $_DISABLE"
+    - JOB_NAME=( $CI_BUILD_NAME )
+    - _TARGET="${JOB_NAME[4]}"
+    - sleep 60
+    - while ! $_SSH -o ConnectTimeout=5 'uname -a'; do
+        echo "Alive!" && sleep 1; done
+    - scp -r -P $PORT $_DISABLE ./ root@127.0.0.1:./
+    - $_SSH "make -k $_TARGET $EXTRA_MAKE_FLAGS"
+  # after_script:
+  #   - echo quit | socat - UNIX-CONNECT:/tmp/monitor
+  tags:
+    - docker
+  variables:
+    PORT: "2222"
+
+.qemu-system-arm: &qemu-system-arm
+  image: munken/qemu:arm
+  before_script:
+    - qemu-system-arm -M vexpress-a9 -kernel /qemu/vmlinuz-3.2.0-4-vexpress
+        -initrd /qemu/initrd.img-3.2.0-4-vexpress -drive
+        if=sd,file=/qemu/debian_wheezy_armhf_apt.qcow2 -append
+        "root=/dev/mmcblk0p2" -redir tcp:2222::22 -m 512 -monitor
+        unix:/tmp/monitor,server,nowait -daemonize -display none
+  <<: *qemu-system
+
+.qemu-system-ppc: &qemu-system-ppc
+  image: munken/qemu:ppc
+  before_script:
+    - qemu-system-ppc -hda /qemu/debian_wheezy_powerpc_gcc.qcow2 -redir
+        tcp:${PORT}::22 -m 512 -monitor unix:/tmp/monitor,server,nowait
+        -daemonize -display none
+  <<: *qemu-system
+
+############################################
+#               TARGETS                    #
+############################################
+
+# Fast build (only empty or xtst) to quickly see if there is some chance.
+
+# Has test files.
+Ubuntu Trusty gcc g++ is446:
+  stage: fast-build
+  image: munken/build-essential:ubuntu-trusty-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty gcc g++ empty:
+  stage: fast-build
+  image: munken/build-essential:ubuntu-trusty-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty gcc g++ xtst:
+  stage: fast-build
+  image: munken/build-essential:ubuntu-trusty-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty clang clang++ empty:
+  stage: fast-build
+  image: munken/build-essential:ubuntu-trusty-clang
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty clang clang++ xtst:
+  stage: fast-build
+  image: munken/build-essential:ubuntu-trusty-clang
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty-32bit gcc g++ empty:
+  stage: fast-build
+  image: munken/build-essential:ubuntu32-trusty-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty-32bit clang clang++ empty:
+  stage: fast-build
+  image: munken/build-essential:ubuntu32-trusty-clang
+  <<: *docker
+  <<: *build
+
+freebsd 10 gcc g++ empty:
+  stage: fast-build
+  variables:
+    EXTRA_MAKE_FLAGS:
+      "CXXLINKFLAGS=-Wl,-rpath=/usr/local/lib/gcc48"
+  <<: *build-bsd
+
+mac sierra gcc g++ empty:
+  stage: fast-build
+  <<: *build-mac-sierra
+
+###
+# Simulated full qemu architectures take long time, begin with those.
+
+# For the fun of it (avoiding bit-rot), the full-mode compilations are
+# kept, but only building some very small programs (instead of empty
+# and xtst), since they are terribly slow.
+
+qemusys arm . . tdas_conv:
+  stage: build
+  <<: *docker
+  <<: *qemu-system-arm
+
+qemusys arm . . ext_writer_test:
+  stage: build
+  <<: *docker
+  <<: *qemu-system-arm
+
+qemusys ppc . . tdas_conv:
+  stage: build
+  <<: *docker
+  <<: *qemu-system-ppc
+
+qemusys ppc . . ext_writer_test:
+  stage: build
+  <<: *docker
+  <<: *qemu-system-ppc
+
+###
+# User-mode qemu builds only do one unpacker, but are quite slow still.
+
+qemu arm32v5 gcc g++ empty:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v5
+  <<: *qemu
+  <<: *build
+
+qemu arm32v5 gcc g++ xtst:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v5
+  <<: *qemu
+  <<: *build
+
+qemu arm32v5 clang clang++ empty:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v5
+  variables:
+    CXXLIBS: -latomic
+  <<: *qemu
+  <<: *build
+
+qemu arm32v5 clang clang++ xtst:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v5
+  variables:
+    CXXLIBS: -latomic
+  <<: *qemu
+  <<: *build
+
+
+qemu arm32v7 gcc g++ empty:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v7
+  <<: *qemu
+  <<: *build
+
+qemu arm32v7 gcc g++ xtst:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v7
+  <<: *qemu
+  <<: *build
+
+qemu arm32v7 clang clang++ empty:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v7
+  <<: *qemu
+  <<: *build
+
+qemu arm32v7 clang clang++ xtst:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:arm32v7
+  <<: *qemu
+  <<: *build
+
+
+qemu ppc gcc g++ empty:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:ppc
+  <<: *qemu
+  <<: *build
+
+qemu ppc gcc g++ xtst:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:ppc
+  <<: *qemu
+  <<: *build
+
+qemu ppc clang clang++ empty:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:ppc
+  <<: *qemu
+  <<: *build
+
+qemu ppc clang clang++ xtst:
+  stage: build
+  image: $DOCKER_REG/docker-qemu/debian:ppc
+  <<: *qemu
+  <<: *build
+
+
+###
+# And the rest.
+
+SLC latest gcc g++ all:
+  stage: build
+  image: munken/build-essential:slc6-latest-gcc
+  <<: *docker
+  <<: *slc6
+
+CC7 latest gcc g++ all:
+  stage: build
+  image: munken/build-essential:cc7-latest-gcc
+  <<: *docker
+  <<: *cc7
+
+Ubuntu Trusty gcc g++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-trusty-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty clang clang++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-trusty-clang
+  <<: *docker
+  <<: *build
+
+Ubuntu Trusty-32bit gcc g++ all:
+  stage: build
+  image: munken/build-essential:ubuntu32-trusty-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Xenial gcc g++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-xenial-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Xenial clang clang++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-xenial-clang
+  <<: *docker
+  <<: *build  
+
+Xenial root6 gcc-6 g++-6 all flex 2.6.1:
+  stage: build
+  image: munken/root:xenial-root6
+  <<: *docker
+  <<: *ubuntu-gcc6
+
+Xenial root6 gcc-6 g++-6 all flex 2.6.2:
+  stage: build
+  image: munken/root:xenial-root6
+  <<: *docker
+  <<: *ubuntu-gcc6
+
+Ubuntu Bionic gcc g++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-bionic-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Bionic clang clang++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-bionic-clang
+  <<: *docker
+  <<: *build
+
+Ubuntu Disco gcc g++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-disco-gcc
+  <<: *docker
+  <<: *build
+
+Ubuntu Disco clang clang++ all:
+  stage: build
+  image: munken/build-essential:ubuntu-disco-clang
+  <<: *docker
+  <<: *build
+
+Arch minimal gcc g++ all:
+  stage: build
+  image: archlinux/base
+  before_script:
+    - pacman -Syu --noconfirm
+    - pacman -S base-devel git flex bison ncurses --noconfirm --needed
+  <<: *docker
+  <<: *build
+
+gcc-latest minimal gcc g++ all:
+  stage: build
+  image: gcc:latest
+  <<: *docker
+  <<: *debian
+
+Debian Jessie gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-jessie-gcc
+  <<: *docker
+  <<: *build
+
+debian jessie clang-3.6 clang++-3.6 all:
+  stage: build  
+  image: munken/build-essential:debian-jessie-clang-3.6
+  <<: *docker
+  <<: *build
+
+debian jessie clang-3.7 clang++-3.7 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-3.7
+  <<: *docker
+  <<: *build
+
+debian jessie clang-3.8 clang++-3.8 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-3.8
+  <<: *docker
+  <<: *build
+
+debian jessie clang-3.9 clang++-3.9 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-3.9
+  <<: *docker
+  <<: *build
+
+debian jessie clang-4.0 clang++-4.0 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-4.0
+  <<: *docker
+  <<: *build
+
+debian jessie clang-5.0 clang++-5.0 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-5.0
+  <<: *docker
+  <<: *build
+
+debian jessie clang-6.0 clang++-6.0 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-6.0
+  <<: *docker
+  <<: *build
+
+debian jessie clang-7 clang++-7 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-7
+  <<: *docker
+  <<: *build
+
+debian jessie clang-8 clang++-8 all:
+  stage: build
+  image: munken/build-essential:debian-jessie-clang-8
+  <<: *docker
+  <<: *build
+
+Debian Wheezy gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-wheezy-gcc
+  <<: *docker
+  <<: *build
+
+Debian Etch gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-etch-gcc
+  <<: *docker
+  <<: *build
+
+Opensuse latest gcc g++ all:
+  stage: build
+  image: munken/build-essential:opensuse-latest-gcc
+  <<: *docker
+  <<: *build
+
+Opensuse latest clang clang++ all:
+  stage: build
+  image: munken/build-essential:opensuse-latest-clang
+  <<: *docker
+  <<: *build
+
+freebsd 10 gcc g++ all:
+  stage: build
+  variables:
+    EXTRA_MAKE_FLAGS:
+      "CXXLINKFLAGS=-Wl,-rpath=/usr/local/lib/gcc48"
+  <<: *build-bsd
+
+freebsd 10 clang clang++ all:
+  stage: build
+  <<: *build-bsd
+
+mac sierra gcc g++ all:
+  stage: build
+  <<: *build-mac-sierra
+
+
+###
+# Builds with ROOT
+
+Ubuntu Xenial gcc g++ all root6:
+  stage: build
+  image: munken/root2:ubuntu-xenial
+  <<: *docker
+  <<: *build
+
+###
+# Try the merging mode
+
+gcc-latest minimal gcc g++ empty merging:
+  stage: build
+  image: gcc:latest
+  <<: *docker
+  <<: *debian
+  variables:
+    EXTRA_MAKE_FLAGS: "USE_MERGING=1"
+
+gcc-latest minimal gcc g++ xtst merging:
+  stage: build
+  image: gcc:latest
+  <<: *docker
+  <<: *debian
+  variables:
+    EXTRA_MAKE_FLAGS: "USE_MERGING=1"

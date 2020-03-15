@@ -34,9 +34,9 @@ typedef signed short   sint16;
 typedef signed char    sint8;
 
 #ifdef __LAND02_CODE__
-typedef unsigned int   uint;   
-typedef unsigned short ushort; 
-typedef unsigned char  uchar;   
+typedef unsigned int   uint;
+typedef unsigned short ushort;
+typedef unsigned char  uchar;
 #endif
 
 #endif//__TYPEDEF_HH__

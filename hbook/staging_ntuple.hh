@@ -54,7 +54,7 @@ class TTree;
 
 struct stage_ntuple_info
 {
-  external_writer  *ext;  
+  external_writer  *ext;
 
   ntuple_var_case_fcn fix_case;
 
@@ -159,15 +159,15 @@ public:
     if (ind._1+1 > _1) _1 = ind._1+1;
     if (ind._2+1 > _2) _2 = ind._2+1;
   }
-  
+
   uint lin_index(const sni_ind2 &lim) const { return _1 * lim._2 + _2; }
 
   static bool is_2d() { return true; }
-  
+
 public:
   void dbg_fmt(char *str,size_t n) const { snprintf(str,n,"(%d,%d)",_1,_2); }
 
-public:  
+public:
   uint _1;
   uint _2;
 };
@@ -227,7 +227,7 @@ public:
   void set(const sni_ind1 &ind,ntuple_item *item) { _items[ind._1] = item; }
   ntuple_item *get(const sni_ind1 &ind) { return _items[ind._1]; }
   ntuple_item *first_item() { return _items[0]; }
-  
+
 public:
   std::vector<ntuple_item *> _items;
 };
@@ -239,14 +239,14 @@ public:
   {
     _items.resize(ind._1);
     for (uint i = 0; i < ind._1; i++)
-      _items[i].resize(ind._2,NULL);	 
+      _items[i].resize(ind._2,NULL);
   }
   size_t size() { return _items.size() * _items[0].size(); }
 
   void set(const sni_ind2 &ind,ntuple_item *item) { _items[ind._1][ind._2] = item; }
   ntuple_item *get(const sni_ind2 &ind) { return _items[ind._1][ind._2]; }
   ntuple_item *first_item() { return _items[0][0]; }
-  
+
 public:
   std::vector<std::vector<ntuple_item *> > _items;
 };
@@ -265,7 +265,7 @@ public:
 
 public:
   std::string _name;
-  
+
   stage_ntuple_index_var<Tsni_ind,Tsni_vect> *_index;
 
 public:
@@ -320,7 +320,7 @@ public:
 
 public:
   vect_stage_ntuple_block_item _items;
-  
+
 public:
   void storage_size(indexed_item &write_ptrs,
 		    size_t &size,

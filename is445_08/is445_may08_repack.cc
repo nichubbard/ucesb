@@ -170,13 +170,13 @@ void is445_may08_unpack::set_tdc(uint32 n_tdc,uint32 channel,uint32 value)
 
 void is445_may08_unpack::invalidate_scaler_state()
 {
-  tshort.set_invalid();  
-  tebis.set_invalid();  
+  tshort.set_invalid();
+  tebis.set_invalid();
 }
 
 void is445_may08_unpack::process()
 {
-  /*  
+  /*
   printf ("trigger: %d   (%d %d %d %d %d)\n",
 	  event.trigger,
 	  event.scaler[0],
@@ -189,7 +189,7 @@ void is445_may08_unpack::process()
   uint32 now = event.scaler[0];
 
   bool is_t2    = !!((event.trigger < 8) && (event.trigger & 0x2));
-  bool is_ebis  = !!((event.trigger < 8) && (event.trigger & 0x4)); 
+  bool is_ebis  = !!((event.trigger < 8) && (event.trigger & 0x4));
 
   bool had_t2   = event.scaler[SCALER_T2] > last_num_t2;
   bool had_ebis = event.scaler[SCALER_EBIS] > last_num_ebis;
@@ -365,7 +365,7 @@ void is445_may08_unpack::open_output(const char *filename)
   vars[0] = 0;
   ADD_VARIABLE_I("IEVENT");
   ADD_VARIABLE_I("TSHORT");
-  ADD_VARIABLE_I("TEBIS");         
+  ADD_VARIABLE_I("TEBIS");
   ADD_VARIABLE_I_MIN_MAX("TRIGGER",0,15);
   _ntu.hbname("OTHERS",&ntup_event.others,vars);
   printf ("Variables: %s\n",vars);

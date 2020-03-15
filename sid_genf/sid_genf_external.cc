@@ -64,7 +64,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_LADDER::__unpack,uint16 id)
 
   {
     __data_src_t peek_buffer(__buffer);
-    
+
     peek_buffer.advance(sizeof(uint16) * (size - 1));
 
     if (!peek_buffer.peek_uint16(&info))
@@ -84,7 +84,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_LADDER::__unpack,uint16 id)
       GET_BUFFER_UINT16(data);
 
     }
-  
+
   // Finally, get past the info item
 
   GET_BUFFER_UINT16(info);
@@ -95,7 +95,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_LADDER::__unpack,uint16 id)
 
   uint16 *src_begin  = (uint16*) __buffer._data;
   uint16 *src_end    = (uint16*) __buffer._end;
-  
+
   if (__buffer.left() < sizeof(uint16) * 6)
     ERROR("cros3 data too small, no space for ccb header and footer");
 

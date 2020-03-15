@@ -34,24 +34,31 @@
 #define ENUM_TYPE_UINT64    0x0008
 #define ENUM_TYPE_DATA8     0x0009
 #define ENUM_TYPE_DATA12    0x000a
-#define ENUM_TYPE_DATA16    0x000b
-#define ENUM_TYPE_DATA24    0x000c
-#define ENUM_TYPE_DATA32    0x000d
-#define ENUM_TYPE_DATA64    0x000e
-#define ENUM_TYPE_MASK      0x000f
-#define ENUM_HAS_INT_LIMIT  0x0010
-#define ENUM_IS_LIST_LIMIT  0x0020
-#define ENUM_IS_LIST_LIMIT2 0x0040 // second-level limit (multi-hit)
-#define ENUM_IS_ARRAY_MASK  0x0080
-#define ENUM_IS_LIST_INDEX  0x0100
+#define ENUM_TYPE_DATA14    0x000b
+#define ENUM_TYPE_DATA16    0x000c
+#define ENUM_TYPE_DATA24    0x000d
+#define ENUM_TYPE_DATA32    0x000e
+#define ENUM_TYPE_DATA64    0x000f
+#define ENUM_TYPE_DATA16PLUS 0x0010
+#define ENUM_TYPE_MASK      0x001f
+#define ENUM_HAS_INT_LIMIT  0x0020
+#define ENUM_IS_LIST_LIMIT  0x0040
+#define ENUM_IS_LIST_LIMIT2 0x0080 // second-level limit (multi-hit)
+#define ENUM_IS_ARRAY_MASK  0x0100
+#define ENUM_IS_LIST_INDEX  0x0200
+#define ENUM_IS_TOGGLE_I    0x0400
+#define ENUM_IS_TOGGLE_V    0x0800
 
 // item is (non-first) part of indexed list, may not be used as mapping
 // destination
-#define ENUM_NO_INDEX_DEST  0x0200 
+#define ENUM_NO_INDEX_DEST  0x1000
 
-#define ENUM_HAS_PTR_OFFSET 0x0400
+#define ENUM_HAS_PTR_OFFSET 0x2000
 
-typedef bool(*set_dest_fcn)(void *,void *);
+#define ENUM_NTUPLE_ALWAYS  0x4000
+#define ENUM_NTUPLE_NEVER   0x8000
+
+typedef bool(*set_dest_fcn)(void *void_src_map, void *void_dest, int toggle_i);
 
 class prefix_units_exponent;
 
@@ -66,37 +73,41 @@ public:
     _only_index0 = false;
     _signal_id_zzp_part = (size_t) -1;
   }
- 
+
 public:
   enumerate_info(const enumerate_info &src,const void *addr,int type)
   {
-    if ((src._type & ~(ENUM_NO_INDEX_DEST | ENUM_HAS_PTR_OFFSET)) != 0)
+    if ((src._type & ~(ENUM_NO_INDEX_DEST | ENUM_HAS_PTR_OFFSET |
+		       ENUM_IS_TOGGLE_V)) != 0)
       {
 	// If you reach this point, you have not protected the code enough.
 	// We can only handle one level of ptr_offset
-	ERROR("Internal error in enumerate_info constructor (1).");
+	ERROR("Internal error in enumerate_info constructor (1) (%x).",
+	      src._type);
       }
 
     _addr = addr;
     _type = src._type | type;
-    
+
     _min = _max = 0;
-    
+
     _ptr_offset = src._ptr_offset;
     _unit = src._unit;
 
     _only_index0 = src._only_index0;
     _signal_id_zzp_part = src._signal_id_zzp_part;
   }
-  
+
   enumerate_info(const enumerate_info &src,const void *addr,int type,
 		 unsigned int min,unsigned int max)
   {
-    if ((src._type & ~(ENUM_NO_INDEX_DEST | ENUM_HAS_PTR_OFFSET)) != 0)
+    if ((src._type & ~(ENUM_NO_INDEX_DEST | ENUM_HAS_PTR_OFFSET |
+		       ENUM_IS_TOGGLE_V)) != 0)
       {
 	// If you reach this point, you have not protected the code enough.
 	// We can only handle one level of ptr_offset
-	ERROR("Internal error in enumerate_info constructor (2).");
+	ERROR("Internal error in enumerate_info constructor (2) (%x).",
+	      src._type);
       }
 
     _addr = addr;
@@ -118,7 +129,8 @@ public:
       {
 	// If you reach this point, you have not protected the code enough.
 	// We can only handle one level of zero suppression.
-	ERROR("Internal error in enumerate_info constructor (3).");
+	ERROR("Internal error in enumerate_info constructor (3) (%x).",
+	      src._type);
       }
 
     _type = src._type;
@@ -129,7 +141,7 @@ public:
   }
 
 public:
-  enumerate_info &set_dest(set_dest_fcn sd)
+  enumerate_info &set_dest_function(set_dest_fcn sd)
   {
     _set_dest = sd;
     return *this;
@@ -153,23 +165,27 @@ public:
 
 struct rawdata8;
 struct rawdata12;
+struct rawdata14;
 struct rawdata16;
+struct rawdata16plus;
 struct rawdata24;
 struct rawdata32;
 struct rawdata64;
 
-inline int get_enum_type(rawdata8  *) { return ENUM_TYPE_DATA8; }
-inline int get_enum_type(rawdata12 *) { return ENUM_TYPE_DATA12; }
-inline int get_enum_type(rawdata16 *) { return ENUM_TYPE_DATA16; }
-inline int get_enum_type(rawdata24 *) { return ENUM_TYPE_DATA24; }
-inline int get_enum_type(rawdata32 *) { return ENUM_TYPE_DATA32; }
-inline int get_enum_type(rawdata64 *) { return ENUM_TYPE_DATA64; }
-inline int get_enum_type(uint64    *) { return ENUM_TYPE_UINT64; }
-inline int get_enum_type(uint32    *) { return ENUM_TYPE_UINT; }
-inline int get_enum_type(uint16    *) { return ENUM_TYPE_USHORT; }
-inline int get_enum_type(uint8     *) { return ENUM_TYPE_UCHAR; }
-inline int get_enum_type(float     *) { return ENUM_TYPE_FLOAT; }
-inline int get_enum_type(double    *) { return ENUM_TYPE_DOUBLE; }
+inline int get_enum_type(const rawdata8  *) { return ENUM_TYPE_DATA8; }
+inline int get_enum_type(const rawdata12 *) { return ENUM_TYPE_DATA12; }
+inline int get_enum_type(const rawdata14 *) { return ENUM_TYPE_DATA14; }
+inline int get_enum_type(const rawdata16 *) { return ENUM_TYPE_DATA16; }
+inline int get_enum_type(const rawdata16plus *) { return ENUM_TYPE_DATA16PLUS;}
+inline int get_enum_type(const rawdata24 *) { return ENUM_TYPE_DATA24; }
+inline int get_enum_type(const rawdata32 *) { return ENUM_TYPE_DATA32; }
+inline int get_enum_type(const rawdata64 *) { return ENUM_TYPE_DATA64; }
+inline int get_enum_type(const uint64    *) { return ENUM_TYPE_UINT64; }
+inline int get_enum_type(const uint32    *) { return ENUM_TYPE_UINT; }
+inline int get_enum_type(const uint16    *) { return ENUM_TYPE_USHORT; }
+inline int get_enum_type(const uint8     *) { return ENUM_TYPE_UCHAR; }
+inline int get_enum_type(const float     *) { return ENUM_TYPE_FLOAT; }
+inline int get_enum_type(const double    *) { return ENUM_TYPE_DOUBLE; }
 
 void enumerate_member(const signal_id &id,const enumerate_info &info,
 		      void *extra);

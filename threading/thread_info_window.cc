@@ -55,7 +55,7 @@ void thread_info_window::init(thread_info *ti)
   mw = initscr();
   start_color();
   atexit((void_void_func) endwin);
-  nocbreak(); 
+  nocbreak();
   noecho();
   nonl();
   curs_set(0);
@@ -65,7 +65,7 @@ void thread_info_window::init(thread_info *ti)
   init_pair(COL_TEXT_ERROR,  COLOR_RED    ,COLOR_WHITE);
   init_pair(COL_TEXT_WARNING,COLOR_BLUE   ,COLOR_WHITE);
   init_pair(COL_TEXT_INFO,   COLOR_GREEN  ,COLOR_WHITE);
-  
+
 
   //init_pair(COL_DATA_BKGND, COLOR_WHITE  ,COLOR_BLACK);
   //init_pair(COL_PHYSICS,    COLOR_GREEN   | A_STANDOUT,COLOR_BLACK);
@@ -196,7 +196,7 @@ int wadd_mag_str(WINDOW *win,
   // insert spaces to the left of the string
 
   memmove(buf+left,buf,chars+1-left);
-  memset(buf,' ',left);  
+  memset(buf,' ',left);
 
   return waddstr(win,buf);
 }
@@ -268,7 +268,7 @@ void thread_info_window::display()
       wmove(wtasks,ta+1,10);
       wadd_magi_str(wtasks,5,task->_speed,0);
       waddstr(wtasks,"/s  ");
-  
+
       if (task->_type & TI_TASK_SERIAL)
 	{
 	  ti_task_serial *serial_task = (ti_task_serial*) task;
@@ -308,7 +308,7 @@ void thread_info_window::display()
   wmove(wthreads,0,0);
   //               "01234567890        20        30        40        50        60        70        8"
   waddstr(wthreads,"Thr   Task k/s Buf  Task k/s Buf  Task k/s Buf  Task k/s Buf  TBuf      CPU");
-  
+
   for (int th = 0; th < _ti->_num_threads; th++)
     {
       ti_thread *thread = _ti->_threads._threads[th];
@@ -343,12 +343,12 @@ void thread_info_window::display()
   wcolor_set(wtotals,COL_NORMAL,NULL);
   wmove(wtotals,0,0);
   waddstr(wtotals,"Analysed: ");
-  
+
 
   wnoutrefresh(wtotals);
 
   //////////////////////////////////////////////////////////////
-  
+
 
   // wnoutrefresh(werrors);
 

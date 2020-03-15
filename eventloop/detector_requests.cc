@@ -32,7 +32,7 @@ void detector_requests::add_detector_request(const char *request,
       exclude = true;
       request++;
     }
-  
+
   dissect_name_range(request,id);
   _requests.push_back(detector_request(id,request,level,exclude));
 }
@@ -41,7 +41,7 @@ void detector_requests::prepare()
 {
   bool global_exclude = false;
   bool global_include = false;
-  
+
   for (unsigned int i = 0; i < _requests.size(); i++)
     {
       detector_request* request = &(_requests[i]);
@@ -63,7 +63,7 @@ void detector_requests::prepare()
   if (global_exclude && global_include)
     ERROR("Bad channel request list, "
 	  "both global includes and global excludes.");
-  
+
   _global_is_exclude = global_exclude;
 }
 
@@ -80,11 +80,11 @@ bool detector_requests::is_channel_requested(const signal_id& id,
 #define REJECTED_DETAILED  (REJECTED | DETAILED)
 
   bool match[4] = { false, false, false, false };
-  
+
   for (unsigned int i = 0; i < _requests.size(); i++)
     {
       detector_request* request = &(_requests[i]);
-	  
+
       // Now we need to compare the id to the request.
 
       if (request->_level &&

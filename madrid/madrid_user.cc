@@ -33,7 +33,7 @@ void user_function(unpack_event *event,
 	  raw_event->SCI[0][0].E,
 	  raw_event->SCI[0][1].E);
   */
-  
+
   // printf ("adc0: "); event->ev.adc[0].data.dump(); printf ("\n");
-  
+
 }

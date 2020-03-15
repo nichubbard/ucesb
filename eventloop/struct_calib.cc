@@ -32,25 +32,35 @@
 
 raw_event_calib_map the_raw_event_calib_map;
 
-template<typename T>
-void calib_map<T>::show(const signal_id &id)
+template<typename T,int n_toggle>
+void calib_map_base<T,n_toggle>::show(const signal_id &id)
 {
-  if (_calib)
+  for (int i = 0; i < n_toggle; i++)
     {
-      char buf[256];
-      id.format(buf,sizeof(buf));
-      printf ("%s : ",buf);
-      _calib->show();
-      printf ("\n");
-    }
-  else
-    {
-      /*
-      char buf[256];
-      id.format(buf,sizeof(buf));
-      printf ("%s : --\n",buf);
-      fflush(stdout);
-      */
+      if (_calib[i])
+	{
+	  char buf[256];
+	  id.format(buf,sizeof(buf));
+	  if (n_toggle == 1 ||
+	      (i == 0 && _calib[0] == _calib[n_toggle-1]))
+	    printf ("%s : ",buf);
+	  else
+	    printf ("%s tgl %d : ",buf,i+1);
+	  _calib[i]->show();
+	  printf ("\n");
+	}
+      else
+	{
+	  /*
+	    char buf[256];
+	    id.format(buf,sizeof(buf));
+	    printf ("%s : --\n",buf);
+	    fflush(stdout);
+	  */
+	}
+      if (n_toggle != 1 &&
+	  (i == 0 && _calib[0] == _calib[n_toggle-1]))
+	break;
     }
 }
 
@@ -77,8 +87,8 @@ void raw_array_1_calib_map<Tsingle_map,Tsingle,T_map,T,n,n1>::show(const signal_
 #define FCNCALL_FOR(index,size) for (int index = 0; index < size; ++index)
 #define FCNCALL_SUBINDEX(index) const signal_id &__shadow_id = __id; signal_id __id(__shadow_id,index);
 #define FCNCALL_SUBNAME(name)   const signal_id &__shadow_id = __id; signal_id __id(__shadow_id,name);
-#define FCNCALL_MULTI_MEMBER(name) 
-#define FCNCALL_MULTI_ARG(name) 
+#define FCNCALL_MULTI_MEMBER(name)
+#define FCNCALL_MULTI_ARG(name)
 #define STRUCT_ONLY_LAST_UNION_MEMBER 1
 
 #include "gen/raw_struct_fcncall.hh"
@@ -155,7 +165,7 @@ mix_rnd_seed::mix_rnd_seed(const mix_rnd_seed &src,const char *name)
     {
       _state_A = _state_A + ((uint8) *name);
       _state_A = _state_A * LCG_A3 + LCG_C3;
-      
+
       _state_B = _state_B - (((uint64) ((uint8) *name)) << 32);
       XOR_SHIFT(_state_B);
     }
@@ -196,8 +206,8 @@ void raw_array_1_calib_map<Tsingle_map,Tsingle,T_map,T,n,n1>::set_rnd_seed(const
 #define FCNCALL_FOR(index,size) for (int index = 0; index < size; ++index)
 #define FCNCALL_SUBINDEX(index) const mix_rnd_seed &__shadow_rnd_seed = rnd_seed; mix_rnd_seed rnd_seed(__shadow_rnd_seed,index);
 #define FCNCALL_SUBNAME(name)   const mix_rnd_seed &__shadow_rnd_seed = rnd_seed; mix_rnd_seed rnd_seed(__shadow_rnd_seed,name);
-#define FCNCALL_MULTI_MEMBER(name) 
-#define FCNCALL_MULTI_ARG(name) 
+#define FCNCALL_MULTI_MEMBER(name)
+#define FCNCALL_MULTI_ARG(name)
 #define STRUCT_ONLY_LAST_UNION_MEMBER 1
 
 #include "gen/raw_struct_fcncall.hh"
@@ -217,7 +227,7 @@ void raw_array_1_calib_map<Tsingle_map,Tsingle,T_map,T,n,n1>::set_rnd_seed(const
 void set_rnd_seed_calib_map()
 {
   mix_rnd_seed rnd_seed(0x0123456789abcdefLL,0xf0e1d2c3b4a59687LL);
-  
+
   the_raw_event_calib_map.set_rnd_seed(mix_rnd_seed(rnd_seed,"RAW_CALIB"));
 }
 
@@ -248,8 +258,8 @@ void raw_array_1_calib_map<Tsingle_map,Tsingle,T_map,T,n,n1>::clear()
 #define FCNCALL_FOR(index,size) for (int index = 0; index < size; ++index)
 #define FCNCALL_SUBINDEX(index) ;
 #define FCNCALL_SUBNAME(name)   ;
-#define FCNCALL_MULTI_MEMBER(name) 
-#define FCNCALL_MULTI_ARG(name) 
+#define FCNCALL_MULTI_MEMBER(name)
+#define FCNCALL_MULTI_ARG(name)
 #define STRUCT_ONLY_LAST_UNION_MEMBER 1
 
 #include "gen/raw_struct_fcncall.hh"
@@ -278,10 +288,29 @@ void clear_calib_map()
 template<typename T>
 void calib_map<T>::map_members(const T &src) const
 {
+  raw_to_tcal_base *calib = calib_map_base<T,1>::get_calib(0);
+  
   //printf("%f...\n",(double) src.value);
-  if (_calib)
+  if (calib)
     {
-      _calib->_convert(_calib,&src);
+      calib->_convert(calib,&src);
+    }
+}
+
+template<typename T>
+void toggle_calib_map<T>::map_members(const toggle_item<T> &src) const
+{
+  int toggle_i = 0;
+
+  if (src._toggle_i)
+    toggle_i = src._toggle_i - 1;
+
+  raw_to_tcal_base *calib = calib_map_base<T,2>::get_calib(toggle_i);
+    
+  //printf("%f...\n",(double) src.value);
+  if (calib)
+    {
+      calib->_convert(calib,&src._item);
     }
 }
 
@@ -290,10 +319,13 @@ void calib_map<T>::map_members(const T &src) const
 template<typename T_src>
 void map_members(const calib_map<T_src> &map,const T_src &src)
 {
+  map.map_members(src);
+  /*
   if (map._calib)
     {
       map._calib->_convert(map._calib,&src);
     }
+  */
 }
 
 /*
@@ -316,7 +348,7 @@ void raw_array_calib_map<Tsingle_map,Tsingle,T_map,T,n>::map_members(const raw_a
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = src._valid.next(iter)) >= 0)
     {
       _items[i].map_members(src[i]);
@@ -329,7 +361,7 @@ void raw_array_calib_map<Tsingle_map,Tsingle,T_map,T,n>::map_members(const raw_a
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = src._valid.next(iter)) >= 0)
     {
       for (uint j = 0; j < src._num_entries[i]; j++)
@@ -342,7 +374,7 @@ void raw_array_1_calib_map<Tsingle_map,Tsingle,T_map,T,n,n1>::map_members(const 
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = src._valid.next(iter)) >= 0)
     {
       const raw_array_calib_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &map_list = _items[i];
@@ -379,7 +411,7 @@ void raw_array_zero_suppress<Tsingle,T,n>::map_members(const raw_array_calib_map
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = _valid.next(iter)) >= 0)
     {
       _items[i].map_members(map[i]);
@@ -391,7 +423,7 @@ void raw_array_zero_suppress_1<Tsingle,T,n,n1>::map_members(const raw_array_1_ca
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = _valid.next(iter)) >= 0)
     {
       (raw_array_zero_suppress<Tsingle,T,n>::_items[i])[0].map_members(map[i][0]);
@@ -434,20 +466,16 @@ void raw_list_zero_suppress<Tsingle,T,n>::map_members(const raw_array_calib_map<
 #undef  FCNCALL_MULTI_ARG
 #undef STRUCT_ONLY_LAST_UNION_MEMBER
 
-void do_calib_map()
+void do_calib_map(raw_event *raw_ev)
 {
 #ifndef USE_MERGING
-  the_raw_event_calib_map.map_members(_static_event._raw);
+  the_raw_event_calib_map.map_members(*raw_ev /* _static_event._raw */);
 #endif
 }
 
-
-
-
-
-
-
-
+void do_calib_map(raw_sticky *raw_ev)
+{
+}
 
 
 
@@ -502,12 +530,12 @@ void enumerate_member_signal_id_map_raw(const signal_id &id,
   assert (sid_info);
 
   sid_info->_addr = info._addr;
-  sid_info->_type = info._type; 
-  sid_info->_unit = info._unit; 
+  sid_info->_type = info._type;
+  sid_info->_unit = info._unit;
 
   sid_info->_set_dest = info._set_dest;
 
-  // leaf->_info->_addr = info._addr; 
+  // leaf->_info->_addr = info._addr;
 }
 
 void setup_signal_id_map_raw_map(void *extra)
@@ -534,7 +562,7 @@ raw_to_tcal_base *new_raw_to_tcal(const calib_param *param)
       verify_units_match(divide_units(param->_dest->_unit,param->_src->_unit),
 			 param->_param[0][0]._unit,
 			 param->_loc,"slope",factor_slope);
-      
+
       verify_units_match(param->_dest->_unit,
 			 param->_param[0][1]._unit,
 			 param->_loc,"offset",factor_offset);
@@ -558,7 +586,7 @@ raw_to_tcal_base *new_raw_to_tcal(const calib_param *param)
       verify_units_match(divide_units(param->_dest->_unit,param->_src->_unit),
 			 param->_param[0][1]._unit,
 			 param->_loc,"slope",factor_slope);
-      
+
       return new_offset_slope((const T_src *) NULL,
 			      (T_dest *) (void*) param->_dest->_addr,
 			      param->_param[0][0]._value * factor_offset,
@@ -589,23 +617,47 @@ raw_to_tcal_base *new_raw_to_tcal(const calib_param *param)
   ERROR_LOC(param->_loc,"Internal error: unhandled parameter type: %d",
 	    param->_type);
 
-  return NULL;  
+  return NULL;
 }
 
-template<typename T>
+template<typename T, int n_toggle>
 bool set_raw_to_tcal(void *info,
-		     void *dummy)
+		     void *dummy,
+		     int toggle_i)
 {
   // We know the source type (via T)
 
   // We need to create casts for the destination type
-  // We need to select on the 
+  // We need to select on the
 
   const calib_param *param = (const calib_param *) info;
-    
-  calib_map<T>* src = (calib_map<T>*) (void*) param->_src->_addr;
 
-  if (src->_calib)
+  calib_map_base<T,n_toggle>* src =
+    (calib_map_base<T,n_toggle>*) (void*) param->_src->_addr;
+
+  if (src->get_n_toggle() == 1 && toggle_i)
+    {
+      WARNING("Trying to map toggle calibration for non-toggle source.");
+      return false;
+    }
+
+  /* For non-toggle items, use0 and use1 will be the same (0).
+   * For toggle items, they will by defult be different, and thus
+   * check and (at bottom) assign both slots.
+   * Unless toggle is given, in which case they only deal with the
+   * wanted item.
+   */
+
+  int use0 = 0;
+  int use1 = n_toggle-1;
+
+  if (toggle_i == 1)
+    use1 = use0;
+  else if (toggle_i == 2)
+    use0 = use1;
+
+  if (src->_calib[use0] ||
+      src->_calib[use1])
     return false;   // one could try to merge!!!
 
   // info->_src   _addr  _type
@@ -623,6 +675,8 @@ bool set_raw_to_tcal(void *info,
 
   SET_RAW_TO_TCAL2(DATA12,rawdata12,FLOAT,float);
   SET_RAW_TO_TCAL2(DATA12,rawdata12,DOUBLE,double);
+  SET_RAW_TO_TCAL2(DATA14,rawdata14,FLOAT,float);
+  SET_RAW_TO_TCAL2(DATA14,rawdata14,DOUBLE,double);
   SET_RAW_TO_TCAL2(DATA16,rawdata16,FLOAT,float);
   SET_RAW_TO_TCAL2(DATA16,rawdata16,DOUBLE,double);
   SET_RAW_TO_TCAL2(DATA24,rawdata24,FLOAT,float);
@@ -643,15 +697,16 @@ bool set_raw_to_tcal(void *info,
 
       get_enum_type_name(param->_src->_type,src_type,sizeof(src_type));
       get_enum_type_name(param->_dest->_type,dest_type,sizeof(dest_type));
-      
+
       ERROR_LOC(param->_loc,"Unhandled type (pair of?) for calibration parameters (src and/or dest) (%s -> %s) (0x%x -> 0x%x).",
 		src_type,dest_type,
 		param->_src->_type,
 		param->_dest->_type);
       return false;
     }
-  
-  src->_calib = r2c;
-  
+
+  src->_calib[use0] = r2c;
+  src->_calib[use1] = r2c;
+
   return true;
 }

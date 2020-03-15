@@ -83,9 +83,9 @@ void *tcp_pipe_buffer::reader()
 
       size_t space  = _size - (_avail - _done);
       size_t offset = _avail & (_size - 1);
-      
+
       size_t segment = _size - offset;
-      
+
       if (segment > space)
 	segment = space;
       /*
@@ -111,40 +111,40 @@ void *tcp_pipe_buffer::reader()
 #ifdef USE_THREADING
 	  request_next_file();
 #endif
-	  
+
 	  // Other side of connection closed...
-	  
+
 	  _reached_eof = true;
 
 	  MFENCE;
-	  
+
 	  if (_need_consumer_wakeup)
 	    {
 	      // The consumer was waiting for us.
 	      // wake him up to tell him that data till never be available :-(
-	      
+
 	      const thread_block *blocked = (const thread_block *) _need_consumer_wakeup;
 	      _need_consumer_wakeup = NULL;
 	      SFENCE;
 	      blocked->wakeup();
 	    }
-	  
+
 	  break;
 	}
-      
+
       _avail += n;
 
-      if (_need_consumer_wakeup && 
+      if (_need_consumer_wakeup &&
 	  ((ssize_t) (_avail - _wakeup_avail)) >= 0)
 	{
 	  // The consumer was waiting for us.
-	  
+
 	  const thread_block *blocked = (const thread_block *) _need_consumer_wakeup;
 	  _need_consumer_wakeup = NULL;
 	  SFENCE;
 	  blocked->wakeup();
 	}
-      
+
     }
 
   return NULL;
@@ -157,7 +157,7 @@ int tcp_pipe_buffer::read_now(off_t end)
 
   //printf ("read_now(end=%d)\n",end);
   //fflush(stdout);
-  
+
   while (((ssize_t) _avail - (ssize_t) end)) < 0)
     {
       if (_reached_eof)
@@ -167,16 +167,16 @@ int tcp_pipe_buffer::read_now(off_t end)
 
       size_t space  = _size - (_avail - _done);
       size_t offset = _avail & (_size - 1);
-      
+
       size_t segment = _size - offset;
       // size_t need = end - _avail;
-      
+
       if (UNLIKELY(space <= 0))
 	ERROR("pipe_buffer too small");
-      
+
       if (segment > space)
 	segment = space;
-      
+
       // So, at current point of buffer there is segment bytes to fill
       // (before we reach unused data, or end) ...
 
@@ -240,6 +240,6 @@ void tcp_pipe_buffer::close()
       _server->close();
       delete _server;
       _server = NULL;
-    }  
+    }
 }
 

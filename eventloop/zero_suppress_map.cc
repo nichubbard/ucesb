@@ -37,7 +37,7 @@ public:
 
 public:
   void              *_ptr;
-  const void *const *_ptr_offset;
+  const void *const *_ptr_offset; // for multi_chunk (i.e. multi-event)
 
 public:
   bool operator<(const zzp_ptr &rhs) const
@@ -46,16 +46,18 @@ public:
       return true;
     if (_ptr_offset > rhs._ptr_offset)
       return false;
-    return (_ptr < rhs._ptr);    
+    return (_ptr < rhs._ptr);
   };
 };
 
-typedef std::map<zzp_ptr,const zero_suppress_info *> map_ptr_zero_suppress_info;
+typedef std::map<zzp_ptr,
+		 const zero_suppress_info *> map_ptr_zero_suppress_info;
 
 map_ptr_zero_suppress_info _map_ptr_zero_suppress_info;
 
-const zero_suppress_info *get_ptr_zero_suppress_info(void *us,const void *const *ptr_offset,
-						     bool allow_missing)
+const zero_suppress_info *
+get_ptr_zero_suppress_info(void *us,const void *const *ptr_offset,
+			   bool allow_missing)
 {
   map_ptr_zero_suppress_info::iterator iter;
 
@@ -85,24 +87,27 @@ public:
     if (!_used)
       delete _info;
   }
-  
+
 public:
   const zero_suppress_info *_info;
   bool                      _used;
 };
 
-void insert_zero_suppress_info_ptrs(void *us,used_zero_suppress_info &used_info)
+void insert_zero_suppress_info_ptrs(void *us,
+				    used_zero_suppress_info &used_info)
 {
   // So we have a pointer (us),
   // whenever that is used, one should use the info!
 
   zzp_ptr p(us,used_info._info->_ptr_offset);
 
-  std::pair<map_ptr_zero_suppress_info::iterator,bool> known_ptr = 
-    _map_ptr_zero_suppress_info.insert(map_ptr_zero_suppress_info::value_type(p,used_info._info));
-  
+  std::pair<map_ptr_zero_suppress_info::iterator,bool> known_ptr =
+    _map_ptr_zero_suppress_info.insert(map_ptr_zero_suppress_info::
+				       value_type(p,used_info._info));
+
   if (!known_ptr.second)
-    ERROR("Ptr %p->%p already known by zero-suppression map.",p._ptr_offset,p._ptr);
+    ERROR("Ptr %p->%p already known by zero-suppression map.",
+	  p._ptr_offset,p._ptr);
   // If you got error here, did you call the setting up of the
   // zero-suppression maps twice??
 
@@ -116,8 +121,50 @@ void zero_suppress_info_ptrs(void* us,used_zero_suppress_info &used_info)
   ::insert_zero_suppress_info_ptrs(us,used_info);
 }
 
+template<typename T>
+void toggle_item<T>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+{
+  /* This is a bit ugly...
+   *
+   * Since we may be below a zero-suppress structure, we ignore the
+   * check that no flags have been set so far.  We must also make sure
+   * that all members get copied, since they contain the zero-suppress
+   * information needed.
+   */
+
+  zero_suppress_info *sub_info = new zero_suppress_info;
+
+  *sub_info = *used_info._info;
+  sub_info->_toggle_max = 2; /* Needs to have toggle set. */
+  
+  used_zero_suppress_info sub_used_info(sub_info);
+
+  call_zero_suppress_info_ptrs(&_item,sub_used_info);
+
+  /* We also need to set info up for the index. */
+
+  zero_suppress_info *sub_info_i = new zero_suppress_info;
+  *sub_info_i = *used_info._info;
+  used_zero_suppress_info sub_used_info_i(sub_info_i);
+  call_zero_suppress_info_ptrs((uint32 *) &_toggle_i, sub_used_info_i);
+
+  /* And for the two value-carrying items. */
+
+  for (int i = 0; i < 2; i++)
+    {
+      zero_suppress_info *sub_info_v = new zero_suppress_info;
+      *sub_info_v = *used_info._info;
+      used_zero_suppress_info sub_used_info_v(sub_info_v);
+      call_zero_suppress_info_ptrs(&_toggle_v[i], sub_used_info_v);
+    }
+}
+
+
+
 template<typename Tsingle,typename T,int n>
-void raw_array<Tsingle,T,n>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_array<Tsingle,T,n>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
@@ -128,35 +175,37 @@ void raw_array<Tsingle,T,n>::zero_suppress_info_ptrs(used_zero_suppress_info &us
       zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
 
-      _items[i].zero_suppress_info_ptrs(sub_used_info);
+      call_zero_suppress_info_ptrs(&_items[i],sub_used_info);
     }
 #endif
   for (int i = 0; i < n; ++i)
-    _items[i].zero_suppress_info_ptrs(used_info);
+    call_zero_suppress_info_ptrs(&_items[i],used_info);
 }
 
 template<typename Tsingle,typename T,int n>
-void raw_array_zero_suppress<Tsingle,T,n>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_array_zero_suppress<Tsingle,T,n>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     {
       zero_suppress_info *info = new zero_suppress_info(used_info._info);
       zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
 
-      _items[i].zero_suppress_info_ptrs(sub_used_info);
+      call_zero_suppress_info_ptrs(&_items[i],sub_used_info);
     }
 }
 
 template<typename Tsingle,typename T,int n,int n1>
-void raw_array_zero_suppress_1<Tsingle,T,n,n1>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_array_zero_suppress_1<Tsingle,T,n,n1>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     {
       zero_suppress_info *info = new zero_suppress_info(used_info._info);
@@ -164,131 +213,133 @@ void raw_array_zero_suppress_1<Tsingle,T,n,n1>::zero_suppress_info_ptrs(used_zer
       used_zero_suppress_info sub_used_info(info);
 
       for (int i1 = 0; i1 < n1; ++i1)
-	(raw_array_zero_suppress<Tsingle,T,n>::_items[i])[i1].zero_suppress_info_ptrs(sub_used_info);
+	call_zero_suppress_info_ptrs(&(raw_array_zero_suppress<Tsingle,T,n>::
+				       _items[i])[i1],
+				     sub_used_info);
     }
 }
 
 template<typename Tsingle,typename T,int n,int n1,int n2>
-void raw_array_zero_suppress_2<Tsingle,T,n,n1,n2>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_array_zero_suppress_2<Tsingle,T,n,n1,n2>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     {
       zero_suppress_info *info = new zero_suppress_info(used_info._info);
       raw_array_zero_suppress<Tsingle,T,n>::zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
-      
+
       for (int i1 = 0; i1 < n1; ++i1)
 	for (int i2 = 0; i2 < n2; ++i2)
-	  (raw_array_zero_suppress<Tsingle,T,n>::_items[i])[i1][i2].zero_suppress_info_ptrs(sub_used_info);
+	  call_zero_suppress_info_ptrs(&(raw_array_zero_suppress<Tsingle,T,n>::
+					 _items[i])[i1][i2],
+				       sub_used_info);
     }
 }
 
 template<typename Tsingle,typename T,int n,int max_entries>
-void raw_array_multi_zero_suppress<Tsingle,T,n,max_entries>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_array_multi_zero_suppress<Tsingle,T,n,max_entries>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < max_entries; j++)
       {
 	zero_suppress_info *info = new zero_suppress_info(used_info._info);
 	zzp_on_insert_index(i,j,*info);
 	used_zero_suppress_info sub_used_info(info);
-	
-	_items[i][j].zero_suppress_info_ptrs(sub_used_info);
+
+	call_zero_suppress_info_ptrs(&_items[i][j],sub_used_info);
       }
 }
 
 template<typename Tsingle,typename T,int n>
-void raw_list_zero_suppress<Tsingle,T,n>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_list_zero_suppress<Tsingle,T,n>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     {
       zero_suppress_info *info = new zero_suppress_info(used_info._info);
       zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
-      
-      _items[i].zero_suppress_info_ptrs(sub_used_info);
+
+      call_zero_suppress_info_ptrs(&_items[i],sub_used_info);
     }
 }
 
 template<typename Tsingle,typename T,int n,int n1>
-void raw_list_zero_suppress_1<Tsingle,T,n,n1>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_list_zero_suppress_1<Tsingle,T,n,n1>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     {
       zero_suppress_info *info = new zero_suppress_info(used_info._info);
       raw_list_zero_suppress<Tsingle,T,n>::zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
-      
+
       for (int i1 = 0; i1 < n1; ++i1)
-	(raw_list_zero_suppress<Tsingle,T,n>::_items[i])._item[i1].zero_suppress_info_ptrs(sub_used_info);
+	call_zero_suppress_info_ptrs(&(raw_list_zero_suppress<Tsingle,T,n>::
+				       _items[i])._item[i1],
+				     sub_used_info);
     }
 }
 
 template<typename Tsingle,typename T,int n,int n1,int n2>
-void raw_list_zero_suppress_2<Tsingle,T,n,n1,n2>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_list_zero_suppress_2<Tsingle,T,n,n1,n2>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
   if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
     ERROR("Two levels of zero suppression not supported!");
-  
+
   for (int i = 0; i < n; ++i)
     {
       zero_suppress_info *info = new zero_suppress_info(used_info._info);
       raw_list_zero_suppress<Tsingle,T,n>::zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
-      
+
       for (int i1 = 0; i1 < n1; ++i1)
 	for (int i2 = 0; i2 < n2; ++i2)
-	  (raw_list_zero_suppress<Tsingle,T,n>::_items[i])._item[i1][i2].zero_suppress_info_ptrs(sub_used_info);
+	  call_zero_suppress_info_ptrs(&(raw_list_zero_suppress<Tsingle,T,n>::
+					 _items[i])._item[i1][i2],
+				       sub_used_info);
     }
 }
 
 template<typename Tsingle,typename T,int n>
-void raw_list_ii_zero_suppress<Tsingle,T,n>::zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
+void raw_list_ii_zero_suppress<Tsingle,T,n>::
+zero_suppress_info_ptrs(used_zero_suppress_info &used_info)
 {
-  int type_mask_away = ~0;
-  int new_type = 0;
-  
-  switch (used_info._info->_type & ZZP_INFO_MASK)
-    {
-    case ZZP_INFO_CALL_ARRAY_INDEX:
-      type_mask_away = ZZP_INFO_CALL_ARRAY_INDEX;
-      new_type       = ZZP_INFO_CALL_ARRAY_LIST_II_INDEX;
-      break;
-    case ZZP_INFO_CALL_LIST_INDEX:
-      type_mask_away = ZZP_INFO_CALL_ARRAY_INDEX;
-      new_type       = ZZP_INFO_CALL_LIST_LIST_II_INDEX;
-      break;
-    case ZZP_INFO_NONE:
-      new_type       = ZZP_INFO_CALL_LIST_II_INDEX;
-      break;
-    default:
-      ERROR("Two levels of zero suppression not supported!");
-    }
-  
+  // These are handled in zero_suppress_info::set_zzp_list_ii()
+  // via raw_list_ii_zero_suppress::zzp_on_insert_index()
+  /*
+  if ((used_info._info->_type & ZZP_INFO_MASK) != ZZP_INFO_NONE)
+    ERROR("Two levels of zero suppression not supported!");
+  */
+
   for (int i = 0; i < n; ++i)
     {
-      zero_suppress_info *info = new zero_suppress_info(used_info._info,type_mask_away);
-      zzp_on_insert_index(i,*info,new_type);
+      zero_suppress_info *info =
+	new zero_suppress_info(used_info._info,true);
+      zzp_on_insert_index(i,*info);
       used_zero_suppress_info sub_used_info(info);
-      
-      _items[i].zero_suppress_info_ptrs(sub_used_info);
+
+      call_zero_suppress_info_ptrs(&_items[i],sub_used_info);
     }
 }
 
 
-// void zero_suppress_info(const zero_suppress_info &info); 
+// void zero_suppress_info(const zero_suppress_info &info);
 
 #define FCNCALL_CLASS_NAME(name) name
 #define FCNCALL_NAME(name) \
@@ -316,7 +367,7 @@ void raw_list_ii_zero_suppress<Tsingle,T,n>::zero_suppress_info_ptrs(used_zero_s
 
 // We are not sane for multi members anyhow!
 // But we are also used by the ntuple dumper to figure out hwo the zero-suppression works...
-#include "gen/struct_fcncall.hh" 
+#include "gen/struct_fcncall.hh"
 // For these we are sane
 #include "gen/raw_struct_fcncall.hh"
 #include "gen/cal_struct_fcncall.hh"
@@ -349,12 +400,17 @@ void setup_zero_suppress_info_ptrs()
   _static_event._user.zero_suppress_info_ptrs(used_info);
 #endif
 #endif//!USE_MERGING
+
+#ifndef USE_MERGING
+  _static_sticky_event._unpack.zero_suppress_info_ptrs(used_info);
+  _static_sticky_event._raw.zero_suppress_info_ptrs(used_info);
+#endif//!USE_MERGING
 }
 
 #define SNPRINTF_NAME(name) {			\
     int n = snprintf(dest,length,name);		\
     length -= (size_t) n; dest += n;		\
-  } 
+  }
 
 void get_enum_type_name(int type,char *dest,size_t length)
 {
@@ -376,7 +432,9 @@ void get_enum_type_name(int type,char *dest,size_t length)
     case ENUM_TYPE_UINT64: SNPRINTF_NAME("uint64"); break;
     case ENUM_TYPE_DATA8 : SNPRINTF_NAME("DATA8");  break;
     case ENUM_TYPE_DATA12: SNPRINTF_NAME("DATA12"); break;
+    case ENUM_TYPE_DATA14: SNPRINTF_NAME("DATA14"); break;
     case ENUM_TYPE_DATA16: SNPRINTF_NAME("DATA16"); break;
+    case ENUM_TYPE_DATA16PLUS: SNPRINTF_NAME("DATA16PLUS"); break;
     case ENUM_TYPE_DATA24: SNPRINTF_NAME("DATA24"); break;
     case ENUM_TYPE_DATA32: SNPRINTF_NAME("DATA32"); break;
     case ENUM_TYPE_DATA64: SNPRINTF_NAME("DATA64"); break;

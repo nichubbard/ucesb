@@ -57,11 +57,31 @@ SIGNAL(OLDTSHORT     ,vme.scaler[0].data[0],(DATA32,float));
 SIGNAL(EBIS          ,vme.scaler[0].data[1],(DATA32,float));
 SIGNAL(NACCEPT       ,vme.scaler[0].data[2],(DATA32,float));
 
+#ifdef UNPACKER_IS_is446
 SIGNAL(BACK_1_E      ,vme.adc[6].data[0],   (DATA12,float));
 SIGNAL(BACK_2_E      ,vme.adc[6].data[1],   (DATA12,float));
 
 SIGNAL(BACK_1_T      ,vme.tdc[4].data[0],   (DATA12,float));
 SIGNAL(BACK_2_T      ,vme.tdc[4].data[1],   (DATA12,float));
+#endif/*UNPACKER_IS_is446*/
+
+/* is446 was not using toggle.  We just use the unpacker
+ * for some testing, as there are easy data files. */
+#ifdef UNPACKER_IS_is446_toggle
+SIGNAL(TOGGLE 1: TGL_1_E      ,vme.adc[6].data[0],   (DATA12,float));
+SIGNAL(TOGGLE 2: TGL_1_E      ,vme.adc[6].data[1],   (DATA12,float));
+
+SIGNAL(TOGGLE 1: TGL_1_T      ,vme.tdc[4].data[0],   (DATA12,float));
+SIGNAL(TOGGLE 2: TGL_1_T      ,vme.tdc[4].data[1],   (DATA12,float));
+#endif
+#ifdef UNPACKER_IS_is446_tglarray
+SIGNAL(TOGGLE 1: TGL_3_E      ,vme.adc[6].data[0],   (DATA12,float));
+SIGNAL(TOGGLE 2: TGL_3_E      ,vme.adc[6].data[1],   (DATA12,float));
+
+SIGNAL(TOGGLE 1: TGL_2_T      ,vme.tdc[4].data[0],   (DATA12,float));
+SIGNAL(TOGGLE 2: TGL_2_T      ,vme.tdc[4].data[1],   (DATA12,float));
+SIGNAL(ZERO_SUPPRESS: TGL_3);
+#endif
 
 SIGNAL(MON_1_E       ,vme.adc[6].data[2],   (DATA12,float));
 SIGNAL(MON_2_E       ,vme.adc[6].data[3],   (DATA12,float));

@@ -64,7 +64,7 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SUBTDC)(tdc,event_id,data /* from parent */)
       19_23: channel_low;
       24_25: tdc = CHECK(tdc);
 #endif
-      
+
       26:    trailing;
 
       27_31: 0b00000;
@@ -78,7 +78,7 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SUBTDC)(tdc,event_id,data /* from parent */)
 	     (value=value/*,trailing=trailing*/));
 #endif
     }
-  
+
   optional UINT32 error_flags // error leads to namespace collision in the C++ code
     {
       0_14:  flags; // left as an exercise to sanitize this...
@@ -161,7 +161,7 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SHORT_SUBTDC)(tdc,event_id,data /* from parent */)
       19_23: channel_low;
       24_25: tdc = CHECK(tdc);
 #endif
-      
+
       26:    trailing;
 
       27_31: 0b00000;
@@ -176,7 +176,7 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SHORT_SUBTDC)(tdc,event_id,data /* from parent */)
 #endif
     }
 }
-  
+
 VME_CAEN_V1x90_NAME_POSTFIX(_SHORT_SUBTDC_ERROR)(tdc)
 {
   UINT32 error_flags // error leads to namespace collision in the C++ code
@@ -237,18 +237,18 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SHORT)(geom)
 #endif
 
 /*
- header    44b15738 
-  tdchead  08ab9d65 
-   data    0004c11f 
-  tdctrail 18ab9003 
+ header    44b15738
+  tdchead  08ab9d65
+   data    0004c11f
+  tdctrail 18ab9003
   tdchead  09ab9d65
   tdctrail 19ab9002
-  tdchead  0aab9d65 
+  tdchead  0aab9d65
   tdctrail 1aab9002
-  tdchead  0bab9d65 
-  tdctrail 1bab9002 
+  tdchead  0bab9d65
+  tdctrail 1bab9002
  trailer 80000178 wc: 11
- 
 
- header 44b15758 
+
+ header 44b15758
 */

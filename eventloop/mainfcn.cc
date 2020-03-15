@@ -20,8 +20,10 @@
 
 #include "event_loop.hh"
 #include "config.hh"
+#include "monitor.hh"
 #include "error.hh"
 #include "colourtext.hh"
+#include "parse_util.hh"
 
 #include "mc_def.hh"
 
@@ -37,6 +39,7 @@
 #include <sys/select.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+
 
 #include "util.hh"
 #include "worker_thread.hh"
@@ -56,9 +59,6 @@
 #include "data_queues.hh"
 
 #include "user.hh"
-
-#define stringify_r(x) #x
-#define stringify(x)   stringify_r(x)
 
 void signal_handler_ret(int signal)
 {
@@ -89,6 +89,7 @@ void usage()
 #else
   printf (" (stream,event,trans://)  No MBS input support compiled in.\n");
 #endif
+  printf ("  --input-buffer=N  Input buffer size.\n");
 #if defined(USE_EXT_WRITER) && !defined(USE_MERGING)
   printf ("  --in-tuple=LVL,DET,FILE  Read data from ROOT/STRUCT.\n");
   //printf ("  --reverse         Run mapping in reverse (only with --in-tuple).\n");
@@ -111,19 +112,20 @@ void usage()
 #if defined(USE_LMD_INPUT)
   printf ("  --time-stitch=style,N   Combine events with timestamps with difference <= N,\n"
 	  "                          style: wr, titris.\n");
-  printf ("  --tstamp-hist=style  Histogram of time stamp diffs, style: wr, titris.\n");
+  printf ("  --time-slope=[help],[filter],[mult],[add]\n"
+          "                    Transform timestamps before they are evaluated.\n");
+  printf ("  --tstamp-hist=[help],[style],[props]\n");
+  printf ("                    Histogram of time stamp diffs, style: wr, titris.\n");
 #endif
   printf ("  --calib=FILE      Extra input file with mapping/calibration parameters.\n");
 
   printf ("  --max-events=N    Limit number of events processed to N.\n");
-#if 0
   printf ("  --skip-events=N   Skip initial N events.\n");
   printf ("  --first-event=N   Skip initial events until event # N.\n");
   printf ("  --last-event=N    Stop processing at (before) event # N.\n");
-#endif
-  printf ("  --downscale=N     Only process every Nth event.");
+  printf ("  --downscale=N     Only process every Nth event.\n");
 #if 0
-  printf ("  --rate=real|NHz   Process events at original or given rate.");
+  printf ("  --rate=real|NHz   Process events at original or given rate.\n");
 #endif
   printf ("  --print-buffer    Print buffer headers.\n");
   printf ("  --print           Print event headers.\n");
@@ -132,6 +134,11 @@ void usage()
   printf ("  --colour=yes|no   Force colour and markup on or off.\n");
   printf ("  --event-sizes     Show average sizes of events and subevents.\n");
 
+#if defined(USE_EXT_WRITER)
+  printf ("  --monitor[=PORT]  Status information server.\n");
+#else
+  printf (" (--monitor)        No information server compiled in.\n");
+#endif
   printf ("  --quiet           Suppress harmless problem reports.\n");
   printf ("  --io-error-fatal  Any I/O error is fatal.\n");
   printf ("  --allow-errors    Allow errors.\n");
@@ -199,6 +206,8 @@ void usage()
   */
 }
 
+status_monitor _status;
+
 config_opts _conf;
 
 // Data source
@@ -209,6 +218,10 @@ config_output_vect _outputs;
 config_calib_vect _conf_calib;
 
 config_command_vect _corr_commands;
+
+#ifdef USE_LMD_INPUT
+std::vector<time_slope> _conf_time_slope_vector;
+#endif
 
 thread_info _ti_info;
 
@@ -450,15 +463,83 @@ void parse_aida_ids(const char *command)
 #endif
 
 
-void parse_time_stamp_hist_options(const char *command)
+void parse_time_slope_usage()
 {
-  int mode;
+  printf ("\n");
+  printf ("%s --time-slope=[help],[filter],[mult],[add]\n", main_argv0);
+  printf ("\n");
+  printf ("Every timestamped 10/1 sub-event that matches [filter] will have its timestamp\n");
+  printf ("transformed as \"t' = mult * t + add\" before being evaluated for merging or time\n");
+  printf ("stitching. An error will be emitted if a sub-event matches several given\n");
+  printf ("time-slopes.\n");
+  printf ("\n");
+  printf ("[filter] is a comma-separated list of the following:\n");
+  printf (" proc=num  - matches against sub-event procid.\n");
+  printf (" ctrl=num  - matches against sub-event control.\n");
+  printf (" crate=num - matches against sub-event sub-crate.\n");
+  printf (" tsid=num  - matches against timestamp ID in sub-event payload.\n");
+  printf (" mult=num  - timestamp multiplier, 1 if omitted.\n");
+  printf (" add=num   - timestamp additive offset, 0 if omitted.\n");
+  printf ("Note that at least one of \"mult\" or \"add\" must be specified.\n");
+  printf ("\n");
+  printf ("Example:\n");
+  printf (" --time-slope=proc=12,ctrl=5,tsid=0x200,add=100\n");
+  printf ("For every 10/1 subevent with procid=12, control=5, timestamp ID=0x200 in the\n");
+  printf ("payload, the timestamp will be transformed as \"t'=t+100\".\n");
+  printf ("\n");
+}
 
-  if ((mode = get_time_stamp_mode(command)) != -1)
-    _conf._ts_align_hist_mode = mode;
-  else {
-    ERROR("Unknown time stamp histogram option: %s",command);
+void parse_time_slope_options(const char *command)
+{
+  time_slope ts;
+  char const *p = command;
+  for (;;) {
+    char *end;
+    if (strncmp(p, "help", 4) == 0) {
+      parse_time_slope_usage();
+      exit(EXIT_SUCCESS);
+    }
+#define TIME_SLOPE_COMPONENT(name)\
+    do {\
+      char const *opt = #name"=";\
+      size_t optlen = strlen(opt);\
+      if (strncmp(p, opt, optlen) == 0) {\
+        p += optlen;\
+        int base = 10;\
+        if (strncmp(p, "0x", 2) == 0) {\
+          base = 16;\
+          p += 2;\
+        }\
+        int value = (int)strtol(p, &end, base);\
+        if (p == end) {\
+          ERROR("Invalid number for \""#name"\" in time-slope \"%s\".", command);\
+        }\
+        ts.name = value;\
+        goto parse_time_slope_options_next;\
+      }\
+    } while (0)
+    TIME_SLOPE_COMPONENT(proc);
+    TIME_SLOPE_COMPONENT(ctrl);
+    TIME_SLOPE_COMPONENT(crate);
+    TIME_SLOPE_COMPONENT(tsid);
+    TIME_SLOPE_COMPONENT(mult);
+    TIME_SLOPE_COMPONENT(add);
+    ERROR("Unknown time-slope option in \"%s\".", command);
+parse_time_slope_options_next:
+    p = end;
+    if (*p == '\0') {
+      break;
+    }
+    if (*p == ',') {
+      ++p;
+      continue;
+    }
+    ERROR("Garbage in time-slope \"%s\".", command);
   }
+  if (ts.mult == -1 && ts.add == -1) {
+    ERROR("Time-slope has no modifiers \"%s\".", command);
+  }
+  _conf_time_slope_vector.push_back(ts);
 }
 #endif
 
@@ -511,6 +592,9 @@ int main(int argc, char **argv)
   main_argv0 = argv[0];
 
   memset (&_conf,0,sizeof(_conf));
+  _conf._max_events = -1;
+  _conf._first_event = -1;
+  _conf._last_event = -1;
 
   if(argc == 1)
     {
@@ -538,7 +622,6 @@ int main(int argc, char **argv)
   _conf._eventbuilder_wrid = 0x700;
   _conf._eventbuilder_window = 2200;
 #endif
-
   for (int i = 1; i < argc; i++)
     {
       char *post;
@@ -580,10 +663,17 @@ int main(int argc, char **argv)
       else if (MATCH_PREFIX("--time-stitch=",post)) {
 	parse_time_stitch_options(post);
       }
+      else if (MATCH_PREFIX("--time-slope=",post)) {
+	parse_time_slope_options(post);
+      }
       else if (MATCH_PREFIX("--tstamp-hist=",post)) {
-	parse_time_stamp_hist_options(post);
+        _conf._ts_align_hist_command = post;
       }
 #endif//USE_LMD_INPUT
+      else if (MATCH_PREFIX("--input-buffer=",post)) {
+	_conf._input_buffer =
+	  parse_size_postfix(post,"kMG","Input buffer size",false);
+      }
 #ifdef USE_INPUTFILTER
       else if (MATCH_ARG("--aida")) {
          _conf._enable_eventbuilder = 1;
@@ -631,24 +721,34 @@ int main(int argc, char **argv)
 	_conf_calib.push_back(post);
       }
       else if (MATCH_PREFIX("--max-events=",post)) {
-	_conf._max_events = (uint64_t) atol(post);
+	char *end;
+	_conf._max_events = strtoul(post, &end, 10);
+        if (*end != 0 || end == post)
+          ERROR("Invalid number for --max-events.");
       }
-#if 0
       else if (MATCH_PREFIX("--skip-events=",post)) {
-	_conf._skip_events = atol(post);
+	char *end;
+	_conf._skip_events = strtoul(post, &end, 10);
+        if (*end != 0 || end == post)
+          ERROR("Invalid number for --skip-events.");
       }
       else if (MATCH_PREFIX("--first-event=",post)) {
-	_conf._first_event = atol(post);
+	char *end;
+	_conf._first_event = strtoul(post, &end, 10);
+        if (*end != 0 || end == post)
+          ERROR("Invalid number for --first-event.");
       }
       else if (MATCH_PREFIX("--last-event=",post)) {
-	_conf._last_event = atol(post);
+	char *end;
+	_conf._last_event = strtoul(post, &end, 10);
+        if (*end != 0 || end == post)
+          ERROR("Invalid number for --last-event.");
       }
-#endif
       else if (MATCH_PREFIX("--downscale=",post)) {
-	_conf._downscale = atoi(post);
-        if (_conf._downscale <= 0) {
-          ERROR("Downscale parameter must be a positive number.");
-        }
+	char *end;
+	_conf._downscale = strtoul(post, &end, 10);
+        if (*end != 0 || end == post)
+          ERROR("Invalid number for --downscale.");
       }
       else if (MATCH_ARG("--print-buffer")) {
 	_conf._print_buffer = 1;
@@ -676,21 +776,32 @@ int main(int argc, char **argv)
       else if (MATCH_ARG("--quiet")) {
 	_conf._quiet++;
       }
+#if defined(USE_EXT_WRITER)
+      else if (MATCH_ARG("--monitor")) {
+	_conf._monitor_port = EXT_WRITER_UCESB_MONITOR_DEFAULT_PORT;
+      }
+      else if (MATCH_PREFIX("--monitor=",post)) {
+	_conf._monitor_port = atoi(post);
+      }
+#endif
       else if (MATCH_PREFIX("--colour=",post)) {
-#ifdef USE_CURSES
 	int force = 0;
 
-	if (strcmp(post,"yes") == 0)
+	if (strcmp(post,"yes") == 0) {
+#ifdef USE_CURSES	  
 	  force = 1;
-	else if (strcmp(post,"no") == 0)
+#else
+	  ERROR("No colour support since ncurses not compiled in.  "
+		"Compile using 'make USE_CURSES=1'");
+#endif	
+	} else if (strcmp(post,"no") == 0)
 	  force = -1;
 	else if (strcmp(post,"auto") != 0)
 	  ERROR("Bad option '%s' for --colour=",post);
 
 	colourtext_setforce(force);
-#else
-	ERROR("No colour support since ncurses not compiled in.  Compile using 'make USE_CURSES=1'");
-#endif
+
+
       }
       else if (MATCH_ARG("--watcher")) {
 #ifdef USE_CURSES
@@ -758,14 +869,6 @@ int main(int argc, char **argv)
 	  }
       }
     }
-
-#ifdef USE_INPUTFILTER
-  if(_conf._enable_eventbuilder)
-  {
-    INFO("AIDA Event Builder enabled, ProcID = %d and WR ID = %x, Event window = %ld ns", _conf._eventbuilder_procid, _conf._eventbuilder_wrid, _conf._eventbuilder_window);
-  }
-#endif
-
   /******************************************************************/
 
   if (_conf._watcher._command &&
@@ -778,11 +881,20 @@ int main(int argc, char **argv)
 #ifdef USE_MERGING
   if (_conf._merge_concurrent_files < 1)
     _conf._merge_concurrent_files = 1;
+  else if (_conf._skip_events > 0)
+    ERROR("You can only do one of --skip-events and --merge, not both!");
+  else if (_conf._first_event >= 0)
+    ERROR("You can only do one of --first-event and --merge, not both!");
+  else if (_conf._last_event >= 0)
+    ERROR("You can only do one of --last-event and --merge, not both!");
   else if (_conf._downscale > 0)
     ERROR("You can only do one of --downscale and --merge, not both!");
   if (!_conf._merge_event_mode)
     _conf._merge_event_mode = MERGE_EVENTS_MODE_EVENTNO;
 #endif
+  if (_conf._last_event >= 0 &&
+      _conf._first_event > _conf._last_event)
+    ERROR("--first-event must be <= --last-event!");
 
   /******************************************************************/
 
@@ -837,6 +949,8 @@ int main(int argc, char **argv)
     ERROR("Files to read with RFIO should (exist and) "
 	  "be STAGED before usage, exit.");
 #endif
+
+  init_sticky_idx();
 
   /******************************************************************/
 
@@ -894,6 +1008,11 @@ int main(int argc, char **argv)
     _event_processor_threads[i].init(i);
 #endif
 
+#if defined(USE_EXT_WRITER)
+  if (_conf._monitor_port)
+    start_monitor_thread(_conf._monitor_port);
+#endif
+
   // Initialize the threading info structure (must be before first
   // file open)
   _ti_info.init(tasks,
@@ -902,6 +1021,8 @@ int main(int argc, char **argv)
 
   if (_conf._files_open_ahead < 1)
     _conf._files_open_ahead = 1;
+
+  bool had_broken = false;
 
 #ifdef USE_THREADING
   int files_to_open = -1;
@@ -960,15 +1081,14 @@ int main(int argc, char **argv)
   uint32_t output_eventno = 0;
 #endif
 
-  if (_conf._ts_align_hist_mode
+  if (_conf._ts_align_hist_command
 #ifdef USE_MERGING
       || _conf._merge_concurrent_files
 #endif
       )
     {
 #ifdef USE_LMD_INPUT
-      _ts_align_hist = new tstamp_alignment();
-      _ts_align_hist->init();
+      _ts_align_hist = new tstamp_alignment(_conf._ts_align_hist_command);
 #endif
     }
 
@@ -982,10 +1102,9 @@ int main(int argc, char **argv)
 
 #ifndef USE_THREADING
 
-    uint64_t   events = 0;
-    uint64_t   errors = 0;
-    uint64_t   total_errors = 0;
-    uint64_t   total_multi = 0;
+    memset(&_status, 0, sizeof (_status));
+
+    uint64_t   errors_file = 0;
 
     uint64_t   show_events = 1;
     uint64_t   next_show = show_events;
@@ -1093,12 +1212,17 @@ int main(int argc, char **argv)
     stitch_info stitch;
 
     stitch._last_stamp = 0;
+    stitch._has_stamp = false;
     // init in case we are not stitching:
     stitch._badstamp = false;
     stitch._combine = false;
 #endif
 
+    int skip_events_counter = 0;
+    bool printed_skipped = false;
+    bool printed_skipped_eventno = false;
     int downscale_counter = 0;
+    int64_t prev_multi_events = 0;
 
     for (config_input_vect::iterator input = _inputs.begin();
 	 input != _inputs.end()
@@ -1110,7 +1234,7 @@ int main(int argc, char **argv)
 	// Open input channel
 
 	if (_conf._broken_files)
-	  errors = 0;
+	  errors_file = 0;
 
 #ifdef USE_MERGING
 	while (input != _inputs.end() &&
@@ -1124,6 +1248,7 @@ int main(int argc, char **argv)
 	    try {
 	      loop.close_source();
 	    } catch (error &e) {
+	      had_broken = true;
 	      if (_conf._io_error_fatal)
 		goto no_more_files;
 	      WARNING("Close reported errors, skipping this file...");
@@ -1149,6 +1274,7 @@ int main(int argc, char **argv)
 	      _ti_info._file_input = NULL; /* got troubles when src object deleted.. */
 #endif
 	    } catch (error &e) {
+	      had_broken = true;
 	      if (_conf._io_error_fatal)
 		goto no_more_files;
 	      WARNING("Open reported errors, skipping this file...");
@@ -1161,7 +1287,7 @@ int main(int argc, char **argv)
 
 	for( ; ; )
 	  {
-downscale_event:
+get_next_event:
 #ifdef USE_MERGING
 	    // For each source that we have no events ready, we must
 	    // get the next event.  (if it's the last event, we'll
@@ -1179,6 +1305,9 @@ downscale_event:
 		typedef __typeof__(*seb->_event) event_type;
 		event_type *event = seb->_event;
 
+		typedef __typeof__(*seb->_sticky_event) sticky_event_type;
+		sticky_event_type *sticky_event = seb->_sticky_event;
+
 		assert (CURRENT_EVENT == NULL);
 		_current_event = seb->_event; // For CURRENT_EVENT
 
@@ -1192,12 +1321,16 @@ downscale_event:
 	    typedef __typeof__(_static_event) event_type;
 	    event_type *event = &_static_event;
 
+#ifdef USE_LMD_INPUT
+	    typedef __typeof__(_static_sticky_event) sticky_event_type;
+	    sticky_event_type *sticky_event = &_static_sticky_event;
+#endif
+
 	    assert (CURRENT_EVENT == &_static_event);
 
 	    typedef __typeof__(_file_event) file_event_type;
 	    file_event_type *file_event = &_file_event;
 #endif
-
 	    try {
 #if defined(USE_EXT_WRITER)
 	      if (loop._ext_source)
@@ -1234,22 +1367,51 @@ downscale_event:
 	      _current_event = NULL;
 	      check_new_file_header = true;
 #endif
+	      had_broken = true;
 	      if (_conf._io_error_fatal)
 		goto no_more_files;
 	      WARNING("Event reported errors, skipping this file...");
 	      goto no_more_events;
 	    }
 
-            /* Downscale immediately after we have an event. */
-            ++downscale_counter;
-            if (downscale_counter < _conf._downscale) {
+            // Determine event skipping right after we have an event.
+            bool do_skip = false;
+            if (skip_events_counter < _conf._skip_events)
+	      {
+		skip_events_counter++;
+		do_skip = true;
+		if (!printed_skipped ||
+		    (skip_events_counter % 1000) == 0 ||
+		    skip_events_counter == _conf._skip_events)
+		  {
+		    fprintf(stderr, "Skipped events: %s%d%s\r",
+			    CT_OUT(BOLD_GREEN),
+			    skip_events_counter,
+			    CT_OUT(NORM_DEF_COL));
+		    printed_skipped = true;
+		  }
+	      }
+            else
+	      {
+		downscale_counter++;
+		if (downscale_counter < _conf._downscale)
+		  do_skip = true;
+	      }
+            if (do_skip)
+	      {
 #ifdef USE_MERGING
-	      loop._sources_need_event.push_back(seb);
-	      _current_event = NULL;
+		loop._sources_need_event.push_back(seb);
+		_current_event = NULL;
 #endif
-              goto downscale_event;
-            }
+		goto get_next_event;
+	      }
             downscale_counter = 0;
+            if (printed_skipped)
+	      {
+		// For keeping the "Skipped:" output.
+		fprintf(stderr, "\n");
+		printed_skipped = false;
+	      }
 
 	    /* note that ps_bufhe and ps_filhe might be NULL */
 
@@ -1278,7 +1440,15 @@ downscale_event:
 #endif
 		{
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
-		  loop.pre_unpack_event(*event, &loop._source_event_hint);
+		  loop.pre1_unpack_event(file_event);
+#if defined(USE_LMD_INPUT)
+		  if (file_event->is_sticky())
+		    loop.pre2_unpack_event(*sticky_event,
+					   &loop._source_event_hint);
+		  else
+#endif
+		    loop.pre2_unpack_event(*event,
+					   &loop._source_event_hint);
 #endif
 
 	      if (_conf._print)
@@ -1302,14 +1472,26 @@ downscale_event:
 		loop.stitch_event(*event,&stitch);
 #endif
 
+#if defined(USE_LMD_INPUT)
+	      if (file_event->is_sticky())
+		loop.unpack_event(*sticky_event);
+	      else
+#endif
 	      loop.unpack_event(*event);
 		}
 
-	      int num_multi;
+	      int num_multi = 0;
 
-	      bool write_ok = loop.handle_event(*event,&num_multi);
+	      bool write_ok = true;
 
-	      total_multi += (uint64_t) num_multi;
+#if defined(USE_LMD_INPUT)
+	      if (file_event->is_sticky())
+		write_ok = loop.handle_event(*sticky_event,&num_multi);
+	      else
+#endif
+		write_ok = loop.handle_event(*event,&num_multi);
+
+	      _status._multi_events += (uint64_t) num_multi;
 
 	      if (!write_ok)
 		goto no_more_files;
@@ -1320,8 +1502,8 @@ downscale_event:
 #endif
 	    } catch (error &e) {
 	      had_error = true;
-	      errors++;
-	      total_errors++;
+	      errors_file++;
+	      _status._errors++;
 	      if (!_conf._allow_errors) {
 		if (_conf._debug && !printed_data)
 		  {
@@ -1337,7 +1519,7 @@ downscale_event:
 		    file_event->print_event(1,&event->_unpack_fail);
 		  }
 		//printf ("\n");
-		if (errors >= 10)
+		if (errors_file >= 10)
 		  {
 		    if (_conf._broken_files)
 		      {
@@ -1348,12 +1530,15 @@ downscale_event:
 			check_new_file_header = true;
 #endif
 			// This is not an I/O error, it's a format fault
-			WARNING("Too many (%" PRIu64 ") errors, next file...",errors);
+			WARNING("Too many (%" PRIu64 ") errors, next file...",
+				_status._errors);
 			goto no_more_events;
 		      }
 		    else
 		      {
-			WARNING("Too many (%" PRIu64 ") errors, aborting...",total_errors);
+			WARNING("Too many (%" PRIu64 ") errors, aborting...",
+				_status._errors);
+			had_broken = true;
 			goto no_more_files;
 		      }
 		  }
@@ -1450,6 +1635,39 @@ downscale_event:
 
 	      unpack_event *unpack_event = &_static_event._unpack;
 #endif
+
+              // Now we have the event no, let's see if we should skip.
+              if (_conf._first_event >= 0 &&
+                  unpack_event->event_no < _conf._first_event)
+		{
+		  if (!printed_skipped_eventno ||
+		      (unpack_event->event_no % 1000) == 0 ||
+		      unpack_event->event_no + 1 == _conf._first_event)
+		    {
+		      fprintf(stderr, "Skipped event #: %s%d%s\r",
+			      CT_OUT(BOLD_GREEN),
+			      unpack_event->event_no,
+			      CT_OUT(NORM_DEF_COL));
+		      printed_skipped_eventno = true;
+		    }
+		  // This is not pretty...
+		  _status._multi_events = 0;
+		  goto get_next_event;
+		}
+              if (_conf._last_event >= 0 &&
+                  unpack_event->event_no > _conf._last_event)
+		{
+		  // We don't want the ones from the current event.
+		  _status._multi_events = prev_multi_events;
+		  goto no_more_files;
+		}
+              prev_multi_events = _status._multi_events;
+              if (printed_skipped_eventno)
+		{
+		  // For keeping the "Skipped event #:" output.
+		  fprintf (stderr, "\n");
+		  printed_skipped_eventno = false;
+		}
 
 #if defined(USE_LMD_INPUT)
 	      try {
@@ -1601,10 +1819,11 @@ downscale_event:
 	      UNUSED(unpack_event);
 #endif
 	    }
-	    events++;
+	    _status._events++;
 
-	    if (_conf._max_events &&
-		events >= _conf._max_events)
+            // Casting is never great, but, 63-bits for event counters...
+	    if (_conf._max_events >= 0 &&
+		_status._events >= (uint64_t)_conf._max_events)
 	      goto no_more_files;
 
 #ifndef USE_MERGING
@@ -1615,11 +1834,11 @@ downscale_event:
 #endif
 #endif
 	      {
-		timeval now;
-
-		gettimeofday(&now,NULL);
-		if (now.tv_sec>last_show_time.tv_sec)
+		if (_status._events >= next_show)
 		  {
+		    timeval now;
+
+		    gettimeofday(&now,NULL);
 
 		    _ti_info.update();
 
@@ -1638,11 +1857,12 @@ downscale_event:
 			  {
 			    /* Do not update the time for the first events,
 			     * to quickly slow progress >= 1. */
-			    if (events >= 100)
+			    if (_status._events >= 100)
 			      last_show_time = now;
 
 			    double event_rate =
-			      (double) (events-last_show)*0.001/elapsed;
+			      (double) (_status._events-last_show) *
+			      0.001 / elapsed;
 
 #ifdef USE_MERGING
 			    if (_conf._merge_concurrent_files > 1)
@@ -1663,32 +1883,32 @@ downscale_event:
 				    if (rate < 19)
 				      fprintf (stderr,
 					       "[%s%5.2f%s/s] ",
-					       CT_OUT(BOLD),
+					       CT_ERR(BOLD),
 					       rate,
-					       CT_OUT(NORM));
+					       CT_ERR(NORM));
 				    else if (rate < 19999)
 				      fprintf (stderr,
 					       "[%s%5.0f%s/s] ",
-					       CT_OUT(BOLD),
+					       CT_ERR(BOLD),
 					       rate,
-					       CT_OUT(NORM));
+					       CT_ERR(NORM));
 				    else
 				      fprintf (stderr,
 					       "[%s%4.0f%sk/s] ",
-					       CT_OUT(BOLD),
+					       CT_ERR(BOLD),
 					       rate * 0.001,
-					       CT_OUT(NORM));
+					       CT_ERR(NORM));
 
 				  }
 
 				fprintf(stderr,
-					"%s%"PRIu64"%s  (%s%.1f%sk/s)  ",
-					CT_OUT(BOLD_GREEN),
-					events,
-					CT_OUT(NORM_DEF_COL),
-					CT_OUT(BOLD),
+					"%s%" PRIu64 "%s  (%s%.1f%sk/s)  ",
+					CT_ERR(BOLD_GREEN),
+					_status._events,
+					CT_ERR(NORM_DEF_COL),
+					CT_ERR(BOLD),
 					event_rate,
-					CT_OUT(NORM));
+					CT_ERR(NORM));
 
 				if (prev_event_merge_order)
 				  print_current_merge_order(prev_event_merge_order);
@@ -1702,37 +1922,51 @@ downscale_event:
 				    "%s%" PRIu64 "%s  (%s%.1f%sk/s)  "
 				    "%s%" PRIu64 "%s  (%s%.1f%sk/s) "
 				    "(%s%" PRIu64 "%s errors)      \r",
-				    CT_OUT(BOLD_GREEN),
-				    events,
-				    CT_OUT(NORM_DEF_COL),
-				    CT_OUT(BOLD),
+				    CT_ERR(BOLD_GREEN),
+				    _status._events,
+				    CT_ERR(NORM_DEF_COL),
+				    CT_ERR(BOLD),
 				    event_rate,
-				    CT_OUT(NORM),
-				    CT_OUT(BOLD_BLUE),
-				    total_multi,
-				    CT_OUT(NORM_DEF_COL),
-				    CT_OUT(BOLD),
-				    (double) (total_multi-last_show_multi)*0.001/elapsed,
-				    CT_OUT(NORM),
-				    CT_OUT(BOLD_RED),
-				    total_errors,
-				    CT_OUT(NORM_DEF_COL));
+				    CT_ERR(NORM),
+				    CT_ERR(BOLD_BLUE),
+				    _status._multi_events,
+				    CT_ERR(NORM_DEF_COL),
+				    CT_ERR(BOLD),
+				    (double) (_status._multi_events-
+					      last_show_multi)*0.001/elapsed,
+				    CT_ERR(NORM),
+				    CT_ERR(BOLD_RED),
+				    _status._errors,
+				    CT_ERR(NORM_DEF_COL));
 			      }
+			    unsigned int nlines = 0;
+#if defined(USE_LMD_INPUT)
+			    for (unsigned int i = 0; i < loop._output.size(); i++)
+			      {
+				output_info &output = loop._output[i];
+				output._dest->print_status(elapsed);
+				nlines++;
+			      }
+#endif
+			    for (unsigned int i = 0; i < nlines; i++)
+			      fprintf (stderr,"%s",CT_ERR(UP1LINE));
 			    fflush(stderr);
 			    // INFO_FLUSH;
 
-			    last_show = events;
-			    last_show_multi = total_multi;
+			    last_show = _status._events;
+			    last_show_multi = _status._multi_events;
 			  }
 		      }
-			    
-		    if (events >=
+
+		    if (_status._events >=
 			show_events * (show_events <= 200 ? 20 : 2000))
 		      show_events *= 10;
 
-		    show_events=999;
 		    next_show += show_events;
 		  }
+#if defined(USE_EXT_WRITER)
+		MON_CHECK_COPY_BLOCK(&_status_block, &_status);
+#endif
 	      }
 	  }
       no_more_events:;
@@ -1745,17 +1979,23 @@ downscale_event:
     try {
       loop.close_ext_source();
     } catch (error &e) {
+      WARNING("Error while closing sources...");
+      return 1;
     }
 #ifdef USE_MERGING
     try {
       loop.close_sources();
     } catch (error &e) {
-    }
+      WARNING("Error while closing sources...");
+      return 1;
+     }
 #else
     try {
       loop.close_source();
     } catch (error &e) {
-    }
+      WARNING("Error while closing sources...");
+      return 1;
+     }
 #endif
 #ifdef USE_LMD_INPUT
     if (_conf._event_stitch_mode)
@@ -1779,16 +2019,20 @@ downscale_event:
     try {
       loop.close_output();
     } catch (error &e) {
+      WARNING("Error while closing output...");
+      return 1;
     }
 
     INFO("Events: "
-	 ERR_GREEN"%" PRIu64 ERR_ENDCOL"   "
-	 ERR_BLUE"%" PRIu64 ERR_ENDCOL"             ("
-	 ERR_RED"%" PRIu64 ERR_ENDCOL" errors)                \n",
-	 events,total_multi,total_errors);
+	 ERR_GREEN "%" PRIu64 ERR_ENDCOL "   "
+	 ERR_BLUE "%" PRIu64 ERR_ENDCOL "             ("
+	 ERR_RED "%" PRIu64 ERR_ENDCOL " errors)                \n",
+	 _status._events,_status._multi_events,_status._errors);
     try {
       loop.postprocess();
     } catch (error &e) {
+      WARNING("Error while shutting down...");
+      return 1;
     }
 
 #endif
@@ -2051,3 +2295,6 @@ downscale_event:
 
   return 0;
 }
+
+
+

@@ -62,7 +62,7 @@ public:
   void wait(bool terminate_child,
 	    int *exit_status = NULL);
   void close_fds();
-  
+
 };
 
 size_t full_write(int fd,const void *buf,size_t count);

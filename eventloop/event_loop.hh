@@ -51,6 +51,7 @@
 
 #ifdef USE_MERGING
 class event_base;
+class sticky_event_base;
 union merge_event_order;
 
 #define MERGE_EVENTS_ERROR_ORDER_BEFORE   1
@@ -67,12 +68,13 @@ struct source_event_base
 {
   lmd_source *_src;
   event_base *_event;
+  sticky_event_base *_sticky_event;
   uint64_t    _timestamp; // for MERGE_EVENTS_MODE_TITRIS_TIME
 
   uint64_t    _events;           // for display
   uint64_t    _events_last_show; // for display
 
-  size_t         _tstamp_align_index;
+  ssize_t     _tstamp_align_index;
 
   const char *_name;      // for debug
 };
@@ -89,11 +91,11 @@ void print_current_merge_order(const merge_event_order *prev);
 
 typedef std::vector<source_event_base*> vect_source_event_base;
 
-struct less_source_event_no //: 
-//  public binary_function<source_event_base*, source_event_base*, bool> 
+struct less_source_event_no //:
+//  public binary_function<source_event_base*, source_event_base*, bool>
 {
-  bool operator()(source_event_base* x, source_event_base* y) 
-  { 
+  bool operator()(source_event_base* x, source_event_base* y)
+  {
     return do_merge_compare_events_after(x,y);
   }
 };
@@ -113,11 +115,15 @@ struct output_info
 #ifdef USE_LMD_INPUT
 #define EVENT_STITCH_MODE_TITRIS_TIME   TIMESTAMP_TYPE_TITRIS
 #define EVENT_STITCH_MODE_WR_TIME       TIMESTAMP_TYPE_WR
+int get_time_stamp_mode(const char *);
 #endif
+
+void init_sticky_idx();
 
 struct stitch_info
 {
   uint64_t _last_stamp;
+  bool     _has_stamp;
   bool     _combine;
   bool     _badstamp;
 };
@@ -200,16 +206,19 @@ protected:
 		   input_buffer **file_input
 		   PTHREAD_PARAM(thread_block *block_reader) );
 public:
-  static void pre_unpack_event(event_base &eb
+  static void pre1_unpack_event(FILE_INPUT_EVENT *src_event);
+  template<typename T_event_base>
+  static void pre2_unpack_event(T_event_base &eb
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
-			       , source_event_hint_t *hints
+				, source_event_hint_t *hints
 #endif
-			       );
+				);
 
   static void stitch_event(event_base &eb,
 			   stitch_info *stitch);
 
-  static void unpack_event(event_base &eb);
+  template<typename T_event_base>
+  static void unpack_event(T_event_base &eb);
   // the following is used before error printing, to ensure that
   // whatever data is available, is available unfragmented.
   static void force_event_data(event_base &eb
@@ -218,7 +227,8 @@ public:
 #endif
 			       );
 
-  bool handle_event(event_base &eb,int *num_multi);
+  template<typename T_event_base>
+  bool handle_event(T_event_base &eb,int *num_multi);
 
 public:
   bool get_ext_source_event(event_base &eb);

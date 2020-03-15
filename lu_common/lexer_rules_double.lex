@@ -21,11 +21,11 @@
 		return DOUBLE;
             }
 
-[0-9]+"."[0-9]*([eE][+-]?[0-9]+)? { 
+[0-9]+"."[0-9]*([eE][+-]?[0-9]+)? {
 		yylval.fValue = atof(yytext);
                 return DOUBLE;
             }
-"."[0-9]+([eE][+-]?[0-9]+)? { 
+"."[0-9]+([eE][+-]?[0-9]+)? {
 		yylval.fValue = atof(yytext);
                 return DOUBLE;
             }

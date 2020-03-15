@@ -46,7 +46,7 @@ int get_unit_prefix(char prefix)
     case 'd': return -1;
 
     case '#': return  0;
-      
+
     case 'k': return  3;
     case 'M': return  6;
     case 'G': return  9;
@@ -74,8 +74,8 @@ void insert_unit_reduce(unit_exponent_map &unit_set,
   (*iter)->second += unit._exponent;
   */
 
-  
-  std::pair<unit_exponent_map::iterator,bool> result = 
+
+  std::pair<unit_exponent_map::iterator,bool> result =
     unit_set.insert(unit_exponent_map::value_type(unit,exponent));
 
   if (result.second == false)
@@ -118,14 +118,14 @@ void convert_units_exponent(const file_line &loc,const char *str,
 	{
 	  if (*p == '*')
 	    {
-	      if (this_mult) 
+	      if (this_mult)
 		ERROR_LOC(loc,"Multiple consequtive '*' or '/' in unit '%s'.",str);
 	      this_mult = 1;
 	      continue;
 	    }
 	  if (*p == '/')
 	    {
-	      if (this_mult) 
+	      if (this_mult)
 		ERROR_LOC(loc,"Multiple consequtive '*' or '/' in unit '%s'.",str);
 	      this_mult = -1;
 	      continue;
@@ -134,7 +134,7 @@ void convert_units_exponent(const file_line &loc,const char *str,
 	    continue;
 	  break;
 	}
-      
+
       // It's ok to end, i.e. having eaten spaces, if there were no
       // '*' or '/'
 
@@ -153,7 +153,7 @@ void convert_units_exponent(const file_line &loc,const char *str,
       const char *prefix_marker = p;
 
       int prefix = 0;
-      
+
       if (*p == '#')
 	{
 	  if (!prefix_units)
@@ -162,7 +162,7 @@ void convert_units_exponent(const file_line &loc,const char *str,
 	  p++;
 
 	  prefix = get_unit_prefix(*p);
-	  
+
 	  if (prefix == UNKNOWN_PREFIX)
 	    ERROR_LOC(loc,"Unknown prefix '%c' in unit '%s'.",*p,str);
 
@@ -259,13 +259,13 @@ const units_exponent *insert_units_exp(const file_line &loc,
   units_exponent *units = new units_exponent;
 
   convert_units_exponent(loc,str,units,NULL);
-  
-  std::pair<set_units_exponent::iterator,bool> result = 
+
+  std::pair<set_units_exponent::iterator,bool> result =
     _set_units.insert(units);
 
   if (result.second == false)
     delete units;
-  
+
   return *result.first;
 }
 
@@ -276,13 +276,13 @@ const prefix_units_exponent *insert_prefix_units_exp(const file_line &loc,
   prefix_units_exponent *units = new prefix_units_exponent;
 
   convert_units_exponent(loc,str,NULL,units);
-  
-  std::pair<set_prefix_units_exponent::iterator,bool> result = 
+
+  std::pair<set_prefix_units_exponent::iterator,bool> result =
     _set_prefix_units.insert(units);
 
   if (result.second == false)
     delete units;
-  
+
   return *result.first;
 }
 
@@ -292,7 +292,7 @@ struct divide_units_item
   const prefix_units_exponent *_denom;
 
 public:
-  bool operator<(const divide_units_item &rhs) const 
+  bool operator<(const divide_units_item &rhs) const
   {
     if (_nom < rhs._nom)
       return true;
@@ -363,7 +363,7 @@ struct match_unit_item
   const units_exponent *_src;
 
 public:
-  bool operator<(const match_unit_item &rhs) const 
+  bool operator<(const match_unit_item &rhs) const
   {
     if (_dest < rhs._dest)
       return true;
@@ -422,10 +422,10 @@ bool match_units(const prefix_units_exponent *dest,
       {
 	// removing from temp list is easy, just add with negative
 	// exponent
-	
+
 	insert_unit_reduce(tmp_src,iter->first,-iter->second);
       }
-  
+
   // removing the items with prefixes are somewhat harder, as we
   // cannot do direct string comparisons until we've removed the
   // prefixes.  In the src (temp) list, we actally also do not know if
@@ -467,7 +467,7 @@ bool match_units(const prefix_units_exponent *dest,
 
       if (!prefix || prefix == UNKNOWN_PREFIX)
 	return false;
-      
+
       const char *s2 = find_str_strings(s1+1); // rest of string
 
       unit_exponent_map::iterator item = tmp_pre_dest.find(s2);
@@ -555,7 +555,7 @@ char *format_unit_str(multiset_format_unit_item &items,
 	p += snprintf (p,(size_t) (e-p),"^%d",abs(iter->_exponent));
       if (p >= e) break;
 
-      first = false;      
+      first = false;
     }
   return str;
 }
@@ -575,19 +575,19 @@ void add_format_unit_item(multiset_format_unit_item &items,
 char *format_unit_str(const units_exponent *unit,char *str,size_t n)
 {
   multiset_format_unit_item items;
-  
+
   if (unit)
     for (unit_exponent_map::const_iterator iter = unit->_blocks.begin();
 	 iter != unit->_blocks.end(); ++iter)
       add_format_unit_item(items,iter,false);
-  
+
   return format_unit_str(items,str,n);
 }
 
 char *format_unit_str(const prefix_units_exponent *unit,char *str,size_t n)
 {
   multiset_format_unit_item items;
-  
+
   if (unit)
     for (unit_exponent_map::const_iterator iter = unit->_blocks_simple.begin();
 	 iter != unit->_blocks_simple.end(); ++iter)
@@ -604,7 +604,7 @@ char *format_unit_str(const prefix_units_exponent *unit,char *str,size_t n)
 #ifdef TEST_PREFIX_UNIT
 
 // For testing:
-// g++ -g -DTEST_PREFIX_UNIT -o test_prefix_unit prefix_unit.cc str_set.cc file_line.cc 
+// g++ -g -DTEST_PREFIX_UNIT -o test_prefix_unit prefix_unit.cc str_set.cc file_line.cc
 // ./test_prefix_unit
 
 #define countof(array) (sizeof(array)/sizeof((array)[0]))
@@ -617,10 +617,10 @@ int main(int argc,char *argv[])
   };
 
   const char *str2[] = {
-    "##m", "##s", "/#cm", "/#cm-1", "/#mm", "/#mm-1", "/#um", "/#um-1", 
+    "##m", "##s", "/#cm", "/#cm-1", "/#mm", "/#mm-1", "/#um", "/#um-1",
     "#ns", "#cm", "#ns/#cm", "#cm/#ns", "#ns2", "#cm3", "#ns-4", "#pF",
-    "#ns", "#cm", "#ns/cm", "cm/#ns", "#ns2", "#cm3", "#ns-4", "#pF",    
-    "#ns*#ns", 
+    "#ns", "#cm", "#ns/cm", "cm/#ns", "#ns2", "#cm3", "#ns-4", "#pF",
+    "#ns*#ns",
   };
 
   char tmp1[64], tmp2[64];

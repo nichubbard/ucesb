@@ -66,7 +66,7 @@ public:
 	    const char *opt);
   void hbname(const char *block,
 	      void *structure,
-	      const char *vars);    
+	      const char *vars);
   void hfnt();
 
   /*

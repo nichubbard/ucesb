@@ -41,7 +41,7 @@ typedef std::vector<double_unit> vect_double_unit;
 #define CALIB_TYPE_OFFSET_SLOPE       4
 #define CALIB_TYPE_CUT_BELOW_OR_EQUAL 5
 
-struct calib_param 
+struct calib_param
   : public map_info
 {
 public:
@@ -50,20 +50,26 @@ public:
 public:
   calib_param(const file_line &loc,
 	      const signal_id_info *src,const signal_id_info *dest,
-	      int type,vect_double_unit *param)
-    : map_info(loc,src,dest,NULL,NULL)
+	      int type,vect_double_unit *param,
+	      int toggle_i)
+    : map_info(loc,src,dest,NULL,NULL,0,toggle_i/*0*/)
   {
     _type   = type;
     _param  = param;
+
+    /* _toggle_i = toggle_i; */
   }
 
 public:
   int               _type;
   vect_double_unit *_param;
 
+  /* TODO: there is also a map_info member with same name...? */
+  /* int               _toggle_i; */
+
 };
 
-struct user_calib_param 
+struct user_calib_param
   : public map_info // src not USED
 {
 public:
@@ -73,7 +79,7 @@ public:
   user_calib_param(const file_line &loc,
 		   const signal_id_info *dest,
 		   vect_double_unit *param)
-    : map_info(loc,NULL,dest,NULL,NULL)
+    : map_info(loc,NULL,dest,NULL,NULL,0,0)
   {
     _param  = param;
   }

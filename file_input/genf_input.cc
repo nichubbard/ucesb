@@ -54,7 +54,7 @@ bool genf_source::read_record()
     _record_header._length = bswap_16(_record_header._length);
 
   _chunk_cur = _chunk_end = _chunks;
-  
+
   // read the record itself
 
   size_t data_size = ((size_t) _record_header._length) * sizeof (uint16);
@@ -62,7 +62,7 @@ bool genf_source::read_record()
   /////////////////////////////////////////////
 
   int chunks = 0;
-  
+
   chunks = _input.map_range(data_size,_chunks);
 
   if (!chunks)
@@ -89,7 +89,7 @@ FILE_INPUT_EVENT _file_event;
 genf_event *genf_source::get_event()
 {
   genf_event *dest;
-  
+
 #ifdef USE_THREADING
   // Even if we blow up with an error, the reclaim item will be in the
   // reclaim list, so the memory wont leak
@@ -98,7 +98,7 @@ genf_event *genf_source::get_event()
   _file_event.release();
   dest = &_file_event;
 #endif
-  
+
   for ( ; ; )
     {
       if (_chunk_cur == _chunk_end)
@@ -110,7 +110,7 @@ genf_event *genf_source::get_event()
 	}
 
       //printf ("get ev header...\n");
-      
+
       genf_event_header *event_header = &dest->_header;
 
       *event_header = _record_header;
@@ -188,19 +188,19 @@ void genf_event::get_data_src(uint16 *&start,uint16 *&end)
       // We need to get the data from the chunks.  Since pointer has not
       // been set, we know it is two chunks (or more).  (Currently: only
       // two possible, since we do not support fragmented events)
-      
+
       // The data need to be handled with a defragment buffer.
-      
+
       void   *dest;
-      
+
 #ifdef USE_THREADING
       dest = _wt._defrag_buffer->allocate_reclaim(_chunks[0]._length +
 						  _chunks[1]._length);
 #else
-      dest = _defrag_event.allocate(_chunks[0]._length + 
+      dest = _defrag_event.allocate(_chunks[0]._length +
 				    _chunks[1]._length);
-#endif      
-      
+#endif
+
       _data = (char*) dest;
 
       memcpy(_data,_chunks[0]._ptr,_chunks[0]._length);

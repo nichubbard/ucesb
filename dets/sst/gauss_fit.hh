@@ -62,14 +62,14 @@ public:
 	double d = (log(vect->_y) - y);
 
 	// printf ("%6.2f , %6.2f - %6.2f -> %6.2f\n",vect->_x,vect->_y,y,d);
-    
+
 	sum += (d * d) * vect->_y;
 
 	vect++;
       }
     return sum;
   }
-  
+
 };
 
 template<typename fcn_t>
@@ -135,7 +135,7 @@ public:
 public:
   bool fit()
   {
-    _n = _next - _data; 
+    _n = _next - _data;
 
     dp_param param;
 
@@ -229,11 +229,11 @@ public:
 	{
 	  double *src = src1;
 	  int add = fcn_t::_n_param - 1;
-	  
+
 	  for (int j = 0; j < i; j++)
 	    {
 	      double v = *src;
-	      src += add; 
+	      src += add;
 	      add--;
 	      diag -= v * v;
 
@@ -252,7 +252,7 @@ public:
 
 	double inv_chol_diag = 1 / chol_diag;
 
-	// and then calculate the rest of the 
+	// and then calculate the rest of the
 
 	double *src2 = src1 + 1;
 
@@ -266,12 +266,12 @@ public:
 	      double *src  = src1++;
 	      double *srcb = src2++;
 	      int add = fcn_t::_n_param - 1;
-	      
+
 	      for (int kk = 0; kk < i; kk++)
 		{
 		  double v = *src;
 		  double w = *srcb;
-		  src  += add; 
+		  src  += add;
 		  srcb += add;
 		  add--;
 		  elem -= v * w;
@@ -281,7 +281,7 @@ public:
 	    }
 
 	    //printf ("=%8.1f)/%8.1f --> %8.1f\n",elem,chol_diag,elem * inv_chol_diag);
-	    
+
 	    cholesky[l++] = elem * inv_chol_diag;
 	  }
       }
@@ -313,20 +313,20 @@ public:
     // double *tmp_dest = &tmp[fcn_t::_n_param-1];
 
     double *src1 = &cholesky[0];
-    
+
     for (int i = 0; i < fcn_t::_n_param; i++)
       {
 	double elem = *(rhs_src++);
-	
+
 	//printf ("(%8.1f ",elem);
 
 	double *src = src1++;
 	int add = fcn_t::_n_param - 1;
-	
+
 	for (int j = 0; j < i; j++)
 	  {
 	    double v = *src;
-	    src += add; 
+	    src += add;
 	    add--;
 	    elem -= v * tmp[j];
 	    //printf ("-%8.1f*%8.1f",v,tmp[j]);

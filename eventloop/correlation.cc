@@ -62,7 +62,7 @@ public:
   void init(int n)
   {
     int *np = (int *) realloc(_buffer,sizeof(int) * (size_t) n);
-    
+
     if (!np)
       ERROR("Memory allocation error.");
 
@@ -83,11 +83,14 @@ public:
   void add_corr_members(const multi_chunks<T,T_map> &src,correlation_list *list WATCH_MEMBERS_PARAM) const \
   { src.add_corr_members(*this,list WATCH_MEMBERS_ARG); }
 #define STRUCT_MIRROR_TYPE(type)         type##_correlation
+#define STRUCT_MIRROR_TYPE_TOGGLE(type)  STRUCT_MIRROR_TYPE(type)
 #define STRUCT_MIRROR_NAME(name)         name
 #define STRUCT_MIRROR_STRUCT(type)       STRUCT_MIRROR_TYPE(type)
 #define STRUCT_MIRROR_BASE(type)         STRUCT_MIRROR_TYPE(type)
 #define STRUCT_MIRROR_TEMPLATE_ARG(arg)  arg##_correlation,arg
 #define STRUCT_MIRROR_TEMPLATE_ARG_N(arg,array)  arg##_correlation array,arg array
+#define STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE(arg)  arg##_correlation,TOGGLE(arg)
+#define STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE_N(arg,array)  arg##_correlation array,TOGGLE(arg) array
 #define STRUCT_MIRROR_ITEM_CTRL_BASE(name) bool name##_active
 #define STRUCT_MIRROR_ITEM_CTRL(name)      bool name##_active
 #define STRUCT_MIRROR_ITEM_CTRL_ARRAY(name,non_last_index,last_index) bitsone<last_index> name##_active non_last_index
@@ -102,11 +105,14 @@ public:
 
 #undef  STRUCT_MIRROR_FCNS_DECL
 #undef  STRUCT_MIRROR_TYPE
+#undef  STRUCT_MIRROR_TYPE_TOGGLE
 #undef  STRUCT_MIRROR_NAME
 #undef  STRUCT_MIRROR_STRUCT
 #undef  STRUCT_MIRROR_BASE
 #undef  STRUCT_MIRROR_TEMPLATE_ARG
 #undef  STRUCT_MIRROR_TEMPLATE_ARG_N
+#undef  STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE
+#undef  STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE_N
 #undef  STRUCT_MIRROR_ITEM_CTRL_BASE
 #undef  STRUCT_MIRROR_ITEM_CTRL
 #undef  STRUCT_MIRROR_ITEM_CTRL_ARRAY
@@ -169,7 +175,9 @@ bool corr_item_nonzero(const rawdata64 &src) { return src.value != 0; }
 bool corr_item_nonzero(const rawdata32 &src) { return src.value != 0; }
 bool corr_item_nonzero(const rawdata24 &src) { return src.value != 0; }
 bool corr_item_nonzero(const rawdata16 &src) { return src.value != 0; }
+bool corr_item_nonzero(const rawdata16plus &src) { return src.value != 0; }
 bool corr_item_nonzero(const rawdata12 &src) { return src.value != 0; }
+bool corr_item_nonzero(const rawdata14 &src) { return src.value != 0; }
 bool corr_item_nonzero(const rawdata8  &src) { return src.value != 0; }
 
 template<typename T>
@@ -191,12 +199,18 @@ void data_correlation<T>::add_corr_members(const T &src,correlation_list *list W
   ::add_corr_members(src,*this,list WATCH_MEMBERS_ARG);
 }
 
+template<typename T>
+void data_correlation<T>::add_corr_members(const toggle_item<T> &src,correlation_list *list WATCH_MEMBERS_PARAM) const
+{
+  ::add_corr_members(src._item,*this,list WATCH_MEMBERS_ARG);
+}
+
 template<typename Tsingle_correlation,typename Tsingle,typename T_correlation,typename T,int n>
 void raw_array_correlation<Tsingle_correlation,Tsingle,T_correlation,T,n>::add_corr_item(const T &src,const T_correlation &corr,correlation_list *list WATCH_MEMBERS_PARAM)
 {
   const Tsingle *p_src     = (const Tsingle *) &src;
   const Tsingle_correlation *p = (const Tsingle_correlation *) &corr;
-  
+
   for (size_t i = sizeof(T)/sizeof(Tsingle); i; --i, ++p_src, ++p)
     {
       // ::watch_members(*p_src,*p WATCH_MEMBERS_ARG);
@@ -219,7 +233,7 @@ void raw_array_correlation<Tsingle_correlation,Tsingle,T_correlation,T,n>::add_c
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = src._valid.next(iter)) >= 0)
     {
       // ::watch_members(src._items[i],_items[i] WATCH_MEMBERS_ARG);
@@ -233,7 +247,7 @@ void raw_array_correlation<Tsingle_correlation,Tsingle,T_correlation,T,n>::add_c
 {
   bitsone_iterator iter;
   ssize_t i;
-  
+
   while ((i = src._valid.next(iter)) >= 0)
     {
       // ::watch_members(src._items[i],_items[i] WATCH_MEMBERS_ARG);
@@ -340,7 +354,7 @@ void correlation_one_event(correlation_plot *plot WATCH_MEMBERS_PARAM)
   //printf ("c1 %x %x\n",
   //	  (int) (size_t) plot->_unpack_event_correlation,
   //	  (int) (size_t) plot->_raw_event_correlation);
-  
+
   if (plot->_unpack_event_correlation)
     plot->_unpack_event_correlation->add_corr_members(_static_event._unpack,plot->_list WATCH_MEMBERS_ARG);
   if (plot->_raw_event_correlation)
@@ -358,7 +372,7 @@ void correlation_one_event(correlation_plot *plot WATCH_MEMBERS_PARAM)
   if (plot->_need_sort)
     {
       // TODO: consider using radix sort
-      // (most useful events for plot have a small number of 
+      // (most useful events for plot have a small number of
       // correlations however)
       // printf ("%d ",plot->_list->_cur - plot->_list->_buffer);
       qsort(plot->_list->_buffer,
@@ -389,7 +403,7 @@ bool enumerate_correlations(data_correlation<T> &correlation,const signal_id &id
   if (!info->_requests->is_channel_requested(id,false,0,false) ||
       correlation._index != -1)
     return correlation._index != -1; // we were perhaps selected before?
-  
+
   correlation._index = info->_next_index;
   info->_next_index++;
   /*
@@ -461,18 +475,18 @@ bool raw_array_correlation_2<Tsingle_correlation,Tsingle,T_correlation,T,n,n1,n2
 #define FCNCALL_CALL(member) enumerate_correlations(__id,__info)
 #define FCNCALL_CALL_TYPE(type,member) ::enumerate_correlations<type>(member,__id,__info)
 #define FCNCALL_FOR(index,size) for (int index = 0; index < size; ++index)
-#define FCNCALL_SUBINDEX(index) const signal_id &__shadow_id = __id; signal_id __id(__shadow_id,index); bool &__shadow_active = active; bool active = false;
-#define FCNCALL_SUBINDEX_END(index) __shadow_active |= active;
+#define FCNCALL_SUBINDEX(index) const signal_id &__shadow_id = __id; signal_id __id(__shadow_id,index); bool &__shadow_active = __active; bool __active = false;
+#define FCNCALL_SUBINDEX_END(index) __shadow_active |= __active;
 #define FCNCALL_SUBNAME(name)   const signal_id &__shadow_id = __id; signal_id __id(__shadow_id,name);
 //#define FCNCALL_SUBINDEX(index) const signal_id &shadow_id = id; signal_id id(shadow_id,index);
 //#define FCNCALL_SUBNAME(name)   const signal_id &shadow_id = id; signal_id id(shadow_id,name);
 #define FCNCALL_MULTI_MEMBER(name) name
 #define FCNCALL_MULTI_ARG(name) name
 #define FCNCALL_CALL_CTRL_WRAP(ctrl,call) ctrl##_active = (call)
-#define FCNCALL_CALL_CTRL_WRAP_ARRAY(ctrl_name,ctrl_non_last_index,ctrl_last_index,call) active |= ((call) ? (ctrl_name##_active ctrl_non_last_index.set(ctrl_last_index)) , true : false)
+#define FCNCALL_CALL_CTRL_WRAP_ARRAY(ctrl_name,ctrl_non_last_index,ctrl_last_index,call) __active |= ((call) ? (ctrl_name##_active ctrl_non_last_index.set((unsigned int) ctrl_last_index)) , true : false)
 #define FCNCALL_RET_TYPE bool
-#define FCNCALL_INIT     bool active = false;
-#define FCNCALL_RET      return active;
+#define FCNCALL_INIT     bool __active = false;
+#define FCNCALL_RET      return __active;
 #define STRUCT_ONLY_LAST_UNION_MEMBER 1
 
 #include "gen/struct_fcncall.hh"
@@ -505,6 +519,17 @@ typedef std::vector<correlation_plot *> correlation_plot_vect;
 
 correlation_plot_vect _correlation_plots;
 
+void correlation_usage()
+{
+  printf ("\n");
+  printf ("Correlation (--corr) options:\n");
+  printf ("\n");
+  printf ("Use , to separate detectors; use : to start new group.\n");
+  printf ("\n");
+  printf ("det=NAME            In case detector name collides with option.\n");
+  printf ("\n");
+}
+
 correlation_plot *correlation_init(const char *command)
 {
   correlation_plot *cp = new correlation_plot;
@@ -519,21 +544,24 @@ correlation_plot *correlation_init(const char *command)
   cp->_raw_event_correlation = NULL;
 
   enumerate_correlations_info info;
-  
+
   info._next_index = 0;
-  
+
   for ( ; ; )
     {
       detector_requests requests;
-      
+
       const char *req_end;
-      
+
       while ((req_end = strpbrk(command,",:")) != NULL)
 	{
 	  char *request = strndup(command,(size_t) (req_end-command));
-	  
+
+	  char *post;
+
+#define MATCH_C_PREFIX(prefix,post) (strncmp(request,prefix,strlen(prefix)) == 0 && *(post = request + strlen(prefix)) != '\0')
 #define MATCH_ARG(name) (strcmp(request,name) == 0)
-	  
+
 	  // printf ("Request: %s\n",request);
 	  /*
 	    if (MATCH_ARG("UNPACK"))
@@ -550,10 +578,20 @@ correlation_plot *correlation_init(const char *command)
 	    _paw_ntuple._ntuple_type = NTUPLE_TYPE_CWN;
 	    else
 	  */
-	  requests.add_detector_request(request,0);
-	  
+	  if (MATCH_ARG("help"))
+	    {
+	      correlation_usage();
+	      exit(0);
+	    }
+	  else if (MATCH_C_PREFIX("DET=",post) ||
+		   MATCH_C_PREFIX("det=",post) ||
+		   (post = request))
+	    {
+	      requests.add_detector_request(post,0);
+	    }
+
 	  free(request);
-	  command = req_end+1;      
+	  command = req_end+1;
 
 	  if (*req_end == ':')
 	    {
@@ -586,7 +624,7 @@ correlation_plot *correlation_init(const char *command)
 #ifdef USER_STRUCT
       //the_user_event_correlation  .watch_members(_event._user   CORRELATION_MEMBERS_ARG);
 #endif
-      
+
       for (uint i = 0; i < requests._requests.size(); i++)
 	if (!requests._requests[i]._checked)
 	  ERROR("Correlation request for item %s was not considered.  "
@@ -595,6 +633,12 @@ correlation_plot *correlation_init(const char *command)
 
       if (!req_end)
 	break;
+    }
+
+  if (strcmp(command,"help") == 0)
+    {
+      correlation_usage();
+      exit(0);
     }
 
   cp->_filename = command;
@@ -622,14 +666,17 @@ void correlation_init(const config_command_vect &commands)
 
       correlation_plot *cp = correlation_init(command);
 
-      _correlation_plots.push_back(cp);      
+      _correlation_plots.push_back(cp);
     }
 }
 
 
 #ifndef USE_MERGING
-void correlation_event(WATCH_MEMBERS_SINGLE_PARAM)
+void correlation_event(unpack_event *unpack_ev
+		       WATCH_MEMBERS_PARAM)
 {
+  (void) unpack_ev;
+
 #if defined(CORRELATION_EVENT_INFO_USER_FUNCTION)
   if (!CORRELATION_EVENT_INFO_USER_FUNCTION(&_static_event._unpack))
     return;
@@ -643,6 +690,12 @@ void correlation_event(WATCH_MEMBERS_SINGLE_PARAM)
 
       correlation_one_event(cp WATCH_MEMBERS_ARG);
     }
+}
+
+void correlation_event(unpack_sticky_event *unpack_ev
+		       WATCH_MEMBERS_PARAM)
+{
+  (void) unpack_ev;
 }
 #endif//!USE_MERGING
 

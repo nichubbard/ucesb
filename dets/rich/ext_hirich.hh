@@ -187,7 +187,7 @@ public:
 DUMMY_EXTERNAL_CALIB_MAP_STRUCT(EXT_HIRICH_RAW);
 DUMMY_EXTERNAL_WATCHER_STRUCT(EXT_HIRICH_RAW);
 DUMMY_EXTERNAL_CORRELATION_STRUCT(EXT_HIRICH_RAW);
-#endif 
+#endif
 
 /*---------------------------------------------------------------------------*/
 

@@ -41,6 +41,9 @@ struct ext_data_structure_info;
 
 /* Allocate memory to store destination structure information.
  *
+ * @name            Name of structure.  If empty, the default (first)
+ *                  structure is implied.
+ *
  * Return value:
  *
  * Pointer to a structure, or NULL on failure.
@@ -68,14 +71,14 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info);
  *                  in bytes (use offsetof()).
  * @size            Size (in bytes) of the item (use sizeof()).
  *                  When array, size of the entire array.
- * @type            Type of the item, one of ...
+ * @type            Type of the item, one of EXT_DATA_ITEM_TYPE_...
  * @prename         First part of name (when several similar structure
  *                  items exist.  Set to NULL or "" when unused.
- *                  The actual name will a concatenation of prename,
+ *                  The actual name will be a concatenation of prename,
  *                  preindex(as a string) and name.
  * @preindex        Index part of prename, set to -1 when unused.
  * @name            Name of the item.
- * @ctrl_name       Name of the controlling item (for arrays), 
+ * @ctrl_name       Name of the controlling item (for arrays),
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
@@ -120,7 +123,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
  * @item            Name of structure item (in struct_t).
  * @type            Type of structure item, one of INT32, UINT32, FLOAT32.
  * @name            Name of item to use in the sent data stream.
- * @ctrl            Name of the controlling item (for arrays), 
+ * @ctrl            Name of the controlling item (for arrays),
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
@@ -176,7 +179,7 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
 /* Connect to a TCP external data client.
  *
  * @server          Either a HOSTNAME or a HOSTNAME:PORT.
- *                  Alternatively "-" may be specified to use stdin 
+ *                  Alternatively "-" may be specified to use stdin
  *                  (STDIN_FILENO).
  *
  * Return value:
@@ -235,10 +238,15 @@ struct ext_data_client *ext_data_open_out();
  * possible.
  *
  * @client              Connection context structure.
+ * @name_id             Name of structure.  If empty, the default (first)
+ *                      structure is implied.
+ * @struct_id           Returns unique integer to identify the structure,
+ *                      May be null if name is empty.
  * @struct_layout_info  Pointer to an instance of the structure
  *                      layout information generated together with
  *                      the structure to be filled.
- * @size_info           Size of the struct_layout_info structure.  
+ *                      Can be NULL, if @struct_info is given.
+ * @size_info           Size of the struct_layout_info structure.
  *                      Use sizeof(struct).
  * @struct_info         Detailed structure member information.
  *                      Allows mapping of items when sending structure
@@ -255,6 +263,7 @@ struct ext_data_client *ext_data_open_out();
  * In addition to various system (socket etc) errors, errno:
  *
  * EINVAL           @struct_layout_info is wrong.
+ * ENOMSG           @name_id does not exist in server structure list.
  * EPROTO           Protocol error, version mismatch?
  * EBADMSG          Internal protocol fault.  Bug?
  * ENOMEM           Failure to allocate memory.
@@ -265,7 +274,65 @@ struct ext_data_client *ext_data_open_out();
 int ext_data_setup(struct ext_data_client *client,
 		   const void *struct_layout_info,size_t size_info,
 		   struct ext_data_structure_info *struct_info,
-		   size_t size_buf);
+		   size_t size_buf,
+		   const char *name_id, int *struct_id);
+
+/*************************************************************************/
+
+/* Make the file descriptor non-blocking, such that clients can fetch
+ * events in some loop that also controls other stuff, e.g. an interactive
+ * program.  The file descriptor is returned.
+ *
+ * After this call, ext_data_fetch_event() may return failure (-1) with
+ * errno set to EAGAIN.
+ *
+ * Note that if the user fails to check if any data is available
+ * before calling ext_data_fetch_event() again, using e.g. select() or
+ * poll(), then the program will burn CPU uselessly in a busy-wait
+ * loop.
+ *
+ * Note that for the time being, this function must be called after
+ * ext_data_setup() (which currently requires blocking access).
+ *
+ * Return value:
+ *  n  file descriptor.
+ * -1  failure, see errno.
+ *
+ * Error codes on falure come from fcntl().
+ */
+
+int ext_data_nonblocking_fd(struct ext_data_client *client);
+
+/*************************************************************************/
+
+/* Tell which structure will be returned next.
+ * Structures not registered with ext_data_setup will be ignored.
+ *
+ * @client          Connection context structure.
+ * @name_id         Pointer to return id of next event.
+ *
+ * If called multiple times, then events are discarded.  Can be used
+ * to skip unwanted structures.
+ *
+ * Return value:
+ *
+ *  1  success (one event can be fetched).
+ *  0  end-of-data.
+ * -1  failure.  See errno.
+ *
+ * In addition to various system (socket read) errors, errno:
+ *
+ * EFAULT           @client is NULL.
+ * EBADMSG          Data offset outside structure.
+ *                  Malformed message.  Bug?
+ * EPROTO           Unexpected message.  Bug?
+ * EFAULT           @client is NULL.
+ * EAGAIN           No futher data at this moment (after using
+ *                  ext_data_nonblocking_fd()).
+ */
+
+int ext_data_next_event(struct ext_data_client *client,
+			int *struct_id);
 
 /*************************************************************************/
 
@@ -273,10 +340,11 @@ int ext_data_setup(struct ext_data_client *client,
  * user-provided buffer.
  *
  * @client          Connection context structure.
- * @buf             Pointer to the data structure.  
- *                  A header file with the appropriate structure 
+ * @buf             Pointer to the data structure.
+ *                  A header file with the appropriate structure
  *                  declaration can be generated by struct_writer.
  * @size            Size of the structure.  Use sizeof(struct).
+ * @struct_id       Key of next structure to retrieve, 0 if name_id = "".
  *
  * Note that not necessarily all structure elements are filled -
  * zero-suppression.  It is up to the user to obey the conventions
@@ -293,14 +361,20 @@ int ext_data_setup(struct ext_data_client *client,
  * In addition to various system (socket read) errors, errno:
  *
  * EINVAL           @size is wrong.
- * EBADMSG          Data offset outside structure.  
+ * EINVAL           @struct_id is wrong.
+ * EBADMSG          Data offset outside structure.
  *                  Malformed message.  Bug?
  * EPROTO           Unexpected message.  Bug?
  * EFAULT           @client is NULL.
+ * EAGAIN           No futher data at this moment (after using
+ *                  ext_data_nonblocking_fd()).
  */
 
 int ext_data_fetch_event(struct ext_data_client *client,
 			 void *buf,size_t size
+#if !STRUCT_WRITER
+			 ,int struct_id
+#endif
 #if STRUCT_WRITER
 			 ,struct external_writer_buf_header **header_in
 			 ,uint32_t *length_in
@@ -344,10 +418,11 @@ int ext_data_get_raw_data(struct ext_data_client *client,
  * Useful when writing events.
  *
  * @client          Connection context structure.
- * @buf             Pointer to the data structure.  
+ * @buf             Pointer to the data structure.
  * @size            Size of the structure.  Use sizeof(struct).
- * @clear_zzp_lists Clear contents of varible sized (zero-suppressed) 
+ * @clear_zzp_lists Clear contents of varible sized (zero-suppressed)
  *                  lists.  Should be 0 for performance, see below.
+ * @struct_id       Key of structure to clear, 0 if name_id = "".
  *
  * The buffer is cleared with zeros and NaNs (for int and float
  * variables respectively) as specified by the pack list of the data
@@ -358,11 +433,13 @@ int ext_data_get_raw_data(struct ext_data_client *client,
  * -1  failure.  See errno:
  *
  * EINVAL           @size is wrong.
+ * EINVAL           @struct_id is wrong.
  * EFAULT           @client is NULL.
  */
 
 int ext_data_clear_event(struct ext_data_client *client,
-			 void *buf,size_t size,int clear_zzp_lists);
+			 void *buf,size_t size,int clear_zzp_lists,
+			 int struct_id);
 
 /*************************************************************************/
 
@@ -371,8 +448,9 @@ int ext_data_clear_event(struct ext_data_client *client,
  * Useful when writing events.
  *
  * @client          Connection context structure.
- * @buf             Pointer to the data structure.  
+ * @buf             Pointer to the data structure.
  * @item            Controlling item.
+ * @struct_id       Key of structure to clear, 0 if name_id = "".
  *
  * With zero-suppression, it is important that all entries of
  * variable-sized arrays up to the index specified by the controlling
@@ -387,12 +465,13 @@ int ext_data_clear_event(struct ext_data_client *client,
  *
  * Note: this function is expected to be called frequently and does
  * _not_ validate the input parameters.  (For the benefit of the
- * user-code then also having no return value to care about :-) ) 
+ * user-code then also having no return value to care about :-) )
  * Take care!
  */
 
 void ext_data_clear_zzp_lists(struct ext_data_client *client,
-                              void *buf,void *item);
+                              void *buf,void *item,
+			      int struct_id);
 
 /*************************************************************************/
 
@@ -400,8 +479,8 @@ void ext_data_clear_zzp_lists(struct ext_data_client *client,
  * connection (buffered).
  *
  * @client          Connection context structure.
- * @buf             Pointer to the data structure.  
- *                  A header file with the appropriate structure 
+ * @buf             Pointer to the data structure.
+ *                  A header file with the appropriate structure
  *                  declaration can be generated by struct_writer.
  * @size            Size of the structure.  Use sizeof(struct).
  *
@@ -418,15 +497,15 @@ void ext_data_clear_zzp_lists(struct ext_data_client *client,
  * Return value:
  *
  *  size       success (one event written (buffered)).
- *  0..size-1  data malformed (zero-suppression control item has too 
- *             large value), return value gives offset, event is NOT 
+ *  0..size-1  data malformed (zero-suppression control item has too
+ *             large value), return value gives offset, event is NOT
  *             written.
  * -1          failure.  See errno.
  *
  * In addition to various system (socket write) errors, errno:
  *
  * EINVAL           @size is wrong.
- * EBADMSG          Data offset outside structure.  
+ * EBADMSG          Data offset outside structure.
  *                  Malformed message.  Bug?
  * EPROTO           Unexpected message.  Bug?
  * EFAULT           @client is NULL.
@@ -477,9 +556,9 @@ int ext_data_close(struct ext_data_client *client);
 
 /*************************************************************************/
 
-/* Fill a buffer with some sort of (badly, i.e. not so) random data.  
+/* Fill a buffer with some sort of (badly, i.e. not so) random data.
  *
- * @buf             Pointer to the data structure.  
+ * @buf             Pointer to the data structure.
  * @size            Size of the structure.  Use sizeof(struct).
  *
  * Useful to verify program logics and integrity of zero-suppressed
@@ -509,7 +588,10 @@ const char *ext_data_last_error(struct ext_data_client *client);
  * ext_data_struct_info_free           1 or 0 (failure)
  *
  * ext_data_connect_stderr        pointer or NULL
+ * ext_data_setup_stderr          1 or 0
+ * ext_data_nonblocking_fd_stderr fd or -1
  * ext_data_fetch_event_stderr    1 or 0 (got event, or end of data)
+ *                                or -1 (for EAGAIN, with non-blocking)
  * ext_data_get_raw_data_stderr   1 or 0
  * ext_data_clear_event_stderr    1 or 0
  * ext_data_write_event_stderr    1 or 0
@@ -525,7 +607,7 @@ int ext_data_struct_info_item_stderr(struct ext_data_structure_info *struct_info
 				     const char *prename, int preindex,
 				     const char *name, const char *ctrl_name,
 				     int limit_max);
-  
+
 struct ext_data_client *ext_data_connect_stderr(const char *server);
 
 struct ext_data_client *ext_data_open_out_stderr();
@@ -533,19 +615,28 @@ struct ext_data_client *ext_data_open_out_stderr();
 int ext_data_setup_stderr(struct ext_data_client *client,
 			  const void *struct_layout_info,size_t size_info,
 			  struct ext_data_structure_info *struct_info,
-			  size_t size_buf);
+			  size_t size_buf,
+			  const char *name_id, int *struct_id);
+
+int ext_data_nonblocking_fd_stderr(struct ext_data_client *client);
+
+int ext_data_next_event_stderr(struct ext_data_client *client,
+			       int *struct_id);
 
 int ext_data_fetch_event_stderr(struct ext_data_client *client,
-				void *buf,size_t size);
+				void *buf,size_t size,
+				int struct_id);
 
 int ext_data_get_raw_data_stderr(struct ext_data_client *client,
 				 const void **raw,ssize_t *raw_words);
 
 int ext_data_clear_event_stderr(struct ext_data_client *client,
-				void *buf,size_t size,int clear_zzp_lists);
+				void *buf,size_t size,int clear_zzp_lists,
+				int struct_id);
 
 int ext_data_write_event_stderr(struct ext_data_client *client,
-				void *buf,size_t size);
+				void *buf,size_t size,
+				int struct_id);
 
 int ext_data_flush_buffer_stderr(struct ext_data_client *client);
 

@@ -129,12 +129,12 @@ if ((value)<0||(value)>=(max)) \
 	    _upi2xy._upif[i]._x,
 	    _upi2xy._upif[i]._y);
   */
-  
+
   // Calculate re-ordered indices within sector (sorted by y,x)
 
   {
     uint16 next_index = 0;
-    
+
     for (int y = 0; y < 96; y++)
       for (int x = 0; x < 96; x++)
 	if (_xy2upi._xy[x][y].u16 != (uint16) -1)
@@ -152,7 +152,7 @@ if ((value)<0||(value)>=(max)) \
       uint16 next_index = 0;
       int rows = 0;
       int last_row = -1;
-      
+
       for (int y = 0; y < 96; y++)
 	for (int x = 0; x < 96; x++)
 	  if (_xy2upi._xy[x][y].u16 != (uint16) -1 &&
@@ -168,7 +168,7 @@ if ((value)<0||(value)>=(max)) \
 		  last_row = y;
 		}
 	    }
-  
+
       /*
       printf ("mod %3d: %2d (%d, rows: %d)\n",
 	      i,_upi2mod._usedf[i],next_index,rows);

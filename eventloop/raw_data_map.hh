@@ -29,7 +29,8 @@
 
 template<typename T>
 bool do_set_dest(void *void_src_map,
-		 void *void_dest);
+		 void *void_dest,
+		 int toggle_i);
 
 template<typename T>
 class data_map
@@ -45,36 +46,32 @@ public:
   void enumerate_map_members(const signal_id &id,
 			     const enumerate_info &info,
 			     enumerate_fcn callback,void *extra) const
-  { 
-    callback(id,enumerate_info(info,this,get_enum_type((T *) NULL)).set_dest(do_set_dest<T>),extra);
+  {
+    callback(id,enumerate_info(info,this,get_enum_type((T *) NULL)).
+	     set_dest_function(do_set_dest<T>),extra);
   }
 
 public:
   // T *src;
   T                        *_dest;
   const zero_suppress_info *_zzp_info;
+  int                       _toggle_i;
 
 public:
-  bool set_dest(T *dest);
+  bool set_dest(T *dest,int toggle);
 
 public:
   void map_members(const T &src MAP_MEMBERS_PARAM) const;
+  void map_members(const toggle_item<T> &src MAP_MEMBERS_PARAM) const;
 };
 
-typedef data_map<uint8>  uint8_map;
-typedef data_map<uint16> uint16_map;
-typedef data_map<uint32> uint32_map;
-typedef data_map<uint64> uint64_map;
+#define DECL_PRIMITIVE_TYPE(type)			\
+  typedef data_map<type>  type##_map;
 
-typedef data_map<DATA64> DATA64_map;
-typedef data_map<DATA32> DATA32_map;
-typedef data_map<DATA24> DATA24_map;
-typedef data_map<DATA16> DATA16_map;
-typedef data_map<DATA12> DATA12_map;
-typedef data_map<DATA12_OVERFLOW> DATA12_OVERFLOW_map;
-typedef data_map<DATA12_RANGE> DATA12_RANGE_map;
-typedef data_map<DATA8>  DATA8_map;
-typedef data_map<float>  float_map;
+#include "decl_primitive_types.hh"
+
+#undef DECL_PRIMITIVE_TYPE
+
 
 // TODO: Make sure that the user cannot specify source array indices
 // in SIGNAL which are outside the available items.  Bad names get
@@ -87,20 +84,20 @@ public:
   T_map _items[n];
 
 public:
-  T_map &operator[](size_t i) 
-  { 
+  T_map &operator[](size_t i)
+  {
     // This function is used by the setting up of the arrays, i.e. we
     // can have checks here
-    if (i < 0 || i >= n) 
-      ERROR("Mapping index outside bounds (%d >= %d)",i,n); 
-    return _items[i]; 
+    if (i < 0 || i >= n)
+      ERROR("Mapping index outside bounds (%d >= %d)",i,n);
+    return _items[i];
   }
-  const T_map &operator[](size_t i) const 
+  const T_map &operator[](size_t i) const
   {
     // This function is used by the mapping operations (since that one
     // needs a const function), no checks here (expensive, since
     // called often)
-    return _items[i]; 
+    return _items[i];
   }
 
 public:
@@ -113,7 +110,7 @@ public:
   void enumerate_map_members(const signal_id &id,
 			     const enumerate_info &info,
 			     enumerate_fcn callback,void *extra) const
-  { 
+  {
     for (int i = 0; i < n; ++i)
       _items[i].enumerate_map_members(signal_id(id,i),info,callback,extra);
   }
@@ -127,20 +124,20 @@ public:
   raw_array_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> _items[n];
 
 public:
-  raw_array_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i) 
-  { 
+  raw_array_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i)
+  {
     // This function is used by the setting up of the arrays, i.e. we
     // can have checks here
-    if (i < 0 || i >= n) 
-      ERROR("Mapping index outside bounds (%d >= %d)",i,n); 
-    return _items[i]; 
+    if (i < 0 || i >= n)
+      ERROR("Mapping index outside bounds (%d >= %d)",i,n);
+    return _items[i];
   }
-  const raw_array_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i) const 
+  const raw_array_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i) const
   {
     // This function is used by the mapping operations (since that one
     // needs a const function), no checks here (expensive, since
     // called often)
-    return _items[i]; 
+    return _items[i];
   }
 
 public:
@@ -150,7 +147,7 @@ public:
   void enumerate_map_members(const signal_id &id,
 			     const enumerate_info &info,
 			     enumerate_fcn callback,void *extra) const
-  { 
+  {
     for (int i = 0; i < n; ++i)
       for (int i1 = 0; i1 < n1; ++i1)
 	_items[i][i1].enumerate_map_members(signal_id(signal_id(id,i),i1),info,callback,extra);
@@ -170,7 +167,7 @@ public:
 // parameters
 
 template<typename Tsingle_map,typename Tsingle,typename T_map,typename T,int n>
-class raw_list_ii_map 
+class raw_list_ii_map
   : public T_map
 {
 public:
@@ -215,6 +212,11 @@ public:
 
 };
 
+class unpack_sticky_subevent_base_map :
+  public unpack_subevent_base_map
+{
+};
+
 class unpack_event_base_map
 {
 public:
@@ -226,6 +228,11 @@ public:
   {
   }
 
+};
+
+class unpack_sticky_event_base_map :
+  public unpack_event_base_map
+{
 };
 
 class raw_event_base_map

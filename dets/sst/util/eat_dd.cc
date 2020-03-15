@@ -71,7 +71,7 @@ bool find_mean_var(std::vector<float>& data,double *mean,double *mean_err_var,do
   int n = sorted.size();
 
   // Try to find the steepest (smallest) difference with 1/2 of the data inbetween
-  
+
   double prel_mean;
   double prel_sigma;
   double min_diff = DBL_MAX;
@@ -89,20 +89,20 @@ bool find_mean_var(std::vector<float>& data,double *mean,double *mean_err_var,do
 	  prel_sigma = diff / 0.5 / sqrt(2 * M_PI);
 
 	  min_diff = diff;
-	}      
+	}
     }
 
   if (min_diff > 0.025)
     {
       int min_k, max_k;
-      
+
       double sum = 0;
       double sum_x = 0;
       double sum_x2 = 0;
 
       if (prel_sigma < 0.1)
 	prel_sigma = 0.1;
-      
+
       {
 	double min_accept = prel_mean - prel_sigma * 4;
 	double max_accept = prel_mean + prel_sigma * 4;
@@ -111,21 +111,21 @@ bool find_mean_var(std::vector<float>& data,double *mean,double *mean_err_var,do
 		prel_mean,prel_sigma,min_accept,max_accept);
 	*/
 	// First loop until we find an acceptable value
-	
+
 	for (min_k = 0; min_k < n; min_k++)
 	  if (sorted[min_k] >= min_accept)
 	    break;
-	
+
 	for (max_k = min_k; max_k < n; max_k++)
 	  {
 	    if (sorted[max_k] > max_accept)
 	      break;
-	    
+
 	    sum_x  += sorted[max_k];
 	    sum_x2 += sorted[max_k] * sorted[max_k];
 	  }
       }
-      
+
       sum = max_k - min_k;
 
       if ((max_k - min_k) < 0.8 * n)
@@ -133,7 +133,7 @@ bool find_mean_var(std::vector<float>& data,double *mean,double *mean_err_var,do
 	  printf ("CMS_TOO_MUCH_NOISE (%d,%d)/%d\n",min_k,max_k,n);
 	  return false;
 	}
-      
+
       *mean = sum_x / sum;
       *var  = (sum_x2 - sum_x*sum_x / sum)/(sum-1);
 
@@ -159,37 +159,37 @@ void swap(T &a,T &b)
 void plot_diffs(std::vector<float> vals)
 {
   int sum[63];
-  
+
   memset(sum,0,sizeof(sum));
-  
+
   for (int i = 0; i < vals.size(); i++)
     {
       double val = vals[i];
       int index;
-      
+
       if (val < -3)
 	index = 0;
       else if (val > 3)
 	index = 62;
       else
 	index = (int) ((val + 0.1) / 0.2) + 30;
-      
+
       // printf ("%6.2f %d\n",val,index);
-      
+
       sum[index]++;
     }
 
   int maxsum = 0;
-  
+
   for (int i = 0; i < 63; i++)
     if (sum[i] > maxsum)
       maxsum = sum[i];
-  
+
   for (int y = 8; y > 0; y--)
     {
       for (int i = 0; i < 63; i++)
 	printf (sum[i]*8 > maxsum*y ? "#" : " "/*,sum[i]*8,maxsum*y*/);
-      
+
       printf("\n");
     }
   printf ("|---------|---------|---------|---------|---------|---------|\n");
@@ -211,7 +211,7 @@ int main()
 	  double diff;
 
 	  sscanf (line,"DD %d %d %d %lf\n",&det,&i1,&i2,&diff);
-	  
+
 	  if (det >= 0 && det <= 3 &&
 	      i1 >= 0 && i2 < 1024 &&
 	      i2 > i1)
@@ -219,10 +219,10 @@ int main()
 	      if (i2 - i1 < 10)
 		{
 		  diffs *d = dd[det][i1][i2-i1];
-		  
+
 		  if (!d)
 		    d = dd[det][i1][i2-i1] = new diffs;
-		  
+
 		  d->vals.push_back(diff);
 		  cnt1++;
 		}
@@ -292,12 +292,12 @@ int main()
 
 	      for (int i = 0; i < 4; i++)
 		{
-		  if (v[i].strip1 > 0 && 
+		  if (v[i].strip1 > 0 &&
 		      v[i].strip1 < 640)
 		    {
 		      vx[nx++] = v[i];
 		    }
-		  else if (v[i].strip1 > 640+0 && 
+		  else if (v[i].strip1 > 640+0 &&
 			   v[i].strip1 < 640+384)
 		    {
 		      v[i].strip1 -= 640;
@@ -317,12 +317,12 @@ int main()
 
 		    int i1 = (int) (vv.strip1 / 8);
 		    int i2 = (int) (vv.strip2 / 8);
-		    
+
 		    peakhs *p = dhp[det][i1][i2];
-		    
+
 		    if (!p)
 		      p = dhp[det][i1][i2] = new peakhs;
-		    
+
 		    p->vals.push_back(vv);
 		    cnt3++;
 		  }
@@ -362,13 +362,13 @@ int main()
 	for (int i2 = 0; i2 < 384/8; i2++)
 	  {
 	    peakhs *p = dhp[det][i1][i2];
-	    
+
 	    if (!p || p->vals.size() < 50)
 	      {
 		if (p)
 		  printf ("--- %d / %4d - %4d / %4d - %4d --- %d -- \n",
 			  det,i1*8,i1*8+8,i2*8,i2*8+8,p->vals.size());
-	
+
 		continue;
 	      }
 
@@ -420,7 +420,7 @@ int main()
 	for (int i2 = 0; i2 < 384/8; i2++)
 	  {
 	    peaks *p = dp[det][i1][i2];
-	    
+
 	    if (!p || p->vals.size() < 50)
 	      continue;
 

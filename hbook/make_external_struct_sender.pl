@@ -95,9 +95,9 @@ while ($fullinput =~ s/(\s|^)struct\s+$struct\s+{(.*?)}//) {
 	    {
 		my $ctrlitemsarray = $ctrlitems[$itemsindex{$ctrlname}];
 
-		if (!$ctrlitemsarray) 
-		{ 
-		    $ctrlitemsarray = []; 
+		if (!$ctrlitemsarray)
+		{
+		    $ctrlitemsarray = [];
 		    $ctrlsize[$itemsindex{$ctrlname}] = $arraylen;
 		    $numctrlitems++;
 		}
@@ -121,7 +121,7 @@ while ($fullinput =~ s/(\s|^)struct\s+$struct\s+{(.*?)}//) {
 
 	# print "$item\n"
     }
-} 
+}
 
 if (!$found) { die "Structure '$struct' not found."; }
 
@@ -213,7 +213,7 @@ foreach my $item (@items)
 
     $printname =~ s/^_//;
     $printctrl =~ s/^_//;
-    
+
     print "  ew->send_hbname_branch(\"DEF\",".
 	"offsetof($struct,$name),\n                         ".
 	"sizeof(/*$struct.$name*/$type),\n                         ".
@@ -225,7 +225,7 @@ print <<"EndOfText";
   uint32_t offset_msg_size = ($numitems + 2 * $numctrlitems) * (uint32_t) sizeof(uint32_t);
   uint32_t fill_msg_size = (1 + $numitems) * (uint32_t) sizeof(uint32_t);
 
-  ew->set_max_message_size(fill_msg_size > offset_msg_size ? 
+  ew->set_max_message_size(fill_msg_size > offset_msg_size ?
                            fill_msg_size : offset_msg_size);
 
   {
@@ -242,9 +242,9 @@ foreach my $item (@items)
     my $arraylen = $3;
     my $ctrlname = $4;
 
-    if (!$ctrlname) 
+    if (!$ctrlname)
     {
-	if ($arraylen) 
+	if ($arraylen)
 	{
 	    print "    for (int i = 0; i < $arraylen; i++)\n";
 	    print "      *(o++) = htonl((uint32_t) ((offsetof($struct,${name})+i*sizeof($type))$clearzerotypes{$type}));\n";
@@ -261,12 +261,12 @@ foreach my $item (@items)
 		print "    *(o++) = htonl((uint32_t) offsetof($struct,$name) | 0x80000000 | 0x40000000);\n";
 		print "    *(o++) = htonl($maxloops);\n";
 		print "    *(o++) = htonl($loopitems);\n";
-		
+
 		print "    for (int l = 0; l < $maxloops; l++) {\n";
 		foreach my $itemindex (@$ctrlitemsarray) {
 		    my $subitem = $items[$itemindex];
 		    $subitem =~ /(.*) (.*) (.*) (.*)/;
-   
+
 		    my $subtype = $1;
 		    my $subname = $2;
 
@@ -292,15 +292,17 @@ print <<"EndOfText";
 
 //////////////////////////////////////////////////////////////////////
 
-void send_fill_$struct(external_writer *ew,
-                       const $struct &s,
-                       uint32_t ntuple_index = 0)
+void send_fill_x_$struct(external_writer *ew,
+                         const $struct &s,
+                         uint32_t struct_index = 0,
+                         uint32_t ntuple_index = 0)
 {
   uint32_t fill_msg_size = (1 + $numitems) * (uint32_t) sizeof(uint32_t);
 
-  uint32_t *p = ew->prepare_send_fill(fill_msg_size,ntuple_index);
+  uint32_t *p = ew->prepare_send_fill_x(fill_msg_size,
+					struct_index,ntuple_index);
 
-  *(p++) = htonl(0); // marker that we are not compacted
+  *(p++) = htonl(0x40000000); // marker that we are not compacted
 
 EndOfText
 
@@ -313,9 +315,9 @@ foreach my $item (@items)
     my $arraylen = $3;
     my $ctrlname = $4;
 
-    if (!$ctrlname) 
+    if (!$ctrlname)
     {
-	if ($arraylen) 
+	if ($arraylen)
 	{
 	    my $typepun = $typepun{$type};
 	    if (!$typepun) { $typepun = ""; }
@@ -344,7 +346,7 @@ foreach my $item (@items)
 		foreach my $itemindex (@$ctrlitemsarray) {
 		    my $subitem = $items[$itemindex];
 		    $subitem =~ /(.*) (.*) (.*) (.*)/;
-   
+
 		    my $subtype = $1;
 		    my $subname = $2;
 

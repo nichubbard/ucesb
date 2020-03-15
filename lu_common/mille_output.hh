@@ -67,7 +67,7 @@ public:
 
 public:
   void reallocate(size_t need_more);
-  
+
 public:
   void reset();
 

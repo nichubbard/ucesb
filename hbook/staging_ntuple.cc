@@ -141,7 +141,7 @@ void init_cwn_var(ntuple_item *item,
       if (!(item->_flags & NTUPLE_ITEM_HAS_LIMIT))
 	{
 	  item->_limits._int._min = 0;
-	  item->_limits._int._max = 0xffff;  
+	  item->_limits._int._max = 0xffff;
 	  var_type |= EXTERNAL_WRITER_FLAG_HAS_LIMIT;
 	}
 
@@ -155,7 +155,7 @@ void init_cwn_var(ntuple_item *item,
       if (!(item->_flags & NTUPLE_ITEM_HAS_LIMIT))
 	{
 	  item->_limits._int._min = 0;
-	  item->_limits._int._max = 0xff;  
+	  item->_limits._int._max = 0xff;
 	  var_type |= EXTERNAL_WRITER_FLAG_HAS_LIMIT;
 	}
 
@@ -241,9 +241,9 @@ void init_cwn_var(ntuple_item *item,
     ERROR("Internal error, ntuple item (%s) offset too large (%zd > %d).",
 	  var_name,offset,IND_ITEM_MAX_OFFSET);
 
-  write_ptrs._infos[index * write_ptrs._info_slots_per_entry + 
+  write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
 		    indices._slot_ind++] = write_info;
-  write_ptrs._infos[index * write_ptrs._info_slots_per_entry + 
+  write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
 		    indices._slot_ind++] = (uint32_t) offset;
 
   if (DEBUG_STAGING)
@@ -254,7 +254,7 @@ void init_cwn_var(ntuple_item *item,
 	 write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
                            indices._slot_ind-1],
 	 ptr);
-  
+
   if (item->_ctrl_mask._ptr) // bitmask
     {
       // By design, we have the same ptr for both bitmasks, it is
@@ -287,19 +287,19 @@ void init_cwn_var(ntuple_item *item,
 
       uint32_t mask_info = valid_bit_shift | (overflow_bit_shift << 5);
 
-      size_t mask_offset = 
+      size_t mask_offset =
 	(size_t) ((char*) item->_ctrl_mask._ptr - (char*) info.src_base);
 
       if (mask_offset > IND_ITEM_MAX_MASK_OFFSET)
 	ERROR("Internal error, ntuple item (%s) mask offset too large (%zd > %d).",
 	      var_name,mask_offset,IND_ITEM_MAX_MASK_OFFSET);
 
-      write_ptrs._infos[index * write_ptrs._info_slots_per_entry + 
+      write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
 			indices._slot_ind-2] |= IND_ITEM_TYPE_IS_MASKED;
 
-      write_ptrs._infos[index * write_ptrs._info_slots_per_entry + 
+      write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
 			indices._slot_ind++] = mask_info;
-      write_ptrs._infos[index * write_ptrs._info_slots_per_entry + 
+      write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
 			indices._slot_ind++] = (uint32_t) mask_offset;
 
       if (DEBUG_STAGING)
@@ -315,7 +315,7 @@ void init_cwn_var(ntuple_item *item,
 	     ptr);
     }
 
-  write_ptrs._dests[index * write_ptrs._items_per_entry + 
+  write_ptrs._dests[index * write_ptrs._items_per_entry +
 		    indices._dest_ind++] = ptr;
 
   ptr += sizeof(float);
@@ -370,14 +370,14 @@ void stage_ntuple_index_var<Tsni_ind,Tsni_vect>::storage_size(size_t &size)
 		     size);
 
   // stage_ntuple_item::storage_size(write_ptrs,size);
-  
+
   // _write_ptrs = new index_item;
 
   typename vect_stage_ntuple_indexed_var<Tsni_ind,
 					 Tsni_vect>::type::iterator i_vars;
-  
-  for (i_vars  = _vars.begin(); 
-       i_vars != _vars.end(); 
+
+  for (i_vars  = _vars.begin();
+       i_vars != _vars.end();
        ++i_vars)
     (*i_vars)->storage_size(_write_ptrs,size,_length_used);
 }
@@ -393,13 +393,13 @@ void stage_ntuple_index_var<Tsni_ind,Tsni_vect>::init_cwn_vars(Tindexed_item &wr
 					 Tsni_vect>::type::iterator i_vars;
 
   write_ptrs.alloc(_length_used.tot());
-  
+
   type_indices base_indices;
 
   bool first_item = true;
 
-  for (i_vars  = _vars.begin(); 
-       i_vars != _vars.end(); 
+  for (i_vars  = _vars.begin();
+       i_vars != _vars.end();
        ++i_vars)
     {
       // Make sure we only increase the indices once per variable,
@@ -433,18 +433,18 @@ void stage_ntuple_index_var<Tsni_ind,Tsni_vect>::init_cwn_ctrl_var(stage_ntuple_
 					       char *&ptr,const char *block)
 {
   char var_name[128];
-  
+
   assert (_item->_flags & NTUPLE_ITEM_HAS_LIMIT);
   assert (_item->_type == ntuple_item::USHORT ||
 	  _item->_type == ntuple_item::UINT ||
 	  _item->_type == ntuple_item::INT);
   strcpy (var_name,_item->_name.c_str());
-  
+
   info.fix_case(var_name);
 
   if (DEBUG_STAGING)
     INFO(0,"Storing:  %s (index) [p%p]",var_name,ptr);
-  
+
   init_cwn_hbname(info,ptr,sizeof(int),block,
 		  var_name,(uint) -1,"",
 		  EXTERNAL_WRITER_FLAG_TYPE_UINT32 |
@@ -521,7 +521,7 @@ void stage_ntuple_index_var<Tsni_ind,Tsni_vect>::init_cwn(Tarray_item &write_ptr
 
   if (Tsni_ind::is_2d())
     {
-      // for the index vars  
+      // for the index vars
 
       char var_2d_idx_name[128], var_2d_end_name[128], var_2d_ctrl_name[128];
 
@@ -596,7 +596,7 @@ void stage_ntuple_index_var<Tsni_ind,Tsni_vect>::init_cwn(Tarray_item &write_ptr
 
   if (!Tsni_ind::is_2d())
     {
-      // for the index vars  
+      // for the index vars
 
       char var_idx_name[128], var_ctrl_name[128];
 
@@ -657,7 +657,7 @@ void check_var_vect_filled(const sni_vect2 &vect,sni_ind2 &length_used,
 	  if (vect._items[i][j]->_ptr_limit2 == NULL)
 	    ERROR("Multi-hit variable length array %s has no "
 		  "limit item for index %d,%d.",
-		  name.c_str(),i,j);	    
+		  name.c_str(),i,j);
 	  if (vect._items[i][j]->_ptr_limit2 != ptr_limit2)
 	    ERROR("Multi-hit variable length array %s has different "
 		  "limit item for index %d, subindices %d vs 0.",
@@ -687,7 +687,7 @@ void stage_ntuple_indexed_var<Tsni_ind,Tsni_vect>::storage_size(indexed_item &wr
   ntuple_item *item = _items.first_item();
 
   UNUSED(item);
-  
+
   write_ptrs._items_per_entry++;
   write_ptrs._info_slots_per_entry += 2;
   if (item->_ctrl_mask._ptr) // bitmask
@@ -742,11 +742,11 @@ void stage_ntuple_block::storage_size(indexed_item &write_ptrs,
 {
   if (DEBUG_STAGING)
     INFO(0,"Block:   %s",_block.c_str());
-  
+
   vect_stage_ntuple_block_item::iterator i_item;
 
-  for (i_item  = _items.begin(); 
-       i_item != _items.end(); 
+  for (i_item  = _items.begin();
+       i_item != _items.end();
        ++i_item)
     {
       stage_ntuple_item_plain *plain_item =
@@ -764,7 +764,7 @@ void stage_ntuple_block::storage_size(indexed_item &write_ptrs,
 	}
       else if (index1_var)
 	{
-	  if (!(index1_var->_item->_flags & 
+	  if (!(index1_var->_item->_flags &
 		NTUPLE_ITEM_IS_ARRAY_MASK))
 	    {
 	      index1_var->storage_size(size);
@@ -778,7 +778,7 @@ void stage_ntuple_block::storage_size(indexed_item &write_ptrs,
 	}
       else if (index2_var)
 	{
-	  if (!(index2_var->_item->_flags & 
+	  if (!(index2_var->_item->_flags &
 		NTUPLE_ITEM_IS_ARRAY_MASK))
 	    {
 	      ERROR("index_item2 unimplemented");
@@ -822,15 +822,15 @@ void indexed_item::setup_mask_list(uint32_t entries_used)
 	{
 	  uint32_t info = *(infos++);
 	  (infos++);
-	
+
 	  uint32_t mask_off  = *(infos+1);
-      
+
 	  if (info & IND_ITEM_TYPE_IS_MASKED)
 	    {
 	      infos += 2; // we used a mask
 
 	      mask_offsets.insert(mask_off);
-	    }     
+	    }
 	}
 
       if (k == 0)
@@ -862,17 +862,17 @@ void indexed_item::setup_mask_list(uint32_t entries_used)
 	{
 	  uint32_t info = *(infos++);
 	  (infos++);
-	
+
 	  uint32_t mask_off  = *(infos+1);
-      
+
 	  if (info & IND_ITEM_TYPE_IS_MASKED)
 	    {
 	      infos += 2; // we used a mask
 
 	      mask_offsets.insert(mask_off);
-	    }     
+	    }
 	}
-      
+
       for (set_uint32_t::iterator iter = mask_offsets.begin();
 	   iter != mask_offsets.end(); ++iter)
 	{
@@ -897,11 +897,11 @@ void stage_ntuple_block::init_cwn(indexed_item &write_ptrs,
 
   if (DEBUG_STAGING)
     INFO(0,"Block:   %s",block);
-  
+
   vect_stage_ntuple_block_item::iterator i_item;
-  
-  for (i_item  = _items.begin(); 
-       i_item != _items.end(); 
+
+  for (i_item  = _items.begin();
+       i_item != _items.end();
        ++i_item)
     {
       stage_ntuple_item_plain *plain_item =
@@ -912,14 +912,14 @@ void stage_ntuple_block::init_cwn(indexed_item &write_ptrs,
       stage_ntuple_index_var<sni_ind2,sni_vect2> *index2_var =
 	dynamic_cast<stage_ntuple_index_var<sni_ind2,
 					    sni_vect2> *>((*i_item)._item);
-      
+
       if (plain_item)
 	{
 	  plain_item->init_cwn(write_ptrs,indices,info,ptr,block);
 	}
       else if (index1_var)
 	{
-	  if (!(index1_var->_item->_flags & 
+	  if (!(index1_var->_item->_flags &
 		NTUPLE_ITEM_IS_ARRAY_MASK))
 	    {
 	      index_item *index_item = index_write_ptrs++;
@@ -935,7 +935,7 @@ void stage_ntuple_block::init_cwn(indexed_item &write_ptrs,
 	}
       else if (index2_var)
 	{
-	  if (!(index2_var->_item->_flags & 
+	  if (!(index2_var->_item->_flags &
 		NTUPLE_ITEM_IS_ARRAY_MASK))
 	    {
 	      ERROR("index_item2 unimplemented");

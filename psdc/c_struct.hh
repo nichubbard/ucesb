@@ -74,16 +74,19 @@ class c_arg_named
 public:
   c_arg_named(const file_line &loc,
 	      const char *name,
-	      const c_array_ind *array_ind)
+	      const c_array_ind *array_ind,
+	      bool toggle)
     : c_arg(loc)
   {
     _name      = name;
     _array_ind = array_ind;
+    _toggle    = toggle;
   }
 
 public:
   const char *_name;
   const c_array_ind *_array_ind;
+  bool        _toggle;
 
 public:
   virtual void dump(dumper &d,bool recursive = true) const;
@@ -116,10 +119,15 @@ public:
     : c_struct_base(loc)
   {
     _name = name;
+    _toggle = false;
   }
 
 public:
   const char *_name;
+  bool        _toggle;
+
+public:
+  void set_toggle() { _toggle = true; }
 
 public:
   virtual void dump(dumper &d,bool recursive = true) const;

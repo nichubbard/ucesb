@@ -43,7 +43,7 @@ is445_may08_unpack _state;
 const char* _fortntu_name = NULL;
 #endif
 #else
-#define INVALIDATE_SCALER_STATE 
+#define INVALIDATE_SCALER_STATE
 #endif
 
 int is445_08_user_function_multi(unpack_event *event)
@@ -100,15 +100,15 @@ int is445_08_user_function_multi(unpack_event *event)
       {
 	multi_events++;
 	multi_subevents += event->vme.header.multi_events;
-	
+
 	if ((multi_events % 100000) == 0)
 	  {
 	    printf ("Multi: %d (%d, %6.1f)...\n",
 		    multi_events,multi_subevents,
 		    ((double) multi_subevents) / multi_events);
-	    
+
 	  }
-      } 
+      }
       */
 
       multi_events = event->vme.header.multi_events;
@@ -148,7 +148,7 @@ int is445_08_user_function_multi(unpack_event *event)
 		adctdc_counter0 = event->vme.multi_tdc[i]._items[0].get_event_counter();
 		goto found_adc_tdc_counter0;
 	      }
-	  
+
 	found_adc_tdc_counter0:
 	  ;
 	}
@@ -159,12 +159,12 @@ int is445_08_user_function_multi(unpack_event *event)
   map_multi_events(event->vme.multi_scaler0,
 		   scaler_counter0,
 		   multi_events);
-  
+
   for (unsigned int i = 0; i < countof(event->vme.multi_adc); i++)
     map_multi_events(event->vme.multi_adc[i],
 		     adctdc_counter0,
 		     multi_events);
-  
+
   for (unsigned int i = 0; i < countof(event->vme.multi_tdc); i++)
     map_multi_events(event->vme.multi_tdc[i],
 		     adctdc_counter0,
@@ -202,7 +202,7 @@ void is445_08_user_function(unpack_event *event,
 
 #if USE_IS445_MAY08_UNPACK
   _state.clear();
-  
+
   // Take the trigger from the raw event (calculated by the generic code)
   _state.set_trigger(raw_event->trigger);
 
@@ -235,10 +235,10 @@ void is445_08_user_function(unpack_event *event,
 
   raw_event->TSHORT.value = _state.event.time_t2;
   raw_event->TEBIS.value  = _state.event.time_ebis;
-  
+
 #endif
 
-  
+
 }
 
 void is445_08_user_init()
@@ -278,7 +278,7 @@ bool is445_08_handle_command_line_option(const char *arg)
 
 #define MATCH_PREFIX(prefix,post) (strncmp(arg,prefix,strlen(prefix)) == 0 && *(post = arg + strlen(prefix)) != '\0')
 #define MATCH_ARG(name) (strcmp(arg,name) == 0)
-  
+
  if (MATCH_PREFIX("--fortntu=",post)) {
    _fortntu_name = post;
    return true;

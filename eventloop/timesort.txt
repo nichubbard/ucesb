@@ -127,7 +127,7 @@ FRS_S8 = OR(SCI2...T);
 
 PIX = OR(PIX...T);
 
-EARLY_PILEUP = STRETCH(POS1, 5 us); 
+EARLY_PILEUP = STRETCH(POS1, 5 us);
 // Can be checked if we have pileup before us
 
 // -------------------------------------------

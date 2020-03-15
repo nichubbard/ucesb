@@ -62,6 +62,11 @@ void corr_find_members(const char *type,
 	"DATA12",
 	"DATA12_RANGE",
 	"DATA12_OVERFLOW",
+	"DATA14",
+	"DATA14_RANGE",
+	"DATA14_OVERFLOW",
+	"DATA16",
+	"DATA16_OVERFLOW"
       };
 
       const char *no_corr_types[] = {
@@ -77,7 +82,7 @@ void corr_find_members(const char *type,
 	"unpack_subevent_base",
 	"unpack_event_base",
 	"raw_event_base",
-	"cal_event_base",
+	"cal_event_base"
       };
 
       for (unsigned int i = 0; i < countof(corr_types); i++)
@@ -157,7 +162,7 @@ void c_struct_member::find_members(dumper &d,signal_id &id_base,
   // additional indices in use.  We can only parse parameters for
   // known template types (all of them fortunately the same)
 
-  const c_typename_template *type_template = 
+  const c_typename_template *type_template =
     dynamic_cast<const c_typename_template*>(_type);
 
   if (type_template)
@@ -198,7 +203,7 @@ void c_struct_member::find_members(dumper &d,signal_id &id_base,
 
 	    // The first one should be a named argument
 
-	    const c_arg_named *named = 
+	    const c_arg_named *named =
 	      dynamic_cast<const c_arg_named *>((*v)[0]);
 
 	    if (!named)
@@ -213,7 +218,7 @@ void c_struct_member::find_members(dumper &d,signal_id &id_base,
 
 	    for (unsigned int j = 2; j < v->size(); j++)
 	      {
-		const c_arg_const *index = 
+		const c_arg_const *index =
 		  dynamic_cast<const c_arg_const *>((*v)[j]);
 
 		if (!index)
@@ -306,7 +311,7 @@ public:
 
 	    goto insert_children;
 	  }
-      }   
+      }
 
     // The item was not found.  Insert it.
 
@@ -317,7 +322,7 @@ public:
   insert_children:
     // See if there are further levels to insert
     ++item;
-    
+
     if (item == end)
       return; // we were last
     child->insert(item,end);
@@ -364,14 +369,14 @@ public:
       {
 	// We could not fit all the children into one chunk, let's then
 	// Fit them each one into chunks
-	
+
 	chunks = 0;
-	
+
 	for (corr_signal_part_vect::iterator iter = _children.begin();
 	     iter != _children.end(); ++iter)
 	  {
 	    corr_signal_part *child = *iter;
-	    
+
 	    chunks += child->num_chunks(size);
 	  }
       }
@@ -393,20 +398,20 @@ public:
     if (!_children.empty())
       {
 	d.text_fmt("/%d/",_num_children);
-	
+
 	dumper sd(d,0);
-	
+
 	for (corr_signal_part_vect::iterator iter = _children.begin();
 	     iter != _children.end(); ++iter)
 	  {
 	    corr_signal_part *child = *iter;
-	    
+
 	    if (iter != _children.begin())
 	      sd.nl();
-	    
+
 	    child->dump(sd);
 	  }
-	
+
 	//if (_children.size() == 0)
 	//  sd.nl();
       }
@@ -428,18 +433,18 @@ void c_struct_def::make_corr_struct(const char *type,
 
   // First, we need to find out what items are of
   // interest
-  
+
   corr_struct_item_ptr_vect items;
   corr_signal_part tree(type);
 
-  for (corr_struct_item_vect::iterator iter = all_items._vect.begin(); 
+  for (corr_struct_item_vect::iterator iter = all_items._vect.begin();
        iter != all_items._vect.end(); ++iter)
     {
       corr_struct_item &item = *iter;
-      
+
       //char buf[256];
       //item._id.format(buf,sizeof(buf));
-      
+
       //d.text_fmt("// %s %s\n",item._type,buf);
 
       // find out the name of the last named part
@@ -466,12 +471,12 @@ void c_struct_def::make_corr_struct(const char *type,
 	  continue;
 
       // The item is choosen
-      
+
       items.push_back(&item);
       tree.insert(item._id._parts.begin(),
 		  item._id._parts.end());
 
-      // 
+      //
     }
 
   // Calculate the sizes of all branches at all nodes, and get a list of them
@@ -491,7 +496,7 @@ void c_struct_def::make_corr_struct(const char *type,
       int mem  = size*chunks;
       int line = mem+chunks;
 
-      int total = members * line;      
+      int total = members * line;
 
       cd.text_fmt("size=%2d  chunks=%3d  mem=%4d  line=%d  total=%d",
 		  size,chunks,mem,line,total);
@@ -504,14 +509,14 @@ void c_struct_def::make_corr_struct(const char *type,
 
   dumper sd(cd,2);
 
-  for (corr_struct_item_ptr_vect::iterator iter = items.begin(); 
+  for (corr_struct_item_ptr_vect::iterator iter = items.begin();
        iter != items.end(); ++iter)
     {
       corr_struct_item *item = *iter;
-      
+
       char buf[256];
       item->_id.format(buf,sizeof(buf));
-      
+
       sd.text_fmt("%s %s\n",item->_type,buf);
     }
 
@@ -552,7 +557,7 @@ void c_struct_def::corr_struct(dumper &d) const
   signal_id id;
 
   find_members(cd,id,items);
-  
+
   ///////////////////////////////////////////////////////////////////
   // Just dump what we have
   corr_struct_item_vect::iterator iter;
@@ -560,10 +565,10 @@ void c_struct_def::corr_struct(dumper &d) const
   for (iter = items._vect.begin(); iter != items._vect.end(); ++iter)
     {
       corr_struct_item &item = *iter;
-      
+
       char buf[256];
       item._id.format(buf,sizeof(buf));
-      
+
       cd.text_fmt("%s %s\n",item._type,buf);
     }
   ///////////////////////////////////////////////////////////////////
@@ -586,7 +591,7 @@ void corr_struct()
 
   {
     named_c_struct_def_vect::iterator i;
-    
+
     for (i = all_named_c_struct_vect.begin(); i != all_named_c_struct_vect.end(); ++i)
       {
 	(*i)->corr_struct(d);

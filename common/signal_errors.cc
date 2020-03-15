@@ -36,8 +36,8 @@
 #ifdef __GNUC_PREREQ
 #if __GNUC_PREREQ (3, 2)
 #include <cxxabi.h>
-#endif 
-#endif 
+#endif
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -45,7 +45,7 @@
 #define countof(array) (sizeof(array)/sizeof((array)[0]))
 #endif
 
-void 
+void
 print_back_trace()
 {
 #ifndef HAS_EXECINFO
@@ -53,9 +53,9 @@ print_back_trace()
 #else
   void *array[32];
   int size;
-  
+
   char **traces;
-  
+
   size = backtrace(array,(int) countof(array));
   traces = backtrace_symbols(array,size);
 
@@ -91,13 +91,13 @@ print_back_trace()
             dem = abi::__cxa_demangle(first+1, 0, 0, &status);
 #endif
 #endif
-  
+
           fprintf (stderr,
                    "%s(%s+%s\n",
                    traces[i],
                    status == 0 ? dem : first+1,
                    last+1);
-          
+
 #ifdef __GNUC_PREREQ
 #if __GNUC_PREREQ (3, 2)
           if (status == 0)
@@ -108,7 +108,7 @@ print_back_trace()
       else
         fprintf (stderr,"%s\n",traces[i]);
     }
-  
+
   fprintf (stderr,"\n");
 
   free (traces);
@@ -143,7 +143,7 @@ extern "C" void handle_sigsegv(int signum)
            "* Traceback of function calls leading to the disaster\n"
 	   "* (usually the three first lines are of no interest,\n"
 	   "* a more accurate traceback is given by a debugger):\n\n");
-  
+
   print_back_trace();
 
   fprintf (stderr,
@@ -183,7 +183,7 @@ void setup_segfault_coredump(const char* cmdname)
   // fprintf (stderr,"%d %d\n",(int) rl.rlim_cur,(int) rl.rlim_max);
   if (rl.rlim_cur <= 0 || rl.rlim_max <= 0)
     {
-      // allow core files to be created 
+      // allow core files to be created
       rl.rlim_cur = rl.rlim_max = 200000000; // 200 megs core size max...
       setrlimit(RLIMIT_CORE, &rl);
     }

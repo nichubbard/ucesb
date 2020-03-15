@@ -39,8 +39,8 @@ SCALER_DATA(group)
     {
       UINT16 count_hi NOENCODE;
       UINT16 count_lo NOENCODE;
-      
-      ENCODE(data[index],(value=((static_cast<uint32>(count_hi) << 16) | 
+
+      ENCODE(data[index],(value=((static_cast<uint32>(count_hi) << 16) |
 				 static_cast<uint32>(count_lo))));
 
     }
@@ -65,7 +65,7 @@ TCAL_NO(group)
 
   MEMBER(uint32 count);
 
-  ENCODE(count,(_=((static_cast<uint32>(count_hi) << 16) | 
+  ENCODE(count,(_=((static_cast<uint32>(count_hi) << 16) |
 		   static_cast<uint32>(count_lo))));
 }
 
@@ -96,21 +96,21 @@ CLOCK_SAMPLE(group)
   UINT16 after_frac_hi NOENCODE;
   UINT16 after_frac_lo NOENCODE;
 
-  ENCODE(before_s,(_=((static_cast<uint32>(before_s_hi) << 16) | 
+  ENCODE(before_s,(_=((static_cast<uint32>(before_s_hi) << 16) |
 		      static_cast<uint32>(before_s_lo))));
-  ENCODE(before_frac,(_=((static_cast<uint32>(before_frac_hi) << 16) | 
+  ENCODE(before_frac,(_=((static_cast<uint32>(before_frac_hi) << 16) |
 			 static_cast<uint32>(before_frac_lo))));
-  ENCODE(after_s,(_=((static_cast<uint32>(after_s_hi) << 16) | 
+  ENCODE(after_s,(_=((static_cast<uint32>(after_s_hi) << 16) |
 		     static_cast<uint32>(after_s_lo))));
-  ENCODE(after_frac,(_=((static_cast<uint32>(after_frac_hi) << 16) | 
+  ENCODE(after_frac,(_=((static_cast<uint32>(after_frac_hi) << 16) |
 			static_cast<uint32>(after_frac_lo))));
-  
+
   MEMBER(uint32 count);
 
   UINT16 count_hi NOENCODE;
   UINT16 count_lo NOENCODE;
 
-  ENCODE(count,(_=((static_cast<uint32>(count_hi) << 16) | 
+  ENCODE(count,(_=((static_cast<uint32>(count_hi) << 16) |
 		   static_cast<uint32>(count_lo))));
 }
 
@@ -157,7 +157,7 @@ SUBEVENT(EV_EVENT)
       trig = SIMPLE_DATA_ITEM(group=255,item=1);
 
       tcal = TCAL_NO(group=253);
-      
+
       clock = CLOCK_SAMPLE(group=254);
 
       scaler = SCALER_DATA(group=252);
@@ -168,7 +168,7 @@ SUBEVENT(EV_EVENT)
 EVENT
 {
   ev = EV_EVENT();
-  
+
 }
 
 SIGNAL(MWPC_X_TL, ev.tdc.data[0],DATA12);

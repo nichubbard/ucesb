@@ -33,7 +33,7 @@ struct subevent_name_info
   const char *_command;
 };
 
-subevent_name_info subevent_names[] = 
+subevent_name_info subevent_names[] =
 {
 #ifndef NO_SUBEVENT_NAMES
 #include "gen/subevent_names.hh"
@@ -66,16 +66,16 @@ int select_event_request::add_item(const char *cmd)
   const char *equals = strchr(cmd,'=');
 
   if (!equals)
-    ERROR("Malformed select request: %s",cmd);   
+    ERROR("Malformed select request: %s",cmd);
 
   char *end;
 
-  item._min = 
+  item._min =
     (int) strtol(equals+1,&end,strncmp(equals+1,"0x",2) == 0 ? 16 : 10);
-  
+
   if (*end == '-')
     {
-      item._max = 
+      item._max =
 	(int) strtol(end+1,&end,strncmp(end+1,"0x",2) == 0 ? 16 : 10);
 
       if (*end != 0)
@@ -174,7 +174,7 @@ void select_event::parse_request(const char *command,bool incl)
 
   for (size_t i = 0; i < countof(subevent_names); i++)
     {
-      if (subevent_names[i]._name && 
+      if (subevent_names[i]._name &&
 	  strcmp(subevent_names[i]._name,command) == 0)
 	{
 	  parse_request(subevent_names[i]._command,incl);
@@ -193,7 +193,7 @@ void select_event::parse_request(const char *command,bool incl)
 
   const char *cmd = command;
   const char *req_end;
-  
+
   while ((req_end = strchr(cmd,':')) != NULL)
     {
       char *request = strndup(cmd,(size_t) (req_end-cmd));
@@ -201,14 +201,14 @@ void select_event::parse_request(const char *command,bool incl)
       request_type |= r.add_item(request);
 
       free(request);
-      cmd = req_end+1;      
+      cmd = req_end+1;
     }
-  
+
   // and handle the remainder
 
   request_type |= r.add_item(cmd);
 
-  if ((request_type & REQUEST_TYPE_EVENT) && 
+  if ((request_type & REQUEST_TYPE_EVENT) &&
       (request_type & REQUEST_TYPE_SUBEVENT))
     ERROR("Select request cannot be for both event and subevent: %s",command);
 
@@ -228,7 +228,7 @@ bool select_event_request::match(const void *ptr) const
       const char *p = ((const char *) ptr) + item._offset;
 
       int value;
-      
+
       if (item._size == -1)
 	value = *((const sint8 *) p);
       else if (item._size == -2)
@@ -252,7 +252,7 @@ bool select_event_requests::match(const void *ptr) const
   for (size_t i = 0; i < _items.size(); i++)
     {
       const select_event_request &item = _items[i];
-      
+
       if (item.match(ptr))
 	return true;
     }
@@ -266,7 +266,7 @@ bool select_event_requests::accept(const void *ptr) const
 
   if (_flags & SELECT_FLAG_INCLUDE)
     return match(ptr);
-  
+
   if (_flags & SELECT_FLAG_EXCLUDE)
     return !match(ptr);
 
@@ -276,6 +276,10 @@ bool select_event_requests::accept(const void *ptr) const
 
 bool select_event::accept_event(const lmd_event_10_1_host *header) const
 {
+  if (header->_header.i_type == LMD_EVENT_STICKY_TYPE &&
+      header->_header.i_subtype == LMD_EVENT_STICKY_SUBTYPE)
+    return true;
+  
   return _event.accept(header);
 }
 
@@ -287,7 +291,10 @@ bool select_event::accept_subevent(const lmd_subevent_10_1_host *header) const
 bool select_event::accept_final_event(lmd_event_out *event) const
 {
   if (event->is_clear()) // No header, no nothing!
-    return false;			  
+    return false;
+
+  // Also sticky events are useless without payload, so no special
+  // handling needed
 
   if (_omit_empty_payload)
     {
@@ -295,5 +302,5 @@ bool select_event::accept_final_event(lmd_event_out *event) const
 	return false;
     }
 
-  return true;    
+  return true;
 }

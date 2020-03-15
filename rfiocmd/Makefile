@@ -43,7 +43,7 @@ ifneq (,$(FILE_CURSES_CONFIG))
 CXXFLAGS     += -DUSE_CURSES=$(USE_CURSES) \
         $(shell $(FILE_CURSES_CONFIG) --cflags)
 CXXLIBS      += $(shell $(FILE_CURSES_CONFIG) --libs)
-else 
+else
 ifdef USE_CURSES
 CXXFLAGS     += -DUSE_CURSES=$(USE_CURSES)
 CXXLIBS      += -lcurses
@@ -96,8 +96,9 @@ rfcat.dep: $(AUTO_DEPS)
 
 rfcat.base.dep: rfcat.dep
 	@echo " BASEDEP $@"
-	@echo '$$(UCESB_BASE_DIR)/rfiocmd/$(MAKECMDGOALS): \\' > $@
-	@cat $< | grep -v ' \\' | sed -e 's,  /, /,' -e 's,  ,  $$\(UCESB_BASE_DIR\)/rfiocmd/,g' | sort -u >> $@
+	@echo '$$(UCESB_BASE_DIR)/rfiocmd/$(MAKECMDGOALS): \' > $@
+	@cat $< | grep -v ' \\' | sed -e 's,  /, /,' | \
+	  sed -e 's,  ,  $$\(UCESB_BASE_DIR\)/rfiocmd/,g' | sort -u >> $@
 
 #
 # Link

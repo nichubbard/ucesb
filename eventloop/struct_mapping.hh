@@ -24,8 +24,14 @@
 #include "multi_chunk.hh"
 
 void setup_unpack_map();
-void do_unpack_map(MAP_MEMBERS_SINGLE_PARAM);
-void do_raw_reverse_map(MAP_MEMBERS_SINGLE_PARAM);
+void do_unpack_map(unpack_event *unpack_ev
+		   MAP_MEMBERS_PARAM);
+void do_unpack_map(unpack_sticky_event *unpack_ev
+		   MAP_MEMBERS_PARAM);
+void do_raw_reverse_map(raw_event *raw_ev
+			MAP_MEMBERS_PARAM);
+void do_raw_reverse_map(raw_sticky *raw_ev
+			MAP_MEMBERS_PARAM);
 
 #include "raw_data_map.hh"
 
@@ -44,26 +50,38 @@ void do_raw_reverse_map(MAP_MEMBERS_SINGLE_PARAM);
   void map_members(const multi_chunks<__T,T_map> &src,const ptr<__T> *single MAP_MEMBERS_PARAM) const \
   { *(const_cast< ptr<__T>* >(single)) = src.map_members(*this MAP_MEMBERS_ARG); }
 #define STRUCT_MIRROR_TYPE(type)         type##_map
+#define STRUCT_MIRROR_TYPE_TOGGLE(type)  toggle_##type##_map
 #define STRUCT_MIRROR_NAME(name)         name
 #define STRUCT_MIRROR_STRUCT(type)       STRUCT_MIRROR_TYPE(type)
 #define STRUCT_MIRROR_BASE(type)         STRUCT_MIRROR_TYPE(type)
 #define STRUCT_MIRROR_TEMPLATE_ARG(arg)  arg##_map,arg
 #define STRUCT_MIRROR_TEMPLATE_ARG_N(arg,array)  arg##_map array,arg array
+#define STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE(arg) toggle_##arg##_map,TOGGLE(arg)
+#define STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE_N(arg,array) toggle_##arg##_map array,TOGGLE(arg) array
 #define STRUCT_ONLY_LAST_UNION_MEMBER    1
 
 #include "gen/struct_mirror.hh"
+#if THIS_SEEMS_UNUSED
 #include "gen/raw_struct_mirror.hh"
+#endif
 
 #undef  STRUCT_MIRROR_FCNS_DECL
 #undef  STRUCT_MIRROR_TYPE
+#undef  STRUCT_MIRROR_TYPE_TOGGLE
 #undef  STRUCT_MIRROR_NAME
 #undef  STRUCT_MIRROR_STRUCT
 #undef  STRUCT_MIRROR_BASE
 #undef  STRUCT_MIRROR_TEMPLATE_ARG
 #undef  STRUCT_MIRROR_TEMPLATE_ARG_N
+#undef  STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE
+#undef  STRUCT_MIRROR_TEMPLATE_ARG_TOGGLE_N
 #undef  STRUCT_ONLY_LAST_UNION_MEMBER
 
 extern unpack_event_map the_unpack_event_map;
+#if THIS_SEEMS_UNUSED
 extern raw_event_map the_raw_event_reverse_map;
+#endif
+
+extern unpack_sticky_event_map the_unpack_sticky_event_map;
 
 #endif//__STRUCT_MAPPING_HH__

@@ -29,7 +29,7 @@
 #define NUM_SCALERS_IN_USE 1
 
 const char *_scaler_names[2*32] = { // max 10 letters, please
-  /* 0  0 */ "TR_REQUEST", 
+  /* 0  0 */ "TR_REQUEST",
   /* 0  1 */ "TR_ACCEPT",
   /* 0  2 */ "",
   /* 0  3 */ "",
@@ -99,10 +99,10 @@ const char *_scaler_names[2*32] = { // max 10 letters, please
 
 bool _show_scalers = false;
 
-watcher_type_info fa192mar09_watch_types[NUM_WATCH_TYPES] = 
-  { 
-    { COLOR_GREEN,   "Physics" }, 
-    { COLOR_RED,     "Periodic" }, 
+watcher_type_info fa192mar09_watch_types[NUM_WATCH_TYPES] =
+  {
+    { COLOR_GREEN,   "Physics" },
+    { COLOR_RED,     "Periodic" },
   };
 
 void fa192mar09_watcher_event_info(watcher_event_info *info,
@@ -115,14 +115,14 @@ void fa192mar09_watcher_event_info(watcher_event_info *info,
       info->_type = FA192MAR09_WATCH_TYPE_PERIODIC;
       info->_display |= WATCHER_DISPLAY_SPILL_EOS;
     }
-      
+
 
   // Since we have a time stamp (on some events), we'd rather use that
   // than the buffer timestamp, since the buffer timestamp is the time
   // of packaging, and not of event occuring
-  
+
   // clean it for events not having it
-  info->_info &= ~WATCHER_DISPLAY_INFO_TIME; 
+  info->_info &= ~WATCHER_DISPLAY_INFO_TIME;
   if (event->vme.header.failure.has_time_stamp)
     {
       info->_time = event->vme.header.time_stamp;
@@ -174,16 +174,16 @@ int fa192mar09_user_function_multi(unpack_event *event)
 
   // When running in multi-event mode, we must
   // know the start value for the event counters for the modules
-  
+
   if (!event->vme.header.failure.has_multi_scaler_counter0)
     ERROR("Event counter for scaler at start unknown.");
-  
+
   // Loop over all the modules which are multi-event, mapping
   // their event using their event counters
-  
+
   if (!event->vme.header.failure.has_multi_adctdc_counter0)
     ERROR("Event counter for adc/tdc at start unknown.");
-  
+
   scaler_counter0 = event->vme.header.multi_scaler_counter0;
   adctdc_counter0 = event->vme.header.multi_adctdc_counter0;
 
@@ -193,12 +193,12 @@ int fa192mar09_user_function_multi(unpack_event *event)
     map_multi_events(event->vme.multi_scaler[i],
 		     scaler_counter0,
 		     multi_events);
-  
+
   for (unsigned int i = 0; i < countof(event->vme.multi_adc); i++)
     map_multi_events(event->vme.multi_adc[i],
 		     adctdc_counter0,
 		     multi_events);
-  
+
   for (unsigned int i = 0; i < countof(event->vme.multi_tdc); i++)
     map_multi_events(event->vme.multi_tdc[i],
 		     adctdc_counter0,
@@ -208,7 +208,7 @@ int fa192mar09_user_function_multi(unpack_event *event)
     map_multi_events(event->vme.multi_mhtdc[i],
 		     adctdc_counter0,
 		     multi_events);
-  /*  
+  /*
   for (unsigned int i = 0; i < countof(event->vme.multi_krx); i++)
     map_multi_events(event->vme.multi_krx[i],
 		     adctdc_counter0,
@@ -227,8 +227,8 @@ void fa192mar09_user_function_raw(unpack_event *event,
   for (int iadc = 0; iadc < 2; iadc++)
     {
       EXTERNAL_DATA32 &d32 = event->vme.sadc_pack[iadc].data32;
-      
-      raw_list_ii_zero_suppress<DATA16,DATA16,2560> &raw = 
+
+      raw_list_ii_zero_suppress<DATA16,DATA16,2560> &raw =
 	raw_event->sadcp[iadc];
 
       // printf ("%d: %d\n",iadc,(int) d32._length);
@@ -250,7 +250,7 @@ void fa192mar09_user_function_raw(unpack_event *event,
 
 	  for (int i = 0; i < 2560; i += PACK_BIT_CHUNK)
 	    {
-	      uint64 src_val = 0; 
+	      uint64 src_val = 0;
 	      // if we got outside stream, then we give 0's (will break out
 	      // when dest > dest_end)
 	      if (src < src_end)
@@ -273,7 +273,7 @@ void fa192mar09_user_function_raw(unpack_event *event,
 
 	      for (int j = 0; j < PACK_BIT_CHUNK; j++)
 		{
-		  src_val = 0; 
+		  src_val = 0;
 		  if (src < src_end)
 		    src_val = ((uint64) *src) << avail;
 		  if (avail < bits)
@@ -310,7 +310,7 @@ void fa192mar09_user_function_raw(unpack_event *event,
 
 	  UNUSED(dest);
   	}
-    }  
+    }
 }
 
 void fa192mar09_user_function(unpack_event *event,
@@ -321,35 +321,35 @@ void fa192mar09_user_function(unpack_event *event,
   if (_show_scalers &&
       event->trigger == 2)
     {
-      static uint32 sca_prev[32] = 
-	{ (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
-	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
-	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
-	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
-	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
-	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
-	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, 
+      static uint32 sca_prev[32] =
+	{ (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
+	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
+	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
+	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
+	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
+	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
+	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1,
 	  (uint32) -1, (uint32) -1, (uint32) -1, (uint32) -1, };
       uint32 sca_this[32];
-      uint32 sca_incr[32];      
+      uint32 sca_incr[32];
 
       if (event->vme.multi_scaler[0]._num_items != 1)
 	ERROR("Expected 1 scaler event for trigger 2, got %d (scaler[%d]).",
 	      event->vme.multi_scaler[0]._num_items,0);
-      
+
       for (int i = 0; i < 32; i++)
 	sca_this[i] = (uint32) -1;
 
       bitsone_iterator iter;
       ssize_t ch;
-      
+
       VME_CAEN_V830 *scaler = &(event->vme.scaler[0]());
-      
+
       while ((ch = scaler->data._valid.next(iter)) >= 0)
 	{
 	  sca_this[ch] = scaler->data[ch].value;
 	}
-      
+
       for (int i = 0; i < 32; i++)
 	{
 	  if (sca_this[i] != (uint32) -1 && sca_prev[i] != (uint32) -1)
@@ -364,7 +364,7 @@ void fa192mar09_user_function(unpack_event *event,
       uint32 trig_accept  = sca_incr[1];
 
       double dead_time = 1 - ((double) trig_accept / trig_request);
-	  
+
       printf (" -- Scalers: ------------------------- %10.2f%% DT -\n",
 	      dead_time*100);
 
@@ -409,7 +409,7 @@ void fa192mar09_user_function(unpack_event *event,
 
       int linebreak = 0;
 
-      for (unsigned int i = 0; 
+      for (unsigned int i = 0;
 	   i < NUM_SCALERS_IN_USE /*countof(event->vme.multi_scaler)*/; i++)
 	{
 	  // For trigger two, we expect (exactly) one scaler event
@@ -422,7 +422,7 @@ void fa192mar09_user_function(unpack_event *event,
 	  int ch;
 
 	  VME_CAEN_V830 *scaler = &(event->vme.scaler[i]());
-	  
+
 	  while ((ch = scaler->data._valid.next(iter)) >= 0)
 	    {
 	      printf ("%d/%2d:%10s %10d  ",i,ch,"",scaler->data[ch].value);
@@ -436,7 +436,7 @@ void fa192mar09_user_function(unpack_event *event,
 	}
 #endif
     }
-  
+
 }
 
 void fa192mar09_user_init()
@@ -461,7 +461,7 @@ bool fa192mar09_handle_command_line_option(const char *arg)
 
 #define MATCH_PREFIX(prefix,post) (strncmp(arg,prefix,strlen(prefix)) == 0 && *(post = arg + strlen(prefix)) != '\0')
 #define MATCH_ARG(name) (strcmp(arg,name) == 0)
-  
+
  if (MATCH_ARG("--scalers")) {
    _show_scalers = true;
    return true;

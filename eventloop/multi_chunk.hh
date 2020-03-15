@@ -52,7 +52,7 @@ public:
   {
     _ptr = NULL;
   }
-  
+
 public:
   T *_ptr;
 
@@ -81,6 +81,37 @@ public:
   }
 };
 
+struct external_toggle_map
+{
+  unsigned int  _cnts;
+  unsigned int *_cnt_to_event;
+};
+
+template<int n_toggle>
+class external_toggle_info
+{
+public:
+  external_toggle_info()
+  {
+    _alloc_events = 0;
+    _maps[0]._cnt_to_event = NULL;
+  }
+
+  ~external_toggle_info()
+  {
+    free(_maps[0]._cnt_to_event);
+  }
+
+public:
+  void clear_alloc(uint32 events);
+
+  void dump() const;
+
+public:
+  uint32              _alloc_events;
+  external_toggle_map _maps[n_toggle];
+};
+
 struct correlation_list;
 struct watcher_event_info;
 struct pretty_dump_info;
@@ -91,7 +122,7 @@ class multi_chunks
 public:
   typedef T         item_t;
   typedef T_map     item_map_t;
-  
+
 public:
   multi_chunks()
   {
@@ -127,7 +158,7 @@ public:
   T      *_items;
 
   T      *_item_null;
-  
+
   // An array for telling to which event each item belongs
   int *_item_event;
 
@@ -146,7 +177,7 @@ public:
     _num_events = 0;
     /*
     _alloc_items = 0;
-    _alloc_events = 0;  
+    _alloc_events = 0;
 
     delete[] _items;
     delete[] _item_event;
@@ -162,7 +193,7 @@ public:
   item_t &next_free()
   {
     // We start by returning item[1], since item[0] is the
-    // empty one!    
+    // empty one!
 
     if (_num_items >= _alloc_items)
       {
@@ -275,20 +306,20 @@ public:
   {
     // we are now operating at multi_subevent no i, what index should
     // we use in the source tables?
-    
+
     if ((unsigned int) info._multi_event_no > _num_events)
       ERROR("Attempt to map multi-event (%d) beyond known events (%d).",
 	    info._multi_event_no,_num_events);
-    
+
     int entry = _event_index[info._multi_event_no];
-    
+
     if (entry < 0)
       return; // we have no data for this event
 
     watcher.watch_members(_items[entry],watch_info WATCH_MEMBERS_ARG);
   }
 
-  
+
   template<typename T_correlation>
   void add_corr_members(const T_correlation &correlation,
 			correlation_list *list
@@ -296,13 +327,13 @@ public:
   {
     // we are now operating at multi_subevent no i, what index should
     // we use in the source tables?
-    
+
     if ((unsigned int) info._multi_event_no > _num_events)
       ERROR("Attempt to map multi-event (%d) beyond known events (%d).",
 	    info._multi_event_no,_num_events);
-    
+
     int entry = _event_index[info._multi_event_no];
-    
+
     if (entry < 0)
       return; // we have no data for this event
 

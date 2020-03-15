@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
+#include <sys/types.h>
 #endif
 
 class ext_data_struct_info;
@@ -39,12 +41,18 @@ public:
   bool connect(const char *server);
   bool connect(const char *server,int port);
   bool connect(int fd);
+  int nonblocking_fd();
 
+  /* NOTE: default arguments for name_id and struct_id will be removed.
+   * Only here to simplify transition.  Also fetch_event.
+   */
   int setup(const void *struct_layout_info,size_t size_info,
 	    ext_data_struct_info *struct_info,
-	    size_t size_buf);
+	    size_t size_buf,
+	    const char *name_id = "", int *struct_id = NULL);
 
-  int fetch_event(void *buf,size_t size);
+  int next_event(int *struct_id);
+  int fetch_event(void *buf,size_t size,int struct_id = 0);
   int get_raw_data(const void **raw, ssize_t *raw_words);
   const char *last_error();
 

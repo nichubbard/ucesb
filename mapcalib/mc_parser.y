@@ -110,8 +110,10 @@ struct md_ident_fl
 %token <strValue>  IDENTIFIER
 
 %token SIGNAL_MAPPING
+%token STICKY_MAPPING
 %token CALIB_PARAM
 %token CALIB_PARAM_C
+%token TOGGLE
 %token UINT32
 %token UINT16
 %token UINT8
@@ -135,7 +137,10 @@ struct md_ident_fl
 
 %type <iValue>     data_type
 %type <iValue>     calib_type
- 
+
+%type <iValue>     toggle_null
+%type <iValue>     toggle
+
 %type <var>        var_or_name
 %type <var>        data_name
 
@@ -176,9 +181,9 @@ stmt_list:
 /* Each statement is either an range specification or a parameter specification. */
 stmt:
           ';'                                      { $$ = NULL; }
-        | signal_mapping                           { $$ = $1; } 
-        | calib_param                              { $$ = $1; } 
-        | user_calib_param                         { $$ = $1; } 
+        | signal_mapping                           { $$ = $1; }
+        | calib_param                              { $$ = $1; }
+        | user_calib_param                         { $$ = $1; }
 /*        | '{' stmt_list '}'                        { $$ = node_list_pack($2); }*/
 /*        | hardware_definition                      { append_hardware($1); $$ = NULL; } */
 /*        | module_definition                        { $$ = $1; } */
@@ -186,67 +191,134 @@ stmt:
         ;
 
 signal_mapping:
-	  SIGNAL_MAPPING '(' data_type ',' data_name ',' var_or_name ',' var_or_name ')' ';' 
-          { 
-	    const signal_id_info *src_info  = get_signal_id_info($7,SID_MAP_UNPACK | SID_MAP_MIRROR_MAP);
-	    const signal_id_info *dest_info = get_signal_id_info($9,SID_MAP_RAW);
+	  SIGNAL_MAPPING '(' data_type ',' data_name ',' var_or_name ',' toggle_null var_or_name ')' ';'
+          {
+	    const signal_id_info *src_info  =
+	      get_signal_id_info($7,SID_MAP_UNPACK | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($10,SID_MAP_RAW);
 	    /*const signal_id_info *rev_src_info  = get_signal_id_info($9,SID_MAP_RAW | SID_MAP_MIRROR_MAP | SID_MAP_REVERSE);*/
 	      /*const signal_id_info *rev_dest_info = get_signal_id_info($7,SID_MAP_UNPACK);*/
 	    delete $7;
-	    delete $9;
+	    delete $10;
 	    $$ = new map_info(CURR_FILE_LINE,src_info,dest_info,
-			      NULL,NULL/*,rev_src_info,rev_dest_info*/);
+			      NULL,NULL/*,rev_src_info,rev_dest_info*/,
+			      0,$9);
+          }
+	| STICKY_MAPPING '(' data_type ',' data_name ',' var_or_name ',' toggle_null var_or_name ')' ';'
+          {
+	    const signal_id_info *src_info  =
+	      get_signal_id_info($7,SID_MAP_UNPACK | SID_MAP_STICKY | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($10,SID_MAP_RAW | SID_MAP_STICKY);
+	    /*const signal_id_info *rev_src_info  = get_signal_id_info($9,SID_MAP_RAW | SID_MAP_MIRROR_MAP | SID_MAP_REVERSE);*/
+	      /*const signal_id_info *rev_dest_info = get_signal_id_info($7,SID_MAP_UNPACK);*/
+	    delete $7;
+	    delete $10;
+	    $$ = new map_info(CURR_FILE_LINE,src_info,dest_info,
+			      NULL,NULL/*,rev_src_info,rev_dest_info*/,
+			      1,$9);
           }
         ;
 
+/* If we were to use the toggle_null rule below before IDENTIFIER,
+ * we get shift/reduce conflicts with the rules in user_calib_param.
+ * Where also the default action of shifting is not really helpful.
+ * So, we take to ugly route of duplicating the rules...
+ */
+
 calib_param:
 	  CALIB_PARAM '(' IDENTIFIER ',' calib_type ',' value_vector_np ')' ';'
-          { 
+          {
 	    signal_id id;
 	    dissect_name(CURR_FILE_LINE,$3,id);
-	    const signal_id_info *src_info  = get_signal_id_info(&id,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
-	    const signal_id_info *dest_info = get_signal_id_info(&id,SID_MAP_CAL);
-	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,$5,$7);
+	    const signal_id_info *src_info  =
+	      get_signal_id_info(&id,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info(&id,SID_MAP_CAL);
+	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,
+				 $5,$7,0);
+          }
+	| CALIB_PARAM '(' toggle IDENTIFIER ',' calib_type ',' value_vector_np ')' ';'
+          {
+	    signal_id id;
+	    dissect_name(CURR_FILE_LINE,$4,id);
+	    const signal_id_info *src_info  =
+	      get_signal_id_info(&id,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info(&id,SID_MAP_CAL);
+	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,
+				 $6,$8,$3);
           }
 	| CALIB_PARAM_C '(' var_or_name ',' calib_type ',' value_vector_np ')' ';'
-          { 
-	    const signal_id_info *src_info  = get_signal_id_info($3,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
-	    const signal_id_info *dest_info = get_signal_id_info($3,SID_MAP_CAL);
+          {
+	    const signal_id_info *src_info  =
+	      get_signal_id_info($3,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($3,SID_MAP_CAL);
 	    delete $3;
-	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,$5,$7);
+	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,
+				 $5,$7,0);
+          }
+	| CALIB_PARAM_C '(' toggle var_or_name ',' calib_type ',' value_vector_np ')' ';'
+          {
+	    const signal_id_info *src_info  =
+	      get_signal_id_info($4,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($4,SID_MAP_CAL);
+	    delete $4;
+	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,
+				 $6,$8,$3);
           }
         | var_or_name '=' calib_type '(' value_vector_np ')' ';'
-          { 
-	    const signal_id_info *src_info  = get_signal_id_info($1,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
-	    const signal_id_info *dest_info = get_signal_id_info($1,SID_MAP_CAL);
+          {
+	    const signal_id_info *src_info  =
+	      get_signal_id_info($1,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($1,SID_MAP_CAL);
 	    delete $1;
-	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,$3,$5);
+	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,
+				 $3,$5,0);
+          }
+        | toggle var_or_name '=' calib_type '(' value_vector_np ')' ';'
+          {
+	    const signal_id_info *src_info  =
+	      get_signal_id_info($2,SID_MAP_RAW | SID_MAP_MIRROR_MAP);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($2,SID_MAP_CAL);
+	    delete $2;
+	    $$ = new calib_param(CURR_FILE_LINE,src_info,dest_info,
+				 $4,$6,$1);
           }
         ;
 
 user_calib_param:
 	  CALIB_PARAM '(' IDENTIFIER ',' value_vector_np ')' ';'
-          { 
+          {
 	    signal_id id;
 	    dissect_name(CURR_FILE_LINE,$3,id);
-	    const signal_id_info *dest_info = get_signal_id_info(&id,SID_MAP_CALIB);
+	    const signal_id_info *dest_info =
+	      get_signal_id_info(&id,SID_MAP_CALIB);
 	    $$ = new user_calib_param(CURR_FILE_LINE,dest_info,$5);
           }
 	| CALIB_PARAM_C '(' var_or_name ',' value_vector_np ')' ';'
-          { 
-	    const signal_id_info *dest_info = get_signal_id_info($3,SID_MAP_CALIB);
+          {
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($3,SID_MAP_CALIB);
 	    delete $3;
 	    $$ = new user_calib_param(CURR_FILE_LINE,dest_info,$5);
           }
         | var_or_name '=' value_vector_np_single ';'
-          { 
-	    const signal_id_info *dest_info = get_signal_id_info($1,SID_MAP_CALIB);
+          {
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($1,SID_MAP_CALIB);
 	    delete $1;
 	    $$ = new user_calib_param(CURR_FILE_LINE,dest_info,$3);
           }
         | var_or_name '=' '{' value_vector_np '}' ';'
-          { 
-	    const signal_id_info *dest_info = get_signal_id_info($1,SID_MAP_CALIB);
+          {
+	    const signal_id_info *dest_info =
+	      get_signal_id_info($1,SID_MAP_CALIB);
 	    delete $1;
 	    $$ = new user_calib_param(CURR_FILE_LINE,dest_info,$4);
           }
@@ -261,13 +333,29 @@ user_calib_param:
 /*******************************************************/
 
 calib_type:
-	  IDENTIFIER { $$ = calib_param_type($1); if (!$$) { yyerror("Unknown calibration type."); YYERROR; } }
+	  IDENTIFIER { $$ = calib_param_type($1);
+	    if (!$$) { yyerror("Unknown calibration type."); YYERROR; } }
         ;
 
 /*******************************************************/
 
 data_type:
 	  IDENTIFIER { $$ = 0; /* $$ = data_type($1); if (!$$) { yyerror("Unknown data type."); YYERROR; } */ }
+        ;
+
+toggle_null:
+          /* empty */ { $$ = 0; }
+        | toggle
+        ;
+
+toggle:
+          TOGGLE INTEGER ':' {
+	    if ($2 == 1)      { $$ = 1; }
+	    else if ($2 == 2) { $$ = 2; }
+	    else {
+	      yyerror("Toggle # must be 1 or 2.");
+	    }
+	  }
         ;
 
 var_or_name:
@@ -284,26 +372,26 @@ var_ident_rec:
 	;
 
 var_ident:
-	  IDENTIFIER array_spec_list_null 
+	  IDENTIFIER array_spec_list_null
           {
 	    $$ = new sig_part_ptr_vector;
-	    $$->push_back(new sig_part($1)); 
-	    if ($2) 
+	    $$->push_back(new sig_part($1));
+	    if ($2)
 	      {
 		$$->insert($$->end(),$2->begin(),$2->end());
 		delete $2;
 	      }
 	  }
 	;
-  
+
 array_spec_list_null:
                                        { $$ = NULL; }
         | array_spec_list              { $$ = $1; }
-        ; 
+        ;
 
 array_spec_list:
 	  array_spec                   { $$ = new sig_part_ptr_vector; $$->push_back($1); }
-	| array_spec_list array_spec   { $1->push_back($2); $$ = $1; }  
+	| array_spec_list array_spec   { $1->push_back($2); $$ = $1; }
 	;
 
 array_spec:
@@ -341,11 +429,11 @@ value:
         | value '+' value         { $$ = $1 + $3; }
         | value '-' value         { $$ = $1 - $3; }
         | value '*' value         { $$ = $1 * $3; }
-        | value '/' value         
-          { 
+        | value '/' value
+          {
 	    if ($3 != 0.0)
 	      yyerror("Warning: Division by zero.");
-	    $$ = $1 / $3; 
+	    $$ = $1 / $3;
 	  }
         | '(' value ')'           { $$ = $2; }
         ;
@@ -370,10 +458,14 @@ unit_part_many:
 
 unit_part_block:
 	  IDENTIFIER             { $$ = $1; }
-        | IDENTIFIER INTEGER     { char tmp[32]; sprintf (tmp,"%d",$2); $$ = find_concat_str_strings($1,tmp,""); }
-        | IDENTIFIER '-' INTEGER { char tmp[32]; sprintf (tmp,"%d",$3); $$ = find_concat_str_strings($1,"-",tmp); }
-        | IDENTIFIER '^' INTEGER     { char tmp[32]; sprintf (tmp,"%d",$3); $$ = find_concat_str_strings($1,"^",tmp); }
-        | IDENTIFIER '^' '-' INTEGER { char tmp[32]; sprintf (tmp,"%d",$4); $$ = find_concat_str_strings($1,"^-",tmp); }
+        | IDENTIFIER INTEGER     { char tmp[32];
+	    sprintf (tmp,"%d",$2); $$ = find_concat_str_strings($1,tmp,""); }
+        | IDENTIFIER '-' INTEGER { char tmp[32];
+	    sprintf (tmp,"%d",$3); $$ = find_concat_str_strings($1,"-",tmp); }
+        | IDENTIFIER '^' INTEGER     { char tmp[32];
+	    sprintf (tmp,"%d",$3); $$ = find_concat_str_strings($1,"^",tmp); }
+        | IDENTIFIER '^' '-' INTEGER { char tmp[32];
+	    sprintf (tmp,"%d",$4); $$ = find_concat_str_strings($1,"^-",tmp); }
         ;
 
 %%
@@ -382,9 +474,9 @@ void yyerror(const char *s) {
   print_lineno(stderr,yylineno);
   fprintf(stderr," %s\n", s);
 /*
-  Current.first_line   = Rhs[1].first_line;      
-  Current.first_column = Rhs[1].first_column;    
-  Current.last_line    = Rhs[N].last_line;       
+  Current.first_line   = Rhs[1].first_line;
+  Current.first_column = Rhs[1].first_column;
+  Current.last_line    = Rhs[N].last_line;
   Current.last_column  = Rhs[N].last_column;
 */
   throw error();

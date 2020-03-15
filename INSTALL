@@ -1,0 +1,32 @@
+Installation
+============
+
+ucesb depends on flex, bison, ncurses, perl and optionally on PAW and ROOT.
+Depending on your platform the installation instructions for these vary.
+
+This document with detail how to install the required depencies.
+
+
+Debian based (Ubuntu/Mint/...)
+------------------------------
+
+The requirements can be fullfilled by executing:
+
+apt-get install bison flex libncurses5-dev build-essentials
+
+
+Red-hat based (Scientific linux/Cern CentOS7/SUSE)
+--------------------------------------------------
+
+The requirements can be fullfilled by executing:
+
+yum install bison flex ncurses-devel make perl-Digest-MD5
+
+
+MacOS
+-----
+
+The requirements can be fullfilled with homebrew:
+
+homebrew install bison flex ncurses
+

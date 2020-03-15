@@ -37,7 +37,7 @@ void mon_Si_single()
   // TH1I *line1 = new TH1I("Ch1","Ch1",2560,0,2560);
 
   //TH2I* cross = new TH2I("Image","Image",32,1,33,32,1,33);
-  
+
   NEW_CANVAS(c1,"Si strip 1 energies");
 
   for (int i = 0; i < 32; i++)
@@ -46,8 +46,8 @@ void mon_Si_single()
 
       TH1I *line1 = new TH1I("Ch1","Ch1",2560,0,2560);
 
-    } 
-  
+    }
+
   //cross->Draw("colz");
   //_hists.push_back(cross);
 

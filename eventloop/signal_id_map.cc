@@ -37,7 +37,7 @@ public:
 };
 
 // A named entry, either leaf or struct or array
-struct sid_named 
+struct sid_named
   : public sid_node
 {
 public:
@@ -64,7 +64,7 @@ public:
 typedef std::set<sid_named *,compare_ptr<sid_named> > sid_named_set;
 
 // Contains named entries
-struct sid_struct 
+struct sid_struct
   : public sid_node
 {
 public:
@@ -74,7 +74,7 @@ public:
   sid_named_set _entries;
 };
 
-struct sid_array 
+struct sid_array
   : public sid_node
 {
 public:
@@ -84,7 +84,7 @@ public:
   std::vector<sid_node *> _entries;
 };
 
-struct sid_leaf 
+struct sid_leaf
   : public sid_node
 {
 public:
@@ -145,7 +145,7 @@ sid_leaf *find_leaf(const signal_id &id,
 		    ERROR("Memory allocation failure");
 
 		  *cur_ptr = str;
-		}		  
+		}
 	    }
 
 	  sid_named key(direction._id._name); // for finding the item
@@ -190,7 +190,7 @@ sid_leaf *find_leaf(const signal_id &id,
       else if (direction._type == SIG_PART_INDEX)
 	{
 	  sid_array *array = dynamic_cast<sid_array *>(*cur_ptr);
-	  
+
 	  if (!array)
 	    {
 	      if (*cur_ptr || !create_missing)
@@ -201,17 +201,17 @@ sid_leaf *find_leaf(const signal_id &id,
 	      else
 		{
 		  // There is not even an array, let's create it!
-		  
+
 		  //INFO("Adding array...");
 		  array = new sid_array;
-		  
+
 		  if (!array)
 		    ERROR("Memory allocation failure");
 
 		  // Insert the array
-		  
+
 		  *cur_ptr = array;
-		}		  
+		}
 	    }
 
 	  // Make sure the vector is large enough!
@@ -240,7 +240,7 @@ sid_leaf *find_leaf(const signal_id &id,
 	  /*
 	  char str[256];
 	  id.format(str,sizeof(str));
-	  printf ("Fail: %s\n",str); 
+	  printf ("Fail: %s\n",str);
 	  */
 	  ERROR("Internal error finding signal id in tree."); // your sig_part is broken
 	}
@@ -275,7 +275,7 @@ sid_leaf *find_leaf(const signal_id &id,
 	  *cur_ptr = leaf;
 
 	  //INFO("Added leaf... (%p,%p)",leaf,leaf->_info);
-	}		  
+	}
     }
 
   return leaf;
@@ -295,19 +295,23 @@ void enumerate_member_signal_id(const signal_id &id,
 
   // Due to it ending up at other levels as other data, and also not
   // having any proper names, it caused clashes in the map
-  
+  /*
+  {
+    char str[64];
+    id.format(str,sizeof(str));
+
+    INFO("Enumerate for member %d: %s ... (0x%x)",
+         extra_info->_map_no,str,info._type);
+  }
+  */
+  // NOTE: unsure why ENUM_IS_TOGGLE_I/V has to be omitted
   if (info._type & (ENUM_IS_ARRAY_MASK |
 		    ENUM_IS_LIST_LIMIT |
 		    ENUM_IS_LIST_LIMIT2 |
-		    ENUM_IS_LIST_INDEX))
+		    ENUM_IS_LIST_INDEX |
+		    ENUM_IS_TOGGLE_I |
+		    ENUM_IS_TOGGLE_V))
     return;
-  /*
-  char str[64];
-
-  id.format(str,sizeof(str));
-
-  printf ("Enum: %p %s\n",info._addr,str); 
-  */
 
   sid_leaf *leaf;
 
@@ -315,8 +319,8 @@ void enumerate_member_signal_id(const signal_id &id,
 
   assert(leaf);
 
-  leaf->_info->_addr = info._addr; 
-  leaf->_info->_type = info._type; 
+  leaf->_info->_addr = info._addr;
+  leaf->_info->_type = info._type;
   leaf->_info->_unit = info._unit;
 }
 
@@ -324,9 +328,9 @@ signal_id_info *find_signal_id_info(const signal_id &id,
 				    enumerate_msid_info *extra)
 {
   sid_leaf *leaf;
-  
+
   leaf = find_leaf<1>(id,&signal_id_map_base[extra->_map_no]);
-  
+
   assert (leaf);
 
   return leaf->_info;
@@ -345,7 +349,7 @@ const signal_id_info *get_signal_id_info(const signal_id &id,
   {
     char str[64];
     id.format(str,sizeof(str));
-    
+
     INFO("Get for %s ... (%p,%p)",str,leaf,leaf->_info);
   }
   */
@@ -368,11 +372,22 @@ void enumerate_member_signal_id_zzp_part(const signal_id &id,
 
   // Due to it ending up at other levels as other data, and also not
   // having any proper names, it caused clashes in the map
-  
+  /*
+  {
+    char str[64];
+    id.format(str,sizeof(str));
+
+    INFO("Enumerate for zzp part %d: %s ... (0x%x)",
+         extra_info->_map_no,str,info._type);
+  }
+  */
+  // NOTE: unsure why ENUM_IS_TOGGLE_I/V has to be omitted
   if (info._type & (ENUM_IS_ARRAY_MASK |
 		    ENUM_IS_LIST_LIMIT |
 		    ENUM_IS_LIST_LIMIT2 |
-		    ENUM_IS_LIST_INDEX))
+		    ENUM_IS_LIST_INDEX |
+		    ENUM_IS_TOGGLE_I |
+		    ENUM_IS_TOGGLE_V))
     return;
 
   signal_id_zzp_info_map *map = &_signal_id_zzp_info_map[extra_info->_map_no];
@@ -420,11 +435,25 @@ void setup_signal_id_map()
 					  enumerate_member_signal_id_zzp_part,
 					  &extra);
 
+  extra._map_no = SID_MAP_UNPACK | SID_MAP_STICKY;
+  _static_sticky_event._unpack.enumerate_members(signal_id(),info,
+					  enumerate_member_signal_id,&extra);
+  _static_sticky_event._unpack.enumerate_members(signal_id(),info_zzp_part,
+					  enumerate_member_signal_id_zzp_part,
+					  &extra);
+
 #ifndef USE_MERGING
   extra._map_no = SID_MAP_RAW;
   _static_event._raw.enumerate_members(signal_id(),info,
 				       enumerate_member_signal_id,&extra);
   _static_event._raw.enumerate_members(signal_id(),info_zzp_part,
+				       enumerate_member_signal_id_zzp_part,
+				       &extra);
+
+  extra._map_no = SID_MAP_RAW | SID_MAP_STICKY;
+  _static_sticky_event._raw.enumerate_members(signal_id(),info,
+				       enumerate_member_signal_id,&extra);
+  _static_sticky_event._raw.enumerate_members(signal_id(),info_zzp_part,
 				       enumerate_member_signal_id_zzp_part,
 				       &extra);
 
@@ -453,10 +482,17 @@ void setup_signal_id_map()
   extra._map_no = SID_MAP_UNPACK | SID_MAP_MIRROR_MAP;
   setup_signal_id_map_unpack_map(&extra);
 
+  extra._map_no = SID_MAP_UNPACK | SID_MAP_STICKY | SID_MAP_MIRROR_MAP;
+  setup_signal_id_map_unpack_sticky_map(&extra);
+
   extra._map_no = SID_MAP_RAW | SID_MAP_MIRROR_MAP;
   setup_signal_id_map_raw_map(&extra);
 
   extra._map_no = SID_MAP_RAW | SID_MAP_MIRROR_MAP | SID_MAP_REVERSE;
   setup_signal_id_map_raw_reverse_map(&extra);
+
+  extra._map_no =
+    SID_MAP_RAW | SID_MAP_STICKY | SID_MAP_MIRROR_MAP | SID_MAP_REVERSE;
+  setup_signal_id_map_raw_sticky_reverse_map(&extra);
 #endif//!USE_MERGING
 }

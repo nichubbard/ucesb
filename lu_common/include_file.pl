@@ -82,7 +82,7 @@ foreach my $arg (@ARGV)
     {
 	$silentupdateinputfile = 1;
     }
-    else 
+    else
     {
 	die "Unrecognized option: $arg";
     }
@@ -110,9 +110,9 @@ if ($depfile)
     while (@textin)
     {
 	my $line = shift @textin;
-	
+
 	if ($line =~ /^\s*\/\*\s*BEGIN_INCLUDE_FILE\s*\"(.+)\"\s*\*\/\s*$/)
-	{ 
+	{
 	    my $includefile = relative_path($1);
 	    print " \\\n  $includefile";
 	}
@@ -135,10 +135,10 @@ while (@textin)
     {
 	if (!($line =~ /^\s*\/\*\s*(NEW|BEGIN|DISCARD_THIS|DISCARD_FILE)_INCLUDE_FILE\s*\"(.+)\"\s*\*\/\s*$/))
 	{ die "Unrecognized begin include: $line"; }
-	
+
 	my $includefile = $2;
 	my $newinclude = $1;
-	
+
 	my @includecontent = ();
 	my $includeoldmd5sum = ();
 
@@ -152,7 +152,7 @@ while (@textin)
 	    if (!($line =~ /^\s*\/\*\s*MD5SUM_INCLUDE\s*([0-9a-fA-F]+)\s*\*\/\s*$/))
 	    { die "Unrecognized md5sum include: $line"; }
 	    $includeoldmd5sum = $1;
-	    
+
 	    while (@textin)
 	    {
 		$line = shift @textin;
@@ -161,9 +161,9 @@ while (@textin)
 	    }
 	    if (!($line =~ /^\s*\/\*\s*END_INCLUDE_FILE\s*\"(.+)\"\s*\*\/\s*$/))
 	    { die "Unrecognized end include: $line"; }
-	    if ($1 ne $includefile) 
+	    if ($1 ne $includefile)
 	    { die "begin/end include filename mismatch: $1 ne $includefile"; }
-	}	    
+	}
 
 	# So, we have found a chunk of text.  $includefile,
 	# $includeoldmd5sum, @includecontent
@@ -182,7 +182,7 @@ while (@textin)
 
 	# print "Include: ----> ($includeoldmd5sum -> $incf_md5sum)\n";
 
-	# Now, there are four possibilites.  
+	# Now, there are four possibilites.
 	# None changed -> nothing to do (except to copy to output)
 	# Chunk changed -> Copy to include file
 	# Include file changed -> Copy to us
@@ -209,12 +209,12 @@ while (@textin)
 		die "Both chunk ($includeoldmd5sum -> $includemd5sum) and file ( -> $incf_md5sum) changed for $includefile.  Manual intervention!!!  Or use DISCARD_THIS_INCLUDE_FILE or DISCARD_FILE_INCLUDE_FILE.";
 	    }
 	}
-	
+
 	if ($filechange)
 	{
 	    # We should incorporate the changes from the include file.  Easy:
 
-	    $includemd5sum  = $incf_md5sum;	    
+	    $includemd5sum  = $incf_md5sum;
 	    @includecontent = @incf_content;
 	}
 	if ($chunkchange &&
@@ -235,7 +235,7 @@ while (@textin)
 	    @args = ("mv","${relincfile}.incnew","${relincfile}");
 	    system(@args);
 	}
-	
+
 	# We survived, so we are to write the information to our buffer
 
 	# Since flex has major problems with comments starting in the
@@ -269,15 +269,15 @@ for (my $i = 0; $i <= $#origtext && $i <= $#textout; $i++)
 if ($differ)
 {
     write_file("${inputfile}.incnew",@textout);
-    
+
     if (!$silentupdateinputfile)
     {
 	my @args = ("diff","-u","${inputfile}","${inputfile}.incnew");
 	system(@args);
-    
+
 	prompt("I'd like to update $inputfile? ");
     }
-    
+
     my @args = ("mv","${inputfile}.incnew","${inputfile}");
     system(@args);
 }

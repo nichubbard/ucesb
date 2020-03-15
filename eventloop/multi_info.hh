@@ -38,7 +38,7 @@
 struct map_members_info
 {
   int _multi_event_no;
-  int _event_type;  
+  int _event_type;
 };
 
 #define MAP_MEMBERS_SINGLE_PARAM    const map_members_info &info

@@ -73,22 +73,34 @@ bool ext_data_clnt::connect(int fd)
   return _client != NULL;
 }
 
+int ext_data_clnt::nonblocking_fd()
+{
+  return ext_data_nonblocking_fd((ext_data_client *) _client);
+}
+
 int ext_data_clnt::setup(const void *struct_layout_info,
 			 size_t size_info,
 			 ext_data_struct_info *struct_info,
-			 size_t size_buf)
+			 size_t size_buf,
+			 const char *name_id, int *struct_id)
 {
   struct ext_data_structure_info *si =
     struct_info ?
     (struct ext_data_structure_info *) struct_info->_info : NULL;
 
   return ext_data_setup((ext_data_client *) _client,
-			struct_layout_info,size_info,si,size_buf);
+			struct_layout_info,size_info,si,size_buf,
+			name_id, struct_id);
 }
 
-int ext_data_clnt::fetch_event(void *buf,size_t size)
+int ext_data_clnt::next_event(int *struct_id)
 {
-  return ext_data_fetch_event((ext_data_client *) _client,buf,size);
+  return ext_data_next_event((ext_data_client *) _client,struct_id);
+}
+
+int ext_data_clnt::fetch_event(void *buf,size_t size, int struct_id)
+{
+  return ext_data_fetch_event((ext_data_client *) _client,buf,size,struct_id);
 }
 
 int ext_data_clnt::get_raw_data(const void **raw, ssize_t *raw_words)
@@ -133,22 +145,35 @@ bool ext_data_clnt_stderr::connect(const char *server,int port)
   return _client != NULL;
 }
 
+int ext_data_clnt_stderr::nonblocking_fd()
+{
+  return ext_data_nonblocking_fd_stderr((ext_data_client *) _client);
+}
+
 int ext_data_clnt_stderr::setup(const void *struct_layout_info,
 				size_t size_info,
 				ext_data_struct_info *struct_info,
-				size_t size_buf)
+				size_t size_buf,
+				const char *name_id, int *struct_id)
 {
   struct ext_data_structure_info *si =
     struct_info ?
     (struct ext_data_structure_info *) struct_info->_info : NULL;
 
   return ext_data_setup_stderr((ext_data_client *) _client,
-			       struct_layout_info,size_info,si,size_buf);
+			       struct_layout_info,size_info,si,size_buf,
+			       name_id,struct_id);
 }
 
-int ext_data_clnt_stderr::fetch_event(void *buf,size_t size)
+int ext_data_clnt_stderr::next_event(int *struct_id)
 {
-  return ext_data_fetch_event_stderr((ext_data_client *) _client,buf,size);
+  return ext_data_next_event_stderr((ext_data_client *) _client,struct_id);
+}
+
+int ext_data_clnt_stderr::fetch_event(void *buf,size_t size,int struct_id)
+{
+  return ext_data_fetch_event_stderr((ext_data_client *) _client,
+				     buf,size,struct_id);
 }
 
 int ext_data_clnt_stderr::get_raw_data(const void **raw, ssize_t *raw_words)
@@ -176,6 +201,6 @@ void dummy_test_get_ptr()
   ext_data_struct_info wrapped;
   ext_data_structure_info *ptr;
 
-  ptr = wrapped;  
+  ptr = wrapped;
 }
 #endif

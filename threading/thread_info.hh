@@ -60,7 +60,7 @@ struct ti_task
     thread_queue_base       *_single;
     multi_thread_queue_base *_multi;
   } _queue;
-  
+
   // Dynamic members
 
   int    _speed;  // events/s
@@ -113,7 +113,7 @@ struct ti_thread
 
   int _buf_used; // used size of thread's buffer
   int _buf_size; // total size of thread's buffer
-  
+
   ti_thread_task *_tasks; /* size: ti._num_tasks */
 };
 
@@ -136,7 +136,7 @@ struct ti_totals
   off_t  _events_ok_rate; // Rate of accepted events
 
   off_t  _errors;        // Number of errors
-  timeval _last_ev_time; // Time associated with last event processed 
+  timeval _last_ev_time; // Time associated with last event processed
 };
 
 class worker_thread;

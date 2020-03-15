@@ -74,7 +74,7 @@ formatted_error __fe = FE_DATA_INIT;
 void formatted_error::realloc(size_t newlen)
 {
   char *newbuf = (char*) ::realloc (_buffer,newlen);
-  
+
   if (newbuf == NULL)
     {
       // we'll silently fail... (hmmm...)
@@ -82,12 +82,12 @@ void formatted_error::realloc(size_t newlen)
       fprintf (stderr,"Memory allocation failure! (in error printing routine)");
       exit(1);
     }
-  
+
   _buffer = newbuf;
   _alloc = newlen;
 }
 
-// based on code from: Linux Programmer's Manual PRINTF(3)   
+// based on code from: Linux Programmer's Manual PRINTF(3)
 
 void formatted_error::make_message(const char *fmt,va_list ap)
 {
@@ -183,7 +183,7 @@ void formatted_error::eject()
     {
       size_t need = sizeof (error_reclaim) + _length + 1;
 
-      error_reclaim *er = 
+      error_reclaim *er =
 	(error_reclaim*) _wt._defrag_buffer->allocate_reclaim(need,RECLAIM_MESSAGE);
 
       er->_type   = _type;
@@ -199,11 +199,13 @@ void formatted_error::eject()
   else
 #endif
     {
+#if not defined(EXTERNAL_WRITER_NO_SHM)
       if (_conf._watcher._command && _watcher._init)
       {
           _watcher.on_error(_buffer, _type);
       }
       else
+#endif
       {
         markconvbold_output(_buffer,
   			  _type == FE_ERROR ? CTR_WHITE_BG_RED :

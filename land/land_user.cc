@@ -26,12 +26,12 @@
 
 #include <curses.h> // needed for the COLOR_ below
 
-watcher_type_info land_watch_types[NUM_WATCH_TYPES] = 
-  { 
-    { COLOR_GREEN,   "Physics" }, 
-    { COLOR_MAGENTA, "Offspill" }, 
-    { COLOR_YELLOW,  "Tcal" }, 
-    { COLOR_RED,     "Other" }, 
+watcher_type_info land_watch_types[NUM_WATCH_TYPES] =
+  {
+    { COLOR_GREEN,   "Physics" },
+    { COLOR_MAGENTA, "Offspill" },
+    { COLOR_YELLOW,  "Tcal" },
+    { COLOR_RED,     "Other" },
   };
 
 void land_watcher_event_info(watcher_event_info *info,
@@ -67,7 +67,7 @@ void land_watcher_event_info(watcher_event_info *info,
     }
   else if (event->trigger == LAND_EVENT_SPILL_END
 #ifdef EXPSPEC_TRIGGER_SPILL_END_KEEP_ALIVE
-	   || 
+	   ||
 	   event->trigger == LAND_EVENT_SPILL_END_KEEP_ALIVE
 #endif
       )
@@ -84,14 +84,14 @@ void land_watcher_event_info(watcher_event_info *info,
   // Since we have a time stamp (on some events), we'd rather use that
   // than the buffer timestamp, since the buffer timestamp is the time
   // of packaging, and not of event occuring
-  
+
   // clean it for events not having it
-  info->_info &= ~WATCHER_DISPLAY_INFO_TIME; 
+  info->_info &= ~WATCHER_DISPLAY_INFO_TIME;
   if (event->camac_scalers.timestamp)
     {
       info->_time = event->camac_scalers.timestamp;
       info->_info |= WATCHER_DISPLAY_INFO_TIME;
-    }  
+    }
 }
 
 bool land_correlation_event_info(unpack_event *event)

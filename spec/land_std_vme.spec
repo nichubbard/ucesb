@@ -44,7 +44,7 @@ LAND_STD_VME()
       30: has_multi_event;
       31: has_time_stamp;
     }
-  
+
   if (failure.has_continous_event_counter) {
     UINT32 continous_event_counter;
   }
@@ -52,11 +52,11 @@ LAND_STD_VME()
   if (failure.has_time_stamp) {
     UINT32 time_stamp;
   }
-  
+
   if (failure.has_clock_counter_stamp) {
     UINT32 clock_counter_stamp;
   }
-  
+
   if (failure.has_update_qdc_iped_value) {
     UINT32 iped;
   }
@@ -64,7 +64,7 @@ LAND_STD_VME()
   if (failure.has_multi_event) {
     UINT32 multi_events;
   }
-  
+
   if (failure.has_multi_trlo_ii_counter0) {
     UINT32 multi_trlo_ii_counter0;
   }
@@ -76,6 +76,6 @@ LAND_STD_VME()
   if (failure.has_multi_adctdc_counter0) {
     UINT32 multi_adctdc_counter0;
   }
-  
+
 }
 

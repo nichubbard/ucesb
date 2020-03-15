@@ -67,7 +67,7 @@ while(my $line = <>)
     if ($line =~ /branch\s*(\d+)/)
     {
 	$branch = $1;
-	
+
     }
 }
 

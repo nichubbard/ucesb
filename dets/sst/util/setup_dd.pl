@@ -39,7 +39,7 @@ while (my $line = <STDIN>)
     if ($line =~ s/DE *//)
     {
 	my @val = split ' +',$line;
-	
+
 	# insert_index
 
 	my $det = $val[0];
@@ -48,7 +48,7 @@ while (my $line = <STDIN>)
 
 	my $mean   = $val[3];
 	my $mean_e = $val[4];
-	
+
 	# print "$val[0] $val[1] $val[2]\n";
 
 	if ($det == $dodet)
@@ -71,7 +71,7 @@ while (my $line = <STDIN>)
 
 	my $mean   = $val[3];
 	my $mean_e = $val[4];
-	
+
 	# print "$val[0] $val[1] $val[2]\n";
 
 	if ($det == $dodet)
@@ -84,7 +84,7 @@ while (my $line = <STDIN>)
 		insert_index($i2 * 8 + $i + 640,.101);
 
 	    }
-	    push @DG , [ $i1, $i2, $mean, $mean_e  ];	    
+	    push @DG , [ $i1, $i2, $mean, $mean_e  ];
 	}
 
     }
@@ -124,7 +124,7 @@ print "# Indices used: $ti\n";
 
 my $eqnno = 0;
 
-for my $de ( @DE ) 
+for my $de ( @DE )
 {
     my @val = @$de;
 
@@ -155,7 +155,7 @@ my $max_i2 = 0;
 
 my %dg_12;
 
-for my $dg ( @DG ) 
+for my $dg ( @DG )
 {
     my @val = @$dg;
 
@@ -172,12 +172,12 @@ for my $dg ( @DG )
     my @h1;
     my @h2;
 
-    for (my $i = 0; $i < 8; $i++) 
-    { 
-	my $h = $hash_index{$i1 * 8 + $i}; 
+    for (my $i = 0; $i < 8; $i++)
+    {
+	my $h = $hash_index{$i1 * 8 + $i};
 	if ($h) { push @h1,$h; }
 
-	$h = $hash_index{$i2 * 8 + $i + 640}; 
+	$h = $hash_index{$i2 * 8 + $i + 640};
 	if ($h) { push @h2,$h; }
     }
 
@@ -187,7 +187,7 @@ for my $dg ( @DG )
 
 	my $rhs    = $val[2];
 	my $weight = 1/$val[3];
-	
+
 	my $w  = sprintf("%6.2f",$weight);
 	my $w1 = sprintf("%6.2f",$weight/($#h1+1));
 	my $w2 = sprintf("%6.2f",$weight/($#h1+1));
@@ -197,11 +197,11 @@ for my $dg ( @DG )
 
 	foreach my $h (@h1) { push @o1,1; }
 	foreach my $h (@h2) { push @o2,1; }
-	
+
 	$output .= "a($eqnno,[@h1]) = -$w1 .* [@o1];\n".
 	    "a($eqnno,[@h2]) = $w2 .* [@o2]; b($eqnno) = $rhs * $w; # $i1,$i2\n";
     }
-    
+
 }
 
 print "a = zeros($eqnno,$ti);\n";
@@ -226,7 +226,7 @@ for (my $i1 = $min_i1; $i1 <= $max_i1; $i1++)
 	if ($ref)
 	{
 	    my @val  = @$ref;
-	    
+
 	    $mean = sprintf("%5.2f",$val[2]);
 	}
 	print $mean;

@@ -64,7 +64,7 @@ bool ebye_source::read_record()
   if (memcmp(_record_header._id,EBYE_RECORD_ID,8) != 0)
     {
       // Now, what we found was not a record header.
-      
+
       // This is a ugly hack
 
       // The filler seems to be 0x5e, so if not, we cause an error
@@ -72,7 +72,7 @@ bool ebye_source::read_record()
 
       if (_record_header._id[0] != 0x5e)
 	ERROR("Record ID not %s.",EBYE_RECORD_ID);
-      
+
       // Attempt to search forward to next aligned 1024 bytes.
       // 1024 is a guess.
 
@@ -128,7 +128,7 @@ bool ebye_source::read_record()
 	  _record_header._data_length);
 
   _chunk_cur = _chunk_end = _chunks;
-  
+
   // read the record itself
 
   int data_size = _record_header._data_length;
@@ -136,7 +136,7 @@ bool ebye_source::read_record()
   /////////////////////////////////////////////
 
   int chunks = 0;
-  
+
   chunks = _input.map_range(data_size,_chunks);
 
   if (!chunks)
@@ -170,8 +170,8 @@ bool ebye_source::skip_record()
   // (might give many spurios errors until things resyncronise...)
 
   _input._cur = (_input._cur & ~0x3ff) + 0x400;
-  
-  // 
+
+  //
 
   _chunk_cur = _chunk_end;
 
@@ -187,7 +187,7 @@ ebye_event *ebye_source::get_event()
   // Search for the next event
 
   ebye_event *dest;
-  
+
 #ifdef USE_THREADING
   // Even if we blow up with an error, the reclaim item will be in the
   // reclaim list, so the memory wont leak
@@ -219,13 +219,13 @@ ebye_event *ebye_source::get_event()
       if (_swapping)
 	{
 #ifdef USE_EBYE_INPUT_16
-	  event_header->_start_end_token = 
+	  event_header->_start_end_token =
 	    bswap_16(event_header->_start_end_token);
-	  event_header->_length = 
+	  event_header->_length =
 	    bswap_16(event_header->_length);
 #endif
 #ifdef USE_EBYE_INPUT_32
-	  event_header->_start_end_token_length = 
+	  event_header->_start_end_token_length =
 	    bswap_32(event_header->_start_end_token_length);
 #endif
 	}
@@ -235,7 +235,7 @@ ebye_event *ebye_source::get_event()
       uint16 length          = event_header->_length;
 #endif
 #ifdef USE_EBYE_INPUT_32
-      uint16 start_end_token = 
+      uint16 start_end_token =
 	(uint16) (event_header->_start_end_token_length >> 16);
       uint16 length = event_header->_start_end_token_length & 0x0000ffff;
 #endif
@@ -376,19 +376,19 @@ void ebye_event::get_data_src(ebye_data_t *&start,ebye_data_t *&end)
       // We need to get the data from the chunks.  Since pointer has not
       // been set, we know it is two chunks (or more).  (Currently: only
       // two possible, since we do not support fragmented events)
-      
+
       // The data need to be handled with a defragment buffer.
-      
+
       void   *dest;
-      
+
 #ifdef USE_THREADING
-      dest = _wt._defrag_buffer->allocate_reclaim(_chunks[0]._length + 
+      dest = _wt._defrag_buffer->allocate_reclaim(_chunks[0]._length +
 						  _chunks[1]._length);
 #else
-      dest = _defrag_event.allocate(_chunks[0]._length + 
+      dest = _defrag_event.allocate(_chunks[0]._length +
 				    _chunks[1]._length);
-#endif      
-      
+#endif
+
       _data = (char*) dest;
 
       memcpy(_data,_chunks[0]._ptr,_chunks[0]._length);

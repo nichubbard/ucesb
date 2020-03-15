@@ -75,7 +75,7 @@ void mille_record::reallocate(size_t need_more)
   _array_int = i;
 
   _array_allocated = new_size;
-}  
+}
 
 void mille_record::add_der_lbl(int num,float *der,int *lbl)
 {
@@ -85,7 +85,7 @@ void mille_record::add_der_lbl(int num,float *der,int *lbl)
 	if (lbl[i] <= 0)
 	  ERROR("Mille label %d is zero or negative (%d).",
 		i,lbl[i]);
-	
+
 	_array_float[_array_used] = der[i];
 	_array_int[_array_used]   = lbl[i];
 	_array_used++;
@@ -100,12 +100,12 @@ void mille_record::add_eqn(int num_local,float *der_local,int *lbl_local,
 
   if (_array_used + most_need > _array_allocated)
     reallocate(most_need);
-  
+
   // write value to arrays
   _array_float[_array_used] = measured;
   _array_int[_array_used]   = 0;
   _array_used++;
-  
+
   // write locals to arrays
   add_der_lbl(num_local,der_local,lbl_local);
 
@@ -113,7 +113,7 @@ void mille_record::add_eqn(int num_local,float *der_local,int *lbl_local,
   _array_float[_array_used] = sigma;
   _array_int[_array_used]   = 0;
   _array_used++;
-  
+
   // write globals to arrays
   add_der_lbl(num_global,der_global,lbl_global);
 
@@ -128,7 +128,7 @@ void mille_record::add_der_lbl(int num,mille_lbl_der *lbl_der)
 	if (lbl_der[i].lbl <= 0)
 	  ERROR("Mille label %d is zero or negative (%d).",
 		i,lbl_der[i].lbl);
-	
+
 	_array_float[_array_used] = lbl_der[i].der;
 	_array_int[_array_used]   = lbl_der[i].lbl;
 	_array_used++;
@@ -140,15 +140,15 @@ void mille_record::add_eqn(int num_local,mille_lbl_der *lbl_der_local,
 			   float measured,float sigma)
 {
   size_t most_need = (size_t) (2 + num_local + num_global);
-  
+
   if (_array_used + most_need > _array_allocated)
     reallocate(most_need);
-  
+
   // write value to arrays
   _array_float[_array_used] = measured;
   _array_int[_array_used]   = 0;
   _array_used++;
-  
+
   // write locals to arrays
   add_der_lbl(num_local,lbl_der_local);
 
@@ -156,7 +156,7 @@ void mille_record::add_eqn(int num_local,mille_lbl_der *lbl_der_local,
   _array_float[_array_used] = sigma;
   _array_int[_array_used]   = 0;
   _array_used++;
-  
+
   // write globals to arrays
   add_der_lbl(num_global,lbl_der_global);
 
@@ -209,9 +209,9 @@ void mille_file::write(const mille_record &record)
   int nwrite = (int) (record._array_used * 2);
 
   if (fwrite(&nwrite,sizeof(int),1,_fid) != 1 ||
-      fwrite(record._array_float,sizeof(float),record._array_used,_fid) != 
+      fwrite(record._array_float,sizeof(float),record._array_used,_fid) !=
       /* */                                    record._array_used ||
-      fwrite(record._array_int,sizeof(float),record._array_used,_fid) != 
+      fwrite(record._array_int,sizeof(float),record._array_used,_fid) !=
       /* */                                  record._array_used)
     {
       perror("fwrite");

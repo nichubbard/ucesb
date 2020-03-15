@@ -42,7 +42,7 @@ public:
   // memory, so we assume this pays for the extra calculations
 
   size_t  _n; // number of items
-  
+
   size_t  _n2plus1;
 
   int *_corr;  // number of correlated hits (first item in each column is self count)
@@ -75,7 +75,7 @@ public:
 	_n = n;
 	_n2plus1 = 2*n + 1;
       }
-    
+
     memset (_corr,0,sizeof(int) * DC_TOTAL_ITEMS(_n));
 
     _events = 0;
@@ -117,7 +117,7 @@ public:
     int *c2 = rhs._corr;
 
     for (size_t i = DC_TOTAL_ITEMS(_n); i; --i)
-      *(c1++) += *(c2++); 
+      *(c1++) += *(c2++);
   }
 
 public:

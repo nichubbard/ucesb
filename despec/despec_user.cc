@@ -170,6 +170,7 @@ void despec_watcher_init()
 {
   extern watcher_window _watcher;
   _watcher._display_channels.clear();
+  _watcher._present_channels.clear();
   init_pair(5, COLOR_RED, COLOR_BLACK);
 }
 

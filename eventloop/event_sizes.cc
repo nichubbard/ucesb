@@ -34,12 +34,18 @@ void event_sizes::init()
   memset(ev_size,0,sizeof(ev_size));
 }
 
-void show_sizes(const event_size *es_event,
+void show_sizes(const char *prename,
+		const char *name,
+		const event_size *es_event,
 		const set_subevent_size &subev_size)
 {
   uint64_t triggers = es_event->_sum;
 
-  printf ("                 (%s%6" PRIu64 "%s %s%6" PRIu64 "%s)"
+  printf ("\n%s%s%s%s: %*s",
+	  prename,CT_OUT(BOLD),name,CT_OUT(NORM),
+	  (int)(20-strlen(prename)-strlen(name)),"");
+
+  printf ("    (%s%6" PRIu64 "%s %s%6" PRIu64 "%s)"
 	  "        %s%8.1f%s%6.1f (%10.0f)\n",
 	  CT_OUT(GREEN),es_event->_min,CT_OUT(DEF_COL),
 	  CT_OUT(RED),es_event->_max,CT_OUT(DEF_COL),
@@ -54,15 +60,15 @@ void show_sizes(const event_size *es_event,
     {
       const subevent_ident &ident = iter->first;
       const event_size *es_info = iter->second;
-      
+
       printf ("%s%5d%s/%s%5d%s %s%5d%s:%s%3d%s:%s%3d%s "
 	      "(%s%6" PRIu64 "%s %s%6" PRIu64 "%s)"
 	      "%s%8.1f%s%s%8.1f%s%s%6.1f%s (%s%10.0f%s)\n",
-	      CT_OUT(BOLD),ident._info._header.i_type,CT_OUT(NORM),
-	      CT_OUT(BOLD),ident._info._header.i_subtype,CT_OUT(NORM),
-	      CT_OUT(BOLD),ident._info.i_procid,CT_OUT(NORM),
-	      CT_OUT(BOLD),ident._info.h_subcrate,CT_OUT(NORM),
-	      CT_OUT(BOLD),ident._info.h_control,CT_OUT(NORM),
+	      CT_OUT(BOLD),(uint16) ident._info._header.i_type,CT_OUT(NORM),
+	      CT_OUT(BOLD),(uint16) ident._info._header.i_subtype,CT_OUT(NORM),
+	      CT_OUT(BOLD),(uint16) ident._info.i_procid,CT_OUT(NORM),
+	      CT_OUT(BOLD),(uint8) ident._info.h_subcrate,CT_OUT(NORM),
+	      CT_OUT(BOLD),(uint8) ident._info.h_control,CT_OUT(NORM),
 	      CT_OUT(BOLD_GREEN),es_info->_min,CT_OUT(NORM_DEF_COL),
 	      CT_OUT(BOLD_RED),es_info->_max,CT_OUT(NORM_DEF_COL),
 	      CT_OUT(BOLD_BLUE),
@@ -117,12 +123,15 @@ void event_sizes::show()
       if (!triggers)
 	continue;
 
-      printf ("\ntrig %s%2d%s: ",CT_OUT(BOLD),trig,CT_OUT(NORM));
+      char trigno[16];
 
-      show_sizes(&ev_size[trig],_subev_size[trig]);
+      sprintf (trigno,"%d",trig);
+
+      show_sizes("trig ",trig == 16 ? "other" : trigno,
+		 &ev_size[trig],_subev_size[trig]);
 
       add(&ev_total,&ev_size[trig]);
-      
+
       for (set_subevent_size::const_iterator iter = _subev_size[trig].begin();
 	   iter != _subev_size[trig].end(); ++iter)
 	{
@@ -150,16 +159,22 @@ void event_sizes::show()
 	}
     }
 
-  printf ("\n%sall%s trig:",CT_OUT(BOLD),CT_OUT(NORM));
-  
-  show_sizes(&ev_total,subev_total);
+  show_sizes("trig ","all",&ev_total,subev_total);
+
+  if (ev_size[17]._sum)
+    {
+      show_sizes("","sticky events",
+		 &ev_size[17],_subev_size[17]);
+    }
 }
 
 void event_sizes::account(FILE_INPUT_EVENT *event)
 {
   int trigger = event->_header._info.i_trigger;
 
-  if (trigger > 15)
+  if (event->_status & LMD_EVENT_IS_STICKY)
+    trigger = 17;
+  else if (trigger > 15)
     trigger = 16; // others
 
   uint64_t headers = 0;
@@ -193,8 +208,15 @@ void event_sizes::account(FILE_INPUT_EVENT *event)
       else
 	es_info = iter->second;
 
-      uint64_t sub_size = (uint64_t)
-	SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
+      uint64_t sub_size;
+
+      if ((event->_status & LMD_EVENT_IS_STICKY) &&
+	  subevent_info->_header._header.l_dlen ==
+	  LMD_SUBEVENT_STICKY_DLEN_REVOKE)
+	sub_size = 0;
+      else
+	sub_size = (uint64_t)
+	  SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen);
 
       if (sub_size < es_info->_min)
 	es_info->_min = sub_size;

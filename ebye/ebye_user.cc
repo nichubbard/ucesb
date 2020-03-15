@@ -74,14 +74,14 @@ void user_exit()
       if (has_group)
 	{
 	  printf ("Group 0x%02x: ",group);
-	  
+
 	  for (int item = 0; item < 0x40; item++)
 	    printf ("%s%s",
 		    (item && (item & 0x0f)) == 0 ? "." : "",
 		    data._group_item[group][item] ? "x" : " ");
 
 	  printf ("\n");
-	}      
+	}
     }
 
   for (int group_base = 0; group_base < 0x100; group_base += 0x40)
@@ -95,14 +95,14 @@ void user_exit()
       if (has_group)
 	{
 	  printf ("Group 0x%02x+ ",group_base);
-	  
+
 	  for (int offset = 0; offset < 0x40; offset++)
 	    printf ("%s%s",
 		    (offset && (offset & 0x0f)) == 0 ? "." : "",
 		    data._group_data[group_base+offset] ? "x" : " ");
 
 	  printf ("\n");
-	}      
+	}
     }
 
   for (int group_base = 0; group_base < 0x10000; group_base += 0x40)
@@ -116,14 +116,14 @@ void user_exit()
       if (has_group)
 	{
 	  printf ("EGrp0x%04x+ ",group_base);
-	  
+
 	  for (int offset = 0; offset < 0x40; offset++)
 	    printf ("%s%s",
 		    (offset && (offset & 0x0f)) == 0 ? "." : "",
 		    data._ext_group_data[group_base+offset] ? "x" : " ");
 
 	  printf ("\n");
-	}      
+	}
     }
 
 }

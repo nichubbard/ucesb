@@ -21,6 +21,7 @@
 #ifndef __EVENT_BASE_HH__
 #define __EVENT_BASE_HH__
 
+#include "gen/unpacker_defines.hh"
 #include "structures.hh"
 #include "hex_dump_mark.hh"
 
@@ -41,15 +42,55 @@ public:
   USER_STRUCT   _user;
 #endif
 #endif//!USE_MERGING
+
+public:
+  void raw_cal_user_clean();
+
+public:
+  bool is_sticky() { return false; }
+};
+
+class dummy_container
+{
+};
+
+class sticky_event_base
+{
+public:
+#if USE_THREADING || USE_MERGING
+  // FILE_INPUT_EVENT *event;
+  void        *_file_event;
+#endif
+  hex_dump_mark_buf _unpack_fail;
+  unpack_sticky_event _unpack;
+#ifndef USE_MERGING
+  raw_sticky      _raw;
+  dummy_container _cal;
+  //raw_event    _raw;
+  //cal_event    _cal;
+
+#ifdef USER_STRUCT
+  dummy_container _user;
+  //USER_STRUCT   _user;
+#endif
+#endif//!USE_MERGING
+
+public:
+  void raw_cal_user_clean();
+
+public:
+  bool is_sticky() { return true; }
 };
 
 // The event data structure!
 
-// This should not be used by any user code!  
+// This should not be used by any user code!
 // Use CURRENT_EVENT instead!!
 // Otherwise multi-threading/merging will not function properly!!!
 
 extern event_base _static_event;
+
+extern sticky_event_base _static_sticky_event;
 
 // See user.hh for the following entry...
 

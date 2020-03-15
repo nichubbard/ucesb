@@ -42,7 +42,7 @@ struct PDC_wire_hit
 
 struct PDC_hits
 {
-  // to handle all possible data, it should be 256*128 (0x8000), 
+  // to handle all possible data, it should be 256*128 (0x8000),
   // ntuple has other limits, so lets say four hits per wire
 
   raw_list_ii_zero_suppress<PDC_wire_hit,PDC_wire_hit,MAX_CROS3_hits> hits;

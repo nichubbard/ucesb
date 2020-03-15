@@ -40,7 +40,7 @@ VME_M2J_MATACQ32(mod,ch)
   list(0<=index<(static_cast<uint32>(header.data_length)-2)*2)
     {
       UINT16 value;
-      
+
       ENCODE(data APPEND_LIST,(value=value));
     }
 }
@@ -62,6 +62,6 @@ VME_M2J_MATACQ32_PACK_EXT(mod,ch)
   UINT16 vernier;
   UINT16 reset_baseline;
 
-  external data32 = 
+  external data32 =
     EXTERNAL_DATA32(length=(static_cast<uint32>(header.data_length)-2));
 }

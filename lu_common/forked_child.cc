@@ -71,7 +71,7 @@ forked_child::fork(const char *file,const char *const argv[],
        pipe(pipe_out) == -1) ||
       ((fork_pipes || fd_dest == -1) && // do not create output pipe if we supply file handle
        pipe(pipe_in) == -1))
-    ERROR("Error creating pipe(2)s for handling forked process.");  
+    ERROR("Error creating pipe(2)s for handling forked process.");
 
   _child = ::fork();
 
@@ -137,10 +137,10 @@ forked_child::fork(const char *file,const char *const argv[],
 
       for (int i = getdtablesize() - 1; i >= 0; --i)
         if (i != STDIN_FILENO && i != STDOUT_FILENO && i != STDERR_FILENO &&
-	    i != fd_keep      && 
+	    i != fd_keep      &&
 	    i != pipe_in[1]   && i != pipe_out[0])
           close(i);
-      
+
       unsigned int narg = 0;
       for ( ; argv[narg]; narg++)
 	;
@@ -153,7 +153,7 @@ forked_child::fork(const char *file,const char *const argv[],
       // Would that (or this) lead to having now 'unkillable' children?
       if (ignore_sigint)
 	signal(SIGINT, SIG_IGN);
-      
+
       int ret = execvp(file,nc_argv);
       /*
 		       "cpp",
@@ -165,7 +165,7 @@ forked_child::fork(const char *file,const char *const argv[],
       fprintf (stderr,"Failure starting '%s'.\n",file);
       _exit(ret);
     }
-  
+
   // This is the parent process
 
   if (fork_pipes || fd_dest == -1)
@@ -209,7 +209,7 @@ void forked_child::close_fds()
       close (_fd_in);
       _fd_in = -1;
     }
- 
+
 }
 
 void
@@ -320,17 +320,17 @@ forked_child::wait(bool terminate_child,
   // It is (may be) ok of the child process died due to recieving
   // a sigpipe (since we might have closed the reading end before
   // end of file)
-  
+
   if (WIFSIGNALED(status) &&
       (WTERMSIG(status) == SIGPIPE ||
        WTERMSIG(status) == SIGTERM))
     {
       // Either it got sigpipe, or it got a sigterm (by us)
-      
+
       // WARNING("Decompressor got sigpipe.  Did we stop before end-of-file?");
       return;
     }
-      
+
   ERROR("Child process (%s) did not exit cleanly, "
 	"or something else bad happened.  "
 	"This should not happen.  (exit=%d/%d sig=%d/%d)",_argv0,
@@ -345,14 +345,14 @@ forked_child::wait(bool terminate_child,
 size_t full_write(int fd,const void *buf,size_t count)
 {
   size_t total = 0;
-  
+
   for ( ; ; )
     {
       ssize_t nwrite = write(fd,buf,count);
 
       if (!nwrite)
 	ERROR("Reached unexpected end of file while writing.");
- 
+
       if (nwrite == -1)
 	{
 	  if (errno == EINTR)
@@ -387,7 +387,7 @@ char *argv0_replace(const char *filename)
     return strdup(filename);
 
   // +2 = space for slash and trailing newline
-  char *path = (char *) malloc(strlen(main_argv0) + strlen(filename) + 2); 
+  char *path = (char *) malloc(strlen(main_argv0) + strlen(filename) + 2);
 
   if (!path)
     ERROR("Memory allocation failure.");

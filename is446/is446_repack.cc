@@ -225,19 +225,19 @@ void is446_unpack::set_tdc(uint32 n_tdc,uint32 channel,uint32 value)
 }
 
 #define SCALER_TSHORT  0
-//#define SCALER_T2    
+//#define SCALER_T2
 #define SCALER_EBIS    1
 #define SCALER_NACCEPT 2
 
 void is446_unpack::invalidate_scaler_state()
 {
-  // tshort.set_invalid();  
-  tebis.set_invalid();  
+  // tshort.set_invalid();
+  tebis.set_invalid();
 }
 
 void is446_unpack::process()
 {
-  /*  
+  /*
   printf ("trigger: %d   (%d %d %d %d %d)\n",
 	  event.trigger,
 	  event.scaler[0],
@@ -272,7 +272,7 @@ void is446_unpack::process()
   last_scaler_ec = 0;
 
   //bool is_t2    = !!((event.trigger < 8) && (event.trigger & 0x2));
-  //bool is_ebis  = !!((event.trigger < 8) && (event.trigger & 0x4)); 
+  //bool is_ebis  = !!((event.trigger < 8) && (event.trigger & 0x4));
 
   //bool had_t2   = event.scaler[SCALER_T2] > last_num_t2;
   bool had_ebis = event.scaler[SCALER_EBIS] > last_num_ebis;
@@ -403,9 +403,9 @@ void is446_unpack::open_output(const char *filename)
   vars[0] = 0;
   ADD_VARIABLE_I("IEVENT");
   ADD_VARIABLE_I("TSHORT");
-  ADD_VARIABLE_I("TEBIS");         
+  ADD_VARIABLE_I("TEBIS");
   ADD_VARIABLE_I("OLDTSHORT");
-  ADD_VARIABLE_I("OLDTEBIS");         
+  ADD_VARIABLE_I("OLDTEBIS");
   ADD_VARIABLE_I_MIN_MAX("TRIGGER",0,15);
   _ntu.hbname("OTHERS",&ntup_event.others,vars);
   printf ("Variables: %s\n",vars);

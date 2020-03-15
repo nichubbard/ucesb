@@ -78,7 +78,7 @@ bool open_retire::open_file(int wakeup_this_file,
 				     block_reader,
 				     &_block,
 				     wakeup_this_file);
-	
+
 	TDBG("rfio file opened %p",send_item._source->_input._input);
       }
     else
@@ -94,9 +94,9 @@ bool open_retire::open_file(int wakeup_this_file,
 				   block_reader,
 				   &_block,
 				   wakeup_this_file);
-	
+
 	TDBG("connection opened %p",send_item._source->_input._input);
-	
+
 	_ti_info._file_input = send_item._source->_input._input;
       }
     else
@@ -109,14 +109,14 @@ bool open_retire::open_file(int wakeup_this_file,
 				_conf._no_mmap,
 				_input_iter->_type == INPUT_TYPE_RFIO,
 				_input_iter->_type == INPUT_TYPE_FILE_SRM);
-	
+
 	TDBG("file opened %p",send_item._source->_input._input);
-	
+
 	_ti_info._file_input = send_item._source->_input._input;
       }
     // Enqueue the file
 
-  } catch (error &e) { 
+  } catch (error &e) {
     WARNING("Skipping this file...");
     // Make sure another file gets tried
     // Enqueue an file-open-error item
@@ -135,7 +135,7 @@ bool open_retire::open_file(int wakeup_this_file,
 
   // TODO: if the event reader was blocking, waiting for a file to become
   // available, tell him!
-	
+
   ++_input_iter;
 
   return success;
@@ -159,7 +159,7 @@ void open_retire::close_file(data_input_source *source)
 {
   if (_ti_info._file_input == source->_input._input)
     _ti_info._file_input = NULL;
-  
+
   source->close();
 }
 

@@ -40,9 +40,9 @@ template<typename item>
 std::vector<item*> *create_list(item *a)
 {
   std::vector<item*> *v;
-			   
+
   v = new std::vector<item*>;
-  
+
   if (a)
     v->push_back(a);
   return v;
@@ -54,7 +54,7 @@ std::vector<item*> *append_list(std::vector<item*> *v,
 {
   if (!v)
     v = new std::vector<item*>;
-  
+
   if (a)
     v->push_back(a);
   return v;
@@ -97,9 +97,9 @@ template<typename item>
 std::set<item*,compare_ptr<item> > *create_set(item *a)
 {
   std::set<item*,compare_ptr<item> > *v;
-			   
+
   v = new std::set<item*,compare_ptr<item> >;
-  
+
   if (a)
     v->insert(a);
   return v;
@@ -119,7 +119,7 @@ bool insert_set(std::set<item*,compare_ptr<item> > **d,
     return true; // no collision
 
   // printf ("Want to add: "); a->print(); printf("\n");
-  
+
   typename std::set<item*,compare_ptr<item> >::iterator i;
 
   // printf ("Hint item (>=): "); if (i == s->end()) { printf ("END\n"); } else { *i->print(); printf("\n"); }
@@ -132,7 +132,7 @@ bool insert_set(std::set<item*,compare_ptr<item> > **d,
       s->insert(i,a);
       return true;
     }
-  
+
   return false; // we had a collision (i == a)
 }
 

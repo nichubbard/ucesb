@@ -25,7 +25,7 @@ SUBEVENT(LAND_CAMAC_CONVERTER)
   UINT16 tpat;
   UINT16 coinc2 { 0_15: 0x0000; }
   UINT16 coinc3 { 0_15: 0x0000; }
-  UINT16 pad { 
+  UINT16 pad {
     0_15: 0x4321;
   }
 

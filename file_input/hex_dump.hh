@@ -40,7 +40,7 @@ public:
     if (_end != _buf)
       eject();
   }
-  
+
 public:
   char _buf[80+64]; /* +64 for red marker */
   char *_end;
@@ -92,7 +92,7 @@ void hex_dump(FILE *fid,
 	    (((((size_t) start) ^
 	       ((size_t) erraddr->_next)) & ~(sizeof (T) - 1)) == 0);
 	}
-      
+
       if (is_erraddr_this)
 	buf._end += sprintf(buf._end,"%s",CT_OUT(BOLD_RED));
       else if (is_erraddr_next)
@@ -111,7 +111,7 @@ void hex_dump(FILE *fid,
 	buf._end += sprintf(buf._end,"%s",CT_OUT(NORM_DEF_COL));
 
       assert(buf._end <= buf._buf + sizeof(buf._buf));
-    }  
+    }
 }
 
 #endif//__HEX_DUMP_HH__

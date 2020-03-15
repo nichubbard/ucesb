@@ -36,7 +36,7 @@ file_mmap::file_mmap()
 
   _avail = 0;
   _done  = 0;
-  
+
   _front = 0;
   _back  = 0;
 
@@ -52,7 +52,7 @@ file_mmap::file_mmap()
   _ends._next = &_ends;
 
   // such that it never will trigger a munmap if being FIRST, becomes 0x400...000
-  _ends._end  = ((off_t) 1) << (sizeof(_ends._end)*8-2); 
+  _ends._end  = ((off_t) 1) << (sizeof(_ends._end)*8-2);
   _ends._base = NULL;
 
 #if !defined(NDEBUG) && 0
@@ -128,7 +128,7 @@ void file_mmap::consistency_check()
   assert(_ends._next->_prev == &_ends);
 
   assert(_ends._base == NULL);
-  assert(_ends._end  == ((off_t) 1) << (sizeof(_ends._end)*8-2)); 
+  assert(_ends._end  == ((off_t) 1) << (sizeof(_ends._end)*8-2));
 
   assert(LAST->_next == &_ends);
   assert(FIRST->_prev == &_ends);
@@ -153,7 +153,7 @@ int file_mmap::map_range(off_t start,off_t end,buf_chunk chunks[2])
 {
   while (_done >= FIRST->_end)
     {
-      /* 
+      /*
       printf ("munmap: %08x..%08x [%08x] (%p) (d:%08x)\n",
       	      (int) FIRST->_start,(int) FIRST->_end,
 	      (int) (FIRST->_end - FIRST->_start),
@@ -195,7 +195,7 @@ int file_mmap::map_range(off_t start,off_t end,buf_chunk chunks[2])
   // a point that has previously been released
 
   // Do we have enough data available?
-  
+
   // In order to enforce some read-ahead, we map areas before they are
   // requested.  A disk usually has a seek-time of about 10 ms.  (5000
   // rpm is 100 turns/s, gives 10 ms).  If we analyse data at 10 MB/s,
@@ -215,7 +215,7 @@ int file_mmap::map_range(off_t start,off_t end,buf_chunk chunks[2])
 
       if (!_free)
 	{
-	  file_mmap_chunk *alloc = 
+	  file_mmap_chunk *alloc =
 	    (file_mmap_chunk *) malloc (sizeof (file_mmap_chunk));
 	  if (!alloc)
 	    ERROR("Memory allocation failure");
@@ -224,7 +224,7 @@ int file_mmap::map_range(off_t start,off_t end,buf_chunk chunks[2])
 	}
 
       size_t length;
-      off_t offset;       
+      off_t offset;
 
       offset = LAST != &_ends ? LAST->_end : (start & (off_t) _page_mask);
       length = MMAP_SIZE;
@@ -232,13 +232,13 @@ int file_mmap::map_range(off_t start,off_t end,buf_chunk chunks[2])
       // Figure out how long the file is.
 
       struct stat stat_buf;
-      
+
       if (fstat(_fd,&stat_buf))
 	{
 	  perror("stat");
 	  ERROR("Error stat()ing file.");
 	}
-      /*    
+      /*
       printf ("stat_buf.st_size: %d\n",(int) stat_buf.st_size);
       */
       if (!S_ISREG(stat_buf.st_mode) ||
@@ -306,7 +306,7 @@ int file_mmap::map_range(off_t start,off_t end,buf_chunk chunks[2])
 
       file_mmap_chunk *next = _free;
       _free = _free->_next;
-      
+
       next->_next = &_ends;
       next->_prev = LAST;
       LAST->_next = next;
@@ -415,10 +415,22 @@ void file_mmap::release_to(off_t end)
 #ifdef USE_THREADING
 void file_mmap::arrange_release_to(off_t end)
 {
-  fmm_reclaim *fmmr = 
+  fmm_reclaim *fmmr =
     _wt._defrag_buffer->allocate_reclaim_item<fmm_reclaim>(RECLAIM_MMAP_RELEASE_TO);
 
   fmmr->_mm = this;
   fmmr->_end = end;
 }
 #endif
+
+size_t file_mmap::buffer_size()
+{
+  // see comment below
+  return (size_t) (ssize_t) -1;
+}
+
+size_t file_mmap::max_item_length()
+{
+  // file_mmap will allocate as many chunks as needed, so no limit
+  return (size_t) (ssize_t) -1;
+}

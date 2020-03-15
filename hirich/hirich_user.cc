@@ -111,7 +111,7 @@ void user_function(unpack_event *event,
 	  hirich_data_word &data = module->data._items[i];
 
 	  next_pad->_index = effective_module_shifted | data.channel;
-	  next_pad->_value = data.value;	  
+	  next_pad->_value = data.value;
 
 	  next_pad++;
 	}
@@ -133,7 +133,7 @@ void user_function(unpack_event *event,
   for (int i = pads._n; i; --i, pad++)
     {
       int x, y;
- 
+
       if (UNLIKELY(pad->_index > 4095))
 	ERROR("Pad index (%d) too high.\n");
 
@@ -158,7 +158,7 @@ void user_function(unpack_event *event,
 
   compress_rich(masked);
 
-  
+
 #if 0
   // printf ("mul: %d\n",pads._n);
 
@@ -170,13 +170,13 @@ void user_function(unpack_event *event,
 
   int index[4096];
   int *end_index = index;
- 
+
   int cpadx[4096];
   int *end_cpadx = cpadx;
- 
+
   int cpady[4096];
   int *end_cpady = cpady;
- 
+
   for (int i = pads._n; i; --i, pad++)
     {
       int x, y;
@@ -194,7 +194,7 @@ void user_function(unpack_event *event,
       if (x >= 40 && x < (40+32) &&
 	  y >= 40 && y < (40+32))
 	*(end_cpad++) = ((y-40) * 32) + (x - 40);
-	*/	
+	*/
       // if (pad->_index < 256)
 
       if (pad->_value > 30)
@@ -207,10 +207,10 @@ void user_function(unpack_event *event,
 	      *(end_cpadx++) = ((y-24) * 16) + (x-24);
 	      *(end_cpady++) = ((x-24) * 16) + (y-24);
 	    }
-	  
+
 	}
       _count_indices[pad->_index]++;
-	  
+
       lines[y][x] = hexilog2(pad->_value);
     }
 #endif
@@ -238,7 +238,7 @@ void user_function(unpack_event *event,
   /*
   qsort(cpadx,end_cpadx - cpadx,sizeof(int),compare_values<int>);
   _corr_padsx.add(cpadx,end_cpadx);
-  
+
   qsort(cpady,end_cpady - cpady,sizeof(int),compare_values<int>);
   _corr_padsy.add(cpady,end_cpady);
   */
@@ -310,7 +310,7 @@ void print_mask_freq(const char *label,T *counts)
     {
       pf[i]._freq    = counts[i];
       pf[i]._pattern = i;
-    }  
+    }
 
   qsort(pf,N,sizeof(pattern_freq),compare_values<int>);
 
@@ -351,19 +351,19 @@ void user_exit()
     printf ("%4d: %10d\n",i,_count_indices[i]);
   */
 
-  
+
   print_mask_freq<8>("pattern8",pattern8);
   print_mask_freq<12>("pattern12",pattern12);
   print_mask_freq<16>("pattern16",pattern16);
 
   print_mask_freq<8>("freqval" ,freqval);
   print_mask_freq<8>("freqdiff",freqdiff);
-  
+
   optimize_huff(freqval,0x100);
   optimize_huff(freqdiff,0x100);
   optimize_huff(freqdiff2,0x100);
   optimize_huff(freqdiffm,0x10000);
-  
+
   optimize_huff_length(pattern8,0x100,16);
   optimize_huff_length(pattern12,0x1000,20);
   optimize_huff_length(pattern16,0x10000,24);
@@ -386,7 +386,7 @@ void picture_rich(rich_pads *pads)
   if (_npict == 0)
     {
       memset(_pict,0,PICT_ARRAY_SIZE);
-      
+
       for (int i = 1; i < PICT_SIDE; i++)
 	{
 	  for (int j = 0; j < PICT_LINE_SIZE; j++)
@@ -400,8 +400,8 @@ void picture_rich(rich_pads *pads)
   int px = _npict % PICT_SIDE;
   int py = _npict / PICT_SIDE;
 
-  char *start = _pict + 
-    px * (PICT_SIZE + 1) + 
+  char *start = _pict +
+    px * (PICT_SIZE + 1) +
     py * (PICT_SIZE + 1) * PICT_LINE_SIZE;
 
   rich_pad_item *pad = pads->_pads;
@@ -409,7 +409,7 @@ void picture_rich(rich_pads *pads)
   for (int i = pads->_n; i; --i, pad++)
     {
       int x, y;
- 
+
       if (pad->_index > 4095)
 	continue;
 
@@ -441,7 +441,7 @@ void compress_rich(const rich_masked &masked)
 {
   // calculate to occurrence of different bit-patterns
   // starting at every bit
-  
+
   const uint *mask = &masked._mask[0][0];
 
   for (int i = 0; i < 128; i++, mask++)
@@ -452,7 +452,7 @@ void compress_rich(const rich_masked &masked)
 	{
 	  count_pattern((uint32) m1);
 	  m1 >>= 1;
-	}	
+	}
     }
 
   // get the values into an array of only values
@@ -499,8 +499,8 @@ void compress_rich(const rich_masked &masked)
 
       freqdiff2[(uint8) (v-(prev+(((signed char)(prev-prev2))>>1)))]++;
 
-      *(diff_end++) = v - prev;	      
-      
+      *(diff_end++) = v - prev;
+
       prev2 = prev;
       prev = v;
     }
@@ -518,6 +518,6 @@ void compress_rich(const rich_masked &masked)
 
     if (i < diff_end)
       freqdiffm[*i]++;
-  }  
+  }
 
 }

@@ -66,32 +66,32 @@ CROS3_REWRITE(ccb_id)
       if (h1.leading_edge)
 	{
 	  // First loop over the fully used 32-bit data words
-	  
+
 	  list(0<=index<static_cast<uint32>(h1.data_size-h2.odd_length16))
 	    {
-	      UINT32 ch_data NOENCODE 
+	      UINT32 ch_data NOENCODE
 		{
 		  0_7:   start_slice1;
 		  8_15:  wire1;
 		  16_23: start_slice2;
 		  24_31: wire2;
-		  
+
 		  ENCODE(data[index*2  ],(wire=wire1,start=start_slice1,stop=0));
 		  ENCODE(data[index*2+1],(wire=wire2,start=start_slice2,stop=0));
 		}
 	    }
-	  
+
 	  // Then, if there is one more entry, take that also
 
 	  if (h2.odd_length16)
 	    {
-	      UINT32 ch_data_odd NOENCODE 
+	      UINT32 ch_data_odd NOENCODE
 		{
 		  0_7:   start_slice1;
 		  8_15:  wire1;
 		  16_23: start_slice2 = 0xff; // high bits are dummy filled
 		  24_31: wire2        = 0x00; // high bits are dummy filled
-		  
+
 		  ENCODE(data[(h1.data_size-1)*2],(wire=wire1,start=start_slice1,stop=0));
 		}
 	    }
@@ -100,13 +100,13 @@ CROS3_REWRITE(ccb_id)
 	{
 	  list(0<=index<h1.data_size)
 	    {
-	      UINT32 ch_data NOENCODE 
+	      UINT32 ch_data NOENCODE
 		{
 		  0_7:   start_slice;
 		  8_15:  wire;
 		  16_23: end_slice;
 		  // 8 bits left-over
-		  
+
 		  ENCODE(data[index],(wire=wire,start=start_slice,stop=end_slice));
 		}
 	    }
@@ -139,12 +139,12 @@ CROS3_REWRITE(ccb_id)
 
 		  28_31: ad_id;
 		};
-	      
+
 	      list(0<=index_thr<trc_h3.threshold_steps)
 		{
 		  list(0<=index_wire2<8)
 		    {
-		      UINT32 ch_counts NOENCODE 
+		      UINT32 ch_counts NOENCODE
 			{
 			  0_11:   counts1;
 			  12_15:  wire1;

@@ -29,7 +29,7 @@ SUBEVENT(IS430_05_VME)
   select several
     {
       multi scaler0 = VME_CAEN_V830(geom=30);
-      
+
       multi tdc[0] = VME_CAEN_V775(geom=16,crate=129);
       multi tdc[1] = VME_CAEN_V775(geom=17,crate=130);
       multi tdc[2] = VME_CAEN_V775(geom=18,crate=131);

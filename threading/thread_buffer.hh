@@ -91,7 +91,7 @@ public:
 public:
   tb_buf* _cur;
   size_t  _cur_used;
-  
+
   size_t _allocated;
   size_t _reclaimed; // ONLY updated by reclaim (and then only
 		     // growing)
@@ -108,7 +108,7 @@ public:
 #define THREAD_BUFFER_ALIGN 8
 
     size = (size + (THREAD_BUFFER_ALIGN-1)) & ~(THREAD_BUFFER_ALIGN-1);
-    
+
     // From the current buffer we can always allocate, if there is space enough
 
     if (_cur->_size - _cur_used >= size)
@@ -138,13 +138,13 @@ public:
 #endif
     // Now, we are very much thinking about advancing the _cur ptr to _cur->_next
     // but this is ONLY allowed if that entire buffer has been reclaimed!
-    
+
     for ( ; ; )
       {
 	tb_buf *next = _cur->_next;
-	
+
 	size_t reclaimed_size = _total - _allocated + _reclaimed;
-	
+
 	if (reclaimed_size < next->_size ||
 	    next == _cur) // this is not only needed at startup!
 	  {
@@ -160,7 +160,7 @@ public:
 	  {
 	    // The buffer on the free list is too small, kill it
 	    // Either generally too small, or too small for our item
-	    
+
 	    _cur->_next = next->_next; /// UPDATES CIRCULAR LIST
 
 	    _total -= (next->_size - sizeof(tb_buf));
@@ -189,7 +189,7 @@ public:
 #endif
 	return ptr;
       }
-    
+
     // We must allocate a new buffer
 
     _alloc_size = _alloc_size + (_alloc_size >> 3); // + 12.5 %
@@ -454,20 +454,20 @@ public:
 	  alloc *= 2;
 
 	// We do not fit, get a new one!
-	
+
 	_first = new_buf(_first,alloc);
-	
+
 	_end = (char*) (_first+1);
 	_remain = alloc;
 	_allocated += alloc;
       }
 
     void *p = _end;
-    
+
     _end += size;
     _remain -= size;
-    
-    return p;	
+
+    return p;
   }
 };
 

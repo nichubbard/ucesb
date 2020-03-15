@@ -23,7 +23,7 @@
 AD413A_4CH()
 {
   MEMBER(DATA16 data[4] ZERO_SUPPRESS);
-  
+
   list(0 <= index < 4)
     {
       UINT16 item NOENCODE

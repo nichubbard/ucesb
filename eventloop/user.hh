@@ -34,36 +34,36 @@ void EXIT_USER_FUNCTION();
 #endif
 
 #ifdef UNPACK_EVENT_USER_FUNCTION
-int UNPACK_EVENT_USER_FUNCTION(unpack_event *event);
+int UNPACK_EVENT_USER_FUNCTION(unpack_event *unpack_ev);
 #endif
 
 #ifdef UNPACK_EVENT_END_USER_FUNCTION
-void UNPACK_EVENT_END_USER_FUNCTION(unpack_event *event);
+void UNPACK_EVENT_END_USER_FUNCTION(unpack_event *unpack_ev);
 #endif
 
 #ifdef RAW_EVENT_USER_FUNCTION
-void RAW_EVENT_USER_FUNCTION(unpack_event *event,
-			     raw_event    *raw_event
+void RAW_EVENT_USER_FUNCTION(unpack_event *unpack_ev,
+			     raw_event    *raw_ev
 			     MAP_MEMBERS_PARAM);
 #endif
 
 #ifdef CAL_EVENT_USER_FUNCTION
-void CAL_EVENT_USER_FUNCTION(unpack_event *event,
-			     raw_event    *raw_event,
-			     cal_event    *cal_event
-#ifdef USER_STRUCT 
-			     ,USER_STRUCT *user_event
+void CAL_EVENT_USER_FUNCTION(unpack_event *unpack_ev,
+			     raw_event    *raw_ev,
+			     cal_event    *cal_ev
+#ifdef USER_STRUCT
+			     ,USER_STRUCT *user_ev
 #endif
 			     MAP_MEMBERS_PARAM);
 #endif
 
 #ifdef WATCHER_EVENT_INFO_USER_FUNCTION
 void WATCHER_EVENT_INFO_USER_FUNCTION(watcher_event_info *info,
-				      unpack_event *event);
+				      unpack_event *unpack_ev);
 #endif
 
 #ifdef CORRELATION_EVENT_INFO_USER_FUNCTION
-bool CORRELATION_EVENT_INFO_USER_FUNCTION(unpack_event *event);
+bool CORRELATION_EVENT_INFO_USER_FUNCTION(unpack_event *unpack_ev);
 #endif
 
 #ifdef MERGE_COMPARE_EVENTS_AFTER
@@ -76,7 +76,7 @@ struct lmd_event_out;
 
 bool COPY_OUTPUT_FILE_EVENT(lmd_event_out *event_out,
 			    FILE_INPUT_EVENT *file_event,
-			    unpack_event *event,
+			    unpack_event *unpack_ev,
 			    const select_event *select,
 			    bool combine_event);
 #endif
@@ -85,6 +85,14 @@ bool COPY_OUTPUT_FILE_EVENT(lmd_event_out *event_out,
 #ifdef OPEN_CLOSE_USER_FUNCTION
 void OPEN_CLOSE_USER_FUNCTION(bool open, const char* filename,
 			      uint64 file_size, uint32 n_events);
+#endif
+
+#ifdef STICKY_SUBEVENT_USER_FUNCTION
+// This is a hack for TESTING only.  void * access - bah!
+void STICKY_SUBEVENT_USER_FUNCTION(unpack_sticky_event *sticky_event,
+				   const void *header,
+				   const char *start, const char *end,
+				   bool swapping);
 #endif
 
 // The following function/interface WILL change, getopt_long is to be

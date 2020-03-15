@@ -46,18 +46,18 @@ VME_CAEN_V775(geom,
 	  12:    overflow;
 	  13:    underflow;
 	  14:    valid;
-	  
+
 	  // 15: undefined;
 
 	  16_20: channel;
-	  
+
 	  24_26: 0b000;
 	  27_31: geom = CHECK(geom);
 
 	  ENCODE(data[channel],(value=value,overflow=overflow));
 	}
     }
-  
+
   UINT32 eob
     {
       0_23:  event_number;

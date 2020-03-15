@@ -8,9 +8,9 @@
 [ \t\n]+    ;       /* ignore whitespace */
 
 .           {
-	      char str[64]; 
-	      sprintf (str,"Unknown character: '%s'.",yytext); 
-	      yyerror(str); 
+	      char str[64];
+	      sprintf (str,"Unknown character: '%s'.",yytext);
+	      yyerror(str);
             }
 
 "# "[0-9]+" \"".+"\""[ 0-9]*\n {  /* Information about the source location. */

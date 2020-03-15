@@ -106,7 +106,7 @@ int rfio_query_media_status(const char *filename)
       return 2;
     }
   // (cache_stat < 0) and other errors
-  
+
   WARN_MSG("Rfio file '%s' not in gstore or other error.",
 	   filename);
   return -1;
@@ -143,7 +143,7 @@ int main(int argc,char *argv[])
   int divert_fd = dup2(fileno(fLogFile), STDOUT_FILENO);
 
   if (divert_fd == -1)
-    ERR_MSG("Failed to dup2() diversion for stdout."); 
+    ERR_MSG("Failed to dup2() diversion for stdout.");
 #endif
 
   int debug = 0;
@@ -206,7 +206,7 @@ int main(int argc,char *argv[])
 
       fprintf (stderr,"Cache-stat: %s : %d\n",filename,cache_stat);
       */
-      
+
       if (fd < 0)
 	{
 	  ERR_MSG("Failure opening %s: %s",
@@ -230,20 +230,20 @@ int main(int argc,char *argv[])
 
 	  fprintf (stderr,"status: %s",status);
 	  */
-	  
+
 	  // int n = rfio_fread(buf,1,BUFSIZE,fid);
 
 	  int n = rfio_read(fd,buf,BUFSIZE);
 	  /*
 	  cache_stat = rfio_cache_stat(filename);
-	  
+
 	  fprintf (stderr,"Cache-stat: %s : %d",filename,cache_stat);
 	  */
 	  if (n == 0)
 	    {
 	      break;
 	    }
-	  
+
 	  if (n < 0)
 	    {
 	      ERR_MSG("Failure reading %s: %s",

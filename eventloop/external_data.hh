@@ -71,7 +71,7 @@ public:
 public:
   void __clean();
   EXT_DECL_UNPACK_ARG(size_t length = (size_t) -1/*_ARG:any arguments*/);
-  // Needed if it is part of a select statement, 
+  // Needed if it is part of a select statement,
   // or first member of a structure
   EXT_DECL_MATCH_ARG(size_t length = (size_t) -1/*_ARG:any arguments*/)
   { return true; }
@@ -105,7 +105,7 @@ public:
 public:
   void __clean();
   EXT_DECL_UNPACK(/*_ARG:any arguments*/);
-  // Needed if it is part of a select statement, 
+  // Needed if it is part of a select statement,
   // or first member of a structure
   EXT_DECL_MATCH(/*_ARG:any arguments*/)
   { return true; }
@@ -140,7 +140,7 @@ public:
 public:
   void __clean();
   EXT_DECL_UNPACK_ARG(size_t length = (size_t) -1/*_ARG:any arguments*/);
-  // Needed if it is part of a select statement, 
+  // Needed if it is part of a select statement,
   // or first member of a structure
   EXT_DECL_MATCH_ARG(size_t length = (size_t) -1/*_ARG:any arguments*/)
   { return true; }
@@ -175,7 +175,7 @@ public:
 public:
   void __clean();
   EXT_DECL_UNPACK_ARG(size_t length = (size_t) -1/*_ARG:any arguments*/);
-  // Needed if it is part of a select statement, 
+  // Needed if it is part of a select statement,
   // or first member of a structure
   EXT_DECL_MATCH_ARG(size_t length = (size_t) -1/*_ARG:any arguments*/)
   { return true; }

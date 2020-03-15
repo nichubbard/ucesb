@@ -40,10 +40,13 @@ typedef unsigned char uchar;
 
 #include "lmd_event.cc"
 #include "lmd_output.cc"
+#include "parse_util.cc"
+#include "lmd_sticky_store.cc"
 #include "forked_child.cc"
 #include "limit_file_size.cc"
 #include "select_event.cc"
 #include "markconvbold.cc"
+#include "colourtext.cc"
 #include "error.cc"
 #include "logfile.cc"
 
@@ -105,7 +108,7 @@ int get_buffer(FILE *fid,s_bufhe_host *bufhe,char **data,uint32 *data_left)
 }
 
 char *frag = NULL;
-int frag_alloc = 0; 
+int frag_alloc = 0;
 int frag_len = 0;
 int frag_done = 0;
 
@@ -137,9 +140,9 @@ int fetch_data(char **ptr,uint32 *data_left)
   else
     {
       // new (sub)event
-      
+
       uint32 *p32 = (uint32 *) *ptr;
-      
+
       uint32 len = EVENT_DATA_LENGTH_FROM_DLEN(p32[0]) + 8;
       /*
       printf ("l 0x%08x (%5d) tst 0x%08x : %5d\n",
@@ -176,7 +179,7 @@ int fetch_data(char **ptr,uint32 *data_left)
 
   //printf ("Ev: %08x %08x %08x %08x\n",p32[0],p32[1],p32[2],p32[3]);
 
-  uint32* s32 = p32+4; 
+  uint32* s32 = p32+4;
 
   char *o = outbuf;
 
@@ -185,14 +188,14 @@ int fetch_data(char **ptr,uint32 *data_left)
   memset(&ev_out,0,sizeof(ev_out));
 
   lmd_event_info_host *ev = NULL;
-      
+
   if (p32[1] == 0x0026000a)
     {
       ev_out._header.i_type    = LMD_EVENT_10_1_TYPE;
       ev_out._header.i_subtype = LMD_EVENT_10_1_SUBTYPE;
 
       ev = (lmd_event_info_host *) o;
-      
+
       ev->i_trigger = p32[2] & 0x0000ffff;
       ev->l_count   = p32[3];
 
@@ -212,7 +215,7 @@ int fetch_data(char **ptr,uint32 *data_left)
   while (s32 < e32)
     {
       uint32 slen = EVENT_DATA_LENGTH_FROM_DLEN(s32[0]) + 8;
-      
+
       //printf ("Sev: %08x %08x %08x (%d)\n",s32[0],s32[1],s32[2],slen);
 
       if (s32 + slen / 4 > e32)
@@ -220,8 +223,8 @@ int fetch_data(char **ptr,uint32 *data_left)
       else
 	{
 	  uint32 *se = s32 + slen / 4;
-	  /*	  	    
-	  int i = 0;  
+	  /*
+	  int i = 0;
 	  for (uint32 *p = s32 + 3; p < se; p++)
 	    {
 	      printf (" %08x",*p);
@@ -234,15 +237,15 @@ int fetch_data(char **ptr,uint32 *data_left)
 	  if (s32[1] == 0x0bb90022) // CAMAC
 	    {
 	      lmd_subevent_10_1_host *sev = (lmd_subevent_10_1_host *) o;
-	      
+
 	      sev->_header.l_dlen = 0;
 	      sev->_header.i_type    = 34;
 	      sev->_header.i_subtype = 3200;
-	      
+
 	      sev->h_control  = 9;
 	      sev->h_subcrate = 0;
 	      sev->i_procid   = 1;
-      
+
 	      o = (char *) (sev + 1);
 
 	      /// Find the regions
@@ -277,8 +280,8 @@ int fetch_data(char **ptr,uint32 *data_left)
 		  if (*p)
 		    fprintf (stderr,"Non-zero word in region 1: %08x\n",
 			     *p);
-		}     
-	      
+		}
+
 	      // printf ("tpat: %04x\n",s32[3]);
 
 	      uint16 *o16 = (uint16 *) o;
@@ -303,7 +306,7 @@ int fetch_data(char **ptr,uint32 *data_left)
 	      if (((char*) o16 - (char*) sev) & 3)
 		*(o16++) = 0;
 
-	      sev->_header.l_dlen = 
+	      sev->_header.l_dlen =
 		SUBEVENT_DLEN_FROM_DATA_LENGTH((char*) o16 - (char*) (sev+1));
 
 	      o = (char *) o16;
@@ -315,15 +318,15 @@ int fetch_data(char **ptr,uint32 *data_left)
 	      if (!fbsev)
 		{
 		  fbsev = (lmd_subevent_10_1_host *) o;
-		  
+
 		  fbsev->_header.l_dlen = 0;
 		  fbsev->_header.i_type    = 32;
 		  fbsev->_header.i_subtype = 3100;
-		  
+
 		  fbsev->h_control  = 0;
 		  fbsev->h_subcrate = 0;
 		  fbsev->i_procid   = 1;
-		  
+
 		  o = (char *) (fbsev + 1);
 
 		  o32 = (uint32 *) o;
@@ -332,8 +335,8 @@ int fetch_data(char **ptr,uint32 *data_left)
 		}
 
 	      if (s32[3])
-		fprintf (stderr,"First FB data word not 0.\n",s32[3]);
-	      
+		fprintf (stderr,"First FB data word not 0: %08x.\n", s32[3]);
+
 	      for (uint32 *p = s32 + 4; p < se; p++)
 		{
 
@@ -341,10 +344,10 @@ int fetch_data(char **ptr,uint32 *data_left)
 		  *(o32++) = *p;
 		}
 
-	      fbsev->_header.l_dlen = 
+	      fbsev->_header.l_dlen =
 		SUBEVENT_DLEN_FROM_DATA_LENGTH((char*) o32 - (char*) (fbsev+1));
 
-              o = (char *) o32;	      
+              o = (char *) o32;
 	    }
 	  else
 	    {
@@ -367,32 +370,45 @@ int fetch_data(char **ptr,uint32 *data_left)
       if (out_file)
 	out_file->write_event(&ev_out);
     }
-  
+
   return 1;
 }
 
 #define mymin(a,b) ((a)<(b)?(a):(b))
 
-#define INFO_STRING_L2(name,str,maxlen,len) { char tmp[maxlen+1]; memcpy (tmp,str,maxlen); tmp[mymin(maxlen,len)] = 0; printf("  %-8s %s\n",name,tmp);  }
-#define INFO_STRING_L(name,str,maxlen) INFO_STRING_L2(name,str.string,maxlen,(unsigned int) str.len)
-#define INFO_STRING(name,str) INFO_STRING_L(name,str,sizeof(str.string))
+#define INFO_STRING_L2(name,str,maxlen,len) {	\
+    char tmp[maxlen+1];				\
+    memcpy (tmp,str,maxlen);			\
+    tmp[mymin(maxlen,len)] = 0;			\
+    printf("  %-8s %s\n",name,tmp);		\
+ }
+#define INFO_STRING_L(name,str,maxlen) \
+  INFO_STRING_L2(name,str,maxlen,(unsigned int) str##_l)
+#define INFO_STRING(name,str) \
+  INFO_STRING_L(name,str,sizeof(str))
 
-#define TAG_STRING_L2(str,maxlen,len) { char tmp[maxlen+1]; memcpy (tmp,str,maxlen); tmp[mymin(maxlen,len)] = 0; printf(" %-*s",maxlen,tmp);  }
-#define TAG_STRING_L(str,maxlen) TAG_STRING_L2(str.string,maxlen,(unsigned int) str.len)
+#define TAG_STRING_L2(str,maxlen,len) {         \
+    char tmp[maxlen+1];                         \
+    memcpy (tmp,str,maxlen);                    \
+    tmp[mymin(maxlen,len)] = 0;                 \
+    printf(" %-*s",maxlen,tmp);                 \
+ }
+#define TAG_STRING_L(str,maxlen) \
+  TAG_STRING_L2(str,maxlen,(unsigned int) str##_l)
 
 void dump_file_header(const s_filhe_extra_host *header)
 {
   INFO_STRING("Label",   header->filhe_label);
   INFO_STRING("File",    header->filhe_file);
   INFO_STRING("User",    header->filhe_user);
-  INFO_STRING_L2("Time", header->filhe_time.string,24,24);
+  INFO_STRING_L2("Time", header->filhe_time,24,24);
   INFO_STRING("Run",     header->filhe_run);
   INFO_STRING("Exp",     header->filhe_exp);
   for (int i = 0; i < mymin(30,header->filhe_lines); i++)
-    INFO_STRING("Comment",header->s_strings[i]);
+    INFO_STRING("Comment",header->s_strings[i].string);
 
   printf ("\nFileTags:");
-  TAG_STRING_L2(header->filhe_time.string,24,24);
+  TAG_STRING_L2(header->filhe_time,24,24);
   TAG_STRING_L(header->filhe_label,12);
   TAG_STRING_L(header->filhe_file,12);
   TAG_STRING_L(header->filhe_run,6);
@@ -404,12 +420,12 @@ void dump_comments(const s_filhe_extra_host *header)
 {
   unsigned char filename[87];
 
-  memcpy(filename,header->filhe_file.string,86);
+  memcpy(filename,header->filhe_file,86);
   filename[86] = 0;
 
   unsigned char timestr[25];
 
-  memcpy(timestr,header->filhe_time.string,24);
+  memcpy(timestr,header->filhe_time,24);
   timestr[24] = 0;
 
   printf ("%s: %s: ",filename,timestr);
@@ -503,7 +519,7 @@ void dump_comments(const s_filhe_extra_host *header)
 	      */
 	    }
 	  s++;
-	}     
+	}
     }
   //printf ("\n[%s]\n",fmt_cmt);
 
@@ -524,9 +540,9 @@ int main(int argc,char *argv[])
   for (int i = 0; i < argc; i++)
     {
       if (strcmp(argv[i],"--only-tags") == 0)
-	only_tags = 1; 
+	only_tags = 1;
       else if (strcmp(argv[i],"--fix-comments") == 0)
-	fix_comments = 1; 
+	fix_comments = 1;
       else if (strncmp(argv[i],"--outname=",10) == 0)
 	outname = argv[i]+10;
       else if (strncmp(argv[i],"--outprefix=",12) == 0)
@@ -534,7 +550,7 @@ int main(int argc,char *argv[])
       else
 	{
 	  infile = fopen(argv[i],"r");
-	  
+
 	  if (infile == NULL)
 	    {
 	      perror("fopen");
@@ -595,11 +611,11 @@ int main(int argc,char *argv[])
 
 	      char filename[1024];
 	      char name[128];
-	      
+
 	      s_filhe_extra_host* filhe = (s_filhe_extra_host*) data;
 
-	      memcpy(name,filhe->filhe_file.string,filhe->filhe_file.len);
-	      name[filhe->filhe_file.len] = 0;
+	      memcpy(name,filhe->filhe_file,filhe->filhe_file_l);
+	      name[filhe->filhe_file_l] = 0;
 
 	      for (int i = 0; i < sizeof(name); i++)
 		name[i] = tolower(name[i]);
@@ -607,7 +623,7 @@ int main(int argc,char *argv[])
 	      sprintf (filename,"%s%s",outprefix,name);
 
 	      printf ("Output file name: %s\n",filename);
-	      
+
 	      out_file->open_file(filename);
 	      out_file->_write_native = false; // simulate powerpc (on x86)
 	    }
@@ -623,7 +639,7 @@ int main(int argc,char *argv[])
 	{
 	  char *ptr = data;
 	  int events = 0;
-	  
+
 	  while (data_left)
 	    {
 	      events += fetch_data(&ptr,&data_left);
@@ -638,7 +654,7 @@ int main(int argc,char *argv[])
 	fprintf (stderr,"Unknown buffer.\n");
 
       int mb = total_size >> 20;
-      
+
       if (mb != last_mb)
 	{
 	  last_mb = mb;

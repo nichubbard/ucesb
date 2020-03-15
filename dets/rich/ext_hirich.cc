@@ -70,7 +70,7 @@ void EXT_HIRICH_module::append_channel(uint16 d,
 {
   hirich_data_word &item1 = data.append_item();
   item1.u16 = d;
-  
+
   if (channels_seen.get_set(item1.channel))
     ERROR("Channel %d seen twice.",item1.channel);
 }
@@ -125,7 +125,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_HIRICH::__unpack)
       if (modules_seen.get_set(h.module_no))
 	ERROR("Header for module %d seen twice...",h.module_no);
 
-      // Since we don't allow duplictes, we cannot overflow the 
+      // Since we don't allow duplictes, we cannot overflow the
       // _modules array
 
       EXT_HIRICH_module *module = &_modules[_num_modules++];
@@ -144,11 +144,11 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_HIRICH::__unpack)
       // 2       3: DD DE           8
       // 3       4: DD DD           8
       // 4       5: DD DD DE        12
-      
+
       // 255 -> 256 data words
-      
+
       size_t data_size = (2*h.count + 4) & ~3;
-      
+
       if (__buffer.left() < data_size)
 	ERROR("Not enough data left (%d) in subevent "
 	      "for module data (count=%d -> size=%d).",

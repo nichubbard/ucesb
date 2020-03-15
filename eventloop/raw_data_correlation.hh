@@ -50,30 +50,16 @@ public:
 
 public:
   void add_corr_members(const T &src,correlation_list *list WATCH_MEMBERS_PARAM) const;
+  void add_corr_members(const toggle_item<T> &src,correlation_list *list WATCH_MEMBERS_PARAM) const;
   bool enumerate_correlations(const signal_id &id,enumerate_correlations_info *info);
 };
 
-typedef data_correlation<uint8>  uint8_correlation;
-typedef data_correlation<uint16> uint16_correlation;
-typedef data_correlation<uint32> uint32_correlation;
-typedef data_correlation<uint64> uint64_correlation;
+#define DECL_PRIMITIVE_TYPE(type)			\
+  typedef data_correlation<type>  type##_correlation;
 
-typedef data_correlation<DATA8>  DATA8_correlation;
-typedef data_correlation<DATA12> DATA12_correlation;
-typedef data_correlation<DATA12_RANGE> DATA12_RANGE_correlation;
-typedef data_correlation<DATA12_OVERFLOW> DATA12_OVERFLOW_correlation;
-typedef data_correlation<DATA16> DATA16_correlation;
-typedef data_correlation<DATA24> DATA24_correlation;
-typedef data_correlation<DATA32> DATA32_correlation;
-typedef data_correlation<DATA64> DATA64_correlation;
-typedef data_correlation<rawdata8>  rawdata8_correlation;
-typedef data_correlation<rawdata12> rawdata12_correlation;
-typedef data_correlation<rawdata16> rawdata16_correlation;
-typedef data_correlation<rawdata24> rawdata24_correlation;
-typedef data_correlation<rawdata32> rawdata32_correlation;
-typedef data_correlation<rawdata64> rawdata64_correlation;
-typedef data_correlation<float>  float_correlation;
-typedef data_correlation<double> double_correlation;
+#include "decl_primitive_types.hh"
+
+#undef DECL_PRIMITIVE_TYPE
 
 // TODO: Make sure that the user cannot specify source array indices
 // in SIGNAL which are outside the available items.  Bad names get
@@ -86,20 +72,20 @@ public:
   T_correlation _items[n];
 
 public:
-  T_correlation &operator[](size_t i) 
-  { 
+  T_correlation &operator[](size_t i)
+  {
     // This function is used by the setting up of the arrays, i.e. we
     // can have checks here
-    if (i < 0 || i >= n) 
-      ERROR("Correlation index outside bounds (%d >= %d)",i,n); 
-    return _items[i]; 
+    if (i < 0 || i >= n)
+      ERROR("Correlation index outside bounds (%d >= %d)",i,n);
+    return _items[i];
   }
-  const T_correlation &operator[](size_t i) const 
+  const T_correlation &operator[](size_t i) const
   {
     // This function is used by the mapping operations (since that one
     // needs a const function), no checks here (expensive, since
     // called often)
-    return _items[i]; 
+    return _items[i];
   }
 
 public:
@@ -164,6 +150,11 @@ public:
 
 };
 
+class unpack_sticky_subevent_base_correlation :
+  public unpack_subevent_base_correlation
+{
+};
+
 class unpack_event_base_correlation
 {
 public:
@@ -172,12 +163,22 @@ public:
 
 };
 
+class unpack_sticky_event_base_correlation :
+  public unpack_event_base_correlation
+{
+};
+
 class raw_event_base_correlation
 {
 public:
   void add_corr_members(const raw_event_base &src,correlation_list *list WATCH_MEMBERS_PARAM) const { }
   bool enumerate_correlations(const signal_id &id,enumerate_correlations_info *info) { return false; }
 
+};
+
+class raw_sticky_base_correlation :
+  public raw_event_base_correlation
+{
 };
 
 class cal_event_base_correlation

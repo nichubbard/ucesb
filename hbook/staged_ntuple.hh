@@ -55,6 +55,7 @@ public:
 public:
   external_writer  *_ext;
   reader_src_external _ext_r; // in progress (reading)
+  bool _external_ext;
 
 public:
   indexed_item  _global_array;  // rwn & cwn
@@ -66,27 +67,36 @@ public:
     int           _entries_index2; // cwn*/
   array2_item  *_array2_item;    // cwn
   uint32_t      _entries_array2; // cwn
-  
-  size_t        _array_entries;
-  
-  uint _ntuple_type;
 
-  char   *_id;     // of ntuple (root: name)
-  char   *_title;  // of ntuple
-  char   *_ftitle; // of file (hbook: file top)
+  size_t        _array_entries;
+
+  int           _struct_index;
+
+  uint _x_ntuple_type;
+  uint _x_ntuple_opt;
 
   std::vector<staged_ntuple_named_str> _named_strs;
 
-  int  _struct_server_port;
-
-  int  _timeslice;
-  int  _timeslice_subdir;
-  int  _autosave;
+public:
+  void set_ext(external_writer *ext);
+  external_writer *get_ext() { return _ext; }
 
 public:
-  void open(const char *filename);
-  void stage(vect_ntuple_items &list,int hid,void *base,
-	     uint sort_u32_words = 0, uint max_raw_words = 0);
+  void open_x(const char *filename,
+	      const char *ftitle,
+	      int ntuple_type,
+	      int ntuple_opt,
+	      int server_port = -1,
+	      int timeslice = 0, int timeslice_subdir = 0,
+	      int autosave = 0,
+	      uint sort_u32_words = 0);
+  void stage_x(vect_ntuple_items &list,int hid,
+	       const char *id, const char *title,
+	       const char *index_major,
+	       const char *index_minor,
+	       void *base,
+	       uint max_raw_words = 0);
+  void stage_done();
   void event(void *base,uint *sort_u32 = NULL,
 	     fill_raw_info *fill_raw = NULL);
   bool get_event();

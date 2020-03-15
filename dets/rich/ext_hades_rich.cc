@@ -84,7 +84,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_HADES_RICH::__unpack)
       //	ERROR("Sector,unused (%d) mismatch subevent fixed sector,unused (%d,%d)",
       //	      d.sector,  d.dummy,
       //	      _fixed.sector,_fixed.dummy);
-      
+
       rich_rawdata_word &item = data.append_item();
 
       item = d;

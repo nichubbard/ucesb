@@ -43,7 +43,7 @@ void dissect_name(const file_line &loc,
   // after that, into a list of integers and ascii strings,
   // which are separated either by being the other kind of
   // character, or an underscore.
-  
+
   const char *start = name;
 
   if (!isalpha((int) *start))
@@ -78,7 +78,7 @@ void dissect_name(const file_line &loc,
 	  if (end2 != end)
 	    ERROR_LOC(loc,"Error converting signal name integer (%s).",name);
 	  if (index <= 0)
-	    ERROR_LOC(loc,"String-like variable indexing starts at 1 (%s).",name);	  
+	    ERROR_LOC(loc,"String-like variable indexing starts at 1 (%s).",name);
 	  if (index >= 0x1000000)
 	    ERROR_LOC(loc,"Cowardly refusing index >= 64K (%s).",name);
 	  start = end;
@@ -129,7 +129,7 @@ size_t signal_id::format(char *str,size_t size) const
       int length = part->format(ptr,size > 0 ? size : 0);
 
       ptr  += length;
-      size -= (size_t) length; 
+      size -= (size_t) length;
     }
   return (size_t) (ptr - str);
 }
@@ -166,7 +166,7 @@ size_t signal_id::format_paw(char *str,size_t size,
 	continue; // this index is an array index (thus not part of the name)
 
       if ((part->_type & (SIG_PART_NAME |
-			  SIG_PART_INDEX)) == 
+			  SIG_PART_INDEX)) ==
 	  (prev_type   & (SIG_PART_NAME |
 			  SIG_PART_INDEX)))
 	{
@@ -204,7 +204,7 @@ bool signal_id::difference(const signal_id &rhs,
       if (_parts[i]._type & SIG_PART_NAME)
 	if (_parts[i]._id._name != rhs._parts[i]._id._name)
 	  return false;
-      
+
       if (_parts[i]._type & SIG_PART_INDEX)
 	if (_parts[i]._id._index != rhs._parts[i]._id._index)
 	  {
@@ -248,7 +248,7 @@ char *signal_id::generate_indexed(int diff_index,
 	dest += sprintf(dest,"%s",_parts[i]._id._name);
 
       if (_parts[i]._type & SIG_PART_INDEX)
-	dest += sprintf(dest,"%d",_parts[i]._id._index + 
+	dest += sprintf(dest,"%d",_parts[i]._id._index +
 			((unsigned int) diff_index == i ? diff_offset : 0) + 1);
 
       prev_type = _parts[i]._type;

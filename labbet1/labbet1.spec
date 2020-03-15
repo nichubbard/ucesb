@@ -38,7 +38,7 @@ EVENT
   ev = EV_EVENT();
 
 
-  
+
 }
 
 SIGNAL(DSSSD1_F_1_E, ev.adc1.data[0],

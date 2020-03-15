@@ -80,10 +80,10 @@ public:
   size_t subevent_alignment_unused(hld_event_header* header,size_t data_size) const
   {
     size_t alignment = 1 << header->_decoding._align;
-    
-    size_t unused = (-data_size) & (alignment - 1);    
 
-    return unused; 
+    size_t unused = (-data_size) & (alignment - 1);
+
+    return unused;
   }
 
   void subevent_incomplete_ERROR(const hld_subevent_header *header,
@@ -126,7 +126,7 @@ struct hld_event
   buf_chunk *_chunk_end;   // the current end of chunks
   buf_chunk *_chunk_cur;   // the current end of chunks
   size_t     _offset_cur;
-  
+
 #ifndef USE_THREADING
 public:
   keep_buffer_many _defrag_event_many;

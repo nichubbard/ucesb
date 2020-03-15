@@ -62,7 +62,7 @@ int main(int argc,char *argv[])
     }
 
   /* Connect. */
-  
+
   client = ext_data_connect_stderr(argv[1]);
 
   if (client == NULL)
@@ -73,7 +73,7 @@ int main(int argc,char *argv[])
 			    sizeof(event)))
     {
       /* Handle events. */
-      
+
       for ( ; ; )
 	{
 	  /* To 'check'/'protect' against mis-use of zero-suppressed
@@ -86,13 +86,13 @@ int main(int argc,char *argv[])
 #ifdef BUGGY_CODE
 	  ext_data_rand_fill(&event,sizeof(event));
 #endif
-	  
+
 	  /* Fetch the event. */
-	  
+
 	  if (!ext_data_fetch_event_stderr(client,
 					   &event,sizeof(event)))
 	    break;
-	  
+
 	  /* Do whatever is wanted with the data. */
 	  /*
 	  printf ("%10d: %2d  %4d %4d  %4d %4d\n",
@@ -108,13 +108,13 @@ int main(int argc,char *argv[])
 
 	      printf ("---------\n");
 	    }
-	  
+
 	  /* ... */
-	}  
+	}
     }
 
   /* Disconnect. */
-  
+
   ext_data_close_stderr(client);
 
   return 0;

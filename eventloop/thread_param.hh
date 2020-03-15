@@ -29,7 +29,7 @@
 #else
 
 #define PTHREAD_PARAM(type_param)
-#define PTHREAD_ARG(arg)           
+#define PTHREAD_ARG(arg)
 
 #endif
 

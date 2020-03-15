@@ -1,0 +1,213 @@
+Sticky subevents
+================
+
+Write-up 2017-03-21,   Håkan T Johansson,   f96hajo@chalmers.se
+
+
+Introduction
+------------
+
+In discussions with our collaborators we learned that there is an
+unanimous demand for the ability to correlate slow-control information
+with list-mode data during analysis.  Typical examples are magnet and
+HV settings, that are used by calibration and reconstruction routines.
+Hence, it is natural to insert this information into the list-mode
+data stream.  A scheme for this that works in a distributed setup
+(which is typical for NuSTAR) is outlined in the following document.
+The core concept of this approach is called sticky events.
+
+Normal events just flow through the data acquisition and analysis
+codes.  They do not provide a suitable storage mechanism for
+slow-control values.  A file or network transport opened long after
+the last change of a setting, would not get the relevant information.
+In contrast, sticky events have the property that they are delivered
+to each data consumer, irrespective of how long ago they were produced
+(guaranteed delivery).
+
+The notion of sticky events was brought forward as a key concept in
+the NuSTAR DAQ TDR, and did gain broad approval during discussions in
+the writing group!
+
+
+Key concepts and overview
+-------------------------
+
+The sticky subevents envisioned need to have a simple semantics from
+the point of view of both analysis tools and readout programs:
+
+- A consumer that just eats data (i.e. normal analysis), receives
+  updates on slow-control parameters as sticky events in the data
+  stream in-between normal events.
+
+- Similarly, readout systems simply emit such updates along with the
+  normal events they produce.
+
+Achieving this simplicity however requires all data fan-in and fan-out
+software to cache and keep track of the sticky events that flow
+through them.  Fan-in systems would be the event builder / time sorter
+of a data acquisition (e.g. MBS or equivalent), as well as analysis
+stages that handle multiple sources.  Fan-out systems are network
+servers and file writers of a data acquisition, or later proxy servers
+(m_revserv etc).  Essentially fan-out parts must be able to replay
+sticky events when new connections (or files) are made.  And fan-in
+parts must remember which sticky events came from which source, such
+that when a source connection is lost, the associated sticky events
+are revoked.
+
+Thus a few standard programs are taught how to absorb the bookkeeping
+complications, on behalf of many more end-user programs that can then
+rely on simple semantics for slow-control data embedded in the data
+stream.
+
+
+Status
+------
+
+The approach outlined in this document introduces sticky events that
+integrate with the existing LMD data format.
+
+It has been checked for feasibility by actual implementation, using as
+a first test for the fan-out handling the network and file output
+stages of UCESB [http://fy.chalmers.se/~f96hajo/ucesb/].  Both the
+fan-out and fan-in have, with some exceptions, also been implemented
+in a data acquisition system called drasi.
+
+
+Setting the stage: Normal events
+--------------------------------
+
+For reference, a short summary of normal LMD events:
+
+- Packed in type:subtype 10:1 buffers.
+
+- All events have type:subtype 10:1.
+
+- Inside the events are subevents, identified by 64 bits in 5 fields:
+  type:subtype:ctrl:crate:procid.
+
+- When time-sorting the first subevent of each event holds the
+  timestamp.
+
+
+Sticky events in brief
+----------------------
+
+Like normal events, sticky events have subevents.  The guarantee of
+delivery applies to the subevents, making them 'sticky'.
+
+Overview:
+
+- Sticky subevents are identified by their
+  type:subtype:ctrl:crate:procid.
+
+- Sticky events have type:subtype (to be finally decided) ST:KY.
+
+- Each sticky subevent is 'active' until replaced (with same
+  type:subtype:ctrl:crate:procid).
+
+- Sticky subevents with length -1 means removal.
+
+- The sticky delivery guarantee applies at the point before each
+  normal event.
+
+- Sticky subevents (packaged in sticky events) can be repeated.
+  (Effectively replacing themselves).
+
+
+Packaging
+---------
+
+The mechanics is that a sticky subevent is replaced when a new sticky
+subevent with the same identifier type:subtype:ctrl:crate:procid
+arrives.  If the new subevent has the length set to -1, then it is
+completely removed.  (The length marker -1 for removal is to make
+sticky subevents of size 0 allowed entities.)
+
+The way to distinguish sticky subevents from normal (sub)events is
+that they are packaged in special events, of type (to be finally
+decided) ST:KY (as opposed to 10:1).
+
+
+Delivery of sticky events
+-------------------------
+
+The guarantee of delivery applies at the spot when the next *normal*
+event is received.  At that point, exactly the correct set of sticky
+subevents shall be present/active (by having been delivered).  In what
+order or how many times they have been received does not matter.  This
+also means that, e.g. a completely empty file (or with only sticky
+events) would be valid/correct.
+
+Thus, each file will begin with the set of sticky events active before
+the first normal event it contains.  Likewise, network clients first
+get the active sticky events.  For various reasons, events may be
+omitted from network clients (or files).  In these cases, sticky
+subevents that changed in the meantime and are still active before the
+next normal event, will be delivered at that point.  This includes
+sticky revoke subevents.
+
+Note that the guarantee of delivery does not mean that all sticky
+subevents are delivered, if events are omitted.  In particular, when a
+sticky event is replayed, it may be changed to deliver only those
+sticky subevents that will not be immediately superseded by later
+sticky subevents of the same id.
+
+
+Fan-in - merging and time sorting
+---------------------------------
+
+It must be possibly to time-sort sticky events, along with normal
+events.  For the time being, this is implemented in the usual manner:
+the first subevent of the sticky event may hold a timestamp.  We also
+require this subevent to have type:subtype 10:1 (and reject 10:1 as
+other sticky subevents).
+
+For systems merging multiple data sources, as long as the sticky
+events have different identifiers, they do not interfere.  Otherwise,
+any sticky subevents which originate from several sources
+simultaneously must match exactly - bit for bit.
+
+
+Fan-out considerations
+----------------------
+
+Note that sticky events may be delivered multiple times.  This applies
+to online clients, as well as to the replay at the beginning of a new
+file.  The reason for an online client to receive a replay is when the
+client has not managed to keep up with the server.  Before sending
+further normal data, the server need to ensure that the client
+receives the sticky data active at that point.  Which means that the
+server must keep track of what has been sent to that particular
+client.  In order to not have to do that (with full granularity), it
+may instead send some additional sticky data, that thus will reach the
+client twice.
+
+When a data stream ends, the sticky events that it provided must be
+discarded/revoked by the receiver.  Note: the source (server or file
+writer) shall *not* produce the revoke events at the end of the data
+stream.  Explicit revoke events would prevent a receiver that
+reconnects or reads the next file from recognising unchanged sticky
+events that are delivered at the beginning of the new stream.
+
+
+Not a solution for everything
+-----------------------------
+
+Beware that sticky events do not solve all calibration issues.  :-)
+They contain information known at data-taking time, and also cannot be
+changed afterwards, as they are part of the event stream.  This means
+that only information which is known to be correct should be stored in
+sticky events.  Information which is likely to change during the
+course of analysis work (like calibration parameters) are better not
+stored in sticky events at all, since that is just confusing.
+
+It is strongly suggested to store data organised by hardware
+(physical) name, and not logical name.  This since detector name
+mappings during experiment tend to have mistakes that are easier
+addressed during analysis by simply doing all mappings during
+(on/off-line) analysis, instead of having to have partial overrides.
+
+Also, prompting the user to enter values to be stored in the data
+files, is just stressful and likely leads to information which has to
+be partially overridden afterwards anyhow.  Alas, the sticky events
+are not a replacement for an experimental log.

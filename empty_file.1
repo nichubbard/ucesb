@@ -2,62 +2,62 @@
 .SH NAME
 empty_file \- create empty data buffers on stdout
 .SH SYNOPSIS
-.B file_input/empty_file \-\-lmd|\-\-ebye|\-\-pax|\-\-hld [OPTIONS]   
+.B file_input/empty_file \-\-lmd|\-\-ebye|\-\-pax|\-\-hld [OPTIONS]
 .SH DESCRIPTION
 Write a stream of buffers with empty or dummy events to stdout.
 Useful for testing and torturing unpacker programs, e.g. ucesb.
 .SH OPTIONS
 .TP
 .B
-\-\-lmd             
+\-\-lmd
 Write LMD format data.
 .TP
 .B
-\-\-ebye            
+\-\-ebye
 Write EBYE format data.
 .TP
 .B
-\-\-pax             
+\-\-pax
 Write PAX format data.
 .TP
 .B
-\-\-hld             
+\-\-hld
 Write HLD format data.
 .TP
 .B
-\-\-buffer\-size=N   
+\-\-buffer\-size=N
 Write buffers of size N.
 .TP
 .B
-\-\-buffers=N       
+\-\-buffers=N
 Write at most N buffers.
 .TP
 .B
-\-\-events=N        
+\-\-events=N
 Write at most N events.
 .TP
 .B
-\-\-event\-size=N    
+\-\-event\-size=N
 Write events of size ~N (LMD format only).
 .TP
 .B
-\-\-empty\-buffers   
+\-\-empty\-buffers
 No events.
 .TP
 .B
-\-\-help  
-Display a short help text.        
+\-\-help
+Display a short help text.
 .SH EXAMPLES
 .TP
 Generate data:
-.B file_input/empty_file 
+.B file_input/empty_file
 \-\-lmd
 .PP
 .TP
 Generate data and pipe it through ucesb's empty (data-ignoring) program:
-.B file_input/empty_file 
-\-\-lmd | 
-.B empty/empty 
+.B file_input/empty_file
+\-\-lmd |
+.B empty/empty
 \-\-file=\-
 .PP
 .SH EXIT STATUS

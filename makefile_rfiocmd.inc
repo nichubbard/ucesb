@@ -27,7 +27,7 @@ RFCAT=$(RFIOCMD_DIR)/rfcat
 
 -include $(RFCAT).base.dep
 
-$(RFCAT): 
-	$(MAKE) -C $(RFIOCMD_DIR) rfcat 
+$(RFCAT):
+	$(MAKE) -C $(RFIOCMD_DIR) rfcat
 
 CXXFLAGS += -DRFCAT_PREFIX="\"$(UCESB_BASE_DIR)/rfiocmd/\""

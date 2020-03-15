@@ -55,7 +55,7 @@ void create_caen_v1290_event(caen_v1290_data *data,
   for (i = 0; i < n; i++)
     {
       a = rxs64s(&rstate);
-      
+
       int ch = a & 0x1f;
 
       while (data->mask & (((uint32_t) 1) << ch))
@@ -75,7 +75,7 @@ void create_caen_v1290_event(caen_v1290_data *data,
 	  a = rxs64s(&rstate);
 
 	  // fprintf(stderr,"%d,%d[%d,%d]\n",ch,j,nmax,data->num[ch]);
-	  
+
 	  data->ch[ch][j] = (uint32_t) (a & 0x1fffff);
 	}
     }
@@ -135,7 +135,7 @@ int fill_caen_v1290_data(caen_v1290_data *data,
   data->mask = 0;
   data->eventno = (header >> 5) & 0x003fffff;
   data->trigtime = trigger & 0x07ffffff;
-  
+
   if (M > 32)
     {
       printf ("%s: M(=%d) > 32\n",__func__,n);
@@ -151,7 +151,7 @@ int fill_caen_v1290_data(caen_v1290_data *data,
     }
 
   start = 0;
-  
+
   for (i = 0; i < M && i < 32; i++)
     {
       uint32_t ch = MI[i]-1;
@@ -170,12 +170,12 @@ int fill_caen_v1290_data(caen_v1290_data *data,
 	{
 	  printf ("%s: MI[%d] -1 (=%d) >= 32\n",__func__,i,ch);
 	  return 0;
-	} 
+	}
       else if (end > n)
 	{
 	  printf ("%s: ME[i=%d](=%d) > n(=%d)\n",__func__,i,end,n);
 	  return 0;
-	} 
+	}
       else
 	{
 	  data->mask |= ((uint32_t) 1) << ch;
@@ -230,7 +230,7 @@ int compare_caen_v1290_event(const caen_v1290_data *good,
 	  {
 	    printf ("%s: num[%d] mismatch %d != %d\n",
 		    __func__,ch,good->num[ch],cmp->num[ch]);
-	    ok = 0;  
+	    ok = 0;
 	  }
 	for (j = 0; j < good->num[ch] && j < cmp->num[ch]; j++)
 	  {
@@ -238,7 +238,7 @@ int compare_caen_v1290_event(const caen_v1290_data *good,
 	      {
 		printf ("%s: data[%d][%d] mismatch %d != %d\n",
 			__func__,ch,j,good->ch[ch][j],cmp->ch[ch][j]);
-		ok = 0;  
+		ok = 0;
 	      }
 	  }
       }

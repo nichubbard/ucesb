@@ -36,14 +36,14 @@ do
 	    if [ $2 ]; then
 		INPUTFILE=$2; shift 2
 	    else
-		echo "$1 missing argument" 1>&2 ; exit 1
+		echo "$0: $1 missing argument" 1>&2 ; exit 1
 	    fi ;;
 
 	--compiler)
 	    if [ $2 ]; then
 		COMPILER=$2; shift 2
 	    else
-		echo "$1 missing argument" 1>&2 ; exit 1
+		echo "$0: $1 missing argument" 1>&2 ; exit 1
 	    fi ;;
 
 	--compileargs)
@@ -52,7 +52,7 @@ do
 	    break ;;
 
 	*)
-	    echo "Invalid option: $1" 1>&2
+	    echo "$0: Invalid option: $1" 1>&2
 	    exit 1;;
     esac
 done

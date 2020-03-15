@@ -21,3 +21,6 @@
 
 USE_LMD_INPUT=1
 
+OBJS += xtst_user.o
+
+CXXFLAGS += -DCONTROL_INCLUDE

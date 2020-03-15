@@ -75,7 +75,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SIDEREM_plane<n>::__unpack,int start,int end)
   assert (dest == _next_data);
 
   // we do not increase the number of stretches until we've seen that
-  // all data unpacked properly!      
+  // all data unpacked properly!
 
   _num_stretches++;
 }
@@ -98,7 +98,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_SIDEREM::__unpack)
   // int n;
 
   // n is the total number of data-words
-  
+
   // make sure the number of data-words are available, then we can use
   // a direct pointer.  No! because the byte-swapping etc is done in
   // the data_src
@@ -107,7 +107,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_SIDEREM::__unpack)
   _y.setup_unpack();
 
   int last_end = -2;
-  
+
   while (!__buffer.empty())
     {
       uint32 stretch_header;
@@ -115,7 +115,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_SIDEREM::__unpack)
       GET_BUFFER_UINT32(stretch_header);
 
       uint32 start = (stretch_header      ) & 0x03ff; // 0-4095
-      uint32 end   = (stretch_header >> 12) & 0x07ff; // 0-4096 
+      uint32 end   = (stretch_header >> 12) & 0x07ff; // 0-4096
 
       if ((int) start < last_end)
 	ERROR("stretch_header start (%d) < previous stretch end (%d)",

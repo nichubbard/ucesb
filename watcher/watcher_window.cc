@@ -50,7 +50,7 @@ watcher_window::watcher_window()
   _init = false;
 
   _display_at_mask = 0;
-  _display_counts  = 1000; 
+  _display_counts  = 1000;
   _display_timeout = 1;
 
   _show_range_stat = 0;
@@ -149,14 +149,14 @@ void watcher_window::init()
   _init = true;
   _time = 0;
   _event_no = 0;
-  _counter = 0;  
+  _counter = 0;
   memset(_type_count,0,sizeof(_type_count));
 
   if (!_display_at_mask)
     {
-      _display_at_mask = 
-	(WATCHER_DISPLAY_COUNT | 
-	 WATCHER_DISPLAY_SPILL_EOS | 
+      _display_at_mask =
+	(WATCHER_DISPLAY_COUNT |
+	 WATCHER_DISPLAY_SPILL_EOS |
 	 WATCHER_DISPLAY_TIMEOUT);
       _display_counts  = 10000;
       _display_timeout = 15;
@@ -171,7 +171,7 @@ void watcher_window::event(watcher_event_info &info)
 {
   {
       vect_watcher_present_channels::iterator ch;
-      
+
       for (ch = _present_channels.begin(); ch != _present_channels.end(); ++ch)
 	(*ch)->event_summary();
   }
@@ -188,7 +188,7 @@ void watcher_window::event(watcher_event_info &info)
 
   if (info._event_no & WATCHER_DISPLAY_INFO_EVENT_NO)
     _event_no = info._event_no;
- 
+
 
   //if (event_info._time)
   //_time = event_info._time;
@@ -196,15 +196,15 @@ void watcher_window::event(watcher_event_info &info)
   // _det_watcher.collect_physics_raw(event_raw);
   // _det_watcher.collect_physics(event_tcal);
 
-  uint event_spill_on_off = 
-    info._display & (WATCHER_DISPLAY_SPILL_ON | 
+  uint event_spill_on_off =
+    info._display & (WATCHER_DISPLAY_SPILL_ON |
 		     WATCHER_DISPLAY_SPILL_OFF);
-  
+
   uint display_type = info._display;
 
   // see if we have detected a spill on/off change
-  
-  if (_last_event_spill_on_off && 
+
+  if (_last_event_spill_on_off &&
       event_spill_on_off &&
       _last_event_spill_on_off != event_spill_on_off)
     {
@@ -213,7 +213,7 @@ void watcher_window::event(watcher_event_info &info)
       if (event_spill_on_off & WATCHER_DISPLAY_SPILL_OFF)
 	display_type |= WATCHER_DISPLAY_SPILL_EOS;
     }
-  
+
   _last_event_spill_on_off = event_spill_on_off;
 
   if (display_type & _display_at_mask)
@@ -234,15 +234,15 @@ void watcher_window::event(watcher_event_info &info)
 
       time_t t = _time;
       const char* t_str = ctime(&t);
-      
+
       wcolor_set(wtop,COL_NORMAL,NULL);
       wmove(wtop,0,(int) (40-strlen(t_str) / 2));
       waddstr(wtop,t_str);
-      
+
       char buf[256];
-      
+
       sprintf (buf,"Event: %d",_event_no);
-      
+
       wmove(wtop,2,0);
       waddstr(wtop,buf);
 
@@ -257,7 +257,7 @@ void watcher_window::event(watcher_event_info &info)
 	}
 
       wrefresh(wtop);
-      
+
       watcher_display_info display_info;
 
       // info._requests = &_requests;
@@ -279,7 +279,7 @@ void watcher_window::event(watcher_event_info &info)
       */
 
       vect_watcher_channel_display::iterator ch;
-      
+
       for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
 	(*ch)->display(display_info);
 

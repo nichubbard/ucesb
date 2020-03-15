@@ -32,21 +32,21 @@ CAMAC_SILENA_4418(channels,mark_channel_no)
   list(0<=index<channels)
     {
       if (mark_channel_no) {
-	UINT16 ch_data NOENCODE 
+	UINT16 ch_data NOENCODE
 	  {
 	    0_11:  value;
 	    12_14: channel = CHECK(index);
 	    15:    overflow;
 
-	    ENCODE(data[index],(value=value,overflow=overflow)); 
+	    ENCODE(data[index],(value=value,overflow=overflow));
 	  }
       } else {
-	UINT16 ch_data NOENCODE 
+	UINT16 ch_data NOENCODE
 	  {
 	    0_11:  value;
 	    15:    overflow;
 
-	    ENCODE(data[index],(value=value,overflow=overflow)); 
+	    ENCODE(data[index],(value=value,overflow=overflow));
 	  }
       }
     }

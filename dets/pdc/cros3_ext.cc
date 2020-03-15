@@ -125,7 +125,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_CROS3::__unpack,uint16 ccb_id)
 
   uint16 *src_begin  = (uint16*) __buffer._data;
   uint16 *src_end    = (uint16*) __buffer._end;
-  
+
   if (__buffer.left() < sizeof(uint16) * 6)
     ERROR("cros3 data too small, no space for ccb header and footer");
 
@@ -238,17 +238,17 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_CROS3::__unpack,uint16 ccb_id)
 	  _scramble_buffer = new_buf;
 	  _scramble_length = length;
 	}
-      
+
       __data_src_t src_all(src_begin,src_end);
 
       uint16 *pd = _scramble_buffer;
-      
+
       for (size_t i = length / 2; i; --i)
 	{
 	  src_all.get_uint16(pd);
 	  pd++;
 	}
-      
+
       src_begin = _scramble_buffer;
       src_end   = _scramble_buffer + length / 2;
     }
@@ -264,7 +264,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_CROS3::__unpack,uint16 ccb_id)
   // know) should thus be similar to the code below
 
   if (mode == 2) // seems mode 2 behaves unexpectedly, treat as mode 1 instead
-    mode = 1;    
+    mode = 1;
 
   status.ad16_seen = 0;
 
@@ -309,7 +309,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_CROS3::__unpack,uint16 ccb_id)
 				       data);
 
 #if CROS3_TOT_ENCODED_DETECT_NOISY_WIRES
-      if (!(((rw_cros3_tot_noisy *) _noise_stat)->events & 0x1ff))	
+      if (!(((rw_cros3_tot_noisy *) _noise_stat)->events & 0x1ff))
 	cros3_check_tot_noise((rw_cros3_tot_noisy *) _noise_stat);
 #endif
       break;

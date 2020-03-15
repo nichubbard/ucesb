@@ -25,10 +25,16 @@
 
 #include "multi_info.hh"
 
+class unpack_event;
+class unpack_sticky_event;
+
 void watcher_init(const char *command);
 void watcher_event();
 
-void watcher_one_event(WATCH_MEMBERS_SINGLE_PARAM);
+void watcher_one_event(unpack_event *unpack_ev
+		       WATCH_MEMBERS_PARAM);
+void watcher_one_event(unpack_sticky_event *unpack_ev
+		       WATCH_MEMBERS_PARAM);
 
 #endif
 

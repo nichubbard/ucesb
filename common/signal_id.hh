@@ -95,7 +95,7 @@ public:
       return _id._index < rhs._id._index;
     if (_type & SIG_PART_NAME)
       return strcmp(_id._name,rhs._id._name) < 0;
-    
+
     return false;
   }
 
@@ -110,7 +110,7 @@ public:
       return _id._index == rhs._id._index;
     if (_type & SIG_PART_NAME)
       return strcmp(_id._name,rhs._id._name) == 0;
-    
+
     return false;
   }
 
@@ -178,7 +178,7 @@ public:
 
   char *generate_indexed(int diff_index,
 			 int diff_offset);
-  
+
 public:
   bool operator<(const signal_id &rhs) const
   {
@@ -208,7 +208,7 @@ public:
 
 	++iter_this;
 	++iter_rhs;
-      }    
+      }
   }
 };
 

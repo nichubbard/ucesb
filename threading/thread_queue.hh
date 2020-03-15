@@ -187,7 +187,7 @@ public:
 
     return ((_avail - _done) & (2*n-1)) > 0;
   }
-  
+
   T &next_remove()
   {
     assert(can_remove());
@@ -393,7 +393,7 @@ public:
 public:
   T &next_remove(int *next_queue)
   {
-    thread_queue_item<T> &slot = 
+    thread_queue_item<T> &slot =
       thread_queue<thread_queue_item<T>,n>::next_remove();
 
     *next_queue = slot._next_item_queue;
@@ -460,7 +460,7 @@ public:
     // trigger their consumers
 
     for (int i = 0; i < this->_size; i++)
-      this->_queues[i].flush_avail();    
+      this->_queues[i].flush_avail();
   }
 };
 
@@ -481,7 +481,7 @@ public:
 public:
   T &next_insert(int next_queue)
   {
-    thread_queue_item<T> &slot = 
+    thread_queue_item<T> &slot =
       thread_queue<thread_queue_item<T>,n>::next_insert();
 
     slot._next_item_queue = next_queue;
@@ -570,11 +570,11 @@ public:
 
     // Since there are many queues, we cannot give a global count,
     // since that would need to be locked.
-    
 
-    
+
+
     // We need to check the queue once more after asking for wakeup.
-    
+
     if (this->next_queue().can_remove())
       {
 	return true; // we actually had data, do not sleep!

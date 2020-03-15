@@ -1,7 +1,7 @@
-Stuff for handling work division on many processors.  
+Stuff for handling work division on many processors.
 (but within the same machine)
 
-It makes little sense to copy data over the network for processing events.  
+It makes little sense to copy data over the network for processing events.
 Since then we copy the data twice.  Rather run several independent jobs on
 each machine.
 

@@ -57,7 +57,7 @@ public:
   unit_exponent_map _blocks;
 
 public:
-  bool operator<(const units_exponent &rhs) const 
+  bool operator<(const units_exponent &rhs) const
   {
     return _blocks < rhs._blocks;
   }
@@ -76,7 +76,7 @@ public:
 
 
 public:
-  bool operator<(const prefix_units_exponent &rhs) const 
+  bool operator<(const prefix_units_exponent &rhs) const
   {
     if (_blocks_simple < rhs._blocks_simple)
       return true;
@@ -86,7 +86,7 @@ public:
       return true;
     if (_blocks_prefix > rhs._blocks_prefix)
       return false;
-    
+
     return _total_prefix < rhs._total_prefix;
   }
 };

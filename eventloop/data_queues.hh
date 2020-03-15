@@ -26,10 +26,10 @@
 
 //////////////////////////////////////////////////////////////////////
 
-#define OFQ_INFO_MESSAGE          0x01000000 
+#define OFQ_INFO_MESSAGE          0x01000000
 #define OFQ_INFO_FILE             0x10000000
-#define OFQ_INFO_FLUSH            0x04000000 
-#define OFQ_INFO_DONE             0x08000000 
+#define OFQ_INFO_FLUSH            0x04000000
+#define OFQ_INFO_DONE             0x08000000
 
 class data_input_source;
 

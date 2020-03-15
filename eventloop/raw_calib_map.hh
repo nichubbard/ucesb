@@ -27,9 +27,10 @@
 
 #include "enumerate.hh"
 
-template<typename T>
+template<typename T,int n_toggle>
 bool set_raw_to_tcal(void *info,
-		     void *dummy);
+		     void *dummy,
+		     int toggle_i_dummy);
 
 struct mix_rnd_seed
 {
@@ -45,7 +46,7 @@ public:
 #endif
 #endif
   mix_rnd_seed(const mix_rnd_seed &src) { assert(false); }
- 
+
  public:
   mix_rnd_seed(uint64 A,uint64 B);
   // mix_rnd_seed(const mix_rnd_seed &src);
@@ -59,16 +60,17 @@ public:
   uint64 get() const;
 };
 
-template<typename T>
-class calib_map
+template<typename T,int n_toggle>
+class calib_map_base
 {
 public:
-  calib_map()
+  calib_map_base()
   {
     // src  = NULL;
     // _dest = NULL;
 
-    _calib = NULL;
+    for (int i = 0; i < n_toggle; i++)
+      _calib[i] = NULL;
     // _dest  = NULL;
     // _zzp_info = NULL;
 
@@ -83,16 +85,16 @@ public:
 
 public:
   // r2c_union<T>              _calib;
-  raw_to_tcal_base            *_calib;
+  raw_to_tcal_base            *_calib[n_toggle];
   // void                     *_dest;
   // const zero_suppress_info *_zzp_info;
   /*
 public:
-  void set_dest(T *dest,const zero_suppress_info &zzp_info) 
-  { 
+  void set_dest(T *dest,const zero_suppress_info &zzp_info)
+  {
     printf ("Set dest: %p\n",dest);
 
-    _dest     = dest; 
+    _dest     = dest;
     _zzp_info = zzp_info;
   }
   */
@@ -106,42 +108,69 @@ public:
   void enumerate_map_members(const signal_id &id,
 			     const enumerate_info &info,
 			     enumerate_fcn callback,void *extra) const
-  { 
-    callback(id,enumerate_info(info,this,get_enum_type((T *) NULL)).set_dest(set_raw_to_tcal<T>),extra);
+  {
+    callback(id,enumerate_info(info,this,get_enum_type((T *) NULL)).
+	     set_dest_function(set_raw_to_tcal<T,n_toggle>),extra);
   }
 
 public:
-  void map_members(const T &src) const;
+  raw_to_tcal_base *get_calib(int i) const { return _calib[i]; }
+  int get_n_toggle() const { return n_toggle; }
 
 public:
   void show(const signal_id &id);
 
 public:
-  void set_rnd_seed(const mix_rnd_seed &rnd_seed) 
+  void set_rnd_seed(const mix_rnd_seed &rnd_seed)
   {
-    _rnd_seed = rnd_seed.get(); 
+    _rnd_seed = rnd_seed.get();
   }
 
 public:
   void clear()
   {
     // fprintf (stderr,"%p:calib_map::clear() , _calib=%p\n",this,_calib);
-    delete _calib;
-    _calib = NULL;
+    for (int i = 0; i < n_toggle; i++)
+      {
+	delete _calib[i];
+	_calib[i] = NULL;
+      }
   }
 };
 
-typedef calib_map<uint8>  uint8_calib_map;
-typedef calib_map<uint16> uint16_calib_map;
-typedef calib_map<uint32> uint32_calib_map;
-typedef calib_map<DATA8>  DATA8_calib_map;
-typedef calib_map<DATA12> DATA12_calib_map;
-typedef calib_map<DATA12_OVERFLOW> DATA12_OVERFLOW_calib_map;
-typedef calib_map<DATA12_RANGE> DATA12_RANGE_calib_map;
-typedef calib_map<DATA16> DATA16_calib_map;
-typedef calib_map<DATA24> DATA24_calib_map;
-typedef calib_map<DATA32> DATA32_calib_map;
-typedef calib_map<float>  float_calib_map;
+template<typename T>
+class calib_map :
+  public calib_map_base<T,1>
+{
+  /*
+public:
+  calib_map() : calib_map_base<T,1>()
+  {
+
+  }
+  */
+  
+public:
+  void map_members(const T &src) const;
+};
+
+template<typename T>
+class toggle_calib_map :
+  public calib_map_base<T,2>
+{
+
+
+public:
+  void map_members(const toggle_item<T> &src) const;
+};
+
+#define DECL_PRIMITIVE_TYPE(type)			\
+  typedef calib_map<type>  type##_calib_map;		\
+  typedef toggle_calib_map<type>  toggle_##type##_calib_map;
+
+#include "decl_primitive_types.hh"
+
+#undef DECL_PRIMITIVE_TYPE
 
 // TODO: Make sure that the user cannot specify source array indices
 // in SIGNAL which are outside the available items.  Bad names get
@@ -154,20 +183,20 @@ public:
   T_map _items[n];
 
 public:
-  T_map &operator[](size_t i) 
-  { 
+  T_map &operator[](size_t i)
+  {
     // This function is used by the setting up of the arrays, i.e. we
     // can have checks here
-    if (i >= n) 
-      ERROR("Mapping index outside bounds (%d >= %d)",(int) i,n); 
-    return _items[i]; 
+    if (i >= n)
+      ERROR("Mapping index outside bounds (%d >= %d)",(int) i,n);
+    return _items[i];
   }
-  const T_map &operator[](size_t i) const 
+  const T_map &operator[](size_t i) const
   {
     // This function is used by the mapping operations (since that one
     // needs a const function), no checks here (expensive, since
     // called often)
-    return _items[i]; 
+    return _items[i];
   }
 
 public:
@@ -186,7 +215,7 @@ public:
   void enumerate_map_members(const signal_id &id,
 			     const enumerate_info &info,
 			     enumerate_fcn callback,void *extra) const
-  { 
+  {
     for (int i = 0; i < n; ++i)
       _items[i].enumerate_map_members(signal_id(id,i),info,callback,extra);
   }
@@ -199,20 +228,20 @@ public:
   raw_array_calib_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> _items[n];
 
 public:
-  raw_array_calib_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i) 
-  { 
+  raw_array_calib_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i)
+  {
     // This function is used by the setting up of the arrays, i.e. we
     // can have checks here
-    if (i >= n) 
-      ERROR("Mapping index outside bounds (%d >= %d)",(int) i,n); 
-    return _items[i]; 
+    if (i >= n)
+      ERROR("Mapping index outside bounds (%d >= %d)",(int) i,n);
+    return _items[i];
   }
-  const raw_array_calib_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i) const 
+  const raw_array_calib_map<Tsingle_map,Tsingle,Tsingle_map,Tsingle,n1> &operator[](size_t i) const
   {
     // This function is used by the mapping operations (since that one
     // needs a const function), no checks here (expensive, since
     // called often)
-    return _items[i]; 
+    return _items[i];
   }
 
 public:
@@ -227,7 +256,7 @@ public:
   void enumerate_map_members(const signal_id &id,
 			     const enumerate_info &info,
 			     enumerate_fcn callback,void *extra) const
-  { 
+  {
     for (int i = 0; i < n; ++i)
       for (int i1 = 0; i1 < n1; ++i1)
 	_items[i][i1].enumerate_map_members(signal_id(signal_id(id,i),i1),info,callback,extra);
@@ -302,6 +331,14 @@ public:
   }
 
 };
+
+class raw_sticky_base_calib_map :
+  public raw_event_base_calib_map
+{
+  
+};
+
+
 /*
 class cal_event_base_map
 {

@@ -105,7 +105,7 @@ public:
     TDBG("nfd:%d",nfd);
 
     int n = select(nfd+1,readfds,NULL,NULL,timeout);
-    
+
     if (n == -1)
       {
 	if (errno == EINTR)
@@ -119,7 +119,7 @@ public:
 	// This error is fatal, since it should not happen
 	exit(1);
       }
-    
+
     // as there may have been spurious tokens, we try to read more
     // than one to quickly empty the pipe.  But also 1 would work,
     // just cause us to go to sleep and wake an extra time if extra
@@ -159,7 +159,7 @@ public:
   {
     for ( ; ; )
       {
-	int token; 
+	int token;
 
 	ssize_t n = read(_fd_wakeup[0],&token,sizeof(token));
 
@@ -182,7 +182,7 @@ public:
 	ERROR("Failed to read from wakeup pipe.  strange");
 	// The error reports may not make it to the output.  Bypass...
 	fprintf (stderr,"Failed to write to wakeup pipe.  strange\n");
-	exit(1);	    
+	exit(1);
       }
   }
 
@@ -219,7 +219,7 @@ public:
 	  }
 	// The error reports may not make it to the output.  Bypass...
 	fprintf (stderr,"Failed to write to wakeup pipe.  DEADLOCK\n");
-	abort();	    
+	abort();
       }
   }
 

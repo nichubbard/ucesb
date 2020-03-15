@@ -111,7 +111,7 @@ public:
 
 public:
   // wire_hits data;
-  
+
   raw_list_ii_zero_suppress<rich_rawdata_word,rich_rawdata_word,2*8*8*64> data;
 
 public:

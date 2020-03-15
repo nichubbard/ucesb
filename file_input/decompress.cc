@@ -20,6 +20,7 @@
 
 #include "decompress.hh"
 #include "error.hh"
+#include "config.hh"
 
 #include "file_mmap.hh"
 #include "pipe_buffer.hh"
@@ -34,6 +35,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
+
+#define MIN_BUFFER_SIZE 0x01000000 // 16 MB prefetch buffer
 
 decompressor::decompressor()
 {
@@ -76,7 +79,7 @@ void decompressor::start(int *fd_in,
 
   //for (int i = 0; argv[i]; i++)
   //  printf ("%d: <%s>\n",i,argv[i]);
-    
+
   _fork.fork(method,argv,fd_in,fd_out,-1,fd_src,-1,NULL,true);
   /* printf ("_fork._fd_in:%d\n",_fork._fd_in); */
   _fork._fd_in = -1; // caller will take care of closing the file!
@@ -117,13 +120,13 @@ void decompressor::reap()
     return;
 
   // close (pipe_out[0]); // by caller
-  
+
   // Now lets get the exit status of the child
-  
+
   // First ask him to die, if he did not already (this is
   // otherwise a beautiful way to lock us up, if we abort before
   // finishing reading for some reason)
-  
+
   _fork.wait(true);
 
   // So child is dead, pipes are closed, we got the information.
@@ -151,7 +154,7 @@ void *decompress_relay_thread(void *info)
   alloc += page_size;
 
   char *buffer = (char *) malloc(alloc);
-  char *aligned = 
+  char *aligned =
     (char *) ((((size_t) buffer) + page_size-1) & ~(page_size - 1));
 
   memcpy (aligned,drt->_magic,PEEK_MAGIC_BYTES);
@@ -202,7 +205,7 @@ void *decompress_relay_thread(void *info)
 	  */
 	  available += (size_t) n;
 	}
-      
+
       size_t towrite = available - consumed;
       offset = consumed & (DRT_BUF_SIZE - 1);
       linear_left = DRT_BUF_SIZE - offset;
@@ -242,20 +245,20 @@ void *decompress_relay_thread(void *info)
 	  */
 	  consumed += (size_t) n;
 	}
-    } 
-  
+    }
+
   // We are done copying data.
 
   free(buffer);
 
   close(drt->_fd_write); // There will be no more data written.
-  
+
   return NULL;
 }
 
 struct decompress_magic_cmd_args_t
 {
-  struct 
+  struct
   {
     unsigned char _len;
     unsigned char _b[4];
@@ -291,7 +294,7 @@ struct decompress_magic_cmd_args_t
  *
  * - If tee() succeeded, continue reading pipe from original pipe.
  * - If file supports mmap, use that.
- * - If any (both) of the above failed, read from pipe, but first use 
+ * - If any (both) of the above failed, read from pipe, but first use
  *   the (non-magic) bytes stolen.
  *
  * If compressed:
@@ -341,7 +344,7 @@ void decompress(decompressor **handler,
       // Creat a pipe to tee() into.
 
       int pipe_tee[2];
-      
+
       if (pipe(pipe_tee) == -1)
 	ERROR("Error creating pipe(2) for decompress magic peek.");
 
@@ -351,16 +354,16 @@ void decompress(decompressor **handler,
 	    WARNING("Failed to tee(2) data for decompress magic peek, "
 	            "using fallback solution.");
 	  */
-	  
+
 	  n = retry_read(*fd,push_magic,PEEK_MAGIC_BYTES);
 	  untouched = false;
 	}
-      else if ((n = retry_read(pipe_tee[0],push_magic,PEEK_MAGIC_BYTES)) != 
+      else if ((n = retry_read(pipe_tee[0],push_magic,PEEK_MAGIC_BYTES)) !=
 	       PEEK_MAGIC_BYTES)
 	{
 	  WARNING("Failed to read blind-pipe for decompress magic peek, "
 		  "using fallback solution.");
-	  
+
 	  n = retry_read(*fd,push_magic,PEEK_MAGIC_BYTES);
 	  untouched = false;
 	}
@@ -368,7 +371,7 @@ void decompress(decompressor **handler,
 	printf ("tee pipe: %d %d\n",pipe_tee[0],pipe_tee[1]);
       */
       // Close extra pipe
-      
+
       close(pipe_tee[0]);
       close(pipe_tee[1]);
     }
@@ -391,7 +394,7 @@ void decompress(decompressor **handler,
 
   for (uint i = 0; i < countof(decompress_magic_cmd_args); i++)
     {
-      const decompress_magic_cmd_args_t &dmca = 
+      const decompress_magic_cmd_args_t &dmca =
 	decompress_magic_cmd_args[i];
 
       if (memcmp(push_magic,dmca._magic._b,(size_t) dmca._magic._len) == 0)
@@ -447,7 +450,7 @@ void decompress(decompressor **handler,
 	      printf ("Fire of relay: %d -> %d\n",fd_copy,fd_out);
 	      */
 #ifndef HAVE_PTHREAD
-#error pthreads is now required for UCESB, or some fixing is needed.  
+#error pthreads is now required for UCESB, or some fixing is needed.
 #error Please contact the author.
 #endif
 	      if (pthread_create(&(*relay_info)->_thread,NULL,
@@ -478,14 +481,14 @@ void decompress(decompressor **handler,
 ssize_t retry_read(int fd,void *buf,size_t count)
 {
   ssize_t total = 0;
-  
+
   for ( ; ; )
     {
       ssize_t nread = read(fd,buf,count);
 
       if (!nread)
 	break;
-      
+
       if (nread == -1)
 	{
 	  if (errno == EINTR)
@@ -508,7 +511,7 @@ ssize_t retry_read(int fd,void *buf,size_t count)
 size_t full_read(int fd,void *buf,size_t count,bool eof_at_start)
 {
   ssize_t nread = read(fd,buf,count);
-  
+
   if (nread == 0 && eof_at_start)
     return 0;
 
@@ -517,7 +520,7 @@ size_t full_read(int fd,void *buf,size_t count,bool eof_at_start)
   // to read a partial element.
 
   size_t total = 0;
-  
+
   for ( ; ; )
     {
       if (nread == -1)
@@ -594,7 +597,7 @@ void data_input_source::connect(const char *name,int type
       server = new lmd_input_tcp_transport();
 
       break;
-    default: 
+    default:
       assert(false);
       return;
     }
@@ -608,19 +611,19 @@ void data_input_source::connect(const char *name,int type
   // set up a tcp_pipe_buffer to handle the data transport
 
   tcp_pipe_buffer *tpb = new tcp_pipe_buffer();
-  
+
   TDBG("attempting tcp pipe %p",tpb);
-  
+
   // We also need to push any magic data that we read from the input file
   // in case it could not seek back to the beginning
-  
+
 #if USE_THREADING
   tpb->set_next_file(blocked_next_file,wakeup_next_file);
 #endif
 
-#define MIN_BUFFER_SIZE 0x01000000 // 16 MB prefetch buffer
-
   size_t prefetch_size = MIN_BUFFER_SIZE;
+  while (prefetch_size < _conf._input_buffer)
+    prefetch_size *= 2;
 
   // Three times the size required.  We need twice to handle events
   // fragmented between streams (ucesb generated).  And then another
@@ -631,15 +634,15 @@ void data_input_source::connect(const char *name,int type
 
   INFO(0,"Server data: %zdkiB chunks; prefetch buffer: %zdMiB.",
        minsize >> 10, prefetch_size >> 20);
-  
+
   tpb->init(server,prefetch_size
 #ifdef USE_PTHREAD
 	   ,block_reader
 #endif
 	   );
-  
+
   tpb->set_filename(name);
-  
+
   _input._input = tpb;
   _input._cur   = 0;
 }
@@ -734,36 +737,36 @@ void data_input_source::open(const char *filename
 	    fd = STDIN_FILENO;
 	  else if(isdigit(filename[1]))
 	    fd = atoi(filename+1);
-	  
+
 	  if (fd != -1)
 	    {
 	      // Try to read 0 bytes from the file descriptor, just to see
 	      // that it is valid
-	      
+
 	      char dummy;
 	      ssize_t ret;
-	      
+
 	      ret = read(fd,&dummy,0);
-	      
+
 	      // don't care about EINTR, which would be the only valid
 	      // reason to retry...
-	      
+
 	      if (ret != 0)
 		{
 		  perror("read");
 		  ERROR("Attempt to read from file descriptor %d failed.",fd);
 		}
-	      
+
 	      INFO(0,"Opened input from file descriptor %d, process...",fd);
-	      
+
 	      decompress_filename = NULL; // we are a pipe
 	    }
 	}
-      
+
       if (fd == -1)
 	{
 	  fd = ::open(filename,O_RDONLY);
-	  
+
 	  if (fd == -1)
 	    {
 	      perror("open");
@@ -775,10 +778,10 @@ void data_input_source::open(const char *filename
 
   unsigned char push_magic[PEEK_MAGIC_BYTES];
   size_t push_magic_len = 0;
-  
+
   // See it it was an compressed file, if so, run the
   // decompressor as a separate process
-  
+
   decompress(&_decompressor,&_relay_info,&fd,decompress_filename,
 	     push_magic,&push_magic_len);
 
@@ -869,8 +872,13 @@ void data_input_source::open(const char *filename
 	      push_magic[3],
 	      (int) push_magic_len);
       */
+
+      size_t prefetch_size = MIN_BUFFER_SIZE;
+      while (prefetch_size < _conf._input_buffer)
+	prefetch_size *= 2;
+      
       pb->init(fd,push_magic,push_magic_len,
-	       0x01000000 // 16 MB prefetch buffer
+	       prefetch_size
 #ifdef USE_PTHREAD
 	       ,block_reader
 #endif
@@ -928,7 +936,11 @@ void data_input_source::open_rfio(const char *filename
   rpb->set_next_file(blocked_next_file,wakeup_next_file);
 #endif
 
-  rpb->init(fd/*,magic*/,0x01000000 // 16 MB prefetch buffer                 
+  size_t prefetch_size = MIN_BUFFER_SIZE;
+  while (prefetch_size < _conf._input_buffer)
+    prefetch_size *= 2;
+  
+  rpb->init(fd/*,magic*/,prefetch_size
 #ifdef USE_PTHREAD
 	   ,block_reader
 #endif
@@ -971,15 +983,15 @@ void data_input_source::close()
   // Shut decompressor down (wait for child process after pipe is closed)
 
   if (_decompressor)
-    { 
+    {
       try {
 	_decompressor->reap();
       } catch (error &e) {
 	boom = true;
       }
 
-      delete _decompressor; 
-      _decompressor = NULL; 
+      delete _decompressor;
+      _decompressor = NULL;
     }
 
   // We try to reap the relay_thread after killing the decompressor.
@@ -995,7 +1007,7 @@ void data_input_source::close()
 	  perror("pthread_join()");
 	  exit(1);
 	}
-      
+
       // The write pipe has already been closed by the relay thread.
 
       ::close (_relay_info->_fd_read);

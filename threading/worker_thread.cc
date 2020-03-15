@@ -104,7 +104,7 @@ void worker_thread::join()
   if (_active)
     {
       pthread_cancel(_thread);
-      
+
       if (pthread_join(_thread,NULL) != 0)
 	{
 	  perror("pthread_join()");

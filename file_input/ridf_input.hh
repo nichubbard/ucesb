@@ -73,7 +73,7 @@ struct ridf_event
   buf_chunk *_chunk_end;
   buf_chunk *_chunk_cur;
   size_t     _offset_cur;
-  
+
 #ifndef USE_THREADING
 public:
   keep_buffer_many _defrag_event_many;

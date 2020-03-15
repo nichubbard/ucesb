@@ -34,12 +34,12 @@ void convert_picture(const char *filename,
   char header[128];
 
   const char *argv[4] = { "convert", "-", filename, NULL };
-  
+
   writer.fork(argv[0],argv,NULL,&fd);
-    
+
   sprintf (header,
-	   "P5\n" 
-	   "%d %d\n" 
+	   "P5\n"
+	   "%d %d\n"
 	   "255\n",
 	   width,height);
 

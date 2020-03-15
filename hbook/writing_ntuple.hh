@@ -225,7 +225,7 @@ public:
   uint32_t     *_infos;
   void        **_dests;
   uint32_t     *_masks;
-  
+
   uint32_t _info_slots_per_entry;
   uint32_t _items_per_entry;
   uint32_t _masks_per_entry;
@@ -238,7 +238,7 @@ public:
   uint32_t _items_used; /* For cutting down */
 };
 
-struct index_item 
+struct index_item
   : public indexed_item, limit_item
 {
 public:

@@ -52,7 +52,7 @@ struct ntuple_mask
 
   uint* _ptr;
   uint  _valid;
-  uint  _overflow; 
+  uint  _overflow;
 };
 
 #define NTUPLE_ITEM_HAS_LIMIT      0x0001
@@ -176,7 +176,7 @@ public:
   // Additional info for CWN
   std::string _block;
   std::string _index_var;
-  uint        _index;   
+  uint        _index;
 
   const int*  _ptr_limit2;
   uint        _max_limit2; /* hmmm, different from _index (1) handling */

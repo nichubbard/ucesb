@@ -97,47 +97,19 @@ const char *_argv0;
 
 #ifdef BUILD_LAND02
 #include "../optimise.hh"
-#include "../../lu_common/colourtext.hh"
 #else
 #include "../eventloop/optimise.hh"
-#include "../lu_common/colourtext.hh"
 #endif
 
-#ifdef USE_CURSES
 #ifdef BUILD_LAND02
 #include "../../lu_common/colourtext.cc"
 #else
 #include "../lu_common/colourtext.cc"
 #endif
-#endif
 
 ext_write_config _config;
 
-#define MSG(...) do {              \
-  if (_config._forked)             \
-    fprintf(stderr,"%s%s:%s ",CT_ERR(BLUE),_argv0,CT_ERR(DEF_COL));	\
-  fprintf(stderr,__VA_ARGS__);     \
-  fputc('\n',stderr);              \
-} while (0)
-
-#define WARN_MSG(...) do { \
-  if (_config._forked)             \
-    fprintf(stderr,"%s%s:%s ",CT_ERR(BLUE),_argv0,CT_ERR(DEF_COL));	\
-  fprintf(stderr,"%s",CT_ERR(BLACK_BG_YELLOW));	   \
-  fprintf(stderr,__VA_ARGS__);     \
-  fprintf(stderr,"%s",CT_ERR(DEF_COL));	   \
-  fputc('\n',stderr);              \
-} while(0)
-
-#define ERR_MSG(...) do { \
-  if (_config._forked)             \
-    fprintf(stderr,"%s%s:%s ",CT_ERR(BLUE),_argv0,CT_ERR(DEF_COL));	\
-  fprintf(stderr,"%s",CT_ERR(WHITE_BG_RED));	   \
-  fprintf(stderr,__VA_ARGS__);     \
-  fprintf(stderr,"%s",CT_ERR(DEF_COL));	   \
-  fputc('\n',stderr);              \
-  exit(1);                \
-} while(0)
+#include "ext_file_error.hh"
 
 #if USING_CERNLIB
 #define WARNING       MSG
@@ -161,7 +133,7 @@ ext_write_config _config;
 
 const char *get_buf_string(void **msg,uint32_t *left)
 {
-  external_writer_buf_string *str = 
+  external_writer_buf_string *str =
     (external_writer_buf_string *) *msg;
 
   if (sizeof(*str) > *left)
@@ -176,7 +148,7 @@ const char *get_buf_string(void **msg,uint32_t *left)
 
   if (str->_string[length])
     ERR_MSG("SHM message string not zero-terminated.");
- 
+
   *msg   = ((char*) str) + advance;
   *left -= advance;
 
@@ -185,7 +157,7 @@ const char *get_buf_string(void **msg,uint32_t *left)
 
 uint32_t get_buf_uint32(void **msg,uint32_t *left)
 {
-  uint32_t *p = 
+  uint32_t *p =
     (uint32_t *) *msg;
 
   if (sizeof(*p) > *left)
@@ -206,14 +178,14 @@ float get_buf_float(void **msg,uint32_t *left)
     float    _f;
     uint32_t _i;
   } value;
-  
+
   value._i = get_buf_uint32(msg,left);
   return value._f;
 }
 
 uint32_t *get_buf_raw_ptr(void **msg,uint32_t *left,uint32_t u32_words)
 {
-  uint32_t *p = 
+  uint32_t *p =
     (uint32_t *) *msg;
 
   uint32_t advance = u32_words * sizeof(uint32_t);
@@ -227,59 +199,7 @@ uint32_t *get_buf_raw_ptr(void **msg,uint32_t *left,uint32_t u32_words)
   return p;
 }
 
-struct msg_config {
-  uint32_t    _hid;
-  const char *_id;
-  const char *_title;
-
-  uint32_t    _sort_u32_words;
-
-  uint32_t    _max_raw_words;
-} _msg_config;
-
-
-#if USING_CERNLIB
-hbook            *_hfile = NULL;
-hbook_ntuple_cwn *_cwn = NULL;
-#endif
-#if USING_ROOT
-#if ROOT_HAS_TTREE_COMPRESS_THREADS
-TTreeCompressThreads *_root_compress_threads = NULL;
-#endif
-TFile            *_root_file = NULL;
-typedef std::vector<TTree *> TTree_vector;
-TTree_vector      _root_ntuples;
-TTree            *_root_ntuple = NULL; // Reading
-uint64_t          _num_read_entries = 0;
-#endif
-uint64_t          _num_events = 0;
-uint64_t          _num_events_total = 0;
-int               _num_hists = 0;
-
 typedef ext_data_structure_item stage_array_item;
-#if 0
-struct stage_array_item
-{
-#if !STRUCT_WRITER
-  uint32_t    _offset;
-#endif
-  uint32_t    _length;       // not needed, info only
-  const char *_block;        // not needed, info only
-  //const char *_branch_block; // not needed, info only
-  //const char *_hbname_vars;  // not needed, info only
-  //const char *_branch_vars;  // not needed, info only
-  const char *_var_name;
-  uint32_t    _var_array_len;
-  const char *_var_ctrl_name;
-  uint32_t    _var_type;
-  uint32_t    _limit_min;
-  uint32_t    _limit_max;
-
-#if STRUCT_WRITER
-  uint32_t    _ctrl_offset;
-#endif
-};
-#endif
 
 typedef std::map<uint32_t,stage_array_item> stage_array_item_map;
 typedef std::vector<stage_array_item> stage_array_item_vector;
@@ -309,7 +229,7 @@ struct stage_array
   uint32_t *_offset_value;
 
   int       _rewrite_max_bytes_per_item;
-  
+
   uint32_t *_masks[BUCKET_SORT_LEVELS];
   int       _num_masks[BUCKET_SORT_LEVELS];
 
@@ -328,30 +248,142 @@ struct offset_array
   uint32_t  _max_items;
 };
 
-//typedef std::map<int,stage_array> map_stage_array;
-//map_stage_array _stage_arrays;
+#if USING_ROOT
+typedef std::vector<TTree *> TTree_vector;
+#endif
 
-stage_array _stage_array = { 0, NULL, };
+struct global_once
+{
+  uint32_t          _sort_u32_words;
 
-offset_array _offset_array = { 0, NULL, 0, 0, };
+  uint32_t          _max_offset_array_items;
+
+#if USING_CERNLIB
+  hbook            *_hfile;
+#endif
+#if USING_ROOT
+#if ROOT_HAS_TTREE_COMPRESS_THREADS
+  TTreeCompressThreads *_root_compress_threads;
+#endif
+  TFile            *_root_file;
+  uint64_t          _num_read_entries;
+#endif
+  
+  uint64_t          _num_events;
+  uint64_t          _num_events_total;
+  int               _num_hists;
+
+public:
+  global_once()
+  {
+    _sort_u32_words = (uint32_t) -1;
+    _max_offset_array_items = 0;
+#if USING_CERNLIB
+    _hfile = NULL;
+#endif
+#if USING_ROOT
+#if ROOT_HAS_TTREE_COMPRESS_THREADS
+    _root_compress_threads = NULL;
+#endif
+    _root_file = NULL;
+    _num_read_entries = 0;
+#endif
+    _num_events = 0;
+    _num_events_total = 0;
+    _num_hists = 0;
+  }
+};
+
+global_once _g;
+
+struct global_struct
+{
+  uint32_t    _hid;
+  const char *_id;
+  const char *_title;
+
+  uint32_t    _max_raw_words;
+
+#if USING_CERNLIB
+  hbook_ntuple_cwn *_cwn;
+#endif
+#if USING_ROOT
+  TTree_vector      _root_ntuples;
+  TTree            *_root_ntuple;
+#endif
+
+  stage_array _stage_array;
+
+  offset_array _offset_array;
+
+  uint32_t _xor_sum;
+
+  const char *_index_major;
+  const char *_index_minor;
+
+public:
+  global_struct()
+  {
+    _hid = 0;
+    _id = NULL;
+    _title = NULL;
+    _max_raw_words = 0;
+#if USING_CERNLIB
+    _cwn = NULL;
+#endif
+#if USING_ROOT
+    /*_root_ntuples */;
+    _root_ntuple = NULL;
+#endif
+    /* Cannot memset _stage_array, has non-POD objects. */
+    _stage_array._length = 0;
+    _stage_array._ptr = NULL;
+    memset(&_offset_array, 0, sizeof (_offset_array));
+    _xor_sum = 0;
+
+    _index_major = NULL;
+    _index_minor = NULL;
+  }
+};
+
+typedef std::vector<global_struct *> global_struct_vector;
+
+global_struct_vector _structures;
+global_struct   *_cur_structure = NULL; /* the structure being set up */
+global_struct  *_read_structure = NULL;
 
 #if USING_CERNLIB || USING_ROOT
-time_t _last_slicetime = 0;
-time_t _last_autosave = 0;
-int _autosave_lock_fail = 0;
-int _autosave_lock_do = 1;
-
-struct timeslice_name
+struct timeslice
 {
-  const char *_dir;  // end with '/'
-  const char *_base; 
-  const char *_ext;  // begin with '.'
+  time_t _last_slicetime;
+  time_t _last_autosave;
+  int _autosave_lock_fail;
+  int _autosave_lock_do;
 
-  char *_curname;
+  struct timeslice_name
+  {
+    const char *_dir;  // end with '/'
+    const char *_base;
+    const char *_ext;  // begin with '.'
 
-  int   _list_fd;
-} _timeslice_name;
+    char *_curname;
+
+    int   _list_fd;
+  } _timeslice_name;
+
+public:
+  timeslice()
+  {
+    _last_slicetime = 0;
+    _last_autosave = 0;
+    _autosave_lock_fail = 0;
+    _autosave_lock_do = 1;
+  }
+};
+
+timeslice _ts;
 #endif
+
 
 void do_file_open(time_t slicetime)
 {
@@ -365,34 +397,34 @@ void do_file_open(time_t slicetime)
 
       if (_config._timeslice)
 	{
-	  _last_slicetime = slicetime;
+	  _ts._last_slicetime = slicetime;
 
 	  struct tm tmr;
 
-	  _timeslice_name._curname =
-	    (char *) malloc(strlen(_timeslice_name._dir)+32+   // date+'/'
-			    strlen(_timeslice_name._base)+32+  // '_'+date
-			    strlen(_timeslice_name._ext)+1+1); // '\n'+'\0'
+	  _ts._timeslice_name._curname =
+	    (char *) malloc(strlen(_ts._timeslice_name._dir)+32+   // date+'/'
+			    strlen(_ts._timeslice_name._base)+32+  // '_'+date
+			    strlen(_ts._timeslice_name._ext)+1+1); // '\n'+'\0'
 
-	  if (!_timeslice_name._curname)
+	  if (!_ts._timeslice_name._curname)
 	    ERR_MSG("Failure allocating string.");
-	  
-	  strcpy(_timeslice_name._curname,_timeslice_name._dir);
+
+	  strcpy(_ts._timeslice_name._curname,_ts._timeslice_name._dir);
 
 	  if (_config._timeslice_subdir)
 	    {
-	      time_t dir_time = 
+	      time_t dir_time =
 		slicetime - slicetime % _config._timeslice_subdir;
 
 	      gmtime_r(&dir_time,&tmr);
 	      strftime(tmptm,sizeof(tmptm),"%Y%m%d_%H%M%S",&tmr);
 
-	      strcat(_timeslice_name._curname,tmptm);
+	      strcat(_ts._timeslice_name._curname,tmptm);
 
 	      // Let's try to always create the directory, e.g.
 	      // in case the user helped by removing them...
 
-	      int ret = mkdir(_timeslice_name._curname,
+	      int ret = mkdir(_ts._timeslice_name._curname,
 			      S_IRWXU | S_IRWXG | S_IRWXO);
 
 	      if (ret != 0 &&
@@ -401,37 +433,37 @@ void do_file_open(time_t slicetime)
 		  perror("mkdir");
 		  ERR_MSG("Error making timeslice directory.");
 		}
-	      strcat(_timeslice_name._curname,"/");
+	      strcat(_ts._timeslice_name._curname,"/");
 	    }
 
 	  gmtime_r(&slicetime,&tmr);
 	  strftime(tmptm,sizeof(tmptm),"%Y%m%d_%H%M%S",&tmr);
 
-	  strcat(_timeslice_name._curname,_timeslice_name._base);
-	  strcat(_timeslice_name._curname,"_");
-	  strcat(_timeslice_name._curname,tmptm);
-	  strcat(_timeslice_name._curname,_timeslice_name._ext);
+	  strcat(_ts._timeslice_name._curname,_ts._timeslice_name._base);
+	  strcat(_ts._timeslice_name._curname,"_");
+	  strcat(_ts._timeslice_name._curname,tmptm);
+	  strcat(_ts._timeslice_name._curname,_ts._timeslice_name._ext);
 
-	  filename = _timeslice_name._curname;
+	  filename = _ts._timeslice_name._curname;
 	}
 
 #if USING_CERNLIB
       if (strlen(_config._ftitle) > 16)
 	ERR_MSG("HBOOK file title (%s) too long (max 16 chars).",
 		_config._ftitle);
-      _hfile = new hbook;
-      _hfile->open(filename,_config._ftitle);
+      _g._hfile = new hbook;
+      _g._hfile->open(filename,_config._ftitle);
 #endif
 #if USING_ROOT
 #if ROOT_HAS_TTREE_COMPRESS_THREADS
-      if (!_root_compress_threads)
+      if (!_g._root_compress_threads)
 	{
 	  // Count logical cores we are allowed to run on.
-	  _root_compress_threads = new TTreeCompressThreads(5);
+	  _g._root_compress_threads = new TTreeCompressThreads(5);
 	}
 #endif
-      _root_file = new TFile(filename,"RECREATE",_config._ftitle);
-      if (_root_file->IsZombie())
+      _g._root_file = new TFile(filename,"RECREATE",_config._ftitle);
+      if (_g._root_file->IsZombie())
 	ERR_MSG("Failure opening TFile %s.",filename);
 #endif
       MSG("Opened %s (%s).",filename,_config._ftitle);
@@ -442,10 +474,10 @@ void do_file_open(time_t slicetime)
       ERR_MSG("HBOOK reading not implemented yet.");
 #endif
 #if USING_ROOT
-      _root_file = new TFile(_config._infile,"READ");
-      if (_root_file->IsZombie())
+      _g._root_file = new TFile(_config._infile,"READ");
+      if (_g._root_file->IsZombie())
 	ERR_MSG("Failure opening TFile %s.",_config._infile);
-      MSG("Opened %s (%s).",_config._infile,_root_file->GetTitle());
+      MSG("Opened %s (%s).",_config._infile,_g._root_file->GetTitle());
 #endif
     }
 #endif
@@ -455,6 +487,8 @@ void request_file_open(void *msg,uint32_t *left)
 {
   /* magic = */ get_buf_uint32(&msg,left);
 
+  uint32_t sort_u32_words = get_buf_uint32(&msg,left);
+
   //_server_port = (int32_t) get_buf_uint32(&msg,left);
 
   //uint32_t generate_header = get_buf_uint32(&msg,left);
@@ -462,39 +496,47 @@ void request_file_open(void *msg,uint32_t *left)
   //const char *filename = get_buf_string(&msg,left);
   //const char *ftitle = get_buf_string(&msg,left);
 
+  if (_g._sort_u32_words != sort_u32_words &&
+      _g._sort_u32_words != (uint32_t) -1)
+    ERR_MSG("All sources must specify "
+	    "the same number of sort words.  (got %d, had %d)",
+	    sort_u32_words, _g._sort_u32_words);
+  
+  _g._sort_u32_words = sort_u32_words;
+
   do_file_open(time(NULL));
 }
 
-void do_book_ntuple(uint32_t ntuple_index)
+void do_book_ntuple(global_struct *s, uint32_t ntuple_index)
 {
-  uint32_t hid      = _msg_config._hid;
-  const char *id    = _msg_config._id;
-  const char *title = _msg_config._title;
+  uint32_t hid      = s->_hid;
+  const char *id    = s->_id;
+  const char *title = s->_title;
 
 #if USING_CERNLIB || USING_ROOT
   if (_config._title)
     title = _config._title;
 #if USING_CERNLIB
-  if (!_hfile)
+  if (!_g._hfile)
     ERR_MSG("Refusing to book a ntuple without an open file.");
 
   if (_config._id)
     {
       char *end;
-      
+
       hid = strtol(_config._id,&end,10);
-      
+
       if (end == _config._id || *end != 0)
 	ERROR("HBOOK ntuple ID (%s) must be numeric.",_config._id);
     }
   if (strlen(title) > 255)
     ERROR("HBOOK ntuple title (%s) too long (max 255 chars).",
 	  title);
-  
-  _cwn = new hbook_ntuple_cwn();
-  _cwn->hbset_bsize(4096);
-  _cwn->hbnt(hid,title," ");
-  
+
+  s->_cwn = new hbook_ntuple_cwn();
+  s->_cwn->hbset_bsize(4096);
+  s->_cwn->hbnt(hid,title," ");
+
   MSG("Booked %d : %s",hid,title);
 #endif
 #if USING_ROOT
@@ -502,14 +544,14 @@ void do_book_ntuple(uint32_t ntuple_index)
     id = _config._id;
   if (_config._outfile)
     {
-      if (!_root_file)
+      if (!_g._root_file)
 	ERR_MSG("Refusing to book a ntuple(tree) without an open file.");
-      
-      if (ntuple_index != _root_ntuples.size() &&
+
+      if (ntuple_index != s->_root_ntuples.size() &&
 	  !(ntuple_index == (uint32_t) -1 &&
-	    _root_ntuples.size() == 1))
+	    s->_root_ntuples.size() == 1))
 	ERR_MSG("Ntuple index (%d) out of order (!= %d).",
-		ntuple_index,(int) _root_ntuples.size());
+		ntuple_index,(int) s->_root_ntuples.size());
       if (_config._timeslice)
 	if (ntuple_index != 0 && ntuple_index != (uint32_t) -1)
 	  ERR_MSG("(Multiple) Ntuple index (%d) != 0 "
@@ -518,45 +560,45 @@ void do_book_ntuple(uint32_t ntuple_index)
 
       TTree *root_ntuple = new TTree(id,title);
 #if ROOT_HAS_TTREE_COMPRESS_THREADS
-      if (_root_compress_threads)
-	root_ntuple->SetCompressThreads(_root_compress_threads);
+      if (_g._root_compress_threads)
+	root_ntuple->SetCompressThreads(_g._root_compress_threads);
 #endif
 
       root_ntuple->SetAutoSave(0);
       // SetAutoFlush seems not to be available everywhere.
       // In principle we do not want it, except to work around
       // broken OptimizeBaskets...
-#if ROOT_VERSION_CODE >= ROOT_VERSION(5,26,0) 
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,26,0)
       root_ntuple->SetAutoFlush(0);
 #endif
 
       if (ntuple_index == (uint32_t) -1)
-	_root_ntuples[0] = root_ntuple;
+	s->_root_ntuples[0] = root_ntuple;
       else
-	_root_ntuples.push_back(root_ntuple);
+	s->_root_ntuples.push_back(root_ntuple);
 
-      if (_root_ntuples.size() < 10)
+      if (s->_root_ntuples.size() < 10)
 	MSG("Tree %s (%s)",id,title);
-      else if (_root_ntuples.size() == 10)
+      else if (s->_root_ntuples.size() == 10)
 	MSG("(Further tree names suppressed...)");
     }
   else
     {
-      if (!_root_file)
+      if (!_g._root_file)
 	ERR_MSG("Cannot get a ntuple(tree) without an open file.");
 
-      TObject *obj_id = _root_file->Get(id);
-      
-      _root_ntuple = dynamic_cast<TTree*>(obj_id);
-      
-      if (!_root_ntuple)
+      TObject *obj_id = _g._root_file->Get(id);
+
+      s->_root_ntuple = dynamic_cast<TTree*>(obj_id);
+
+      if (!s->_root_ntuple)
 	{
 	  if (obj_id)
 	    ERR_MSG("Found object with key (%s), but is not a tree.", id);
 
 	  /* Search the file.  If there is only one tree, use that! */
 
-	  TIter iter(_root_file->GetListOfKeys());
+	  TIter iter(_g._root_file->GetListOfKeys());
 	  TKey *key;
 	  while ((key = (TKey*) iter()))
 	    {
@@ -564,7 +606,7 @@ void do_book_ntuple(uint32_t ntuple_index)
 		continue;
 	      TString keyname = key->GetName();
 
-	      if (_root_ntuple)
+	      if (s->_root_ntuple)
 		ERR_MSG("Multiple trees in file, "
 			"but none with expected key (%s)", id);
 
@@ -572,18 +614,18 @@ void do_book_ntuple(uint32_t ntuple_index)
 		       "using tree with key (%s).",
 		       id, (const char *) keyname);
 
-	      obj_id = _root_file->Get(keyname);
+	      obj_id = _g._root_file->Get(keyname);
 
-	      _root_ntuple = dynamic_cast<TTree*>(obj_id);
+	      s->_root_ntuple = dynamic_cast<TTree*>(obj_id);
 
-	      if (!_root_ntuple)
+	      if (!s->_root_ntuple)
 		ERR_MSG("Strange, item with key (%s) claimed to be a TTree, "
 			"but cast failed.", id);
 	    }
-	  if (!_root_ntuple)
+	  if (!s->_root_ntuple)
 	    {
 	      MSG("Tree with key (%s) not found in file, "
-		  "and no other trees either!", id);  
+		  "and no other trees either!", id);
 	    }
 	}
 
@@ -592,10 +634,11 @@ void do_book_ntuple(uint32_t ntuple_index)
    */
 
 
-      _num_read_entries = _root_ntuple->GetEntries();
+      _g._num_read_entries = s->_root_ntuple->GetEntries();
 
       MSG("Got tree %s (%s), %" PRIu64 " entries.",
-	  _root_ntuple->GetName(),_root_ntuple->GetTitle(),_num_read_entries);
+	  s->_root_ntuple->GetName(),s->_root_ntuple->GetTitle(),
+	  _g._num_read_entries);
     }
 #endif
 #endif
@@ -603,26 +646,47 @@ void do_book_ntuple(uint32_t ntuple_index)
 
 void request_book_ntuple(void *msg,uint32_t *left)
 {
+  uint32_t struct_index = get_buf_uint32(&msg,left);
   uint32_t ntuple_index = get_buf_uint32(&msg,left);
   uint32_t hid = get_buf_uint32(&msg,left);
-  uint32_t sort_u32_words =
-    (ntuple_index == 0 ? get_buf_uint32(&msg,left) : 0);
-  uint32_t max_raw_words = 
+  uint32_t max_raw_words =
     (ntuple_index == 0 ? get_buf_uint32(&msg,left) : 0);
   const char *id = get_buf_string(&msg,left);
   const char *title = get_buf_string(&msg,left);
+  const char *index_major = get_buf_string(&msg,left);
+  const char *index_minor = get_buf_string(&msg,left);
 
-  _msg_config._hid   = hid;
-  _msg_config._id    = strdup(id);
-  _msg_config._title = strdup(title);
+  if (struct_index != _structures.size())
+    ERR_MSG("Structure index not in order (got %d, expected %zd).",
+	    struct_index, _structures.size());
+
+  if (_cur_structure)
+    {
+      /* Finalisation is done by request_array_offsets. */
+      ERR_MSG("Cannot book ntuple - structure in progress not finished.");
+    }
+
+  global_struct *s = new global_struct;
+
+  if (!s)
+    ERR_MSG("Failure allocating structure information.");
+
+  _structures.push_back(s);
+  _cur_structure = s;  
+
+  s->_hid   = hid;
+  s->_id    = strdup(id);
+  s->_title = strdup(title);
+
+  s->_index_major = strdup(index_major);
+  s->_index_minor = strdup(index_minor);
 
   if (ntuple_index == 0)
     {
-      _msg_config._sort_u32_words = sort_u32_words;
-      _msg_config._max_raw_words = max_raw_words;
+      s->_max_raw_words = max_raw_words;
     }
 
-  do_book_ntuple(ntuple_index);
+  do_book_ntuple(s, ntuple_index);
 }
 
 void request_hist_h1i(void *msg,uint32_t *left)
@@ -636,15 +700,15 @@ void request_hist_h1i(void *msg,uint32_t *left)
 
 #ifdef USING_CERNLIB
   hbook_histogram hist;
-	    
+
   hist.hbook1(hid,title,
 	      bins,low,high);
 #endif
 #ifdef USING_ROOT
   TH1I *hist = new TH1I(id,title,
-			bins,low,high);  
+			bins,low,high);
 #endif
-  
+
   for (uint32_t b = 0; b < bins+2; b++)
     {
       uint32_t d = get_buf_uint32(&msg,left);
@@ -661,15 +725,15 @@ void request_hist_h1i(void *msg,uint32_t *left)
 #endif
 #ifdef USING_ROOT
   if (!hist->Write())
-    ERR_MSG("Writing histogram failed.  (disk full?)");  
+    ERR_MSG("Writing histogram failed.  (disk full?)");
   delete hist;
 #endif
 
-  _num_hists++;
+  _g._num_hists++;
 
-  if (_num_hists < 10)
+  if (_g._num_hists < 10)
     MSG("Hist H1I %s (%s) [%d,%.1f,%.1f]",id,title,bins,low,high);
-  else if (_num_hists == 10)
+  else if (_g._num_hists == 10)
     MSG("(Further histogram names suppressed...)");
 }
 
@@ -684,115 +748,170 @@ void request_named_string(void *msg,uint32_t *left)
 #ifdef USING_ROOT
   TNamed *named = new TNamed(id, str);
   if (!named->Write())
-    ERR_MSG("Writing named string failed.  (disk full?)");  
+    ERR_MSG("Writing named string failed.  (disk full?)");
   delete named;
 #endif
 }
 
 void full_write(int fd,const void *buf,size_t count);
 
+void close_structure(global_struct *s, size_t *num_trees)
+{
+#if USING_CERNLIB
+  if (s->_cwn)
+    delete s->_cwn;
+#endif
+#if USING_ROOT
+  *num_trees += s->_root_ntuples.size();
+#endif
+}
+
 void close_output()
 {
-  _num_events_total += _num_events;
-#if USING_CERNLIB
-  if (_cwn)
-    delete _cwn;
-  if (_hfile)
+  size_t num_trees = 0;
+  uint64_t num_index_entries = 0;
+
+  for (global_struct_vector::iterator iter = _structures.begin();
+       iter != _structures.end(); ++iter)
     {
-      _hfile->close();
-      delete _hfile;
+      global_struct *s = *iter;
+
+      close_structure(s, &num_trees);
+    }
+
+  _g._num_events_total += _g._num_events;
+#if USING_CERNLIB
+  if (_g._hfile)
+    {
+      _g._hfile->close();
+      delete _g._hfile;
       if (_config._timeslice) {
 	MSG("Closed hbook (%lld events, %lld total).",
-	    (long long int) _num_events,
-	    (long long int) _num_events_total);
+	    (long long int) _g._num_events,
+	    (long long int) _g._num_events_total);
       } else
-	MSG("Closed hbook (%lld events).",(long long int) _num_events);
+	MSG("Closed hbook (%lld events).",(long long int) _g._num_events);
     }
 #endif
 #if USING_ROOT
-  if (_root_file)
+  if (_g._root_file)
     {
+      for (global_struct_vector::iterator iter = _structures.begin();
+	   iter != _structures.end(); ++iter)
+	{
+	  global_struct *s = *iter;
+
+	  if (strcmp(s->_index_major,"") != 0)
+	    {
+	      const char *minor = s->_index_minor;
+
+	      if (strcmp(s->_index_minor,"") == 0)
+		minor = "0";
+
+	      for (TTree_vector::iterator iter = s->_root_ntuples.begin();
+		   iter != s->_root_ntuples.end(); ++iter)
+		num_index_entries +=
+		  (*iter)->BuildIndex(s->_index_major, minor);
+	    }
+	}
       if (_config._outfile)
-	_root_file->Write();
-      _root_file->Close();
-      if (_root_file->TestBit(TFile::kWriteError))
+	_g._root_file->Write();
+      _g._root_file->Close();
+      if (_g._root_file->TestBit(TFile::kWriteError))
 	ERR_MSG("File writing failed.  (disk full?)");
-      delete _root_file;
+      delete _g._root_file;
       char msg_total[64] = "";
       char msg_trees[64] = "";
+      char msg_index[64] = "";
       char msg_hists[64] = "";
       if (_config._timeslice)
-	sprintf (msg_total,", %lld total",(long long int) _num_events_total);
-      if (_root_ntuples.size() > 1)
-	sprintf (msg_trees," in %d trees",(int) _root_ntuples.size());
-      if (_num_hists)
-	sprintf (msg_hists,", %d histograms",_num_hists);
-      MSG("Closed file (%lld events%s%s%s).",
-	  (long long int) _num_events,
-	  msg_total,msg_trees,msg_hists);
+	sprintf (msg_total,", %lld total",
+		 (long long int) _g._num_events_total);
+      if (num_trees > 1)
+	sprintf (msg_trees," in %d trees",(int) num_trees);
+      if (num_index_entries)
+	sprintf (msg_index,", %lld index-entries",
+		 (long long int) num_index_entries);
+      if (_g._num_hists)
+	sprintf (msg_hists,", %d histograms",_g._num_hists);
+      MSG("Closed file (%lld events%s%s%s%s).",
+	  (long long int) _g._num_events,
+	  msg_total,msg_trees,msg_index,msg_hists);
     }
 #endif
 #if USING_CERNLIB || USING_ROOT
-  if (_timeslice_name._curname)
+  if (_ts._timeslice_name._curname)
     {
-      strcat(_timeslice_name._curname,"\n");
+      strcat(_ts._timeslice_name._curname,"\n");
 
       // Handles errors itself
-      full_write(_timeslice_name._list_fd,
-		 _timeslice_name._curname,strlen(_timeslice_name._curname));
-      fsync(_timeslice_name._list_fd);
+      full_write(_ts._timeslice_name._list_fd,
+		 _ts._timeslice_name._curname,
+		 strlen(_ts._timeslice_name._curname));
+      fsync(_ts._timeslice_name._list_fd);
 
-      free(_timeslice_name._curname);
-      _timeslice_name._curname = NULL;
+      free(_ts._timeslice_name._curname);
+      _ts._timeslice_name._curname = NULL;
     }
 #endif
 #if STRUCT_WRITER
   ext_net_io_server_close();
   MSG("Done (%lld events, %.1f %cB, %.1f %cB to clients).     ",
-      (long long int) _num_events,
-      _committed_size > 2000000000 ? (double) _committed_size / 1000000000. : (double) _committed_size / 1000000.,_committed_size > 2000000000 ? 'G' : 'M',
-      _sent_size > 2000000000 ? (double) _sent_size / 1000000000. : (double) _sent_size / 1000000.,_sent_size > 2000000000 ? 'G' : 'M');
+      (long long int) _g._num_events,
+      _net_stat._committed_size > 2000000000 ?
+      (double) _net_stat._committed_size / 1000000000. :
+      (double) _net_stat._committed_size / 1000000.,
+      _net_stat._committed_size > 2000000000 ? 'G' : 'M',
+      _net_stat._sent_size > 2000000000 ?
+      (double) _net_stat._sent_size / 1000000000. :
+      (double) _net_stat._sent_size / 1000000.,
+      _net_stat._sent_size > 2000000000 ? 'G' : 'M');
 #endif
-  _num_events = 0;
+  _g._num_events = 0;
 }
 
 void request_alloc_array(void *msg,uint32_t *left)
 {
+  global_struct *s = _cur_structure;
+
+  if (!s)
+    ERR_MSG("Cannot allocate array - no structure being defined.");
+
   uint32_t size = get_buf_uint32(&msg,left);
 
-  if (_stage_array._length)
+  if (s->_stage_array._length)
     ERR_MSG("Array already allocated.");
 
   // Since our compacter would break down in that it can produce
   // longer output than input.
-  if (_stage_array._length >= 0x10000000)
+  if (s->_stage_array._length >= 0x10000000)
     ERR_MSG("Refusing to handle event sizes >= 256 MB.");
 
   MSG("About to allocate array: %d B",size);
 
-  _stage_array._length = size;
-  _stage_array._ptr = (char*) malloc(size);
+  s->_stage_array._length = size;
+  s->_stage_array._ptr = (char*) malloc(size);
 
-  if (!_stage_array._ptr)
+  if (!s->_stage_array._ptr)
     ERR_MSG("Failure allocating array with size %d.",size);
 
-  memset(_stage_array._ptr,0,_stage_array._length);
+  memset(s->_stage_array._ptr,0,s->_stage_array._length);
 
 #if STRUCT_WRITER
-  if (_stage_array._length < (1 << (4 + 2)))
-    _stage_array._rewrite_max_bytes_per_item = 5;
-  else if (_stage_array._length < (1 << (4 + 7 + 2)))
-    _stage_array._rewrite_max_bytes_per_item = 6;
-  else if (_stage_array._length < (1 << (4 + 7 + 7 + 2)))
-    _stage_array._rewrite_max_bytes_per_item = 7;
-  else if (_stage_array._length < (1 << (4 + 7 + 7 + 7 + 2)))
-    _stage_array._rewrite_max_bytes_per_item = 8;
+  if (s->_stage_array._length < (1 << (4 + 2)))
+    s->_stage_array._rewrite_max_bytes_per_item = 5;
+  else if (s->_stage_array._length < (1 << (4 + 7 + 2)))
+    s->_stage_array._rewrite_max_bytes_per_item = 6;
+  else if (s->_stage_array._length < (1 << (4 + 7 + 7 + 2)))
+    s->_stage_array._rewrite_max_bytes_per_item = 7;
+  else if (s->_stage_array._length < (1 << (4 + 7 + 7 + 7 + 2)))
+    s->_stage_array._rewrite_max_bytes_per_item = 8;
   else
-    _stage_array._rewrite_max_bytes_per_item = 9;
+    s->_stage_array._rewrite_max_bytes_per_item = 9;
 
-  _stage_array._offset_value = (uint32_t*) malloc(size*2);
+  s->_stage_array._offset_value = (uint32_t*) malloc(size*2);
 
-  if (!_stage_array._ptr)
+  if (!s->_stage_array._ptr)
     ERR_MSG("Failure allocating offset/value array with size %d.",size*2);
 
   // How many items do we have to mask?
@@ -803,35 +922,74 @@ void request_alloc_array(void *msg,uint32_t *left)
       // Each mask item covers 32 items
       masks = (masks + 31) / 32;
 
-      _stage_array._masks[i] = (uint32_t*) malloc(masks * sizeof(uint32_t));
+      s->_stage_array._masks[i] = (uint32_t*) malloc(masks * sizeof(uint32_t));
 
-      if (!_stage_array._masks[i])
+      if (!s->_stage_array._masks[i])
 	ERR_MSG("Failure allocating mask array with size %zd.",
 		masks * sizeof(uint32_t));
 
-      _stage_array._num_masks[i] = masks;
+      s->_stage_array._num_masks[i] = masks;
     }
 #endif
 
   // MSG("Alloc array: %d",size);
 }
 
+#if STRUCT_WRITER
+uint32_t calc_structure_xor_sum(stage_array &sa);
+#endif
+
 void request_array_offsets(void *msg,uint32_t *left)
 {
+  global_struct *s = _cur_structure;
+
+  if (!s)
+    ERR_MSG("Cannot allocate offsets - no structure being defined.");
+
+  // First deal with the xor check.
+
+  uint32_t *xor_sum_msg_p = (uint32_t *) msg;
+  uint32_t xor_sum_msg = get_buf_uint32(&msg,left);
+
+  uint32_t xor_sum = 0; // make compiler happy
+
+#if STRUCT_WRITER
+  if (1 /* writer check when we were in request_setup_done */ /*!writer*/)
+    {
+      xor_sum = calc_structure_xor_sum(s->_stage_array);
+
+      if (xor_sum_msg && xor_sum_msg != xor_sum)
+	ERR_MSG("Mismatch between received (0x%08x) "
+		"and calculated xor_sum (0x%08x).",
+		xor_sum_msg,xor_sum);
+
+      // write the xor_sum into the chunk that goes to the network
+      // it's in the first integer after the header
+
+      *xor_sum_msg_p = htonl(xor_sum);
+
+      /*
+	fprintf (stderr, "set *xor_sum_msg_p : %08x\n", xor_sum);
+      */
+
+      s->_xor_sum = xor_sum;
+    }
+#endif
+
   // So, we are given the offset table.  Allocate space for it and
   // make a copy.
 
-  if (_offset_array._length)
+  if (s->_offset_array._length)
     ERR_MSG("Offset already allocated.");
 
-  _offset_array._length = *left / sizeof(uint32_t);
-  _offset_array._ptr = (uint32_t*) malloc(*left);
-  _offset_array._static_items = 0;
-  _offset_array._max_items = 0;
+  s->_offset_array._length = *left / sizeof(uint32_t);
+  s->_offset_array._ptr = (uint32_t*) malloc(*left);
+  s->_offset_array._static_items = 0;
+  s->_offset_array._max_items = 0;
 
   // MSG ("offsets: %d \n", _offset_array._length);
 
-  if (!_offset_array._ptr)
+  if (!s->_offset_array._ptr)
     ERR_MSG("Failure allocating offset array with size %d.",*left);
 
   // Then verify that it's variable size array control items are
@@ -840,12 +998,12 @@ void request_array_offsets(void *msg,uint32_t *left)
   uint32_t *o    = (uint32_t *) msg;
   uint32_t *oend = (uint32_t *) (((char*) msg) + *left);
 
-  uint32_t *d    = _offset_array._ptr;
+  uint32_t *d    = s->_offset_array._ptr;
 
   // We reset the entire stage array, to use that to verify that each
   // item is used once
 
-  memset(_stage_array._ptr,0,_stage_array._length);
+  memset(s->_stage_array._ptr,0,s->_stage_array._length);
 
   // MSG("Offsets: %d Array: %d",*left,_stage_array._length);
 
@@ -856,16 +1014,16 @@ void request_array_offsets(void *msg,uint32_t *left)
 
       // MSG("Offset entry @ %d : %d",(int) (o - (uint32_t *) msg)-1,offset);
 
-      if (offset >= _stage_array._length)
+      if (offset >= s->_stage_array._length)
 	ERR_MSG("Offset entry @ %zd is outside (%" PRIu32 ") stage array "
 		"(%zd).",
-		(o - (uint32_t *) msg)-1,offset,_stage_array._length);
+		(o - (uint32_t *) msg)-1,offset,s->_stage_array._length);
       if (offset & 3)
 	ERR_MSG("Offset entry @ %zd is unaligned (%" PRIu32 ").",
 		(o - (uint32_t *) msg)-1,offset);
 
-      (*((uint32_t *) (_stage_array._ptr + offset)))++;
-      _offset_array._static_items++;
+      (*((uint32_t *) (s->_stage_array._ptr + offset)))++;
+      s->_offset_array._static_items++;
 
       // MSG ("offset: %d %c",offset,(offset_mark & 0x80000000) ? '*' : ' ');
 
@@ -892,7 +1050,7 @@ void request_array_offsets(void *msg,uint32_t *left)
 		    PRIu32").",
 		    (o - (uint32_t *) msg)-1,max_loops,loop_size,*left);
 
-	  _offset_array._max_items += items;
+	  s->_offset_array._max_items += items;
 
 	  for (int i = items; i; i--)
 	    {
@@ -902,15 +1060,16 @@ void request_array_offsets(void *msg,uint32_t *left)
 	      offset_mark = *(d++) = ntohl(*(o++));
 	      offset = offset_mark & 0x3fffffff;
 
-	      if (offset >= _stage_array._length)
+	      if (offset >= s->_stage_array._length)
 		ERR_MSG("Offset entry @ %zd is outside (%" PRIu32
 			") stage array (%zd).",
-			(o - (uint32_t *) msg)-1,offset,_stage_array._length);
+			(o - (uint32_t *) msg)-1,offset,
+			s->_stage_array._length);
 	      if (offset & 3)
 		ERR_MSG("Offset entry @ %zd is unaligned (%d).",
 			(o - (uint32_t *) msg)-1,offset);
 
-	      (*((uint32_t *) (_stage_array._ptr + offset)))++;
+	      (*((uint32_t *) (s->_stage_array._ptr + offset)))++;
 
 	      if (offset_mark & 0x80000000)
 		ERR_MSG("Controlled offset array item @ %zd is marked"
@@ -919,22 +1078,29 @@ void request_array_offsets(void *msg,uint32_t *left)
 	}
     }
 
-  _offset_array._max_items += _offset_array._static_items;
+  s->_offset_array._max_items += s->_offset_array._static_items;
 
-  uint32_t *pend = (uint32_t *) (_stage_array._ptr + _stage_array._length);
+  uint32_t *pend = (uint32_t *) (s->_stage_array._ptr +
+				 s->_stage_array._length);
 
-  for (uint32_t *p = (uint32_t *) _stage_array._ptr; p < pend; p++)
+  for (uint32_t *p = (uint32_t *) s->_stage_array._ptr; p < pend; p++)
     {
       if (*p != 1)
 	ERR_MSG("Stage area item @ %zd is not used (%" PRIu32 ") exactly once.",
-		(char*) p - _stage_array._ptr,*p);
+		(char*) p - s->_stage_array._ptr,*p);
     }
 
   *left = 0;
 
+  if (s->_offset_array._max_items > _g._max_offset_array_items)
+    _g._max_offset_array_items = s->_offset_array._max_items;
+
   // OK, we are happy with the offset array
 
   // MSG("Offsets...");
+
+  /* This structure is done. */
+  _cur_structure = NULL;
 }
 
 struct str_var_type
@@ -944,7 +1110,7 @@ struct str_var_type
   const char *_root;
 };
 
-str_var_type _str_var_type[] = { 
+str_var_type _str_var_type[] = {
   { NULL,       NULL, NULL },
   { "int32_t ", "I", "I" },
   { "uint32_t", "I", "i" }, // hbook should be U
@@ -952,16 +1118,17 @@ str_var_type _str_var_type[] = {
   { "float   ", "R", "F" },
 };
 
-void do_create_branch(uint32_t offset,stage_array_item &item)
+void do_create_branch(global_struct *s,
+		      uint32_t offset,stage_array_item &item)
 {
-  if (!_stage_array._length)
+  if (!s->_stage_array._length)
     ERR_MSG("Cannot create branch using unallocated array.");
 
-  if (offset > _stage_array._length ||
-      offset+item._length > _stage_array._length)
+  if (offset > s->_stage_array._length ||
+      offset+item._length > s->_stage_array._length)
     ERR_MSG("Cannot create branch with ptr [%" PRIu32 ",%" PRIu32
 	    "[ outside array (%zd).",
-	    offset,offset+item._length,_stage_array._length);
+	    offset,offset+item._length,s->_stage_array._length);
 
   if (item._var_type == 0 ||
       (item._var_type & EXTERNAL_WRITER_FLAG_TYPE_MASK) >=
@@ -970,9 +1137,10 @@ void do_create_branch(uint32_t offset,stage_array_item &item)
 			 EXTERNAL_WRITER_FLAG_HAS_LIMIT))
     ERR_MSG("Invalid variable type (0x%x).",item._var_type);
 
-  void *ptr = _stage_array._ptr+offset;
+  void *ptr = s->_stage_array._ptr+offset;
 
-  size_t branch_size = strlen(item._var_name)+strlen(item._var_ctrl_name)+
+  size_t branch_size = strlen(item._var_name)+
+    (item._var_ctrl_name ? strlen(item._var_ctrl_name) : 0)+
     2/*type*/+1/*trail 0*/+2/*length/ctrl bracket ()*/+3/*limit [ , ]*/+2*11;
   char *branch = (char *) malloc(branch_size);
 
@@ -982,19 +1150,24 @@ void do_create_branch(uint32_t offset,stage_array_item &item)
 #if USING_CERNLIB
   strcpy (branch,item._var_name);
   if (item._var_array_len != (uint32_t) -1)
-    sprintf (branch+strlen(branch),"(%s)",item._var_ctrl_name);
+    {
+      if (item._var_ctrl_name)
+	sprintf (branch+strlen(branch),"(%s)",item._var_ctrl_name);
+      else
+ 	sprintf (branch+strlen(branch),"(%d)",item._var_array_len);
+    }
   if (item._var_type & EXTERNAL_WRITER_FLAG_HAS_LIMIT)
     sprintf (branch+strlen(branch),
     "[%d,%d]",item._limit_min,item._limit_max);
   sprintf (branch+strlen(branch),":%s",
-	   _str_var_type[item._var_type & 
+	   _str_var_type[item._var_type &
 			 EXTERNAL_WRITER_FLAG_TYPE_MASK]._hbook);
 
   assert(strlen(branch) < branch_size); // < to include the trail 0
 
   // MSG ("OLD: %s NEW: %s",hbname_vars,branch);
 
-  _cwn->hbname(item._block,ptr,branch/*hbname_vars*/);
+  s->_cwn->hbname(item._block,ptr,branch/*hbname_vars*/);
 #endif
 #if USING_ROOT
 
@@ -1002,29 +1175,34 @@ void do_create_branch(uint32_t offset,stage_array_item &item)
     {
       strcpy (branch,item._var_name);
       if (item._var_array_len != (uint32_t) -1)
-	sprintf (branch+strlen(branch),"[%s]",item._var_ctrl_name);
+	{
+	  if (item._var_ctrl_name)
+	    sprintf (branch+strlen(branch),"[%s]",item._var_ctrl_name);
+	  else
+	    sprintf (branch+strlen(branch),"[%d]",item._var_array_len);
+	}
       /* // no limits in root
 	 if (var_type & EXTERNAL_WRITER_FLAG_HAS_LIMIT)
 	 sprintf (branch+strlen(branch),
 	 "[%d,%d]",limit_min,limit_max);
       */
       sprintf (branch+strlen(branch),"/%s",
-	       _str_var_type[item._var_type & 
+	       _str_var_type[item._var_type &
 			     EXTERNAL_WRITER_FLAG_TYPE_MASK]._root);
-      
+
       assert(strlen(branch) < branch_size); // < to include the trail 0
-      
+
       // MSG ("OLD: %s NEW: %s",branch_vars,branch);
-      
-      for (TTree_vector::iterator iter = _root_ntuples.begin();
-	   iter != _root_ntuples.end(); ++iter)
+
+      for (TTree_vector::iterator iter = s->_root_ntuples.begin();
+	   iter != s->_root_ntuples.end(); ++iter)
 	(*iter)->Branch(item._var_name,ptr,branch/*branch_vars*/);
     }
   else
     {
       // We must verify that the branch exists, and have appropriate type!
-      
-      TBranch *br = _root_ntuple->GetBranch(item._var_name);
+
+      TBranch *br = s->_root_ntuple->GetBranch(item._var_name);
 
       if (!br)
 	{
@@ -1035,63 +1213,31 @@ void do_create_branch(uint32_t offset,stage_array_item &item)
 	   */
 	  return;
 	}
-      
+
       // So the branch is there.  Then, we expect the (only) leaf to be
       // the variable we want to get at!
-      
+
       if (br->GetNleaves() != 1)
 	ERR_MSG("Requsted branch (%s) does not have one leaf (%d).",
 		item._var_name,br->GetNleaves());
-      
+
       TLeaf *lf = br->GetLeaf(item._var_name);
-      
+
       if (!lf)
 	ERR_MSG("Requsted leaf (%s) does not exist in branch.",
 		item._var_name);
-      
+
       // Make sure it is counted only if we are counted
       TLeaf *lfcount = lf->GetLeafCount();
-      
+
       // And, if we are counted, we should check that the count variable
       // has the right name.  (figuring out if it really is the variable
       // that we have in mind is (a lot) more tricky! Well, we just look
       // up the proposed count variable the normal way and check it!
-      
-      if ((item._var_array_len != (uint32_t) -1))
+
+      if (item._var_array_len == (uint32_t) -1)
 	{
-	  if (!lfcount)
-	    ERR_MSG("Requested leaf (%s) variable in tree is not counted, "
-		    "but request is.",item._var_name);
-      
-	  TBranch *brc = _root_ntuple->GetBranch(item._var_ctrl_name);
-	  
-	  if (!brc)
-	    ERR_MSG("Requested branch (%s) (array control) "
-		    "does not exist in tree.",
-		    item._var_ctrl_name);
-	  
-	  if (brc->GetNleaves() != 1)
-	    ERR_MSG("Requested branch (%s) does not have one leaf (%d).",
-		    item._var_ctrl_name,brc->GetNleaves());
-	  
-	  TLeaf *lfc = brc->GetLeaf(item._var_ctrl_name);
-	  
-	  if (!lfc)
-	    ERR_MSG("Requested leaf (%s) (array control) "
-		    "does not exist in branch.",
-		    item._var_ctrl_name);
-	  
-	  // And they better be the same
-	  
-	  if (lfc != lfcount)
-	    ERR_MSG("Requested leaf's (%s) array control (%s) found, "
-		    "but mismatches leaf in tree's control variable (%s).",
-		    item._var_name,item._var_ctrl_name,lfcount->GetName());
-	  
-	  // Ok, so that matches
-	}
-      else
-	{
+	  /* We are a singular item. */
 	  if (lfcount)
 	    ERR_MSG("Requested leaf (%s) variable in tree is counted, "
 		    "but request is not.",item._var_name);
@@ -1099,10 +1245,56 @@ void do_create_branch(uint32_t offset,stage_array_item &item)
 	    ERR_MSG("Requested leaf (%s) variable in tree is an array, "
 		    "but request is not.",item._var_name);
 	}
-      
+      else if (!item._var_ctrl_name)
+	{
+	  /* We are a an static array. */
+	  if (lfcount)
+	    ERR_MSG("Requested leaf (%s) variable in tree is counted, "
+		    "but request is static array.",item._var_name);
+	  if (lf->GetLenStatic() != item._var_array_len)
+	    ERR_MSG("Requested leaf (%s) variable in tree "
+		    "is static array [%d], but request is [%d].",
+		    item._var_name,
+		    lf->GetLenStatic(), item._var_array_len);
+	}
+      else
+	{
+	  /* We are a an dynamic array. */
+	  if (!lfcount)
+	    ERR_MSG("Requested leaf (%s) variable in tree is not counted, "
+		    "but request is.",item._var_name);
+
+	  TBranch *brc = s->_root_ntuple->GetBranch(item._var_ctrl_name);
+
+	  if (!brc)
+	    ERR_MSG("Requested branch (%s) (array control) "
+		    "does not exist in tree.",
+		    item._var_ctrl_name);
+
+	  if (brc->GetNleaves() != 1)
+	    ERR_MSG("Requested branch (%s) does not have one leaf (%d).",
+		    item._var_ctrl_name,brc->GetNleaves());
+
+	  TLeaf *lfc = brc->GetLeaf(item._var_ctrl_name);
+
+	  if (!lfc)
+	    ERR_MSG("Requested leaf (%s) (array control) "
+		    "does not exist in branch.",
+		    item._var_ctrl_name);
+
+	  // And they better be the same
+
+	  if (lfc != lfcount)
+	    ERR_MSG("Requested leaf's (%s) array control (%s) found, "
+		    "but mismatches leaf in tree's control variable (%s).",
+		    item._var_name,item._var_ctrl_name,lfcount->GetName());
+
+	  // Ok, so that matches
+	}
+
       // Now that we found the sought variable, set the address!
-      
-      br->SetAddress(ptr); 
+
+      br->SetAddress(ptr);
     }
 #endif
 
@@ -1112,6 +1304,11 @@ void do_create_branch(uint32_t offset,stage_array_item &item)
 
 void request_create_branch(void *msg,uint32_t *left)
 {
+  global_struct *s = _cur_structure;
+
+  if (!s)
+    ERR_MSG("Cannot create branch - no structure being defined.");
+
   uint32_t aid    = 0;
   uint32_t offset = get_buf_uint32(&msg,left);
   uint32_t length = get_buf_uint32(&msg,left);
@@ -1123,9 +1320,9 @@ void request_create_branch(void *msg,uint32_t *left)
   const char *block = get_buf_string(&msg,left);
   //const char *branch_block = get_buf_string(&msg,left);
   //const char *hbname_vars = get_buf_string(&msg,left);
-  //const char *branch_vars = get_buf_string(&msg,left);  
-  const char *var_name    = get_buf_string(&msg,left);  
-  const char *var_ctrl_name = get_buf_string(&msg,left);  
+  //const char *branch_vars = get_buf_string(&msg,left);
+  const char *var_name    = get_buf_string(&msg,left);
+  const char *var_ctrl_name = get_buf_string(&msg,left);
 
   stage_array_item item;
 
@@ -1139,7 +1336,8 @@ void request_create_branch(void *msg,uint32_t *left)
   //item._branch_vars   = strdup(branch_vars);
   item._var_name      = strdup(var_name);
   item._var_array_len = var_array_len;
-  item._var_ctrl_name = strdup(var_ctrl_name);
+  item._var_ctrl_name =
+    strcmp(var_ctrl_name,"") == 0 ? NULL : strdup(var_ctrl_name);
   item._var_type      = var_type;
   item._limit_min     = limit_min;
   item._limit_max     = limit_max;
@@ -1153,12 +1351,13 @@ void request_create_branch(void *msg,uint32_t *left)
   fflush(stdout);
   */
 #if STRUCT_WRITER
-  if (item._var_array_len != -1)
+  if (item._var_array_len != -1 &&
+      item._var_ctrl_name)
     {
-      stage_array_name_map::iterator iter = 
-	_stage_array._names.find(item._var_ctrl_name);
+      stage_array_name_map::iterator iter =
+	s->_stage_array._names.find(item._var_ctrl_name);
 
-      if (iter == _stage_array._names.end())
+      if (iter == s->_stage_array._names.end())
 	ERR_MSG("Unable to find controlling item (%s) for %s.",
 		item._var_ctrl_name,item._var_name);
 
@@ -1167,14 +1366,15 @@ void request_create_branch(void *msg,uint32_t *left)
   else
     item._ctrl_offset   = (uint32_t) -1;
 #endif
-  
-  do_create_branch(offset,item);
+
+  do_create_branch(s, offset,item);
 
 #if STRUCT_WRITER
-  _stage_array._items.insert(stage_array_item_map::value_type(offset,item));
-  _stage_array._names.insert(stage_array_name_map::value_type(item._var_name,offset));
+  s->_stage_array._items.insert(stage_array_item_map::value_type(offset,item));
+  s->_stage_array._names.insert(stage_array_name_map::value_type(item._var_name,
+								 offset));
 #else
-  _stage_array._items_v.push_back(item);
+  s->_stage_array._items_v.push_back(item);
 #endif
 }
 
@@ -1182,26 +1382,27 @@ void request_create_branch(void *msg,uint32_t *left)
 uint32_t calc_structure_xor_sum(stage_array &sa)
 {
   uint32_t xor_sum = 0x5a5a5a5a;
-  
+
   for (stage_array_item_map::iterator iter = sa._items.begin();
        iter != sa._items.end(); ++iter)
     {
       stage_array_item &item = iter->second;
       uint32_t offset = iter->first;
-      
+
       // Simple junk formula to avoid accidental use of non-compatible
       // structures
       int xor_shift = offset % 27;
       xor_sum ^= (item._var_type << xor_shift);
       xor_sum += item._var_array_len - (xor_sum >> 27);
       xor_sum ^= item._limit_min << 4;
-      xor_sum ^= item._limit_max << 8;   
+      xor_sum ^= item._limit_max << 8;
 
       int i = offset % 31;
 
       for (const char *p = item._var_name; *p; p++, i = (i+1) % 23)
 	xor_sum ^= ((uint32_t) tolower(*p)) << i;
-      if (item._var_array_len != (uint32_t) -1)
+      if (item._var_array_len != (uint32_t) -1 &&
+	  item._var_ctrl_name)
 	for (const char *p = item._var_ctrl_name; *p; p++, i = (i+22) % 23)
 	  xor_sum ^= ((uint32_t) tolower(*p)) << i;
     }
@@ -1217,16 +1418,17 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	{
 	  stage_array_item &item = iter->second;
 	  uint32_t offset = iter->first;
-	  
+
 	  fprintf (fid,
 		   "/* %04x : %04x : %s[%d:%s]/%d : %s */%s\n",
 		   offset,item._length,
 		   item._var_name,item._var_array_len,
-		   item._var_ctrl_name,item._var_type,
+		   item._var_ctrl_name ? item._var_ctrl_name : "_",
+		   item._var_type,
 		   item._block,
 		   infomacro ? " \\" : "");
 	}
-      
+
       fprintf (fid,
 	       "\n");
     }
@@ -1277,8 +1479,14 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 				 EXTERNAL_WRITER_FLAG_TYPE_MASK]._Cname,
 		   item._var_name);
 	  if (item._var_array_len != (uint32_t) -1)
-	    fprintf (fid,"[%d EXT_STRUCT_CTRL(%s)]",
-		     item._var_array_len,item._var_ctrl_name);
+	    {
+	      if (item._var_ctrl_name)
+		fprintf (fid,"[%d EXT_STRUCT_CTRL(%s)]",
+			 item._var_array_len,item._var_ctrl_name);
+	      else
+		fprintf (fid,"[%d]",
+			 item._var_array_len);
+	    }
 	  fprintf (fid," /* [%d,%d] */",item._limit_min,item._limit_max);
 	  fprintf (fid,";\n");
 	}
@@ -1309,8 +1517,13 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 		   padlen,"",item_type,
 		   18,"",item._var_name);
 	  if (item._var_array_len != (uint32_t) -1)
-	    fprintf (fid,",%*.0s\"%s\"",
-		     padlen,"",item._var_ctrl_name);
+	    {
+	      if (item._var_ctrl_name)
+		fprintf (fid,",%*.0s\"%s\"",
+			 padlen,"",item._var_ctrl_name);
+	      else
+		fprintf (fid,",%d",item._var_array_len);
+	    }
 	  else if (item._limit_max != -1)
 	    fprintf (fid,",%d",item._limit_max);
 	  fprintf (fid,");%s\n",
@@ -1356,11 +1569,11 @@ void unique_var_name(char *var_name,set_strings &used_names)
       strcat(var_name,"_");
 
       char *add_at = var_name + strlen(var_name);
-      
+
       for (int add = 1; used_names.find(var_name) != used_names.end(); add++)
 	{
 	  sprintf (add_at,"%d",add);
-	}	  
+	}
     }
 
   used_names.insert(var_name);
@@ -1386,7 +1599,7 @@ void generate_structure_item(FILE *fid,
     sprintf (var_name,"%.*s",base_length,base_name);
   else
     var_name[0] = 0;
-  strcat (var_name,*item._var_name ? item._var_name : 
+  strcat (var_name,*item._var_name ? item._var_name :
 	  (base_name && *base_name ? "" : "_"));
 
   unique_var_name(var_name,used_names);
@@ -1394,11 +1607,11 @@ void generate_structure_item(FILE *fid,
   fprintf (fid,"%s",var_name);
 
   if (first_array_len != -1)
-    fprintf (fid,"[%d]",first_array_len);    
+    fprintf (fid,"[%d]",first_array_len);
   if (item._var_array_len != (uint32_t) -1)
     fprintf (fid,"[%d /* %s */]",
 	     item._var_array_len,
-	     *item._var_ctrl_name ? item._var_ctrl_name : "_");
+	     item._var_ctrl_name ? item._var_ctrl_name : "_");
   fprintf (fid,";\n");
 }
 
@@ -1408,14 +1621,14 @@ bool match_base_index(const char *base_name_start,int base_length,
 {
   if (strncmp(base_name_start,name,base_length) != 0)
     return false;
-  
+
   const char *start_index = name + base_length;
-  
+
   if (!*start_index || !isdigit(*start_index))
     return false;
-  
+
   int index = strtol(start_index,subname_ptr,10);
-  
+
   return index == match_index;
 }
 
@@ -1449,7 +1662,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 	  char *end_index;
 
 	  int index = strtol(start_index,&end_index,10);
-	  
+
 	  // So, the name-base is (item._var_name,start_index(
 	  // and the index is (start_index,end_index(
 
@@ -1464,7 +1677,8 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 
 	  // First item cannot have controlled array!
 
-	  bool item1_ctrl = (item._var_array_len != (uint32_t) -1);
+	  bool item1_ctrl = (item._var_array_len != (uint32_t) -1 &&
+			     item._var_ctrl_name);
 
 	  if (index == 1)
 	    {
@@ -1489,33 +1703,35 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		  if (!match_base_index(item._var_name,base_length,
 					item2._var_name,1,&end_index2))
 		      break;
-		  
+
 		  // If it has a controlling item, that must also match
 		  char *end_ctrl_index2 = NULL;
-		  if (item1_ctrl) 
+		  if (item1_ctrl)
 		    {
 		      // first item was controlled, all must be the
 		      // same
 
 		      if (item2._var_array_len == (uint32_t) -1)
 			break;
-		      if (strcmp(item._var_ctrl_name,item2._var_ctrl_name))
+		      if (item2._var_ctrl_name &&
+			  strcmp(item._var_ctrl_name,item2._var_ctrl_name))
 			break;
 		    }
-		  else if (item2._var_array_len != (uint32_t) -1)
+		  else if (item2._var_array_len != (uint32_t) -1 &&
+			   item2._var_ctrl_name)
 		    {
 		      // First item was not controlled, we must then
 		      // match the base
 		      if (!match_base_index(item._var_name,base_length,
 					    item2._var_ctrl_name,1,
 					    &end_ctrl_index2))
-			break;  
+			break;
 		    }
 
 		  // It continues the stretch of items...
 
 		  sub_item = item2;
-		  
+
 		  sub_item._var_name = end_index2;
 		  if (end_ctrl_index2)
 		    sub_item._var_ctrl_name = end_ctrl_index2;
@@ -1557,7 +1773,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		      if (iter2 == sa.end())
 			{//fprintf (fid,"f1\n");
 			goto fail_item;} // premature end, not a complete item
-		      
+
 		      stage_array_item &item2 = iter2->second;
 		      uint32_t offset2 = iter2->first;
 
@@ -1585,31 +1801,33 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 			{//fprintf (fid,"f6\n");
 			goto fail_array;}
 
-		      if ((sub_item2._var_type & 
+		      if ((sub_item2._var_type &
 			   EXTERNAL_WRITER_FLAG_HAS_LIMIT) &&
 			  (sub_item2._limit_min != item2._limit_min ||
 			   sub_item2._limit_max != item2._limit_max))
 			{//fprintf (fid,"f6a\n");
 			  goto fail_array;}
 
-			
+
 		      if (sub_item2._var_array_len != item2._var_array_len)
 			{//fprintf (fid,"f7\n");
 			goto fail_array;}
 
-		      if (item1_ctrl) 
+		      if (item1_ctrl)
 			{
 			  // first item was controlled, all must be the
 			  // same
-			  
+
 			  if (item2._var_array_len == (uint32_t) -1)
 			    {//fprintf (fid,"f8a\n");
 			    goto fail_array;}
-			  if (strcmp(item._var_ctrl_name,item2._var_ctrl_name))
+			  if (item2._var_ctrl_name &&
+			      strcmp(item._var_ctrl_name,item2._var_ctrl_name))
 			    {//fprintf (fid,"f8b\n");
 			    goto fail_array;}
 			}
-		      else if (sub_item2._var_array_len != (uint32_t) -1)
+		      else if (sub_item2._var_array_len != (uint32_t) -1 &&
+			       item2._var_ctrl_name)
 			{
 			  // First item was not controlled, we must then
 			  // match the base
@@ -1623,8 +1841,8 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		      if (offset2 != struct_offset + sub_offset)
 			{//fprintf (fid,"f9\n");
 			goto fail_array;}
-		      
-		      // ok, so the item is a match.  accept it	
+
+		      // ok, so the item is a match.  accept it
 		    }
 
 		  // We successfully matched all the items.  Try next index
@@ -1685,7 +1903,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 					  item._var_name,base_length,max_index,
 					  indent,used_names);
 		}
-	      
+
 	      iter = iter2;
 	      continue;
 
@@ -1699,6 +1917,252 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
       ++iter;
     }
 }
+
+void write_structure_header(FILE *fid, global_struct *s,
+			    const char *struct_name)
+{
+  // We do not put the typedefs in en else clause above, such that
+  // if compiled on a platform where it is not true, the compiler
+  // will cry.  Also, if our defines should get promoted to 64 bits,
+  // the structure size will be wrong, and that's checked.
+
+  fprintf (fid,
+	   "\n"
+	   "/********************************************************\n"
+	   " *\n"
+	   " * Plain structure (layout as ntuple/root file):\n"
+	   " */\n"
+	   "\n");
+
+  fprintf (fid,
+	   "typedef struct EXT_STR_%s_t\n"
+	   "{\n",
+	   struct_name);
+
+  generate_structure(fid,s->_stage_array,2,false);
+
+  fprintf (fid,
+	   "\n"
+	   "} EXT_STR_%s;\n",
+	   struct_name);
+
+  fprintf (fid,
+	   "\n"
+	   "/********************************************************\n"
+	   " *\n"
+	   " * Structure with multiple levels of arrays (partially)\n"
+	   " * recovered (recommended):\n"
+	   " */\n"
+	   "\n");
+
+  fprintf (fid,
+	   "typedef struct EXT_STR_%s_onion_t\n"
+	   "{\n",
+	   struct_name);
+
+  {
+    set_strings used_names;
+
+    generate_structure_onion(fid,s->_stage_array._items,2,used_names);
+
+    // This should just delete all the pointers, but as the program
+    // quits after generating the header, we ignore the memory leak :)
+    // kill_strings(used_names);
+  }
+
+  fprintf (fid,
+	   "\n"
+	   "} EXT_STR_%s_onion;\n",
+	   struct_name);
+
+  fprintf (fid,
+	   "\n"
+	   "/*******************************************************/\n"
+	   "\n"
+	   "#define EXT_STR_%s_ITEMS_INFO(ok,si,offset,struct_t,printerr) "
+	   /* */ "do { \\\n"
+	   "  ok = 1; \\\n",
+	   struct_name);
+
+  generate_structure(fid,s->_stage_array,2,true);
+
+  fprintf (fid,
+	   "  \\\n"
+	   "} while (0);\n");
+
+  fprintf (fid,
+	   "\n"
+	   "/********************************************************\n"
+	   " *\n"
+	   " * For internal use by the network data reader:\n"
+	   " * (version checks, etc)\n"
+	   " */\n"
+	   "\n");
+
+  fprintf (fid,
+	   "typedef struct EXT_STR_%s_layout_t\n"
+	   "{\n",
+	   struct_name);
+
+  fprintf (fid,
+	   "  uint32_t _magic;\n"
+	   "  uint32_t _size_info;\n"
+	   "  uint32_t _size_struct;\n"
+	   "  uint32_t _size_struct_onion;\n"
+	   "  uint32_t _pack_list_items;\n"
+	   "\n"
+	   "  uint32_t _num_items;\n"
+	   "  struct {\n"
+	   "    uint32_t _offset;\n"
+	   "    uint32_t _size;\n"
+	   "    uint32_t _xor;\n"
+	   "    const char *_name;\n"
+	   "  } _items[1];\n"
+	   );
+
+  fprintf (fid,
+	   "  uint32_t _pack_list[%zd];",
+	   s->_offset_array._length);
+
+  fprintf (fid,
+	   "\n"
+	   "} EXT_STR_%s_layout;\n",
+	   struct_name);
+
+  fprintf (fid,
+	   "\n"
+	   "#define EXT_STR_%s_LAYOUT_INIT { \\\n",
+	   struct_name);
+
+  fprintf (fid,"  0x%08x, \\\n"
+	   "  sizeof(EXT_STR_%s_layout), \\\n"
+	   "  sizeof(EXT_STR_%s), \\\n"
+	   "  sizeof(EXT_STR_%s_onion), \\\n"
+	   "  %zd, \\\n"
+	   "  %d, \\\n"
+	   "  { \\\n",
+	   EXTERNAL_WRITER_MAGIC,
+	   struct_name,
+	   struct_name,
+	   struct_name,
+	   s->_offset_array._length,
+	   1);
+
+  uint32_t xor_sum = calc_structure_xor_sum(s->_stage_array);
+
+  fprintf (fid,"    { 0, sizeof(EXT_STR_%s), 0x%08x, \"%s\" }, \\\n",
+	   struct_name,
+	   xor_sum,
+	   struct_name);
+
+  fprintf (fid,"  }, \\\n"
+	   "  { \\\n"
+	   "   ");
+
+  for (int i = 0; i < s->_offset_array._length; i++)
+    {
+      if ((i & 3) == 0 && i)
+	fprintf (fid," \\\n   ");
+      fprintf (fid," 0x%08x,",s->_offset_array._ptr[i]);
+    }
+
+  fprintf (fid," \\\n"
+	   "  } \\\n"
+	   "};\n");
+}
+
+void write_header()
+{
+  const char *name = _config._header_id;
+
+  if (!name)
+    {
+      if (_structures.size() > 1)
+	name = "all";
+      else
+	name = _structures[0]->_id;
+    }
+
+  char *header_guard =
+    (char *) malloc(2+6+strlen(name)+1+strlen(_config._header)+2+1);
+
+  if (!header_guard)
+    ERR_MSG("Failure allocating memory for header_guard.");
+
+  sprintf(header_guard,"__GUARD_%s_%s__",name,_config._header);
+
+  for (char *p = header_guard; *p; p++)
+    {
+      if (*p == '.')
+	*p = '_';
+      if (*p == '/')
+	*p = '_';
+      *p = toupper(*p);
+    }
+
+  FILE *fid = fopen(_config._header,"wt");
+  if (!fid)
+    {
+      perror("fopen");
+      ERR_MSG("Failure opening %s for writing.",_config._header);
+    }
+
+  fprintf (fid,
+	   "/********************************************************\n"
+	   " *\n"
+	   " * Structure for ext_data_fetch_event() filling.\n"
+	   " *\n"
+	   " * Do not edit - automatically generated.\n"
+	   " */\n"
+	   "\n"
+	   "#ifndef %s\n"
+	   "#define %s\n"
+	   "\n"
+	   "#ifndef __CINT__\n"
+	   "# include <stdint.h>\n"
+	   "#else\n"
+	   "/* For CINT (old version trouble with stdint.h): */\n"
+	   "# ifndef uint32_t\n"
+	   "typedef unsigned int uint32_t;\n"
+	   "typedef          int  int32_t;\n"
+	   "# endif\n"
+	   "#endif\n"
+	   "#ifndef EXT_STRUCT_CTRL\n"
+	   "# define EXT_STRUCT_CTRL(x)\n"
+	   "#endif\n",
+	   header_guard,
+	   header_guard);
+
+  for (global_struct_vector::iterator iter = _structures.begin();
+       iter != _structures.end(); ++iter)
+    {
+      global_struct *s = *iter;
+
+      if (_config._header_id_orig &&
+	  strcmp(_config._header_id_orig, s->_id) != 0)
+	continue;
+
+      const char *struct_name = _config._header_id;
+
+      if (!struct_name)
+	struct_name = s->_id;
+
+      write_structure_header(fid, s, struct_name);
+    }
+
+  fprintf (fid,
+	   "\n"
+	   "#endif/*%s*/\n"
+	   "\n"
+	   "/*******************************************************/\n",
+	   header_guard);
+
+  fclose(fid);
+
+  free(header_guard);
+
+  MSG ("Wrote structure header file %s.",_config._header);
+}
 #endif
 
 #if STRUCT_WRITER
@@ -1708,252 +2172,42 @@ bool _client_written = false;
 
 void request_setup_done(void *msg,uint32_t *left,int reader,int writer)
 {
-  uint32_t *xor_sum_msg_p = (uint32_t *) msg;
-  uint32_t xor_sum_msg = get_buf_uint32(&msg,left);
+  if (_cur_structure)
+    {
+      /* Finalisation is done by request_array_offsets. */
+      ERR_MSG("Premature setup done - structure in progress not finished.");
+    }
+
+  size_t num_trees = 0;
+
+  for (global_struct_vector::iterator iter = _structures.begin();
+       iter != _structures.end(); ++iter)
+    {
+      global_struct *s = *iter;
+      
+#if USING_ROOT
+      num_trees += s->_root_ntuples.size();
+#endif
+    }
 
 #if USING_ROOT
-  if (_root_ntuples.size() >= 10)
-    MSG("(... %d trees booked.)",(int) _root_ntuples.size());
+  if (num_trees >= 10)
+    MSG("(... %d trees booked.)",(int) num_trees);
+#else
+  (void) num_trees;
 #endif
 #if STRUCT_WRITER
   _client_written = writer;
 
-  uint32_t xor_sum = 0; // make compiler happy
-
-  const char *name = 
-    _config._header_id ? _config._header_id : _msg_config._id;
-
-  if (!writer)
-    {
-      xor_sum = calc_structure_xor_sum(_stage_array);
-      
-      if (xor_sum_msg && xor_sum_msg != xor_sum)
-	ERR_MSG("Mismatch between received (0x%08x) "
-		"and calculated xor_sum (0x%08x).",
-		xor_sum_msg,xor_sum);
-      
-      // write the xor_sum into the chunk that goes to the network
-      // it's in the first integer after the header
-      
-      *xor_sum_msg_p = htonl(xor_sum);
-    }
-
   if (_config._header)
     {
-      char *header_guard =
-	(char *) malloc(2+6+strlen(name)+1+strlen(_config._header)+2+1);
-
-      if (!header_guard)
-	ERR_MSG("Failure allocating memory for header_guard.");
-
-      sprintf(header_guard,"__GUARD_%s_%s__",name,_config._header);
-
-      for (char *p = header_guard; *p; p++)
-	{
-	  if (*p == '.')
-	    *p = '_';
-	  if (*p == '/')
-	    *p = '_';
-	  *p = toupper(*p);
-	}
-
       if (writer)
 	{
 	  ERR_MSG("Data comes from client, "
 		  "not enough information to generate header file.");
 	}
 
-      FILE *fid = fopen(_config._header,"wt");
-      if (!fid)
-	{
-	  perror("fopen");
-	  ERR_MSG("Failure opening %s for writing.",_config._header);
-	}
-
-      fprintf (fid,
-	       "/********************************************************\n"
-	       " *\n"
-	       " * Structure for ext_data_fetch_event() filling.\n"
-	       " *\n"
-	       " * Do not edit - automatically generated.\n"
-	       " */\n"
-	       "\n"
-	       "#ifndef %s\n"
-	       "#define %s\n"
-	       "\n"
-	       "#ifndef __CINT__\n"
-	       "# include <stdint.h>\n"
-	       "#else\n"
-	       "/* For CINT (old version trouble with stdint.h): */\n"
-	       "# ifndef uint32_t\n"
-	       "typedef unsigned int uint32_t;\n"
-	       "typedef          int  int32_t;\n"
-	       "# endif\n"
-	       "#endif\n"
-	       "#ifndef EXT_STRUCT_CTRL\n"
-	       "# define EXT_STRUCT_CTRL(x)\n"
-	       "#endif\n",
-	       header_guard,
-	       header_guard);
-      // We do not put the typedefs in en else clause above, such that
-      // if compiled on a platform where it is not true, the compiler
-      // will cry.  Also, if our defines should get promoted to 64 bits,
-      // the structure size will be wrong, and that's checked.
-
-      fprintf (fid,
-	       "\n"
-	       "/********************************************************\n"
-	       " *\n"
-	       " * Plain structure (layout as ntuple/root file):\n"
-	       " */\n"
-	       "\n");
-
-      fprintf (fid,
-	       "typedef struct EXT_STR_%s_t\n"
-	       "{\n",
-	       name);
-
-      generate_structure(fid,_stage_array,2,false);
-
-      fprintf (fid,
-	       "\n"
-	       "} EXT_STR_%s;\n",
-	       name);
-
-      fprintf (fid,
-	       "\n"
-	       "/********************************************************\n"
-	       " *\n"
-	       " * Structure with multiple levels of arrays (partially)\n"
-	       " * recovered (recommended):\n"
-	       " */\n"
-	       "\n");
-
-      fprintf (fid,
-	       "typedef struct EXT_STR_%s_onion_t\n"
-	       "{\n",
-	       name);
-
-      {
-	set_strings used_names;
-	
-	generate_structure_onion(fid,_stage_array._items,2,used_names);
-	
-	// This should just delete all the pointers, but as the program
-	// quits after generating the header, we ignore the memory leak :)
-	// kill_strings(used_names);
-      }
-
-      fprintf (fid,
-	       "\n"
-	       "} EXT_STR_%s_onion;\n",
-	       name);
-
-      fprintf (fid,
-	       "\n"
-	       "/*******************************************************/\n"
-	       "\n"
-	       "#define EXT_STR_%s_ITEMS_INFO(ok,si,offset,struct_t,printerr) "
-	       /* */ "do { \\\n"
-	       "  ok = 1; \\\n",
-	       name);
-
-      generate_structure(fid,_stage_array,2,true);
-
-      fprintf (fid,
-	       "  \\\n"
-	       "} while (0);\n");
-
-      fprintf (fid,
-	       "\n"
-	       "/********************************************************\n"
-	       " *\n"
-	       " * For internal use by the network data reader:\n"
-	       " * (version checks, etc)\n"
-	       " */\n"
-	       "\n");
-
-      fprintf (fid,
-	       "typedef struct EXT_STR_%s_layout_t\n"
-	       "{\n",
-	       name);
-
-      fprintf (fid,
-	       "  uint32_t _magic;\n"
-	       "  uint32_t _size_info;\n"
-	       "  uint32_t _size_struct;\n"
-	       "  uint32_t _size_struct_onion;\n"
-	       "  uint32_t _pack_list_items;\n"
-	       "\n"
-	       "  uint32_t _num_items;\n"
-	       "  struct {\n"
-	       "    uint32_t _offset;\n"
-	       "    uint32_t _size;\n"
-	       "    uint32_t _xor;\n"
-	       "    const char *_name;\n"
-	       "  } _items[1];\n"
-	       );
-
-      fprintf (fid,
-	       "  uint32_t _pack_list[%zd];",
-	       _offset_array._length);
-
-      fprintf (fid,
-	       "\n"
-	       "} EXT_STR_%s_layout;\n",
-	       name);
-
-      fprintf (fid,
-	       "\n"
-	       "#define EXT_STR_%s_LAYOUT_INIT { \\\n",
-	       name);
-
-      fprintf (fid,"  0x%08x, \\\n"
-	       "  sizeof(EXT_STR_%s_layout), \\\n"
-	       "  sizeof(EXT_STR_%s), \\\n"
-	       "  sizeof(EXT_STR_%s_onion), \\\n"
-	       "  %zd, \\\n"
-	       "  %d, \\\n"
-	       "  { \\\n",
-	       EXTERNAL_WRITER_MAGIC,
-	       name,
-	       name,
-	       name,
-	       _offset_array._length,
-	       1);
-
-      fprintf (fid,"    { 0, sizeof(EXT_STR_%s), 0x%08x, \"%s\" }, \\\n",
-	       name,
-	       xor_sum,
-	       name);
-      
-      fprintf (fid,"  }, \\\n"
-	       "  { \\\n"
-	       "   ");
-
-      for (int i = 0; i < _offset_array._length; i++)
-	{
-	  if ((i & 3) == 0 && i)
-	    fprintf (fid," \\\n   ");
-	  fprintf (fid," 0x%08x,",_offset_array._ptr[i]);
-	}
-	
-      fprintf (fid," \\\n"
-	       "  } \\\n"
-	       "};\n");
-
-      fprintf (fid,
-	       "\n"
-	       "#endif/*%s*/\n"
-	       "\n"
-	       "/*******************************************************/\n",
-	       header_guard);
-     
-      fclose(fid);
-
-      free(header_guard);
-
-      MSG ("Wrote structure header file %s.",_config._header);
+      write_header();
 
       if (_config._port == 0 && !_config._stdout && !_config._forked)
 	exit(0); // We're done
@@ -1972,6 +2226,13 @@ void request_setup_done(void *msg,uint32_t *left,int reader,int writer)
 
   if (reader)
     {
+      if (_structures.size() < 1)
+	ERR_MSG("Cannot get event without structure defined.");
+
+      _read_structure = _structures[0];
+
+      global_struct *s = _read_structure;
+
       if (!_config._insrc)
 	ERR_MSG("Input source not specified.");
 
@@ -1991,18 +2252,19 @@ void request_setup_done(void *msg,uint32_t *left,int reader,int writer)
 
       slo._magic = EXTERNAL_WRITER_MAGIC;
       slo._size_info = sizeof(slo);
-      slo._size_struct = slo._size_struct_onion = _stage_array._length;
+      slo._size_struct = slo._size_struct_onion = s->_stage_array._length;
       slo._pack_list_items = 0; // no pack list
       slo._num_items = 1;
       slo._items[0]._offset = 0;
-      slo._items[0]._size = _stage_array._length;
-      slo._items[0]._xor = xor_sum;
+      slo._items[0]._size = s->_stage_array._length;
+      slo._items[0]._xor = s->_xor_sum;
       slo._items[0]._name = NULL;
 
       if (ext_data_setup(_reader_client,
 			 &slo,sizeof(slo),
 			 NULL,
-			 _stage_array._length) != 0)
+			 s->_stage_array._length,
+			 "", NULL) != 0)
 	{
 	  perror("ext_data_setup");
 	  ERR_MSG("Failed to setup connection: %s",
@@ -2015,14 +2277,14 @@ void request_setup_done(void *msg,uint32_t *left,int reader,int writer)
 }
 
 #if STRUCT_WRITER
-void dump_array()
+void dump_array_normal(global_struct *s)
 {
   // Dump all entries...
 
   printf ("--- === --- === ---\n");
 
-  for (stage_array_item_map::iterator iter = _stage_array._items.begin();
-       iter != _stage_array._items.end(); ++iter)
+  for (stage_array_item_map::iterator iter = s->_stage_array._items.begin();
+       iter != s->_stage_array._items.end(); ++iter)
     {
       stage_array_item &item = iter->second;
       uint32_t offset = iter->first;
@@ -2035,11 +2297,11 @@ void dump_array()
 	{
 	  if (item._var_ctrl_name)
 	    {
-	      uint32_t *ctrl_p = 
-		(uint32_t *) (_stage_array._ptr + item._ctrl_offset);
+	      uint32_t *ctrl_p =
+		(uint32_t *) (s->_stage_array._ptr + item._ctrl_offset);
 
 	      items = *ctrl_p;
-	      
+
 	      if (items == 0)
 		continue;
 
@@ -2068,7 +2330,7 @@ void dump_array()
 
       // 11 * 6 = 66 tokens, i.e. 14 left
 
-      char *p = _stage_array._ptr + offset;
+      char *p = s->_stage_array._ptr + offset;
 
       for (int i = 0; i < items; i++, p += sizeof(uint32_t))
 	{
@@ -2098,8 +2360,84 @@ void dump_array()
 	    }
 	}
 
-      printf ("\n");      
+      printf ("\n");
     }
+  fflush(stdout);
+}
+
+void dump_array_json(global_struct *s)
+{
+  // Dump all entries...
+
+  bool pretty = _config._dump == EXT_WRITER_DUMP_FORMAT_HUMAN_JSON;
+  
+  printf ("{");
+  if (pretty) printf("\n");
+
+  stage_array_item_map::iterator last = --s->_stage_array._items.end();
+  
+  for (stage_array_item_map::iterator iter = s->_stage_array._items.begin();
+       iter != s->_stage_array._items.end(); ++iter)
+    {
+      stage_array_item &item = iter->second;
+      uint32_t offset = iter->first;
+
+      int items = 1;
+
+      bool is_array = item._var_array_len != (uint32_t) -1;
+
+      if (is_array)
+	{
+	  if (item._var_ctrl_name)
+	    {
+	      uint32_t *ctrl_p =
+		(uint32_t *) (s->_stage_array._ptr + item._ctrl_offset);
+
+	      items = *ctrl_p;
+	      if (items == 0)
+		continue;
+	    }
+	  else
+	    {
+	      items = item._var_array_len;
+	    }
+	}
+
+      printf("\"%s\":",item._var_name);
+
+      if (pretty && strlen(item._var_name) < 30)
+	printf("%*s", (int) (30-strlen(item._var_name)), "");
+
+      char *p = s->_stage_array._ptr + offset;
+      
+      if (is_array) printf("[");
+      for (int i = 0; i < items; i++, p += sizeof(uint32_t))
+	{
+	  switch (item._var_type & EXTERNAL_WRITER_FLAG_TYPE_MASK)
+	    {
+	    case EXTERNAL_WRITER_FLAG_TYPE_INT32: {
+	      printf ("%d",(int) *((int32_t *) p)); // PRId32
+	      break;
+	    }
+	    case EXTERNAL_WRITER_FLAG_TYPE_UINT32: {
+	      printf ("%u",(unsigned int) *((uint32_t *) p)); // PRIu32
+	      break;
+	    }
+	    case EXTERNAL_WRITER_FLAG_TYPE_FLOAT32: {
+	      float f = *((float *) p);
+	      printf("%g", f);
+	      break;
+	    }
+	    }
+	  if (is_array && i < items-1) printf(",");
+	}
+      if (is_array) printf("]");
+
+      if (iter != last) printf(",");
+      if (pretty) printf("\n");
+    }
+  printf("}\n");
+  fflush(stdout);
 }
 #endif
 
@@ -2172,7 +2510,7 @@ public:
 
     if (!_bits)
       return false;
-    
+
     while (!(_bits & 0x3f))
       {
 	_bits >>= 6;
@@ -2197,7 +2535,7 @@ public:
 //
 // Number of instructions used each round:
 //
-// K is the length of the offset array, generally K=2^k 
+// K is the length of the offset array, generally K=2^k
 // N is the length of the array to be sorted
 // M is the size of each item
 //
@@ -2264,7 +2602,7 @@ public:
 // (parallellised) rounds: K+N+N+K+M*N+M*N+N+N = 3*K+(6+2*M)*N
 
 // Recalculate the SST effort with these numbers (assuming the 7-loops
-// over K are unrolled to only have the 6-loop's overhead): 
+// over K are unrolled to only have the 6-loop's overhead):
 // radix bits 6 and 7 => (9+8)*64 + 5*2^6+3*2^7 = 1792
 // radix bits 5, 4 and 4 => (9+8+8)*64 + 5*2^4+3*(2^4+2^5) = 1824
 // (also in this case, one should run with just two rounds)
@@ -2291,7 +2629,7 @@ void radix_sort(uint32_t *src,
 
       int bucket = (offset >> koff) & RADIX_MASK;
 
-      elements[bucket]++;   
+      elements[bucket]++;
     }
 
   uint32_t *d[RADIX_K];
@@ -2314,7 +2652,7 @@ void radix_sort(uint32_t *src,
       *(d[bucket]++) = *(p++);
       *(d[bucket]++) = *(p++);
     }
-  
+
 
 
 }
@@ -2328,24 +2666,24 @@ void radix_sort(uint32_t *src,
 void request_keep_alive(ext_write_config_comm *comm,
 			void *msg,uint32_t *left)
 {
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_msg_config._sort_u32_words);
+  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 1;
 }
-			 
+
 void prehandle_keep_alive(ext_write_config_comm *comm,
-			void *msg,uint32_t *left)
+			  void *msg,uint32_t *left)
 {
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_msg_config._sort_u32_words);
+  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 1;
 }
-			 
+
 void prehandle_ntuple_fill(ext_write_config_comm *comm,
 			   void *msg,uint32_t *left)
 {
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_msg_config._sort_u32_words);
+  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 0;
 }
-			 
+
 void request_ntuple_fill(ext_write_config_comm *comm,
 			 void *msg,uint32_t *left,
 			 external_writer_buf_header **header
@@ -2363,7 +2701,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
       time_t now = time(NULL);
 
-      if (now < _last_slicetime)
+      if (now < _ts._last_slicetime)
 	{
 	  // This is likely to create a lot of problems, as the files
 	  // will not be in order.  Either we could just print a
@@ -2377,25 +2715,33 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	      "You probably want to act on stored files and restart.");
 	}
 
-      if (now >= _last_slicetime + _config._timeslice)
+      if (now >= _ts._last_slicetime + _config._timeslice)
 	{
 	  // Close current file
 	  close_output();
-	  
+
 	  // Open another file
 	  do_file_open(now);
-	  do_book_ntuple(-1);
-	  
-	  // Create the items again
-	  for (stage_array_item_vector::iterator iter = 
-		 _stage_array._items_v.begin();
-	       iter != _stage_array._items_v.end(); ++iter)
+
+	  // Loop over all structures
+	  for (global_struct_vector::iterator iter = _structures.begin();
+	       iter != _structures.end(); ++iter)
 	    {
-	      stage_array_item &item = *iter;
-	      
-	      do_create_branch(item._offset,item);
-	    }
+	      global_struct *s = *iter;
 	  
+	      do_book_ntuple(s, -1);
+
+	      // Create the items again
+	      for (stage_array_item_vector::iterator iter =
+		     s->_stage_array._items_v.begin();
+		   iter != s->_stage_array._items_v.end(); ++iter)
+		{
+		  stage_array_item &item = *iter;
+
+		  do_create_branch(s, item._offset,item);
+		}
+	    }
+
 	  // Ready to store data in the new file...
 	}
     }
@@ -2403,24 +2749,38 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
   // MSG("left %d.",*left);
 
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_msg_config._sort_u32_words);
+  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 0;
 
+  uint32_t struct_index = get_buf_uint32(&msg,left);
   uint32_t ntuple_index = get_buf_uint32(&msg,left);
 
-  if (_msg_config._max_raw_words)
+  if (struct_index >= _structures.size())
+    ERR_MSG("Structure index (%d) too large (>= %d).",
+	    struct_index,(int) _structures.size());
+
+  global_struct *s = _structures[struct_index];
+
+  if (s->_max_raw_words)
     {
       comm->_raw_words = get_buf_uint32(&msg,left);
       comm->_raw_ptr = get_buf_raw_ptr(&msg,left,comm->_raw_words);
     }
 
   uint32_t marker = get_buf_uint32(&msg,left);
+  uint32_t compact_marker = marker & 0xc0000000;
+
+  if (compact_marker != 0x80000000 &&
+      compact_marker != 0x40000000)
+    {
+	ERR_MSG("Compact marker invalid (0x%08x) .", compact_marker);
+    }
 
   // MSG("index %d marker %d left %d.",ntuple_index,marker,*left);
 
-  if (!_stage_array._length)
+  if (!s->_stage_array._length)
     ERR_MSG("Cannot fill using unallocated array.");
-   
+
   if (!(marker & 0x80000000))
     {
       // Non-compacted array.
@@ -2439,18 +2799,18 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	  goto statistics;
 	}
 #endif
-      
+
       // The data mst be unpacked using the static information we have
       // about offsets.  Only the values are sent each time.
 
-      uint32_t *o    = _offset_array._ptr;
-      uint32_t *oend = _offset_array._ptr + _offset_array._length;
+      uint32_t *o    = s->_offset_array._ptr;
+      uint32_t *oend = s->_offset_array._ptr + s->_offset_array._length;
 
       uint32_t *p    = (uint32_t *) msg;
       uint32_t *pend = (uint32_t *) (((char*) msg) + *left);
 
 #if STRUCT_WRITER
-      uint32_t *pp    = (uint32_t *) _stage_array._offset_value;
+      uint32_t *pp    = (uint32_t *) s->_stage_array._offset_value;
       uint32_t *ppp   = (uint32_t *) pp;
 #endif
 
@@ -2459,12 +2819,12 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // first.  then every time we end up inside a controlled item,
       // we check that those items are also available.
 
-      if (pend - p < _offset_array._static_items)
+      if (pend - p < s->_offset_array._static_items)
 	ERR_MSG("Fill value array too short (%zd) "
 		"for offset array static items (%" PRIu32 ").",
-		pend - p,_offset_array._static_items);
+		pend - p,s->_offset_array._static_items);
 
-      uint32_t *pcheck = p + _offset_array._static_items;
+      uint32_t *pcheck = p + s->_offset_array._static_items;
 
       // MSG ("---");
 
@@ -2477,12 +2837,12 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	  uint32_t value = ntohl(*(p++));
 
 	  // MSG("%08x : %08x : %08x",coffset,offset,value);
-	  
+
 #if STRUCT_WRITER
 	  *(ppp++) = offset;
 	  *(ppp++) = value;
 #else
-	  *((uint32_t *) (_stage_array._ptr + offset)) = value;
+	  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 #endif
 
 	  // MSG ("value: (0x%08x) 0x%08x %c",offset,value,mark ? '*' : ' ');
@@ -2493,7 +2853,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	    {
 	      uint32_t max_loops = *(o++);
 	      uint32_t loop_size = *(o++);
-	      
+
 	      // MSG ("               %d * %d",max_loops,loop_size);
 
 	      uint32_t *onext = o + max_loops * loop_size;
@@ -2530,10 +2890,10 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 		  *(ppp++) = offset;
 		  *(ppp++) = value;
 #else
-		  *((uint32_t *) (_stage_array._ptr + offset)) = value;
+		  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 #endif
 		}
-	      
+
 	      // And then jump to the end of the loop in the offset array
 
 	      o = onext;
@@ -2542,9 +2902,9 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
       if (p != pend)
       //if (pend - p != p - (uint32_t *) msg /* p != pend */)
-	ERR_MSG("Fill value array not completely consumed (%d left).  "
+	ERR_MSG("Fill value array not completely consumed (%d left, %d used).  "
 		"Desynchronised with offset array.",
-		(int) (pend - p));
+		(int) (pend - p), (int) (p - (uint32_t *) msg));
 
       *left = 0; // consumed all data
       // msg = pend; // not really needed... (as left is 0)
@@ -2556,22 +2916,22 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // int       _num_masks[BUCKET_SORT_LEVELS];
 
       //struct rusage use1, use2, use3, use4, use5;
-      
+
       //getrusage(RUSAGE_SELF,&use1);
 
-      memset(_stage_array._masks[0],0,
-	     _stage_array._num_masks[0] * sizeof(uint32_t));
+      memset(s->_stage_array._masks[0],0,
+	     s->_stage_array._num_masks[0] * sizeof(uint32_t));
 
       while (pp + 1 < ppp)
 	{
 	  uint32_t offset = *(pp++);
 	  uint32_t value  = *(pp++);
 
-	  if (offset + sizeof(uint32_t) > _stage_array._length)
+	  if (offset + sizeof(uint32_t) > s->_stage_array._length)
 	    ERR_MSG("Fill item offset (%" PRIu32 ") outside array (%zd).",
-		    offset,_stage_array._length);
- 
-	  *((uint32_t *) (_stage_array._ptr + offset)) = value;
+		    offset,s->_stage_array._length);
+
+	  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 
 	  uint32_t mask_item = (offset / sizeof(uint32_t));
 	  uint32_t mask_shift = (BUCKET_SORT_LEVELS - 1) * BUCKET_SORT_SHIFT;
@@ -2588,7 +2948,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	      uint32_t mask_off = this_mask >> BUCKET_SORT_SHIFT;
 	      uint32_t mask_ind = this_mask & (BUCKET_SORT_BITS - 1);
 
-	      uint32_t *mask_ptr = _stage_array._masks[level] + mask_off;
+	      uint32_t *mask_ptr = s->_stage_array._masks[level] + mask_off;
 	      uint32_t mask_bit = 1 << mask_ind;
 
 	      if (!(*mask_ptr & mask_bit))
@@ -2611,7 +2971,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	      uint32_t mask_off = this_mask >> BUCKET_SORT_SHIFT;
 	      uint32_t mask_ind = this_mask & (BUCKET_SORT_BITS - 1);
 
-	      uint32_t *mask_ptr = _stage_array._masks[level] + mask_off;
+	      uint32_t *mask_ptr = s->_stage_array._masks[level] + mask_off;
 	      uint32_t mask_bit = 1 << mask_ind;
 
 	      *mask_ptr = mask_bit; // initialise
@@ -2626,29 +2986,29 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       //getrusage(RUSAGE_SELF,&use2);
       // qsort(p,(end-p)/2,2 * sizeof(uint32_t),compare_raw_fill_list);
       //getrusage(RUSAGE_SELF,&use3);
-      
-      // 
+
+      //
 #if 0
       fprintf (stderr,"%4d: ",(end-p)/2);
-      
+
       int prev_offset = -8;
       uint32_t *pp = p;
-      
+
       for (pp ; pp < end; pp += 2)
 	{
 	  char type = '-';
-	  
+
 	  if (ntohl(pp[1]) == 0) type = '0';
 	  else if (ntohl(pp[1]) == 0x7fc00000) type = 'X';
 	  else if (!(ntohl(pp[1]) & 0xffffff00)) type = 'b';
 	  else if (!(ntohl(pp[1]) & 0xffff0000)) type = 's';
-	  
+
 	  int offset = ntohl(pp[0]) & 0x00ffffff;
-	  
+
 	  if (offset != prev_offset + 4)
 	    fprintf (stderr," ");
 	  fprintf (stderr,"%c",type);
-	  
+
 	  prev_offset = offset;
 	}
       fprintf (stderr,"\n");
@@ -2715,18 +3075,18 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // buffers (which are there even if there are no consumers).
       // That way, we save a memcpy operation.
 
-      size_t max_length = _stage_array._rewrite_max_bytes_per_item * 
-	((ppp - _stage_array._offset_value) / 2);
+      size_t max_length = s->_stage_array._rewrite_max_bytes_per_item *
+	((ppp - s->_stage_array._offset_value) / 2);
 
       max_length = (max_length + 3) & ~3; // 4-byte alignment
       max_length += sizeof (external_writer_buf_header);
       max_length +=
-	(_msg_config._sort_u32_words +
-	 (_msg_config._max_raw_words ? 1 + comm->_raw_words : 0) +
-	 2) * // 2: ntuple_index + mark_dest
-	sizeof (uint32_t); 
-      
-      char *net_io_chunk = 
+	(_g._sort_u32_words +
+	 (s->_max_raw_words ? 1 + comm->_raw_words : 0) +
+	 3) * // 3: struct_index + ntuple_index + mark_dest
+	sizeof (uint32_t);
+
+      char *net_io_chunk =
 	ext_net_io_reserve_chunk(max_length,false,chunk);
 
       memcpy(net_io_chunk,*header,sizeof(**header));
@@ -2737,59 +3097,63 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // sizeof (external_writer_buf_header)
 
       uint32_t *sort_u32_dest = (uint32_t*) (*header + 1);
-      for (uint32_t i = 0; i < _msg_config._sort_u32_words; i++)
+      for (uint32_t i = 0; i < _g._sort_u32_words; i++)
 	sort_u32_dest[i] = comm->_sort_u32_raw[i];
 
-      uint32_t *ntuple_index_dest =
-	sort_u32_dest + _msg_config._sort_u32_words;
+      uint32_t *struct_index_dest =
+	sort_u32_dest + _g._sort_u32_words;
+
+      *struct_index_dest = htonl(struct_index);
+
+      uint32_t *ntuple_index_dest = struct_index_dest + 1;
 
       *ntuple_index_dest = htonl(ntuple_index);
-      
+
       uint32_t *raw_dest = ntuple_index_dest + 1;
 
-      if (_msg_config._max_raw_words)
+      if (s->_max_raw_words)
 	{
 	  *(raw_dest++) = htonl(comm->_raw_words);
 	  memcpy(raw_dest, comm->_raw_ptr,
 		 sizeof(uint32_t) * comm->_raw_words);
 
 	  raw_dest += comm->_raw_words;
-	}      
+	}
 
       uint32_t *mark_dest = raw_dest;
       uint8_t *dest = (uint8_t *) (mark_dest + 1);
 
       uint32_t cur_offset = 0;
-      
-      for (int i = 0; i < _stage_array._num_masks[0]; i++)
+
+      for (int i = 0; i < s->_stage_array._num_masks[0]; i++)
 	{
 	  // fprintf (stderr,"[0:%d]",i);
 
-	  bucket_iter iter0(_stage_array._masks[0][i],
-			       i*BUCKET_SORT_BITS);
-	  
+	  bucket_iter iter0(s->_stage_array._masks[0][i],
+			    i*BUCKET_SORT_BITS);
+
 	  while (iter0.get_next())
 	    {
 	      // so, this bit (@index) is (was) set, go into the next bucket
 
 	      // fprintf (stderr,"(1:%d)",iter0._index);
-	      
+
 	      bucket_iter
-		iter1(_stage_array._masks[1][iter0._index],
+		iter1(s->_stage_array._masks[1][iter0._index],
 		      iter0._index*BUCKET_SORT_BITS);
-	      
+
 	      while (iter1.get_next())
 		{
 		  // fprintf (stderr,"(2:%d)",iter1._index);
-	      
+
 		  bucket_iter
-		    iter2(_stage_array._masks[2][iter1._index],
+		    iter2(s->_stage_array._masks[2][iter1._index],
 			  iter1._index*BUCKET_SORT_BITS);
-		  
+
 		  while (iter2.get_next())
 		    {
 		      // Item at index  iter2._index
-		      
+
 		      //assert(ppp < end);
 
 		      // uint32_t offset = ntohl(ppp[0]);
@@ -2798,8 +3162,8 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 			       iter2._index * 4,ntohl(ppp[0]));
 		      */
 		      uint32_t offset = iter2._index * sizeof (uint32_t);
-		      uint32_t value  = 
-			*((uint32_t *) (_stage_array._ptr + offset));
+		      uint32_t value  =
+			*((uint32_t *) (s->_stage_array._ptr + offset));
 		      /*
 		      if (iter2._index * 4 != ntohl(ppp[0]) ||
 			  value != ntohl(ppp[1]))
@@ -2816,23 +3180,23 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
 		      ////////////////////////////////////////////
 		      // Begin encoding this value
-		      
+
 		      // uint8_t *odest = dest;
 
 		      uint32_t store_offset = offset - cur_offset;
 
 		      assert(!(store_offset & 3));
 		      store_offset >>= 2;
-		      
-		      assert(offset + sizeof(uint32_t) <= 
-			     _stage_array._length);
+
+		      assert(offset + sizeof(uint32_t) <=
+			     s->_stage_array._length);
 			     /*
 		      if (offset + sizeof(uint32_t) > _stage_array._length)
 			ERR_MSG("Fill item offset (%d) outside array (%d).",
 				offset,_stage_array._length);
 			     */
 		      cur_offset = offset + sizeof(uint32_t);
-		      
+
 		      if (value == 0)
 			{
 			  while (store_offset > 0x0f)
@@ -2885,10 +3249,10 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 			}
 
 		      // fprintf (stderr," %d",dest-odest);
-		      
+
 		      // End encoding this value
 		      ////////////////////////////////////////////
-		    }		  
+		    }
 		}
 	    }
 	}
@@ -2904,31 +3268,32 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // if we employ zero suppression, so it's anyhow not to be
       // used.  We do this such that the unpacking can verify that
       // at least all the offsets worked out together.
-      
-      if (cur_offset != _stage_array._length)
+
+      if (cur_offset != s->_stage_array._length)
 	{
-	  uint32_t offset = _stage_array._length - sizeof(uint32_t);
+	  uint32_t offset = s->_stage_array._length - sizeof(uint32_t);
 	  uint32_t store_offset = offset - cur_offset;
-	  
+
 	  assert(!(store_offset & 3));
 	  store_offset >>= 2;
-		      
+
 	  while (store_offset > 0x0f)
 	    {
 	      *(dest++) = 0x80 | (store_offset & 0x7f);
 	      store_offset >>= 7;
 	    }
 	  *(dest++) = (3 << 5) | (1 << 4) | store_offset;
-	}	  
+	}
 
-      *mark_dest = 
-	htonl(0x80000000 | ((char *) dest - (char *) (mark_dest + 1)));
+      uint32_t compact_len = ((char *) dest - (char *) (mark_dest + 1));
+
+      *mark_dest = htonl(0x80000000 | compact_len);
 
       // Pad with zeros (to make comparisons work)
 
       memset(dest,0,(-((char *) dest - (char *) *header))&3);
 
-      uint32_t new_length = 
+      uint32_t new_length =
 	((((char *) dest - (char *) *header) + 3) & ~3);
       /*
       MSG("rewrite: %d items (%d bpi), %d / nl: %d ml: %d",
@@ -2947,8 +3312,8 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // - but anyhow, would invite for bugs should that change).
 
 #if 0
-      int ret = ext_data_write_bitpacked_event((char *) _stage_array._ptr,
-					       _stage_array._length,
+      int ret = ext_data_write_bitpacked_event((char *) s->_stage_array._ptr,
+					       s->_stage_array._length,
 					       (uint8_t *) (mark_dest+1),
 					       (uint8_t *) dest);
 
@@ -2999,7 +3364,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
     {
       // Compacted data.
 
-      uint32_t real_len = marker & 0x7fffffff;
+      uint32_t real_len = marker & 0x3fffffff;
 
       if (real_len > *left)
 	ERR_MSG("Raw fill compacted data malformed, size %d > length %d.",
@@ -3008,8 +3373,8 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // Also for struct_writer we unpack, just to check that the data
       // is correct
 
-      int ret = ext_data_write_bitpacked_event((char *) _stage_array._ptr,
-					       _stage_array._length,
+      int ret = ext_data_write_bitpacked_event((char *) s->_stage_array._ptr,
+					       s->_stage_array._length,
 					       (uint8_t *) msg,
 					       (uint8_t *) msg + real_len);
 
@@ -3020,13 +3385,13 @@ void request_ntuple_fill(ext_write_config_comm *comm,
     }
 
 #if USING_CERNLIB
-  _cwn->hfnt();
+  s->_cwn->hfnt();
 #endif
 #if USING_ROOT
-  if (ntuple_index >= _root_ntuples.size())
+  if (ntuple_index >= s->_root_ntuples.size())
     ERR_MSG("Ntuple index (%d) too large (>= %d).",
-	    ntuple_index,(int) _root_ntuples.size());
-  Int_t ret = _root_ntuples[ntuple_index]->Fill();
+	    ntuple_index,(int) s->_root_ntuples.size());
+  Int_t ret = s->_root_ntuples[ntuple_index]->Fill();
   if (ret < 0)
     ERR_MSG("Tree filling failed.  (disk full?)");
   if (_got_sigalarm_autosave)
@@ -3035,10 +3400,10 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
       time_t now = time(NULL);
 
-      if (now >= _last_autosave + _config._autosave)
+      if (now >= _ts._last_autosave + _config._autosave)
 	{
 	  struct flock fl;
-	  int fd = _root_file->GetFd();
+	  int fd = _g._root_file->GetFd();
 	  int lock_ret = 0;
 
 	  /* Locking was conjured up to read data from a somewhat reasonable
@@ -3052,7 +3417,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	   * print a warning.  (Likely some reader has gotten stuck.)
 	   */
 
-	  if (_autosave_lock_do) {
+	  if (_ts._autosave_lock_do) {
 	    fl.l_type = F_WRLCK;
 	    fl.l_whence = SEEK_SET;
 	    fl.l_start = 0;
@@ -3064,7 +3429,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	      {
 	        if (errno == EINTR)
 	          {
-		    _autosave_lock_fail++;
+		    _ts._autosave_lock_fail++;
 
 		    /* There is no way for us to remove the lock.
 		     * So we report it until the problem has been solved.
@@ -3074,11 +3439,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 		     * Then choosing to not do updates.
 		     */
 
-		    if (_autosave_lock_fail >= 3)
+		    if (_ts._autosave_lock_fail >= 3)
 		      {
 			MSG("Lock before AutoSave has failed multiple (%d) "
 			  "times in a row.  Not doing AutoSave.",
-			  _autosave_lock_fail);
+			  _ts._autosave_lock_fail);
 		      }
 		  }
 	        else
@@ -3087,27 +3452,27 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	            perror("fcntl(F_SETLK, F_UNLCK)");
 	            MSG("Unexpected error locking before AutoSave, will not "
 		      "lock.");
-	            _autosave_lock_do = 0;
+	            _ts._autosave_lock_do = 0;
 	          }
 	      }
 	  }
 
-	  if (lock_ret != -1 || !_autosave_lock_do)
+	  if (lock_ret != -1 || !_ts._autosave_lock_do)
 	    {
-	      if (_autosave_lock_fail >= 3)
+	      if (_ts._autosave_lock_fail >= 3)
 		MSG("Lock before AutoSave succeeded.");
 
-	      _autosave_lock_fail = 0;
+	      _ts._autosave_lock_fail = 0;
 
 	      /* We got the lock.  Use it */
 
-	      _last_autosave = now;
-	      
-	      for (TTree_vector::iterator iter = _root_ntuples.begin();
-		   iter != _root_ntuples.end(); ++iter)
+	      _ts._last_autosave = now;
+
+	      for (TTree_vector::iterator iter = s->_root_ntuples.begin();
+		   iter != s->_root_ntuples.end(); ++iter)
 		(*iter)->AutoSave("saveself,flushbaskets");
 
-	      if (_autosave_lock_do) {
+	      if (_ts._autosave_lock_do) {
 	        /* Then unlock again. */
 
 	        fl.l_type = F_UNLCK;
@@ -3127,7 +3492,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 		      goto unlock;
 		    }
 #endif
-		  
+
 		    perror("fcntl(F_SETLK, F_UNLCK)");
 		    ERR_MSG("Unexpected error unlocking after AutoSave.");
 		  }
@@ -3137,13 +3502,16 @@ void request_ntuple_fill(ext_write_config_comm *comm,
     }
 #endif
 #if STRUCT_WRITER
-  if (_config._dump)
-    dump_array();
+  if (_config._dump == EXT_WRITER_DUMP_FORMAT_NORMAL)
+    dump_array_normal(s);
+  else if (_config._dump == EXT_WRITER_DUMP_FORMAT_HUMAN_JSON ||
+	   _config._dump == EXT_WRITER_DUMP_FORMAT_COMPACT_JSON)
+    dump_array_json(s);
 #endif
 
  statistics:
 
-  _num_events++;
+  _g._num_events++;
 
   if (_got_sigalarm_nonforked)
     {
@@ -3151,12 +3519,18 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // that could happen is that we miss to do an update
       _got_sigalarm_nonforked = 0;
 
-      fprintf(stderr,"%lld events",(long long int) _num_events);
+      fprintf(stderr,"%lld events",(long long int) _g._num_events);
 #if STRUCT_WRITER
       fprintf(stderr,", (%.1f %cB, %.1f %cB to clients, now %d)",
-	      _committed_size > 2000000000 ? (double) _committed_size / 1000000000. : (double) _committed_size / 1000000.,_committed_size > 2000000000 ? 'G' : 'M',
-	      _sent_size > 2000000000 ? (double) _sent_size / 1000000000. : (double) _sent_size / 1000000.,_sent_size > 2000000000 ? 'G' : 'M',
-	      _cur_clients);
+	      _net_stat._committed_size > 2000000000 ?
+	      (double) _net_stat._committed_size / 1000000000. :
+	      (double) _net_stat._committed_size / 1000000.,
+	      _net_stat._committed_size > 2000000000 ? 'G' : 'M',
+	      _net_stat._sent_size > 2000000000 ?
+	      (double) _net_stat._sent_size / 1000000000. :
+	      (double) _net_stat._sent_size / 1000000.,
+	      _net_stat._sent_size > 2000000000 ? 'G' : 'M',
+	      _net_stat._cur_clients);
 #endif
       fprintf(stderr,"         \r");
       fflush(stderr);
@@ -3165,6 +3539,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
 bool ntuple_get_event(char *msg,char **end)
 {
+  // TODO: Move this check to a common place?
+  // I.e. need not be done every time?
+
+  global_struct *s = _read_structure;
+
   external_writer_buf_header *header = (external_writer_buf_header*) msg;
 
   // Now, fetch the event
@@ -3172,24 +3551,24 @@ bool ntuple_get_event(char *msg,char **end)
 #if USING_ROOT
   int ret;
 
-  if (_num_events >= _num_read_entries)
+  if (_g._num_events >= _g._num_read_entries)
     goto read_done;
-  
-  ret = _root_ntuple->GetEntry(_num_events);
+
+  ret = s->_root_ntuple->GetEntry(_g._num_events);
 
   if (ret == 0)
     {
       MSG("Entry (event) %" PRIu64 " does not exist in ntuple(tree).",
-	  _num_events);
+	  _g._num_events);
       goto read_abort;
     }
   else if (ret == -1)
     {
       MSG("Error while reading entry (event) %" PRIu64 " from ntuple(tree).",
-	  _num_events);
+	  _g._num_events);
       goto read_abort;
     }
-  _num_events++;
+  _g._num_events++;
 #endif
 #if STRUCT_WRITER
   /* If we are bit-packed, we must unpack into the staging area
@@ -3200,9 +3579,9 @@ bool ntuple_get_event(char *msg,char **end)
 
   struct external_writer_buf_header *header_in;
   uint32_t length_in;
-  
+
   int ret = ext_data_fetch_event(_reader_client,
-				 _stage_array._ptr,_stage_array._length,
+				 s->_stage_array._ptr,s->_stage_array._length,
 				 &header_in,&length_in);
 
   switch (ret)
@@ -3220,9 +3599,10 @@ bool ntuple_get_event(char *msg,char **end)
 
       if (length_in > *end - msg)
 	{
-	  ERR_MSG("Fetched message (%d) too long (invalid/corrupt) "
+	  ERR_MSG("Fetched message (0x%08x=%d) too long (invalid/corrupt) "
 		  "(%" PRIu32 " > %zd)."/*" %08x %08x %08x %08x"*/,
 		  ntohl(header_in->_request),
+		  ntohl(header_in->_request) & EXTERNAL_WRITER_REQUEST_LO_MASK,
 		  length_in, *end - msg/*,
 		  ntohl(((uint32_t *) header_in)[0]),
 		  ntohl(((uint32_t *) header_in)[1]),
@@ -3241,38 +3621,39 @@ bool ntuple_get_event(char *msg,char **end)
 #endif
   {
     uint32_t *start = (uint32_t *) (header + 1);
-    
+
+    start[0] = htonl(0); // struct_index (0, only one when reading)
     start[0] = htonl(0); // ntuple_index (0, only one when reading)
-    start[1] = htonl(0); // marker, non-compacted
-    
-    uint32_t *cur = start + 2;
-    
+    start[1] = htonl(0x40000000); // marker, non-compacted
+
+    uint32_t *cur = start + 3;
+
     // This has filled our staging array.  Now walk our offset pointers
     // and copy the data.
-    
-    uint32_t *o    = _offset_array._ptr;
-    uint32_t *oend = _offset_array._ptr + _offset_array._length;
-    
+
+    uint32_t *o    = s->_offset_array._ptr;
+    uint32_t *oend = s->_offset_array._ptr + s->_offset_array._length;
+
     while (o < oend)
       {
 	uint32_t offset_mark = *(o++);
 	uint32_t offset = offset_mark & 0x3fffffff;
 	uint32_t mark = offset_mark & 0x80000000;
-	
-	uint32_t value = *((uint32_t *) (_stage_array._ptr + offset));
-	
+
+	uint32_t value = *((uint32_t *) (s->_stage_array._ptr + offset));
+
 	// Even if an error is detected, we'll not write the event
 	// anyhow
 	*(cur++) = htonl(value);
-	
+
 	if (mark)
 	  {
 	    // It's a loop control.  Make sure the value was within
 	    // limits.
-	    
+
 	    uint32_t max_loops = *(o++);
 	    uint32_t loop_size = *(o++);
-	    
+
 	    // This will put an end to things!
 	    if (value > max_loops)
 	      {
@@ -3284,36 +3665,39 @@ bool ntuple_get_event(char *msg,char **end)
 		    offset,value,max_loops);
 		goto read_abort;
 	      }
-	    
+
 	    uint32_t *onext = o + max_loops * loop_size;
 	    uint32_t items = value * loop_size;
-	    
+
 	    for (int i = items; i; i--)
 	      {
 		offset = (*(o++)) & 0x3fffffff;
-		value = *((uint32_t *) (_stage_array._ptr + offset));
-		
+		value = *((uint32_t *) (s->_stage_array._ptr + offset));
+
 		*(cur++) = htonl(value);
 	      }
 	    o = onext;
 	  }
       }
-    
+
     // Done.
-    
-    header->_request = htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL);
+
+    header->_request = htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL |
+			     EXTERNAL_WRITER_REQUEST_HI_MAGIC);
     header->_length = htonl(((char*) cur) - ((char*) msg));
-    
+
     *end = (char *) cur;
     return true;
   }
-  
+
  read_abort:
-  header->_request = htonl(EXTERNAL_WRITER_BUF_ABORT);
+  header->_request = htonl(EXTERNAL_WRITER_BUF_ABORT |
+			   EXTERNAL_WRITER_REQUEST_HI_MAGIC);
   goto read_header_only;
 
  read_done:
-  header->_request = htonl(EXTERNAL_WRITER_BUF_DONE);
+  header->_request = htonl(EXTERNAL_WRITER_BUF_DONE |
+			   EXTERNAL_WRITER_REQUEST_HI_MAGIC);
 
  read_header_only:
   header->_length = htonl(sizeof(external_writer_buf_header));
@@ -3329,7 +3713,7 @@ void write_response(ext_write_config_comm *comm, char response)
   for ( ; ; )
     {
       int ret = write(comm->_pipe_out,&response,sizeof(response));
-      
+
       if (ret == -1)
 	{
 	  if (errno == EINTR)
@@ -3351,7 +3735,7 @@ void full_write(int fd,const void *buf,size_t count)
 
       if (!nwrite)
 	ERR_MSG("Reached unexpected end of file while writing.");
- 
+
       if (nwrite == -1)
 	{
 	  if (errno == EINTR)
@@ -3383,7 +3767,7 @@ struct shared_mem_circular
   char  *_end;
   char  *_cur;
   size_t _size;
-  
+
   char  *_mem;
   char  *_read_end;
 };
@@ -3408,19 +3792,19 @@ request_resize_shm(ext_write_config_comm *comm,
   uint32_t magic = get_buf_uint32(&msg,left);
 
   if (magic != EXTERNAL_WRITER_MAGIC)
-    ERR_MSG("Request to resize shared memory has bad magic.");  
+    ERR_MSG("Request to resize shared memory has bad magic.");
 
   if (new_len < shmc->_len)
     ERR_MSG("Request to decrease shared memory not allowed.");
-  
+
   // check that the shared memory has the required size
 
   struct stat st;
-  
+
   /*int r =*/ fstat(comm->_shm_fd, &st);
-  
+
   // MSG("stat shared mem: %d - size: %d",r,st.st_size);
-  
+
   if (st.st_size < new_len)
     ERR_MSG("Size of resized shared memory unexpectedly small %d < %d.",
 	    (int) st.st_size,new_len);
@@ -3438,15 +3822,15 @@ request_resize_shm(ext_write_config_comm *comm,
 
   shmc->_ptr = (char *) mmap(0, shmc->_len, (PROT_READ | PROT_WRITE),
 			     MAP_SHARED, comm->_shm_fd, 0);
-  
+
   if (shmc->_ptr == MAP_FAILED)
     ERR_MSG("Error mapping shared memory segment.");
-  
+
   size_t cur_offset = shmc->_cur - shmc->_begin;
   size_t header_off = ((char*) header) - shmc->_begin;
 
   shmc->_ctrl = (external_writer_shm_control*) shmc->_ptr;
-  
+
   shmc->_begin = (char*) (shmc->_ctrl + 1);
   shmc->_cur  = shmc->_begin + cur_offset;
   shmc->_end  = shmc->_ptr + shmc->_len;
@@ -3460,7 +3844,7 @@ request_resize_shm(ext_write_config_comm *comm,
   // so, we'll now use the newer bigger size
 
   // MSG("Resized SHM -> %d.",new_len);
-  
+
   return header;
 }
 
@@ -3506,16 +3890,16 @@ request_resize_pipe(ext_write_config_comm *comm,
 
   if (new_len < shmc->_len)
     ERR_MSG("Request to decrease shared memory not allowed.");
- 
+
   // We're simply getting a completely new pipe.  All old pointers useless.
-  
+
   header = alloc_pipe(comm,new_len,header);
 
   // Send a message to the other end that we did the resize (may now
   // continue to write, into new buffer :-) ) This game is needed to
   // make the alignment still work, without having to shift pointers
   // at both places.
-  
+
   // No need to send anything!
   // write_response(EXTERNAL_WRITER_RESPONSE_PIPE_RESIZED);
 
@@ -3527,12 +3911,13 @@ void send_abort()
 #if STRUCT_WRITER
   external_writer_buf_header header;
 
-  header._request = htonl(EXTERNAL_WRITER_BUF_ABORT);
+  header._request = htonl(EXTERNAL_WRITER_BUF_ABORT |
+			  EXTERNAL_WRITER_REQUEST_HI_MAGIC);
   header._length  = htonl(sizeof(header));
 
   send_item_chunk *chunk;
 
-  char *net_io_chunk = 
+  char *net_io_chunk =
     ext_net_io_reserve_chunk(sizeof(header),false,&chunk);
 
   memcpy(net_io_chunk,&header,sizeof(header));
@@ -3553,11 +3938,17 @@ bool handle_request(ext_write_config_comm *comm,
   uint32_t request = ntohl(header->_request);
   uint32_t length  = ntohl(header->_length);
 
+  if ((request & EXTERNAL_WRITER_REQUEST_HI_MASK) !=
+      EXTERNAL_WRITER_REQUEST_HI_MAGIC)
+    ERR_MSG("Bad request hi magic.");
+
+  request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
+  
   uint32_t left = length - sizeof(*header);
 
   bool quit = false;
   size_t expand = 0;
-  
+
 #if STRUCT_WRITER
   send_item_chunk *chunk = NULL;
 #endif
@@ -3581,7 +3972,7 @@ bool handle_request(ext_write_config_comm *comm,
     fflush(stderr);
   }
   */
-   
+
   switch (request)
     {
     case EXTERNAL_WRITER_BUF_OPEN_FILE:
@@ -3627,7 +4018,7 @@ bool handle_request(ext_write_config_comm *comm,
     case EXTERNAL_WRITER_BUF_SETUP_DONE:
     case EXTERNAL_WRITER_BUF_SETUP_DONE_RD:
     case EXTERNAL_WRITER_BUF_SETUP_DONE_WR:
-      // May change the message inline      
+      // May change the message inline
       request_setup_done(header+1,&left,
 			 request == EXTERNAL_WRITER_BUF_SETUP_DONE_RD,
 			 request == EXTERNAL_WRITER_BUF_SETUP_DONE_WR);
@@ -3657,7 +4048,7 @@ bool handle_request(ext_write_config_comm *comm,
   printf ("\nRD %d: %d\n",
 	  request, left);
   */
-  
+
   if (left != 0)
     ERR_MSG("Message not completely used (req=%d,left=%d).",
 	    request,left);
@@ -3668,11 +4059,11 @@ bool handle_request(ext_write_config_comm *comm,
 
   if (!chunk)
     {
-      char *net_io_chunk = 
+      char *net_io_chunk =
 	ext_net_io_reserve_chunk(length,
 				 request < EXTERNAL_WRITER_BUF_NTUPLE_FILL,
 				 &chunk);
-      
+
       memcpy(net_io_chunk,header,length);
     }
 
@@ -3692,7 +4083,7 @@ bool handle_request(ext_write_config_comm *comm,
       MFENCE; // don't tell we're done until here
       shmc->_ctrl->_done += expand;
     }
-  
+
   if (!_config._forked && _got_sigint)
     {
       // We got Ctrl+C, and are not in forked mode (where we're
@@ -3716,7 +4107,13 @@ bool check_request(ext_write_config_comm *comm,
   // The header may be unusable after we've remapped the memory
   uint32_t request = ntohl(header->_request);
   uint32_t length  = ntohl(header->_length);
-   
+
+  if ((request & EXTERNAL_WRITER_REQUEST_HI_MASK) !=
+      EXTERNAL_WRITER_REQUEST_HI_MAGIC)
+    ERR_MSG("Bad request hi magic.");
+
+  request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
+  
   uint32_t left = length - sizeof(*header);
 
   bool quit = false;
@@ -3773,6 +4170,12 @@ bool pre_handle_request(ext_write_config_comm *comm,
   uint32_t request = ntohl(header->_request);
   uint32_t length  = ntohl(header->_length);
 
+  if ((request & EXTERNAL_WRITER_REQUEST_HI_MASK) !=
+      EXTERNAL_WRITER_REQUEST_HI_MAGIC)
+    ERR_MSG("Bad request hi magic.");
+
+  request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
+  
   uint32_t left = length - sizeof(*header);
 
   bool quit = false;
@@ -3788,7 +4191,7 @@ bool pre_handle_request(ext_write_config_comm *comm,
 			   header+1,&left);
       break;
     }
-  
+
   return quit;
 }
 
@@ -3807,7 +4210,7 @@ int connect_server(const char *server)
    */
   hostname = strdup(server);
   colon = strchr(hostname,':');
-      
+
   if (colon)
     {
       port = (unsigned short) atoi(colon+1);
@@ -3818,7 +4221,7 @@ int connect_server(const char *server)
   h = gethostbyname(hostname);
   free(hostname);
 
-  if(h == NULL) 
+  if(h == NULL)
     ERR_MSG("Unknown host '%s'.",server);
 
   MSG("Server '%s' known... (IP : %s).", h->h_name,
@@ -3834,11 +4237,11 @@ int connect_server(const char *server)
 
   /* Connect to the port. */
   serv_addr.sin_family = (sa_family_t) h->h_addrtype;
-  memcpy((char *) &serv_addr.sin_addr.s_addr, 
+  memcpy((char *) &serv_addr.sin_addr.s_addr,
 	 h->h_addr_list[0], h->h_length);
   serv_addr.sin_port = htons(port);
 
-  rc = connect(fd_server, 
+  rc = connect(fd_server,
 	       (struct sockaddr *) &serv_addr, sizeof(serv_addr));
   if (rc == -1)
     {
@@ -3896,7 +4299,7 @@ int connect_server(const char *server)
       if (n == 0)
 	ERR_MSG("Failure receiving data port number.");
 
-      got += (size_t) n;	  
+      got += (size_t) n;
     }
 
   for ( ; ; )
@@ -3927,11 +4330,11 @@ int connect_server(const char *server)
 
   /* Connect to the port. */
   serv_addr.sin_family = (sa_family_t) h->h_addrtype;
-  memcpy((char *) &serv_addr.sin_addr.s_addr, 
+  memcpy((char *) &serv_addr.sin_addr.s_addr,
 	 h->h_addr_list[0], h->h_length);
   serv_addr.sin_port = portmap_msg._port;
 
-  rc = connect(fd_server, 
+  rc = connect(fd_server,
 	       (struct sockaddr *) &serv_addr, sizeof(serv_addr));
   if (rc == -1)
     {
@@ -3954,12 +4357,12 @@ uint32_t pipe_has_full_message(ext_write_config_comm *comm)
     return 0;
 
   // we can inspect the header
-	  
-  external_writer_buf_header *header = 
+
+  external_writer_buf_header *header =
     (external_writer_buf_header *) shmc->_cur;
 
   uint32_t length = ntohl(header->_length);
-	  
+
   if (length & 3)
     {
       /*
@@ -3971,8 +4374,10 @@ uint32_t pipe_has_full_message(ext_write_config_comm *comm)
 	    *((uint32_t *) (shmc->_mem + i*16 +  8)),
 	    *((uint32_t *) (shmc->_mem + i*16 + 12)));
       */
-      ERR_MSG("Pipe message length unaligned (req=%d,len=%d).",
-	      ntohl(header->_request),length);
+      ERR_MSG("Pipe message length unaligned (req=0x%08x=%d,len=%d).",
+	      ntohl(header->_request),
+	      ntohl(header->_request) & EXTERNAL_WRITER_REQUEST_LO_MASK,
+	      length);
     }
   /*
   MSG ("%08x  h: %08x %08x (%d) (%lld)\n",
@@ -4064,7 +4469,7 @@ uint32_t pipe_get_message(ext_write_config_comm *comm)
 					false,false))
 	;
 #endif
-      
+
       // We always try to read as much as possible from the pipe
 
       ssize_t n;
@@ -4121,7 +4526,7 @@ void prepare_pipe_comm(ext_write_config_comm *comm)
     }
 
   shared_mem_circular *shmc = comm->_shmc;
-  
+
   alloc_pipe(comm,EXTERNAL_WRITER_MIN_SHARED_SIZE,NULL);
 
 
@@ -4132,7 +4537,7 @@ void prepare_pipe_comm(ext_write_config_comm *comm)
 int comm_next_item_compare_less(ext_write_config_comm *comm1,
 				ext_write_config_comm *comm2)
 {
-  for (uint32_t i = 0; i < _msg_config._sort_u32_words; i++)
+  for (uint32_t i = 0; i < _g._sort_u32_words; i++)
     {
       uint32_t v1 = ntohl(comm1->_sort_u32_raw[i]);
       uint32_t v2 = ntohl(comm2->_sort_u32_raw[i]);
@@ -4156,7 +4561,7 @@ int comm_next_item_compare_less(ext_write_config_comm *comm1,
 void pipe_communication(ext_write_config_comm *comm_head)
 {
   size_t nsrc = 0;
-  
+
   for (ext_write_config_comm *comm = comm_head;
        comm != NULL; comm = comm->_next)
     {
@@ -4178,7 +4583,7 @@ void pipe_communication(ext_write_config_comm *comm_head)
       prepare_pipe_comm(comm);
 
       shared_mem_circular *shmc = comm->_shmc;
-  
+
       for ( ; ; )
 	{
 	  // This only returns if at least one message is present!
@@ -4189,11 +4594,13 @@ void pipe_communication(ext_write_config_comm *comm_head)
 	      // MSG("%p %p %p\n",shmc->_mem,shmc->_cur,shmc->_read_end);
 
 	      // The entire message fits in the currently available space
-	  
-	      external_writer_buf_header *header = 
+
+	      external_writer_buf_header *header =
 		(external_writer_buf_header *) shmc->_cur;
 
 	      uint32_t request = ntohl(header->_request);
+
+	      request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
 
 	      if (request == EXTERNAL_WRITER_BUF_NTUPLE_FILL)
 		{
@@ -4249,7 +4656,8 @@ void pipe_communication(ext_write_config_comm *comm_head)
 
   assert(isrc == nsrc);
 
-  if (nsrc > 1 && _msg_config._sort_u32_words == 0)
+  if (nsrc > 1 && (_g._sort_u32_words == 0 ||
+		   _g._sort_u32_words == (uint32_t) -1))
     ERR_MSG("Multiple input sources, "
 	    "but 0 words for sorting in input streams.");
 
@@ -4264,8 +4672,8 @@ void pipe_communication(ext_write_config_comm *comm_head)
       ext_write_config_comm *comm = heap[0];
 
       shared_mem_circular *shmc = comm->_shmc;
-    
-      external_writer_buf_header *header = 
+
+      external_writer_buf_header *header =
 	(external_writer_buf_header *) shmc->_cur;
 
       uint32_t request = ntohl(header->_request);
@@ -4288,11 +4696,11 @@ void pipe_communication(ext_write_config_comm *comm_head)
 
       /* Pre-parse the item, such that we have the sorting information. */
 
-      header = 
+      header =
 	(external_writer_buf_header *) shmc->_cur;
 
       pre_handle_request(comm,header);
-      
+
 
       HEAP_MOVE_DOWN(ext_write_config_comm *,
 		     heap, nsrc, comm_next_item_compare_less,
@@ -4300,7 +4708,7 @@ void pipe_communication(ext_write_config_comm *comm_head)
     }
 
 
-  
+
 
  done_message:
   // First close the server, since otherwise that may have to wait for
@@ -4321,7 +4729,7 @@ void pipe_communication(ext_write_config_comm *comm_head)
  reader_loop:
   ext_write_config_comm *comm = comm_head;
   shared_mem_circular *shmc = comm->_shmc;
-  
+
   // We are to read events instead, so our loop drives the event flow.
   if (comm->_pipe_out == -1)
     ERR_MSG("Cannot write events - no output pipe.");
@@ -4335,10 +4743,10 @@ void pipe_communication(ext_write_config_comm *comm_head)
 
   shmc->_cur = shmc->_mem; // we start writing to the beginning of the buffer.
   WRITE_START = shmc->_mem; // tells where the writing should start
-  
-  size_t max_msg_size = 
-    sizeof(external_writer_buf_header) + 2 * sizeof(uint32_t) + 
-    _offset_array._max_items * sizeof(uint32_t);
+
+  size_t max_msg_size =
+    sizeof(external_writer_buf_header) + 3 * sizeof(uint32_t) +
+    _g._max_offset_array_items * sizeof(uint32_t);
 
   for ( ; ; )
     {
@@ -4364,21 +4772,21 @@ void pipe_communication(ext_write_config_comm *comm_head)
       // So, time to write!
 
       full_write(comm->_pipe_out,WRITE_START,shmc->_cur - WRITE_START);
-      
+
       // We got rid of the data, reset the pointers.
-      
+
       if (shmc->_size >= 2*0x1000)
 	{
 	  size_t page_off = (shmc->_cur - shmc->_mem) & (0x1000 - 1);
 	  WRITE_START = shmc->_mem + page_off;
 
-	  
+
 	  shmc->_cur = WRITE_START;
 	}
       else
 	{
 	  shmc->_cur = shmc->_mem;
-	  WRITE_START = shmc->_mem;	  
+	  WRITE_START = shmc->_mem;
 	}
 
       if (shmc->_end - shmc->_cur < max_msg_size)
@@ -4419,7 +4827,7 @@ void usage(char *cmdname)
   printf ("  --outfile=FILE     Write output to FILE.\n");
   printf ("  --infile=FILE      Read from input FILE.\n");
   printf ("  --ftitle=FTITLE    FTITLE of output file.\n");
-  printf ("  --id=ID            Override ID of ntuple written.\n");
+  printf ("  --id=[OID]=ID      Override ID of ntuple written (write single struct OID).\n");
   printf ("  --title=TITLE      Override TITLE of ntuple written.\n");
   printf ("  --timeslice=N[:M]  Start a new file every N seconds.  Subdir every M seconds.\n");
   printf ("  --autosave=N       Autosave tree every N seconds.\n");
@@ -4431,7 +4839,7 @@ void usage(char *cmdname)
   printf ("  --debug-header     Litter header declaration with offsets and sizes.\n");
   printf ("  --server[=PORT]    Run a external data server (at PORT).\n");
   printf ("  --stdout           Write data to stdout.\n");
-  printf ("  --dump             Make text dump of data.\n");
+  printf ("  --dump[=FORMAT]    Make text dump of data.  (FORMAT: normal, [compact_]json)\n");
 #endif
   printf ("  --colour=yes|no    Force colour and markup on or off.\n");
   printf ("  --forked=fd1,fd2   File descriptors for forked comm. (internal use only)\n");
@@ -4476,7 +4884,6 @@ int main(int argc,char *argv[])
   // parse any arguments
 
   memset(&_config,0,sizeof(_config));
-  memset(&_msg_config,0,sizeof(_msg_config));
 
   ext_write_config_comm **next_comm_ptr = &_config._comms;
 
@@ -4513,20 +4920,20 @@ int main(int argc,char *argv[])
 	  ERR_MSG("Bad fd description '%s' for --forked.", post);
       }
       else if (MATCH_PREFIX("--colour=",post)) {
-#ifdef USE_CURSES
 	int force = 0;
 
 	if (strcmp(post,"yes") == 0)
+#ifdef USE_CURSES	  
 	  force = 1;
+#else
+	ERR_MSG("No colour support since ncurses not compiled in.");
+#endif
 	else if (strcmp(post,"no") == 0)
 	  force = -1;
 	else if (strcmp(post,"auto") != 0)
 	  ERR_MSG("Bad option '%s' for --colour=",post);
-	
+
 	colourtext_setforce(force);
-#else
-	ERR_MSG("No colour support since ncurses not compiled in.");	
-#endif
       }
 #if USING_CERNLIB || USING_ROOT
       else if (MATCH_PREFIX("--outfile=",post)) {
@@ -4564,7 +4971,14 @@ int main(int argc,char *argv[])
 	_config._header = post;
       }
       else if (MATCH_PREFIX("--id=",post)) {
-	_config._header_id = post;
+	char *equals = strchr(post,'=');
+	if (equals)
+	  {
+	    _config._header_id_orig = strndup(post,equals-post);
+	    _config._header_id = equals + 1;
+	  }
+	else
+	  _config._header_id = post;
       }
       else if (MATCH_ARG("--debug-header")) {
 	_config._debug_header = 1;
@@ -4579,7 +4993,17 @@ int main(int argc,char *argv[])
 	_config._stdout = 1;
       }
       else if (MATCH_ARG("--dump")) {
-	_config._dump = 1;
+	_config._dump = EXT_WRITER_DUMP_FORMAT_NORMAL;
+      }
+      else if (MATCH_PREFIX("--dump=",post)) {
+	if (strcmp(post,"normal") == 0)
+	  _config._dump = EXT_WRITER_DUMP_FORMAT_NORMAL;
+	else if (strcmp(post,"json") == 0)
+	  _config._dump = EXT_WRITER_DUMP_FORMAT_HUMAN_JSON;
+	else if (strcmp(post,"compact_json") == 0)
+	  _config._dump = EXT_WRITER_DUMP_FORMAT_COMPACT_JSON;
+	else
+	  ERR_MSG("Bad option '%s' for --dump=",post);
       }
 #endif
       else {
@@ -4607,7 +5031,7 @@ int main(int argc,char *argv[])
       // if possible.  Should call pthread_setname_np too?
       if (writer)
 	strncpy(writer, "_reader",7);
-      
+
     }
 
   if (_config._timeslice)
@@ -4618,45 +5042,45 @@ int main(int argc,char *argv[])
       if (slash)
 	{
 	  afterslash = slash + 1;
-	  _timeslice_name._dir = strndup(_config._outfile,
-					 afterslash - _config._outfile);
+	  _ts._timeslice_name._dir = strndup(_config._outfile,
+					     afterslash - _config._outfile);
 	}
       else
 	{
 	  afterslash = _config._outfile;
-	  _timeslice_name._dir = "";
+	  _ts._timeslice_name._dir = "";
 	}
 
       const char *dot = strrchr(afterslash,'.');
 
       if (dot)
 	{
-	  _timeslice_name._base = strndup(afterslash,dot - afterslash);
-	  _timeslice_name._ext  = strdup(dot);
+	  _ts._timeslice_name._base = strndup(afterslash,dot - afterslash);
+	  _ts._timeslice_name._ext  = strdup(dot);
 	}
       else
 	{
-	  _timeslice_name._base = strdup(afterslash);
-	  _timeslice_name._ext = "";
+	  _ts._timeslice_name._base = strdup(afterslash);
+	  _ts._timeslice_name._ext = "";
 	}
 
-      char *listname = 
-	(char *) malloc(strlen(_timeslice_name._dir)+
-			strlen(_timeslice_name._base)+
+      char *listname =
+	(char *) malloc(strlen(_ts._timeslice_name._dir)+
+			strlen(_ts._timeslice_name._base)+
 			strlen(".txt")+1);
 
       if (!listname)
 	ERR_MSG("Failure allocating string.");
 
-      strcpy(listname,_timeslice_name._dir);
-      strcat(listname,_timeslice_name._base);
+      strcpy(listname,_ts._timeslice_name._dir);
+      strcat(listname,_ts._timeslice_name._base);
       strcat(listname,".txt");
 
-      _timeslice_name._list_fd = open(listname,
-				      O_RDWR | O_APPEND | O_CREAT,
-				      S_IRWXU | S_IRWXG | S_IRWXO);
-      
-      if (_timeslice_name._list_fd == -1)
+      _ts._timeslice_name._list_fd = open(listname,
+					  O_RDWR | O_APPEND | O_CREAT,
+					  S_IRWXU | S_IRWXG | S_IRWXO);
+
+      if (_ts._timeslice_name._list_fd == -1)
 	{
 	  perror("open");
 	  ERR_MSG("Failed to open list of timesliced files for appending.");
@@ -4671,9 +5095,9 @@ int main(int argc,char *argv[])
 
       MSG("Timeslice (%d): %s%s%s_YYYYMMDD_HHMMSS%s (list: %s)",
 	  _config._timeslice,
-	  _timeslice_name._dir,
+	  _ts._timeslice_name._dir,
 	  _config._timeslice_subdir ? "YYYYMMDD_HHMMSS/" : "",
-	  _timeslice_name._base,_timeslice_name._ext,
+	  _ts._timeslice_name._base,_ts._timeslice_name._ext,
 	  listname);
 
       free(listname);
@@ -4739,53 +5163,53 @@ int main(int argc,char *argv[])
 
   // Check the size of the shared memory.  Should
   // be at least 4096 bytes (default)
-  
+
   struct stat st;
-  
+
   int r = fstat(comm->_shm_fd, &st);
-  
+
   if (r != 0)
     {
       perror("stat");
       write_response(comm, EXTERNAL_WRITER_RESPONSE_SHM_ERROR);
       ERR_MSG("Cannot determine shared memory size.");
     }
-  
+
   // MSG("stat shared mem: %d - size: %d",r,st.st_size);
-  
+
   if (st.st_size < EXTERNAL_WRITER_MIN_SHARED_SIZE)
     {
       write_response(comm,EXTERNAL_WRITER_RESPONSE_SHM_ERROR);
       ERR_MSG("Size of shared memory unexpectedly small %d < %d.  Try NOSHM.",
 	      (int) st.st_size,EXTERNAL_WRITER_MIN_SHARED_SIZE);
     }
-  
+
   shmc->_len = EXTERNAL_WRITER_MIN_SHARED_SIZE;
-  
+
   // Try to mmap our shared memory
-  
+
   shmc->_ptr = (char *) mmap(0, shmc->_len, (PROT_READ | PROT_WRITE),
 			     MAP_SHARED, comm->_shm_fd, 0);
-  
+
   if (shmc->_ptr == MAP_FAILED)
     {
       write_response(comm,EXTERNAL_WRITER_RESPONSE_SHM_ERROR);
       ERR_MSG("Error mapping shared memory segment.");
     }
-  
+
   shmc->_ctrl = (external_writer_shm_control*) shmc->_ptr;
-  
+
   if (shmc->_ctrl->_magic != EXTERNAL_WRITER_MAGIC)
     ERR_MSG("Bad magic (%08x) in shared memory segment control.",
 	    shmc->_ctrl->_magic);
   if (shmc->_ctrl->_len != shmc->_len)
     ERR_MSG("Shared memory segment control check size (%zd) "
 	    "wrong (!= %zd).",shmc->_ctrl->_len,shmc->_len);
-  
+
   shmc->_cur = shmc->_begin = (char*) (shmc->_ctrl + 1);
   shmc->_end  = shmc->_ptr + shmc->_len;
   shmc->_size = shmc->_end - shmc->_begin;
-  
+
   for ( ; ; )
     {
       char cmd;
@@ -4798,13 +5222,13 @@ int main(int argc,char *argv[])
 	{
 #if STRUCT_WRITER
 	  // Let the server run until there is data in the pipe
-	  
+
 	  while (!ext_net_io_select_clients(comm->_pipe_in,-1,false,false))
 	    ;
 #endif
-	  
+
 	  ret = read(comm->_pipe_in,&cmd,sizeof(cmd));
-	  
+
 	  if (ret == 0)
 	    {
 	      // This is the normal error if someone hits ctrl+C on the
@@ -4813,7 +5237,7 @@ int main(int argc,char *argv[])
 	      close_output(); // close outputs gracefully
 	      ERR_MSG("Unexpected end of command pipe.");
 	    }
-	  
+
 	  if (ret == -1)
 	    {
 	      if (errno == EINTR)
@@ -4821,23 +5245,25 @@ int main(int argc,char *argv[])
 	      perror("read");
 	      ERR_MSG("Unexpected error reading command pipe.");
 	    }
-	  
+
 	  // MSG("Command: %d",cmd);
-	  
+
 	  if (cmd != EXTERNAL_WRITER_CMD_SHM_WORK)
 	    ERR_MSG("Unknown command on command pipe: %d",cmd);
-	  
+
 	  // Now, eat messages as long as there are any
 	}
 
       while (shmc->_ctrl->_done != shmc->_ctrl->_avail)
 	{
-	  external_writer_buf_header *header = 
+	  external_writer_buf_header *header =
 	    (external_writer_buf_header *) shmc->_cur;
 	  size_t lin_left = shmc->_end - shmc->_cur;
 
 	  uint32_t request = ntohl(header->_request);
-	  
+
+	  request &= EXTERNAL_WRITER_REQUEST_LO_MASK;
+
 	  if (request == EXTERNAL_WRITER_BUF_EAT_LIN_SPACE)
 	    {
 	      //printf ("WASTE: \n");
@@ -4863,7 +5289,7 @@ int main(int argc,char *argv[])
 		    request,length);
 
 	  // The header may be unusable after we've remapped the memory
-	  
+
 	  // So message header is ok.  Handle the message
 
 	  if (handle_request(comm,header))
@@ -4880,7 +5306,7 @@ int main(int argc,char *argv[])
 	  if (request == EXTERNAL_WRITER_BUF_SETUP_DONE_RD)
 	    {
 	      // The writer is actually stuck, so no harm in updating _done
-	      shmc->_ctrl->_done += length;    
+	      shmc->_ctrl->_done += length;
 	      goto reader_loop;
 	    }
 
@@ -4906,15 +5332,15 @@ int main(int argc,char *argv[])
 #if STRUCT_WRITER
 	      // Let the server run until it is allowed to write the
 	      // response.
-	      
+
 	      // If we got signalled, remove the marker
 	      _got_sigio = 0;
 	      MFENCE;
 	      while (!ext_net_io_select_clients(-1,comm->_pipe_out,
 						false,false))
 		;
-#endif	  
-	      // As the responses we write	      
+#endif
+	      // As the responses we write
 	      write_response(comm,EXTERNAL_WRITER_RESPONSE_WORK);
 	    }
 
@@ -4940,7 +5366,7 @@ int main(int argc,char *argv[])
       // some hysteresis, as we anyhow went to sleep
       shmc->_ctrl->_wakeup_avail = shmc->_ctrl->_done + (shmc->_size >> 4);
       MFENCE;
-      shmc->_ctrl->_need_consumer_wakeup = 1;      
+      shmc->_ctrl->_need_consumer_wakeup = 1;
       MFENCE;
 
       // Must check that data did not become available just at the
@@ -4974,10 +5400,10 @@ int main(int argc,char *argv[])
 
   shmc->_ctrl->_wakeup_avail = shmc->_ctrl->_done + (shmc->_size >> 4);
   shmc->_ctrl->_need_consumer_wakeup = 1;
-  
-  size_t max_msg_size = 
-    sizeof(external_writer_buf_header) + 2 * sizeof(uint32_t) + 
-    _offset_array._max_items * sizeof(uint32_t);
+
+  size_t max_msg_size =
+    sizeof(external_writer_buf_header) + 3 * sizeof(uint32_t) +
+    _g._max_offset_array_items * sizeof(uint32_t);
 
   for ( ; ; )
     {
@@ -4989,7 +5415,7 @@ int main(int argc,char *argv[])
 	  // Is the linear space enough?
 
 	  size_t lin_left = shmc->_end - shmc->_cur;
-  
+
 	  if (lin_left < max_msg_size)
 	    {
 	      if (lin_left != 0) // may have been due to just ending at the end
@@ -4997,31 +5423,31 @@ int main(int argc,char *argv[])
 		  assert ((shmc->_end - shmc->_cur) >=
 			  (ssize_t) sizeof(uint32_t));
 		  // put a marker that eats all the space
-		  *((uint32_t*) shmc->_cur) = 
+		  *((uint32_t*) shmc->_cur) =
 		    htonl(EXTERNAL_WRITER_BUF_EAT_LIN_SPACE);
 		  shmc->_ctrl->_avail += lin_left;
 		}
 	      shmc->_cur = shmc->_begin;
 	      continue; // try again
-	    } 
+	    }
 
 	  char *end_msg = shmc->_cur + max_msg_size;
-	  
+
 	  bool more_msg = ntuple_get_event(shmc->_cur,&end_msg);
 
 	  //MSG("max_size: %d  avail: %d  this: %d",
 	  //     max_msg_size,_end - _cur,end_msg - _cur);
 
 	  assert (end_msg <= shmc->_end);
-	  
+
 	  shmc->_ctrl->_avail += end_msg - shmc->_cur;
 	  shmc->_cur = end_msg;
-	  
+
 	  if (!more_msg)
 	    goto read_done;
 
 	  if (shmc->_ctrl->_need_consumer_wakeup &&
-	      (((int) shmc->_ctrl->_avail) - 
+	      (((int) shmc->_ctrl->_avail) -
 	       ((int) shmc->_ctrl->_wakeup_avail)) >= 0)
 	    {
 	      shmc->_ctrl->_need_consumer_wakeup = 0;
@@ -5046,7 +5472,7 @@ int main(int argc,char *argv[])
       // free'd.
 
       MFENCE;
-      shmc->_ctrl->_wakeup_done = 
+      shmc->_ctrl->_wakeup_done =
 	shmc->_ctrl->_avail - shmc->_size + max_msg_size + (shmc->_size >> 4);
       MFENCE;
       shmc->_ctrl->_need_producer_wakeup = 1;
@@ -5062,9 +5488,9 @@ int main(int argc,char *argv[])
 
 	  char cmd;
 	  int ret;
-	  
+
 	  ret = read(comm->_pipe_in,&cmd,sizeof(cmd));
-	  
+
 	  if (ret == 0)
 	    {
 	      // This is the normal error if someone hits ctrl+C on the
@@ -5073,7 +5499,7 @@ int main(int argc,char *argv[])
 	      close_output(); // close outputs gracefully
 	      ERR_MSG("Unexpected end of command pipe.");
 	    }
-	  
+
 	  if (ret == -1)
 	    {
 	      if (errno == EINTR)
@@ -5081,12 +5507,12 @@ int main(int argc,char *argv[])
 	      perror("read");
 	      ERR_MSG("Unexpected error reading command pipe.");
 	    }
-	  
+
 	  // MSG("Command: %d",cmd);
-	  
+
 	  if (cmd != EXTERNAL_WRITER_CMD_SHM_WORK)
 	    ERR_MSG("Unknown command on command pipe: %d",cmd);
-	  
+
 	  // Now, eat messages as long as there are any
 	}
     }
@@ -5098,7 +5524,7 @@ int main(int argc,char *argv[])
 
   SFENCE;
   write_response(comm,EXTERNAL_WRITER_RESPONSE_WORK_RD);
-  
+
   close_output(); // needed? - will at least tell the number of consumed events
   exit(0);
 }

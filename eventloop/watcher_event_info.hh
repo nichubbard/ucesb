@@ -30,7 +30,7 @@
 // If the experiment has several different trigger types to displayed
 // with different colours in the watcher, it should define
 // NUM_WATCH_TYPES itself with the actual number of triggers, numbered
-// [0..NUM_WATCH_TYPES-1].  For each trigger, it should then set the 
+// [0..NUM_WATCH_TYPES-1].  For each trigger, it should then set the
 // _type field of watcher_event_info appropriately.
 
 // It should then also define WATCH_TYPE_NAMES itself to the name of

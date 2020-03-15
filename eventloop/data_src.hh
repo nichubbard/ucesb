@@ -74,9 +74,9 @@ public:
   bool get_uint8(uint8 *dest)
   {
     uint8 *src = (uint8 *) (_data);
-    
+
     _data += sizeof(uint8);
-    
+
     if (_data > _end)
       return false;
     if (scramble)
@@ -91,13 +91,13 @@ public:
 
     return true;
   }
-  
+
   bool get_uint16(uint16 *dest)
   {
     uint16 *src = (uint16 *) (_data);
-    
+
     _data += sizeof(uint16);
-    
+
     if (_data > _end || (((size_t) _data) & 1)) // outside or unaligned
       return false;
     if (scramble)
@@ -116,9 +116,9 @@ public:
   bool get_uint32(uint32 *dest)
   {
     uint32 *src = (uint32 *) (_data);
-    
+
     _data += sizeof(uint32);
-    
+
     if (_data > _end || (((size_t) _data) & 3)) // outside or unaligned
       return false;
     *dest = SWAPPING_BSWAP_32(*src);
@@ -130,16 +130,16 @@ public:
 
     return true;
   }
-  
+
   bool get_uint64(uint64 *dest)
   {
     // we read 64 bit data as two items of 32 bits,
     // only 32-bit alignment is required
 
     uint32 *src = (uint32 *) (_data);
-    
+
     _data += 2 * sizeof(uint32);
-    
+
     if (_data > _end || (((size_t) _data) & 3)) // outside or unaligned
       return false;
 
@@ -161,7 +161,7 @@ public:
 
     return true;
   }
-  
+
   void peeking()
   {
     if (_this_read >= 0)
@@ -172,7 +172,7 @@ public:
   bool peek_uint8(uint8 *dest)
   {
     uint8 *src = (uint8 *) (_data);
-    
+
     if ((_data + sizeof(uint8)) > _end)
       return false;
     if (scramble)
@@ -191,7 +191,7 @@ public:
   bool peek_uint16(uint16 *dest)
   {
     uint16 *src = (uint16 *) (_data);
-    
+
     if ((_data + sizeof(uint16)) > _end || (((size_t) _data) & 1)) // outside or unaligned
       return false;
     if (scramble)
@@ -210,7 +210,7 @@ public:
   bool peek_uint32(uint32 *dest)
   {
     uint32 *src = (uint32 *) (_data);
-    
+
     if ((_data + sizeof(uint32)) > _end || (((size_t) _data) & 3)) // outside or unaligned
       return false;
     *dest = SWAPPING_BSWAP_32(*src);
@@ -226,7 +226,7 @@ public:
   bool peek_uint64(uint64 *dest)
   {
     uint32 *src = (uint32 *) (_data);
-    
+
     if ((_data + 2*sizeof(uint32)) > _end || (((size_t) _data) & 3)) // outside or unaligned
       return false;
 
@@ -295,15 +295,15 @@ public:
   bool get_uint16(uint16 *dest)
   {
     uint16 *src = _data;
-    
+
     _data++;
-    
+
     if (_data > _end) // outside or unaligned
       {
 	// this should really not be here, but the compiler otherwise
 	// complains about possible uninitialized usage.  Should be
 	// fixable with some function attributes?
-	*dest=0; 
+	*dest=0;
 	return false;
       }
     *dest = SWAPPING_BSWAP_16(*src);
@@ -314,7 +314,7 @@ public:
 
     return true;
   }
-  
+
   void peeking()
   {
     if (_this_read >= 0)
@@ -325,7 +325,7 @@ public:
   bool peek_uint16(uint16 *dest)
   {
     uint16 *src = _data;
-    
+
     if ((_data + 1) > _end) // outside or unaligned
       return false;
     *dest = SWAPPING_BSWAP_16(*src);
@@ -336,7 +336,7 @@ public:
 
     return true;
   }
-  
+
 public:
   bool empty() { return _data == _end; }
 
@@ -385,9 +385,9 @@ public:
   bool get_uint32(uint32 *dest)
   {
     uint32 *src = _data;
-    
+
     _data++;
-    
+
     if (_data > _end) // outside or unaligned
       return false;
     *dest = SWAPPING_BSWAP_32(*src);
@@ -398,7 +398,7 @@ public:
 
     return true;
   }
-  
+
   void peeking()
   {
     if (_this_read >= 0)
@@ -409,7 +409,7 @@ public:
   bool peek_uint32(uint32 *dest)
   {
     uint32 *src = _data;
-    
+
     if ((_data + 1) > _end) // outside or unaligned
       return false;
     *dest = SWAPPING_BSWAP_32(*src);
@@ -420,7 +420,7 @@ public:
 
     return true;
   }
-  
+
 public:
   bool empty() { return _data == _end; }
 

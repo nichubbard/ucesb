@@ -1,3 +1,5 @@
+#ifdef UNPACKER_IS_xtst
+
 CALIB_PARAM(N10_20_1_T,SLOPE_OFFSET,1.0 ns/ch,0.0 ns^1);
 CALIB_PARAM(N10_20_2_T,OFFSET_SLOPE,0.0 ch, 1.0 ns ch-1);
 
@@ -12,3 +14,5 @@ CALIB_PARAM(N10_17_2_T,OFFSET_SLOPE,0.5 ch, 25. ps/ch);
 
 CALIB_PARAM(N10_16_1_T,SLOPE_OFFSET,50. ps/ch,0.5 s*kg/kg);
 CALIB_PARAM(N10_16_2_T,OFFSET_SLOPE,0.5 ch, 1.e-8 s/ch);
+
+#endif

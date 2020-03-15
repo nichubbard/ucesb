@@ -61,8 +61,10 @@ struct lmd_subevent
 
 #define LMD_EVENT_GET_10_1_INFO_ATTEMPT     0x0001
 #define LMD_EVENT_HAS_10_1_INFO             0x0002
-#define LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT  0x0004
-#define LMD_EVENT_SUBEVENTS_LEFTOVERS       0x0008 // could not read subevents to end...
+#define LMD_EVENT_IS_STICKY                 0x0004
+#define LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT  0x0008
+#define LMD_EVENT_SUBEVENTS_LEFTOVERS       0x0010 // could not read subevents to end...
+#define LMD_EVENT_FIRST_BUFFER_HAS_STICKY   0x0020
 
 // This structure holds information to hint the unpacking at reasonable
 // allocation sizes.  Since also the preunpacking is within separate
@@ -111,7 +113,7 @@ struct lmd_event
   /* Since lmd events may be spanning many buffers (for us, have
    * multiple chunks, we must allow for that.
    */
-  
+
   buf_chunk *_chunk_end;   // the current end of chunks
   buf_chunk *_chunk_alloc; // how many are allocated?
 
@@ -138,6 +140,13 @@ public:
   void get_subevent_data_src(lmd_subevent *subevent_info,
 			     char *&start,char *&end);
   void print_event(int data,hex_dump_mark_buf *unpack_fail) const;
+  bool is_sticky() const { return _status & LMD_EVENT_IS_STICKY; }
+  bool is_subevent_sticky_revoke(lmd_subevent *subevent_info) const
+  {
+    return ((_status & LMD_EVENT_IS_STICKY) &&
+	    subevent_info->_header._header.l_dlen ==
+	    LMD_SUBEVENT_STICKY_DLEN_REVOKE);
+  }
 };
 
 #define FILE_INPUT_EVENT lmd_event
@@ -159,9 +168,9 @@ public:
 public:
   s_bufhe_host       _buffer_header;
   bool               _swapping;
-  int                _last_buffer_no;
+  uint32_t           _last_buffer_no;
   bool               _expect_file_header;
-  int                _events_left;
+  uint               _events_left;
 
   bool               _skip_record_try_again;
   off_t              _prev_record_release_to;
@@ -172,6 +181,8 @@ public:
 
   s_filhe_extra_host _file_header;
   bool               _file_header_seen;
+
+  int                _first_buf_status;
 
 public:
   buf_chunk  _chunks[2];

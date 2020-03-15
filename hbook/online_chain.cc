@@ -26,7 +26,7 @@ void online_chain::select_files()
   // There were two choices, either let this function find the files
   // by traversing a directory structure, or to let it find the files
   // by consulting a file list (current option).
-  
+
   // Traversing the directory structure would remove the need for a
   // file list, but would also likely be a bit slower when many files
   // come into play (perhaps not so important).
@@ -48,18 +48,18 @@ void online_chain::select_files()
 
 TChain *online_chain::since(const char *basename,int seconds)
 {
-  
+
   return NULL;
 }
 
 TChain *online_chain::span(const char *basename,
 			   const char *from,const char *to)
 {
-  
 
 
 
 
-  
+
+
   return NULL;
 }
