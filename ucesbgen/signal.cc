@@ -964,7 +964,7 @@ void generate_signals()
 	for (int sticky = 0; sticky < 2; sticky++)
 	  for (int type_no = 0; type_no < 2; type_no++)
 	    if (signal_head[sticky][type_no] &&
-		/*!s->_sticky*/ 0 == sticky)
+		!s->_sticky == !sticky)
 	      insert_signal(*signal_head[sticky][type_no],
 			    s,s->_id,type_no,false);
       }

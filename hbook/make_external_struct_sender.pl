@@ -202,7 +202,7 @@ foreach my $item (@items)
     my $arraylen = $3;
     my $ctrlname = $4;
 
-    my $printarray = "-1";
+    my $printarray = "(uint) -1";
     my $printctrl = "";
 
     if ($ctrlname) { $printctrl = "$ctrlname"; }

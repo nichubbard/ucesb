@@ -28,7 +28,9 @@ $(GENDIR)/gen/acc_auto_def/%.h $(GENDIR)/acc_auto_def/%.h: $(UCESB_BASE_DIR)/acc
 	@mkdir -p $(dir $@)
 	@$(MAKE_ACC_AUTO_DEF) \
 	  --input $< --compiler $(CXX) \
-	  --compileargs $(filter-out ,$(CXXFLAGS)) > $@.tmp
+	  --compileargs $(filter-out -std=c++11,$(CXXFLAGS)) > $@.tmp
 	@mv $@.tmp $@
+
+# Filter out -std=c++11, as we test compile C code.
 
 #########################################################

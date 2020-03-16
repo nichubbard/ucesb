@@ -573,3 +573,6 @@ STICKY_EVENT
 }
 
 STICKY(corrbase, corr.base, UINT32);
+
+STICKY(zzp_5, , UINT32);
+STICKY(ZERO_SUPPRESS: zzp_5);

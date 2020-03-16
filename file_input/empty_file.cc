@@ -76,6 +76,7 @@ void usage(char *cmdname)
   printf ("  --buffer-size=N   Write buffers of size N.\n");
   printf ("  --buffers=N       Write at most N buffers.\n");
   printf ("  --events=N        Write at most N events.\n");
+  printf ("  --first-ev-no=N   First event number.\n");
   printf ("  --event-size=N    Write events of size ~N (LMD only).\n");
   printf ("  --subevent-size=N  Write subevents of size ~N (LMD only).\n");
   printf ("  --random-size     Random event sizes (up to size given).\n");
@@ -133,6 +134,8 @@ struct config
 
   uint64 _max_buffers;
   uint64 _max_events;
+
+  uint64 _first_event_no;
 
   uint64 _max_rate;
 
@@ -211,6 +214,9 @@ int main(int argc,char *argv[])
       }
       else if (MATCH_PREFIX("--events=",post)) {
 	_conf._max_events = atol(post);
+      }
+      else if (MATCH_PREFIX("--first-event-no=",post)) {
+	_conf._first_event_no = atol(post);
       }
       else if (MATCH_PREFIX("--rate=",post)) {
 	_conf._max_rate = atol(post);
@@ -628,7 +634,7 @@ void write_data_lmd()
 	      ev->_header.i_type    = LMD_EVENT_STICKY_TYPE;
 	      ev->_header.i_subtype = LMD_EVENT_STICKY_SUBTYPE;
 	      ev->_info.i_trigger   = 16;
-	      ev->_info.l_count     = nev;
+	      ev->_info.l_count     = (uint32) (nev + _conf._first_event_no);
 
 	      bufhe->l_evt++;
 	      bufhe->i_type    = LMD_BUF_HEADER_HAS_STICKY_TYPE;
@@ -737,7 +743,7 @@ void write_data_lmd()
 	  ev->_header.i_subtype = LMD_EVENT_10_1_SUBTYPE;
 	  ev->_info.i_trigger   =
 	    _conf._random_trig ? rxs64s(&rstate_trig) % 15 + 1 : 1;
-	  ev->_info.l_count     = nev;
+	  ev->_info.l_count     = (uint32) (nev + _conf._first_event_no);
 
 	  bufhe->l_evt++;
 
@@ -1158,7 +1164,7 @@ void write_data_hld()
       eh->_decoding._align = 3; // 64 bit alignment
       eh->_decoding._type  = 1; // type???  (non-0)
       eh->_id              = 1; // physics :-)
-      eh->_seq_no          = nev++;
+      eh->_seq_no          = (uint32) ((nev++) + _conf._first_event_no);
       eh->_file_no         = 1;
 
       // Hmm, whoever is crazy enough to store dates and times with

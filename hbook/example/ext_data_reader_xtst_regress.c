@@ -53,6 +53,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(int argc,char *argv[])
 {
@@ -144,6 +145,9 @@ int main(int argc,char *argv[])
       exit(1);
     }
 
+  /* Clear the sticky event, since we may not get this as first one. */
+  memset(&sticky, 0, sizeof(sticky));
+
   /* printf ("hevent_id: %d  hsticky_id: %d\n", hevent_id, hsticky_id); */
   
     {
@@ -178,9 +182,11 @@ int main(int argc,char *argv[])
 		break;
 
 	      /*
-	      printf ("sticky: %d %d %d %d\n",
+	      printf ("sticky: tr %d ev %d stidx %d c_b %d cb %d zzp %d\n",
+		      sticky.TRIGGER,
 		      sticky.EVENTNO, sticky.STIDX,
-		      sticky.corr_base, sticky.corrbase);
+		      sticky.corr_base, sticky.corrbase,
+		      sticky.zzp);
 	      */
 
 	      continue;
@@ -211,7 +217,9 @@ int main(int argc,char *argv[])
 	  /* Do whatever is wanted with the data. */
 
 	  /*
-	  printf ("%10d: %2d\n",event.EVENTNO,event.TRIGGER);
+	  printf ("%10d: tr %2d stidx %d STC %d\n",
+		  event.EVENTNO, event.TRIGGER, event.STIDX,
+		  event.STCORR);
 	  */
 	  /*
 	  printf ("%d\n",event.regress_v775mod1n);

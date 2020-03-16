@@ -1239,6 +1239,8 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   assert(_conf._event_stitch_mode == EVENT_STITCH_MODE_TITRIS_TIME ||
 	 _conf._event_stitch_mode == EVENT_STITCH_MODE_WR_TIME);
 
+  bool prev_badstamp = stitch->_badstamp;
+
   // In case any fetch fails, we do not combine
   stitch->_badstamp = true;
   stitch->_combine = false;
@@ -1276,6 +1278,11 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	  // printf("unordered -> !bad !combine\n");
 	  // Since it may have been 'previous' stamp that was bad,
 	  // we fall through and set our new stamp.
+	}
+      else if (prev_badstamp)
+	{
+	  // Previous timestamp was bad.  We cannot combine with it.
+	  // printf("prevbad -> !bad !combine\n");
 	}
       else
 	{

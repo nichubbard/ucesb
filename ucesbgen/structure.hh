@@ -522,6 +522,7 @@ public:
     : str_ev_definition(loc)
   {
     _items = items;
+    _opts = 0;
   }
 
 public:

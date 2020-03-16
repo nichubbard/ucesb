@@ -31,7 +31,8 @@ ts_a_hist::ts_a_hist()
 
 void ts_a_hist::add(int i,uint64_t val)
 {
-  uint bin = -1;
+  uint bin = (uint) -1;
+  
   if (val < (((uint64_t) 1) << 32))
     bin = _is_lin ? (uint) (_bin_num * val / _range) : ilog2((uint) val);
   if (bin != (uint) -1 && bin < _bin_num)
@@ -74,7 +75,7 @@ void tstamp_alignment_histo::add_histos(size_t n, int is_lin, uint range,
 
 tstamp_alignment::tstamp_alignment(char const *a_command):
   _is_lin(0),
-  _range(1e6),
+  _range(1000000),
   _bin_num(32)
 {
   const char *cmd = a_command;

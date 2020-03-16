@@ -390,6 +390,7 @@ void paw_ntuple_usage()
   printf ("UR,URC,URCUS        Prefix UNPACK,RAW,(CAL),(USER) level data with U,R,C,U.\n");
   printf ("TGLV                Include both toggle values.\n");
   printf ("NOTGLI              Do not include toggle index.\n");
+  printf ("NOTRIGEVENTNO       Do not include TRIG, EVENTNO members.\n");
   printf ("CWN                 Produce columnwise HBOOK ntuple (default with .nt*/.hb*).\n");
   printf ("ROOT                Produce ROOT tree (default with .root).\n");
   printf ("STRUCT|SERVER       Run STRUCT server to send data.\n");
@@ -452,6 +453,7 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
   uint64_t max_raw_size = 0;
 #endif
   int toggle_include = ENUM_IS_TOGGLE_I;
+  bool inc_trig_eventno = true;
 
   uint ntuple_type = 0;
   uint ntuple_opt = 0;
@@ -511,6 +513,8 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 	toggle_include &= ~ENUM_IS_TOGGLE_I;
       else if (MATCH_ARG("TGLV"))
 	toggle_include |= ENUM_IS_TOGGLE_V;
+      else if (MATCH_ARG("NOTRIGEVENTNO"))
+	inc_trig_eventno = false;
       else if (MATCH_PREFIX("UNPACK:",post))
 	{
 	  request_level_detailed |= NTUPLE_WRITER_UNPACK;
@@ -677,7 +681,7 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 				 NTUPLE_TYPE_STRUCT_HH |
 				 NTUPLE_TYPE_STRUCT));
 
-  extra._include_always = true;
+  extra._include_always = inc_trig_eventno; /* true */
 
 #define ENUMERATE_MEMBERS_UNCOND(data, level,		    \
 				 block, block_prefix)	    \
@@ -760,7 +764,7 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 				 NTUPLE_TYPE_STRUCT_HH |
 				 NTUPLE_TYPE_STRUCT));
 
-  extra._include_always = true;
+  extra._include_always = inc_trig_eventno; /* true */
 
   ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._unpack,
 			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
@@ -858,7 +862,8 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 		      hid,
 		      this_id, this_title,
 		      this_index_major, this_index_minor,
-		      i == 0 ? &_static_event : (event_base*) &_static_sticky_event
+		      i == 0 ?
+		      (void*) &_static_event : (void*) &_static_sticky_event
 #if defined(USE_LMD_INPUT)
 		      ,(uint) ((max_raw_size + sizeof(uint)-1) / sizeof(uint))
 #endif
@@ -936,7 +941,7 @@ void paw_ntuple::event(int kind)
 #endif
 
   _staged[kind]->event(kind == PAW_NTUPLE_NORMAL_EVENT ?
-		       &_static_event : (event_base*) &_static_sticky_event
+		       (void*) &_static_event : (void*) &_static_sticky_event
 #if defined(USE_LMD_INPUT)
 		       ,&_static_event._unpack.event_no
 		       ,_raw_event ? &fill_raw : NULL

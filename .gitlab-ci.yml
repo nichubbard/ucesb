@@ -226,9 +226,9 @@ freebsd 10 gcc g++ empty:
       "CXXLINKFLAGS=-Wl,-rpath=/usr/local/lib/gcc48"
   <<: *build-bsd
 
-mac sierra gcc g++ empty:
-  stage: fast-build
-  <<: *build-mac-sierra
+#mac sierra gcc g++ empty:
+#  stage: fast-build
+#  <<: *build-mac-sierra
 
 ###
 # Simulated full qemu architectures take long time, begin with those.
@@ -429,6 +429,15 @@ Arch minimal gcc g++ all:
   <<: *docker
   <<: *build
 
+Arch minimal clang clang++ all:
+  stage: build
+  image: archlinux/base
+  before_script:
+    - pacman -Syu --noconfirm
+    - pacman -S base-devel git flex bison ncurses clang --noconfirm --needed
+  <<: *docker
+  <<: *build
+
 gcc-latest minimal gcc g++ all:
   stage: build
   image: gcc:latest
@@ -530,9 +539,9 @@ freebsd 10 clang clang++ all:
   stage: build
   <<: *build-bsd
 
-mac sierra gcc g++ all:
-  stage: build
-  <<: *build-mac-sierra
+#mac sierra gcc g++ all:
+#  stage: build
+#  <<: *build-mac-sierra
 
 
 ###

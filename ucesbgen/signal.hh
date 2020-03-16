@@ -119,11 +119,14 @@ public:
 public:
   signal_spec_base(const file_line &loc,
 		   int signal_count,
+		   int sticky,
 		   const char *name)
   {
     _loc = loc;
 
     _name = name;
+
+    _sticky = sticky;
 
     // For each seen in the .spec, increase a counter and use for
     // ordering.  Using the line-number led to lost signals with
@@ -136,6 +139,8 @@ public:
   const char     *_name;
 
   signal_id       _id;
+
+  int             _sticky;
 
 public:
   file_line _loc;
@@ -225,7 +230,7 @@ public:
 	      const var_name *ident,
 	      const signal_spec_types *types,
 	      int tag)
-    : signal_spec_base(loc,signal_count,name)
+    : signal_spec_base(loc,signal_count,sticky,name)
   {
     _ident[0] = _ident[1] = NULL;
 
@@ -240,7 +245,6 @@ public:
 
     _types = types;
     _tag = tag;
-    _sticky = sticky;
   }
 
 public:
@@ -250,8 +254,6 @@ public:
   signal_id       _id;
 
   int             _tag;
-
-  int             _sticky;
 
 public:
   virtual void dump(dumper &d) const;
@@ -305,10 +307,11 @@ public:
 public:
   signal_info(const file_line &loc,
 	      int signal_count,
+	      int sticky,
 	      const char *name,
 	      int info,
 	      int multi_size = -1)
-    : signal_spec_base(loc,signal_count,name)
+    : signal_spec_base(loc,signal_count,sticky,name)
   {
     _info = info;
     _multi_size = multi_size;
