@@ -869,6 +869,13 @@ int main(int argc, char **argv)
 	  }
       }
     }
+
+#ifdef USE_INPUTFILTER
+  if(_conf._enable_eventbuilder)
+  {
+    INFO("AIDA Event Builder enabled, ProcID = %d and WR ID = %x, Event window = %ld ns", _conf._eventbuilder_procid, _conf._eventbuilder_wrid, _conf._eventbuilder_window);
+  }
+#endif
   /******************************************************************/
 
   if (_conf._watcher._command &&
