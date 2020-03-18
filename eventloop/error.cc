@@ -199,7 +199,7 @@ void formatted_error::eject()
   else
 #endif
     {
-#if not defined(EXTERNAL_WRITER_NO_SHM)
+#if not defined(EXTERNAL_WRITER_NO_SHM) && defined(USE_CURSES) && not defined(USE_MERGING)
       if (_conf._watcher._command && _watcher._init)
       {
           _watcher.on_error(_buffer, _type);
