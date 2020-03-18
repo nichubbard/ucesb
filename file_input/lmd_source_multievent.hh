@@ -36,7 +36,7 @@ struct aidaevent_entry
   uint64_t fragment_wr;
   bool implant;
 
-	aidaevent_entry() : timestamp(0), data(), fragment(true), implant(false)  {}
+	aidaevent_entry() : timestamp(0), data(), fragment(true), implant(false)  { data.reserve(10000); }
 	~aidaevent_entry(){}
 
   //void* operator new(size_t bytes, keep_buffer_wrapper &alloc);

@@ -9,6 +9,7 @@
 #include <iomanip>
 
 #define AIDA_PROCID 1
+#define AIDA_TIME_SHIFT 14000
 
 #define WRTS_SIZE (uint32_t)sizeof(wrts_header)
 // someone thought it a good idea to use uint32 where xe ought to have used size_t.
@@ -245,7 +246,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         _TRACE(" new AIDA event %16lx\n", load_event_wr);
         cur_aida = new aidaevent_entry;
         cur_aida->_header = se->_header;
-        cur_aida->timestamp = load_event_wr;
+        cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
         cur_aida->fragment_wr = load_event_wr;
       }
       // Is there an old AIDA block? Mark it for dumping then build a new buffer
@@ -363,7 +364,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           }
           cur_aida = new aidaevent_entry;
           cur_aida->_header = se->_header;
-          cur_aida->timestamp = load_event_wr;
+          cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
           cur_aida->fragment_wr = load_event_wr;
           _TRACE(" new AIDA event %16lx\n", load_event_wr);
         }
@@ -495,6 +496,7 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate(sizeof (lmd_subevent));
 
   _file_event._subevents[0]._header = entry->_header;
+  if (entry->implant) _file_event._subevents[0]._header.h_control = 38; // Special subevent mark for implant events
   _file_event._subevents[0]._data = (char*)_file_event._defrag_event_many.allocate(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE);
   _file_event._subevents[0]._header._header.l_dlen = (int32_t)(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE)/2 + 2;
 
