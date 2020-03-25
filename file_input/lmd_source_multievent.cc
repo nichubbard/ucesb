@@ -14,6 +14,9 @@
 #define WRTS_SIZE (uint32_t)sizeof(wrts_header)
 // someone thought it a good idea to use uint32 where xe ought to have used size_t.
 
+// Allow timewarp messages to be an error or warning
+#define TIMEWARP ERROR
+
 #ifdef _ENABLE_TRACE
 // Don't define this function if we don't use it :)
 // Generate a nice text string from an AIDA data item
@@ -54,8 +57,22 @@ lmd_event *lmd_source_multievent::get_event()
   if (trigger_event.size() > 10 && aida_events_merge.size() == 0)
   {
     _TRACE("=> Return other event (dump) (%16lx)\n", trigger_event.front().timestamp);
-    emit_wr = trigger_event.front().timestamp;
-    return emit_other();
+    if (trigger_event.front().timestamp >= emit_wr)
+    {
+      emit_wr = trigger_event.front().timestamp;
+      return emit_other();
+    }
+    else
+    {
+      TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+      emit_skip++;
+      triggerevent_entry& entry = trigger_event.front();
+      entry.event.release();
+      free(entry.event._defrag_event._buf);
+      free(entry.event._defrag_event_many._first);
+      trigger_event.pop_front();
+      return get_event();
+    }
   }
 
   // Merge events if possible
@@ -81,7 +98,7 @@ lmd_event *lmd_source_multievent::get_event()
           if (entry->timestamp >= emit_wr)
           {
             if (emit_skip)
-              WARNING("Recovered from timewarp but skipped %d event(s)", emit_skip);
+              TIMEWARP("Recovered from timewarp but skipped %d event(s)", emit_skip);
             emit_skip = 0;
             emit_wr = entry->timestamp;
             return emit_aida(entry);
@@ -89,7 +106,7 @@ lmd_event *lmd_source_multievent::get_event()
           else
           {
             emit_skip++;
-            _TRACE("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+            TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
             delete entry;
             return get_event();
           }
@@ -100,7 +117,7 @@ lmd_event *lmd_source_multievent::get_event()
         {
           _TRACE("=> Return other event (merge %16lx)\n", trigger_event.front().timestamp);
           if (emit_skip)
-            WARNING("Recovered from timewarp but skipped %d event(s)", emit_skip);
+            TIMEWARP("Recovered from timewarp but skipped %d event(s)", emit_skip);
           emit_skip = 0;
           emit_wr = trigger_event.front().timestamp;
           return emit_other();
@@ -108,7 +125,7 @@ lmd_event *lmd_source_multievent::get_event()
         else
         {
           emit_skip++;
-          _TRACE("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+          TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
           triggerevent_entry& entry = trigger_event.front();
           entry.event.release();
           free(entry.event._defrag_event._buf);
@@ -333,14 +350,14 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         {
           if(aida_skip++ == 0)
           {
-            WARNING("AIDA Timewarp (%16" PRIx64 " before %16" PRIx64 ")", load_event_wr, old_ts);
+            TIMEWARP("AIDA Timewarp (%16" PRIx64 " before %16" PRIx64 ")", load_event_wr, old_ts);
           }
           continue;
         }
 
         if (aida_skip)
         {
-          WARNING("AIDA timewarp is over, skipped %d AIDA event(s)", aida_skip);
+          TIMEWARP("AIDA timewarp is over, skipped %d AIDA event(s)", aida_skip);
         }
         aida_skip = 0;
         cur_aida->fragment_wr = load_event_wr;
@@ -496,7 +513,7 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate(sizeof (lmd_subevent));
 
   _file_event._subevents[0]._header = entry->_header;
-  if (entry->implant) _file_event._subevents[0]._header.h_control = 38; // Special subevent mark for implant events
+  //if (entry->implant) _file_event._subevents[0]._header.h_control = 38; // Special subevent mark for implant events
   _file_event._subevents[0]._data = (char*)_file_event._defrag_event_many.allocate(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE);
   _file_event._subevents[0]._header._header.l_dlen = (int32_t)(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE)/2 + 2;
 
