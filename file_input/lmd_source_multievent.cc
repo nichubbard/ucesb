@@ -39,14 +39,15 @@ lmd_event *lmd_source_multievent::get_event()
       if (entry->timestamp >= emit_wr)
       {
         if (emit_skip)
-          WARNING("Recovered from timewarp but skipped %d event(s)", emit_skip);
+          TIMEWARP("Recovered from timewarp but skipped %d event(s)", emit_skip);
         emit_skip = 0;
         emit_wr = entry->timestamp;
         return emit_aida(entry);
       }
       else
       {
-        _TRACE("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+        if (!emit_skip)
+          TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
         emit_skip++;
         delete entry;
         return get_event();
@@ -59,12 +60,16 @@ lmd_event *lmd_source_multievent::get_event()
     _TRACE("=> Return other event (dump) (%16lx)\n", trigger_event.front().timestamp);
     if (trigger_event.front().timestamp >= emit_wr)
     {
+      if (emit_skip)
+        TIMEWARP("Recovered from timewarp but skipped %d event(s)", emit_skip);
+      emit_skip = 0;
       emit_wr = trigger_event.front().timestamp;
       return emit_other();
     }
     else
     {
-      TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+      if (!emit_skip)
+        TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
       emit_skip++;
       triggerevent_entry& entry = trigger_event.front();
       entry.event.release();
@@ -105,8 +110,9 @@ lmd_event *lmd_source_multievent::get_event()
           }
           else
           {
+            if (!emit_skip)
+              TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
             emit_skip++;
-            TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
             delete entry;
             return get_event();
           }
@@ -124,8 +130,9 @@ lmd_event *lmd_source_multievent::get_event()
         }
         else
         {
+          if (!emit_skip)
+            TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
           emit_skip++;
-          TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
           triggerevent_entry& entry = trigger_event.front();
           entry.event.release();
           free(entry.event._defrag_event._buf);
@@ -270,7 +277,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       if(aida_events_merge.size() > 0)
       {
         _TRACE(" clearing block\n");
-        aida_events_dump = aida_events_merge;
+        aida_events_dump = std::move(aida_events_merge);
         aida_events_merge.clear();
       }
 
