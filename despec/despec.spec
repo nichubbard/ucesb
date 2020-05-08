@@ -83,7 +83,7 @@ EVENT
   //FINGER = WR_BLOCK(procid=50);
   //FRS = WR_BLOCK(procid=10);
   revisit sub = WR_BLOCK(type=10, subtype=1);
-  frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
+  revisit frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
   ignore_unknown_subevent;
 }
 

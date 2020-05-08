@@ -29,6 +29,12 @@
 #include "error.hh"
 #endif
 
+#if not defined(EXTERNAL_WRITER_NO_SHM) && defined(USE_CURSES) && not defined(USE_MERGING)
+#include "../eventloop/config.hh"
+#include "../watcher/watcher_window.hh"
+extern watcher_window _watcher;
+#endif
+
 // We are concerned with the reading of LMD data over the net,
 // possibly directly from MBS, i.e.  the --trans, --stream, --event
 // input modes.  --rfio is something else, essentially a normal file
@@ -514,7 +520,17 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 	  nfds = max(nfds,_fd);
 	}
 
-      struct timeval timewait;
+      struct timeval timewait;      
+      // DESPEC/NH: we've had a keepalive here, this allows the watcher to warn if we're not getting data
+#if not defined(EXTERNAL_WRITER_NO_SHM) && defined(USE_CURSES) && not defined(USE_MERGING)
+      bool ncurses_timeout = false;
+      if (_conf._watcher._command && _watcher._init)
+      {
+          ncurses_timeout = true;        
+          timeout = 10;
+          //_watcher.keepalive();
+      }
+#endif
 
       timewait.tv_sec  = timeout;
       timewait.tv_usec = 0;
@@ -537,6 +553,13 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 
       if (n == 0)
 	{
+    #if not defined(EXTERNAL_WRITER_NO_SHM) && defined(USE_CURSES) && not defined(USE_MERGING)
+    if (ncurses_timeout && _conf._watcher._command && _watcher._init)
+    {
+        _watcher.keepalive();
+        continue;
+    }
+    #endif
 	  ERROR("timeout during read");
 	}
 

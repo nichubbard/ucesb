@@ -21,21 +21,24 @@ std::map<int, int64_t> pulsers;
 std::map<std::pair<int, int>, bool> sync_ok;
 std::map<std::pair<int, int>, int> sync_bad;
 
+#define AIDA_IMPLANT_MAGIC 0x701
+
 std::map<int, std::string> names =
 {
-  { 0x100, "FRS" },
-  { 0x400, "GALILEO" },
-  { 0x500, "bPlas" },
-  { 0x700, "AIDA" },
+  { 0x100 , "FRS" },
+  { 0x400 , "GALILEO" },
+  { 0x500 , "bPlas" },
+  { 0x700 , "AIDA" },
   { 0x1200, "FINGER" },
-  { 0x1500, "FATIMA" },
+  { 0x1500, "FAT. VME" },
+  { 0x1600, "FAT. TMX" },
 };
 
 std::vector<std::string> scalers =
 {
   "GALILEO Free",
   "bPlas 2",
-  "bPlas 1",
+  "---",
   "FATIMA Accepted",
   "Pulser",
   "AIDA 1",
@@ -45,7 +48,8 @@ std::vector<std::string> scalers =
   "SC41 R",
   "FATIMA Free",
   "bPlas 1&2",
-  "GALILEO Accepted"
+  "GALILEO Accepted",
+  "bPlas 1",
 };
 
 std::vector<int> scaler_order =
@@ -56,7 +60,7 @@ std::vector<int> scaler_order =
   3,
   8,
   9,
-  2,
+  13,
   1,
   11,
   -1,
@@ -160,6 +164,12 @@ void despec_watcher_event_info(watcher_event_info *info,
     {
       events[event->sub.wr.ts_id[i]]++;
       events_total[event->sub.wr.ts_id[i]]++;
+      
+      if (event->is_aida && event->aida_implant)
+      {
+        events[AIDA_IMPLANT_MAGIC]++;
+        events_total[AIDA_IMPLANT_MAGIC]++;
+      }
     }
   }
 
@@ -225,7 +235,10 @@ void despec_watcher_display(watcher_display_info& info)
   for(auto& i: events_total)
   {
     format_long_int(buf, events_total[i.first]);
-    mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s\t%8ld/s\t%8ld/s ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+    if (i.first == AIDA_IMPLANT_MAGIC)
+      mvwprintw(info._w, info._line, 0, "%8s%12s\t%8s\t%8ld/s ", "", "(Implants)", buf, events[i.first] / dt);
+    else
+      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s\t%8ld/s\t%8ld/s ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
     info._line += 1;
   }
   wrefresh(info._w);

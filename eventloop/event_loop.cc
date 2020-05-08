@@ -1207,6 +1207,11 @@ void ucesb_event_loop::pre2_unpack_event(T_event_base &eb,
   eb._unpack.trigger  = (uint16) src_event->_header._info.i_trigger;
   eb._unpack.dummy    = (uint16) src_event->_header._info.i_dummy;
   eb._unpack.event_no = (uint32) src_event->_header._info.l_count;
+#ifdef USE_INPUTFILTER
+  eb._unpack.is_aida = src_event->_aida_extra;
+  eb._unpack.aida_implant = src_event->_aida_implant;
+  eb._unpack.aida_length = src_event->_aida_length;
+#endif
 #endif
 #ifdef USE_HLD_INPUT
   eb._unpack.event_no = src_event->_header._seq_no;
@@ -1306,6 +1311,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
          stitch->_combine,stitch->_badstamp);
   */
 
+  stitch->_last_stamp = timestamp;
   if (!stitch->_combine)
     {
       stitch->_last_stamp = timestamp;

@@ -70,6 +70,7 @@ public:
   void init();
   void event(watcher_event_info &info);
   void on_error(const char* buf, int type);
+  void keepalive();
 
 };
 

@@ -37,9 +37,15 @@ public:
   uint16 trigger;
   uint16 dummy;
   uint32 event_no;
-
+  
 #if STICKY_EVENT_IS_NONTRIVIAL
   uint32 sticky_idx;
+#endif
+
+#if USE_INPUTFILTER
+  bool is_aida;
+  bool aida_implant;
+  int16_t aida_length;
 #endif
 
 public:

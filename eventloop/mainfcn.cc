@@ -248,7 +248,7 @@ void sigint_handler(int sig)
       #ifdef USE_CURSES
       endwin();
       #endif
-      printf ("Got many SIGINT requests, next will go through");
+      printf ("Got many SIGINT requests, next will go through\n");
       signal(SIGINT,SIG_DFL);
     }
   else

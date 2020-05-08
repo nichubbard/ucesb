@@ -367,9 +367,14 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           TIMEWARP("AIDA timewarp is over, skipped %d AIDA event(s)", aida_skip);
         }
         aida_skip = 0;
-        cur_aida->fragment_wr = load_event_wr;
 
-        if (load_event_wr - old_ts > _conf._eventbuilder_window)
+        if ((word1 & 0xF0000000) == 0xC0000000)
+        {
+          cur_aida->fragment_wr = load_event_wr;
+        }
+
+        // UPDATE: Only ADC items can break apart events (INFO words don't really matter athis point)
+        if ((word1 & 0xF0000000) == 0xC0000000 && load_event_wr - old_ts > _conf._eventbuilder_window)
         {
           // End of Event
 #if _AIDA_DUMP
@@ -396,7 +401,10 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         cur_aida->data.push_back(word1);
         cur_aida->data.push_back(word2);
 
-        old_ts = load_event_wr;
+        if ((word1 & 0xF0000000) == 0xC0000000)
+        {
+          old_ts = load_event_wr;
+        }
       }
 
       if (cur_aida->data.size() > 0)
@@ -520,11 +528,15 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate(sizeof (lmd_subevent));
 
   _file_event._subevents[0]._header = entry->_header;
-  //if (entry->implant) _file_event._subevents[0]._header.h_control = 38; // Special subevent mark for implant events
+  //if (entry->implant) _file_event._subevents[0]._header.i_procid = 95; // Special subevent mark for implant events
   _file_event._subevents[0]._data = (char*)_file_event._defrag_event_many.allocate(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE);
   _file_event._subevents[0]._header._header.l_dlen = (int32_t)(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE)/2 + 2;
 
   _file_event._header._header.l_dlen = (int32_t)DLEN_FROM_EVENT_DATA_LENGTH(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE + sizeof(lmd_subevent));
+  
+  // AIDA events contain extra state for ucesb
+  _file_event._aida_extra = true;
+  _file_event._aida_implant = entry->implant;
 
   wrts_header wr(entry->timestamp);
   memcpy(_file_event._subevents[0]._data, &wr, sizeof(wr));

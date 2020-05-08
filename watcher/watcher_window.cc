@@ -112,9 +112,9 @@ void watcher_window::init()
       
 
   wtop      = newwin(TOP_WINDOW_LINES,80,               0,    0); 
-  wscroll   = newwin(              31,80,TOP_WINDOW_LINES,    0);
-  werrortop = newwin(               1,80,TOP_WINDOW_LINES+31,  0);
-  werror    = newwin(               0, 0,TOP_WINDOW_LINES+32, 0);
+  wscroll   = newwin(              41,80,TOP_WINDOW_LINES,    0);
+  werrortop = newwin(               1,80,TOP_WINDOW_LINES+41,  0);
+  werror    = newwin(               0, 0,TOP_WINDOW_LINES+42, 0);
 
   scrollok(wscroll,1);
   scrollok(werror, 1);
@@ -130,6 +130,7 @@ void watcher_window::init()
 
   wcolor_set(wscroll,COL_NORMAL,NULL);
   wbkgd(wscroll,COLOR_PAIR(COL_DATA_BKGND));
+  mvwaddstr(wscroll, 2, 10, "Waiting for events...");
   wrefresh(wscroll);
   
   wcolor_set(werrortop, COL_TEXT_ERROR, NULL);
@@ -304,6 +305,36 @@ void watcher_window::event(watcher_event_info &info)
       _det_watchcoinc.clear();
       */
     }
+}
+
+void watcher_window::keepalive()
+{
+  time_t now = time(NULL);
+
+  if (now - _last_update > 10)
+  {
+    werase(wscroll);
+    wmove(wscroll, 2, 0);
+    whline(wscroll, ACS_HLINE, 80);
+    wcolor_set(wscroll, COL_TEXT_ERROR, NULL);
+    mvwprintw(wscroll, 3, 10, "! DAQ ERROR !");
+    wcolor_set(wscroll, 2, NULL);
+    wrefresh(wscroll);
+    if (_last_update)
+    {
+      mvwprintw(wscroll, 4, 10, "No data received from MBS in %d seconds", now - _last_update);
+    }
+    else
+    {
+      mvwprintw(wscroll, 4, 10, "No data received from MBS");
+    }
+    wrefresh(wscroll);
+    mvwprintw(wscroll, 5, 10, "Check the DAQ!");
+    wrefresh(wscroll);
+    wmove(wscroll, 6, 0);
+    whline(wscroll, ACS_HLINE, 80);
+    wrefresh(wscroll);
+  }
 }
 
 void watcher_window::on_error(const char* buf, int type)

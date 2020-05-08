@@ -133,6 +133,12 @@ public:
 #endif
 
   buf_chunk *_chunks_ptr;
+  
+#ifdef USE_INPUTFILTER
+  bool _aida_extra;
+  bool _aida_implant;
+  int64_t _aida_length;
+#endif
 
 public:
   void get_10_1_info();
