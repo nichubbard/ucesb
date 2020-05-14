@@ -1277,7 +1277,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 
   if (stitch->_has_stamp)
     {
-      if (timestamp < stitch->_last_stamp)
+      if (false && timestamp < stitch->_last_stamp)
 	{
 	  // Unordered, dump!
 	  // printf("unordered -> !bad !combine\n");
@@ -1306,15 +1306,22 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	}
     }
   /*
-  printf ("%012lx (%d %d)\n",
+  printf ("%012lx (%d %d) %012lx (%ld)\n",
          timestamp,
-         stitch->_combine,stitch->_badstamp);
-  */
+         stitch->_combine,stitch->_badstamp, stitch->_last_stamp, (int64_t)(timestamp - stitch->_last_stamp));
+   */
 
-  stitch->_last_stamp = timestamp;
+#ifdef USE_INPUTFILTER 
+  if (src_event->_aida_extra)
+  {
+    timestamp += src_event->_aida_length;
+  }
+#endif
+
+  if (timestamp > stitch->_last_stamp)
+    stitch->_last_stamp = timestamp;
   if (!stitch->_combine)
     {
-      stitch->_last_stamp = timestamp;
       stitch->_has_stamp = true;
     }
   // printf("stitch->_last_stamp = timestamp\n");

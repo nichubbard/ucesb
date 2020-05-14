@@ -327,13 +327,13 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           }
           uint32_t highTS = word1 & 0x000FFFFF;
           uint32_t middleTS = middleTS_raw & 0x000FFFFF;
-          load_event_wr = ((uint64_t)highTS << 48) | ((uint64_t)middleTS << 28) | word2;
+          load_event_wr = (int64_t)(((uint64_t)highTS << 48) | ((uint64_t)middleTS << 28) | word2);
           cur_aida->data.push_back(word1);
           cur_aida->data.push_back(word2);
           cur_aida->data.push_back(middleTS_raw);
           cur_aida->data.push_back(middleTS_low);
           //_TRACE(" event time: %16" PRIx64 "\n", load_event_wr);
-          cur_aida->fragment_wr = load_event_wr;
+          //cur_aida->fragment_wr = load_event_wr;
           continue;
         }
 
@@ -342,7 +342,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         {
             uint64_t highTS = (load_event_wr >> 48) & 0xFFFFF;
             uint64_t middleTS = word1 & 0x000FFFFF;
-            load_event_wr = ((uint64_t)highTS << 48) | ((uint64_t)middleTS << 28) | word2;
+            load_event_wr = (int64_t)(((uint64_t)highTS << 48) | ((uint64_t)middleTS << 28) | word2);
         }
 
         if ((word1 & 0xF0000000) == 0xD0000000)
@@ -368,11 +368,6 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         }
         aida_skip = 0;
 
-        if ((word1 & 0xF0000000) == 0xC0000000)
-        {
-          cur_aida->fragment_wr = load_event_wr;
-        }
-
         // UPDATE: Only ADC items can break apart events (INFO words don't really matter athis point)
         if ((word1 & 0xF0000000) == 0xC0000000 && load_event_wr - old_ts > _conf._eventbuilder_window)
         {
@@ -389,13 +384,20 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           else
           {
             cur_aida->fragment = false;
+            // Use to track actual event length instead for finished AIDA events
+            // I have no idea why fragment_wr differs actually
+            cur_aida->fragment_wr = old_ts;
             aida_events_merge.push_back(cur_aida);
           }
           cur_aida = new aidaevent_entry;
           cur_aida->_header = se->_header;
           cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
-          cur_aida->fragment_wr = load_event_wr;
           _TRACE(" new AIDA event %16lx\n", load_event_wr);
+        }
+
+        if ((word1 & 0xF0000000) == 0xC0000000)
+        {
+          cur_aida->fragment_wr = load_event_wr;
         }
 
         cur_aida->data.push_back(word1);
@@ -499,7 +501,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
   entry.event._swapping = _file_event._swapping;
   entry.event._nsubevents = _file_event._nsubevents;
   // allocate subevent array
-  entry.event._subevents = (lmd_subevent*)entry.event._defrag_event.allocate(entry.event._nsubevents * sizeof(lmd_subevent));
+  entry.event._subevents = (lmd_subevent*)entry.event._defrag_event.allocate((size_t)entry.event._nsubevents * sizeof(lmd_subevent));
   // copy subevents over
   for (int i = 0; i < entry.event._nsubevents; i++)
   {
@@ -519,7 +521,7 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event.release();
 
   _file_event._header = input_event_header;
-  _file_event._header._info.l_count = ++l_count;
+  _file_event._header._info.l_count = (uint32_t)++l_count;
   _file_event._header._info.i_trigger = 1;
   if (!entry->implant && entry->data.size() > 750 * 3 * 2) // 750 channels, 3 items (SYNC, SYNC, ADC), 2 32-bit words per item
     _file_event._header._info.i_trigger = 3;
@@ -530,15 +532,16 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event._subevents[0]._header = entry->_header;
   //if (entry->implant) _file_event._subevents[0]._header.i_procid = 95; // Special subevent mark for implant events
   _file_event._subevents[0]._data = (char*)_file_event._defrag_event_many.allocate(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE);
-  _file_event._subevents[0]._header._header.l_dlen = (int32_t)(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE)/2 + 2;
+  _file_event._subevents[0]._header._header.l_dlen = (uint32_t)(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE)/2 + 2;
 
-  _file_event._header._header.l_dlen = (int32_t)DLEN_FROM_EVENT_DATA_LENGTH(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE + sizeof(lmd_subevent));
+  _file_event._header._header.l_dlen = (uint32_t)DLEN_FROM_EVENT_DATA_LENGTH(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE + sizeof(lmd_subevent));
   
   // AIDA events contain extra state for ucesb
   _file_event._aida_extra = true;
   _file_event._aida_implant = entry->implant;
+  _file_event._aida_length = (int64_t)entry->fragment_wr - AIDA_TIME_SHIFT - entry->timestamp;
 
-  wrts_header wr(entry->timestamp);
+  wrts_header wr((uint64_t)entry->timestamp);
   memcpy(_file_event._subevents[0]._data, &wr, sizeof(wr));
   memcpy(_file_event._subevents[0]._data + WRTS_SIZE, entry->data.data(), entry->data.size() * sizeof(uint32_t));
   delete entry;
@@ -554,12 +557,12 @@ lmd_event *lmd_source_multievent::emit_other()
     triggerevent_entry& entry = trigger_event.front();
 
     _file_event._header = entry.event._header;
-    _file_event._header._info.l_count = ++l_count;
+    _file_event._header._info.l_count = (uint32_t)++l_count;
 
     _file_event._swapping = entry.event._swapping;
     _file_event._nsubevents = entry.event._nsubevents;
     // allocate subevent array
-    _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate(_file_event._nsubevents * sizeof(lmd_subevent));
+    _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate((size_t)_file_event._nsubevents * sizeof(lmd_subevent));
     // copy subevents over
     for (int i = 0; i < entry.event._nsubevents; i++)
     {

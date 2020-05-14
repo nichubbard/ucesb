@@ -33,7 +33,7 @@ struct aidaevent_entry
   int64_t timestamp;
   std::vector<uint32_t> data;
   bool fragment;
-  uint64_t fragment_wr;
+  int64_t fragment_wr;
   bool implant;
 
 	aidaevent_entry() : timestamp(0), data(), fragment(true), implant(false)  { data.reserve(10000); }
