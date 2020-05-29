@@ -100,6 +100,7 @@ void usage()
   printf ("  --aida            Enable AIDA event builder (splitting, sorting)\n");
   printf ("  --aida-window=N   Gap between AIDA items to break events. Default: 2200 (2.2 us)\n");
   printf ("  --aida-ids=P,W    The ProcID (P) and WR ID (W) for AIDA events. Default: 90, 700\n");
+  printf ("  --aida-old-stitch Use the older method of time-stitching AIDA (ignore length of AIDA event)\n");
 #else
   printf (" (--aida)           No support for AIDA event building compiled in.\n");
 #endif
@@ -621,6 +622,7 @@ int main(int argc, char **argv)
   _conf._eventbuilder_procid = 90;
   _conf._eventbuilder_wrid = 0x700;
   _conf._eventbuilder_window = 2200;
+  _conf._aida_new_stitch = true;
 #endif
   for (int i = 1; i < argc; i++)
     {
@@ -683,6 +685,9 @@ int main(int argc, char **argv)
       }
       else if (MATCH_PREFIX("--aida-ids=",post)) {
          parse_aida_ids(post);
+      }
+      else if (MATCH_ARG("--aida-old-stitch")) {
+	_conf._aida_new_stitch = false;
       }
       // --aida-minimum-words=2 : Minimum ADC words in an AIDA event for it to be emitted
 #endif

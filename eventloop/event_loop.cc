@@ -1312,7 +1312,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
    */
 
 #ifdef USE_INPUTFILTER 
-  if (src_event->_aida_extra)
+  if (_conf._aida_new_stitch && src_event->_aida_extra)
   {
     timestamp += src_event->_aida_length;
   }
