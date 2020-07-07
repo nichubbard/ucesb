@@ -97,6 +97,7 @@ struct config_opts
   int _eventbuilder_wrid;
   int64_t _eventbuilder_window;
   bool _aida_new_stitch;
+  bool _aida_skip_decays;
 #endif
 
 #ifdef USE_LMD_INPUT

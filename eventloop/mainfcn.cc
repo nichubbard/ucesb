@@ -97,10 +97,11 @@ void usage()
   printf (" (--in-tuple)       No external reader support compiled in.\n");
 #endif
 #ifdef USE_INPUTFILTER
-  printf ("  --aida            Enable AIDA event builder (splitting, sorting)\n");
-  printf ("  --aida-window=N   Gap between AIDA items to break events. Default: 2200 (2.2 us)\n");
-  printf ("  --aida-ids=P,W    The ProcID (P) and WR ID (W) for AIDA events. Default: 90, 700\n");
-  printf ("  --aida-old-stitch Use the older method of time-stitching AIDA (ignore length of AIDA event)\n");
+  printf ("  --aida             Enable AIDA event builder (splitting, sorting)\n");
+  printf ("  --aida-window=N    Gap between AIDA items to break events. Default: 2200 (2.2 us)\n");
+  printf ("  --aida-ids=P,W     The ProcID (P) and WR ID (W) for AIDA events. Default: 90, 700\n");
+  printf ("  --aida-old-stitch  Use the older method of time-stitching AIDA (ignore length of AIDA event)\n");
+  printf ("  --aida-skip-decays Don't output AIDA decay events (for near-line speedup)\n");
 #else
   printf (" (--aida)           No support for AIDA event building compiled in.\n");
 #endif
@@ -623,6 +624,7 @@ int main(int argc, char **argv)
   _conf._eventbuilder_wrid = 0x700;
   _conf._eventbuilder_window = 2200;
   _conf._aida_new_stitch = true;
+  _conf._aida_skip_decays = false;
 #endif
   for (int i = 1; i < argc; i++)
     {
@@ -687,7 +689,10 @@ int main(int argc, char **argv)
          parse_aida_ids(post);
       }
       else if (MATCH_ARG("--aida-old-stitch")) {
-	_conf._aida_new_stitch = false;
+	       _conf._aida_new_stitch = false;
+      }
+      else if (MATCH_ARG("--aida-skip-decays")) {
+         _conf._aida_skip_decays = true;
       }
       // --aida-minimum-words=2 : Minimum ADC words in an AIDA event for it to be emitted
 #endif
@@ -879,6 +884,10 @@ int main(int argc, char **argv)
   if(_conf._enable_eventbuilder)
   {
     INFO("AIDA Event Builder enabled, ProcID = %d and WR ID = %x, Event window = %ld ns", _conf._eventbuilder_procid, _conf._eventbuilder_wrid, _conf._eventbuilder_window);
+    if (_conf._aida_skip_decays)
+    {
+      INFO("Only outputting AIDA implants!");
+    }
   }
 #endif
   /******************************************************************/

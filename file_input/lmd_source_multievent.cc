@@ -381,6 +381,11 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
               _TRACE("Discarding tiny AIDA event %8x %8x\n", cur_aida->data[0], cur_aida->data[1]);
               delete cur_aida;
           }
+          else if (_conf._aida_skip_decays && !cur_aida->implant)
+          {
+              _TRACE("Discarding decay AIDA event");
+              delete cur_aida;
+          }
           else
           {
             cur_aida->fragment = false;
