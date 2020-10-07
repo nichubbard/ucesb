@@ -1318,8 +1318,8 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   }
 #endif
 
-  if (timestamp > stitch->_last_stamp)
-    stitch->_last_stamp = timestamp;
+  //if (timestamp > stitch->_last_stamp)
+  stitch->_last_stamp = timestamp;
   if (!stitch->_combine)
     {
       stitch->_has_stamp = true;

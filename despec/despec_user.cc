@@ -11,6 +11,8 @@
 #include <map>
 #include "../lu_common/colourtext.hh"
 
+#include "../file_input/lmd_source_multievent.hh"
+
 static int _events = 0;
 std::map<int, long> events;
 std::map<int, long> pulses;
@@ -20,6 +22,7 @@ time_t _despec_now = 0;
 std::map<int, int64_t> pulsers;
 std::map<std::pair<int, int>, bool> sync_ok;
 std::map<std::pair<int, int>, int> sync_bad;
+std::map<int, int> daq_sync;
 
 #define AIDA_IMPLANT_MAGIC 0x701
 
@@ -78,6 +81,24 @@ watcher_type_info despec_watch_types[NUM_WATCH_TYPES] =
 {
   { COLOR_GREEN,   "Physics" },
   { COLOR_YELLOW,  "Pulser" },
+};
+
+std::map<int, int> aida_dssd_map = 
+{
+  {1, 1},
+  {2, 1},
+  {3, 1},
+  {4, 1},
+  
+  {5, 2},
+  {6, 2},
+  {7, 2},
+  {8, 2},
+  
+  {9, 3},
+  {10, 3},
+  {11, 3},
+  {12, 3},
 };
 
 void despec_watcher_event_info(watcher_event_info *info,
@@ -147,12 +168,16 @@ void despec_watcher_event_info(watcher_event_info *info,
             {
               sync_ok[pair] = true;
               sync_bad[pair] = 0;
+              daq_sync[i.first] = 1;
+              daq_sync[id] = 1;
             }
             else
             {
               if(++sync_bad[pair] > 20)
               {
                 sync_ok[pair] = false;
+                if (daq_sync[i.first] != 1) daq_sync[i.first] = 2;
+                if (daq_sync[id] != 1) daq_sync[id] = 2;
               }
             }
           }
@@ -164,7 +189,7 @@ void despec_watcher_event_info(watcher_event_info *info,
     {
       events[event->sub.wr.ts_id[i]]++;
       events_total[event->sub.wr.ts_id[i]]++;
-      
+
       if (event->is_aida && event->aida_implant)
       {
         events[AIDA_IMPLANT_MAGIC]++;
@@ -182,6 +207,10 @@ void despec_watcher_init()
   _watcher._display_channels.clear();
   _watcher._present_channels.clear();
   init_pair(5, COLOR_RED, COLOR_BLACK);
+  
+  //extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
+  _AIDA_WATCHER_STATS = new aidaeb_watcher_stats;
+  _AIDA_WATCHER_STATS->load_map(aida_dssd_map);
 }
 
 void format_long_int(char* buf, long i)
@@ -226,7 +255,7 @@ void despec_watcher_display(watcher_display_info& info)
     _despec_last--;
   }
 
-  mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s\t%10s\t%10s", "Detector", "ID", "Events", "Rate", "Pulser Evts");
+  mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "Detector", "ID", "Events", "Rate", "Pulser", "Correlation");
   info._line++;
 
   int dt = (int)(_despec_now - _despec_last);
@@ -236,12 +265,34 @@ void despec_watcher_display(watcher_display_info& info)
   {
     format_long_int(buf, events_total[i.first]);
     if (i.first == AIDA_IMPLANT_MAGIC)
-      mvwprintw(info._w, info._line, 0, "%8s%12s\t%8s\t%8ld/s ", "", "(Implants)", buf, events[i.first] / dt);
+    {
+      mvwprintw(info._w, info._line, 0, "%8s%12s\t%8s    %8ld/s    ", "", "(Implants)", buf, events[i.first] / dt);
+    }
     else
-      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s\t%8ld/s\t%8ld/s ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+    {
+      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8ld/s    %8ld/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+      if (daq_sync[i.first] == 1)
+      {
+        wcolor_set(info._w, 3, NULL);
+        wprintw(info._w, "%12s", "OK");
+      }
+      else if (daq_sync[i.first] == 2)
+      {
+        wcolor_set(info._w, 5, NULL);
+        wprintw(info._w, "%12s", "BAD");
+      }
+      else
+      {
+        wcolor_set(info._w, 4, NULL);
+        wprintw(info._w, "%12s", "N/A");
+      }
+      wcolor_set(info._w, 2, NULL);
+    }
     info._line += 1;
   }
   wrefresh(info._w);
+
+#if 0
 
   info._line += 1;
   wmove(info._w, info._line, 0);
@@ -276,9 +327,10 @@ void despec_watcher_display(watcher_display_info& info)
     wcolor_set(info._w, 2, NULL);
     info._line++;
   }
-  
+
+#endif
+
   info._line++;
-  
   wmove(info._w, info._line, 0);
   whline(info._w, ACS_HLINE, 80);
   mvwaddstr(info._w, info._line, 1, "VME Scalers");
@@ -296,6 +348,29 @@ void despec_watcher_display(watcher_display_info& info)
         );
   }
   wrefresh(info._w);
+  
+  info._line++;
+  info._line++;
+  wmove(info._w, info._line, 0);
+  whline(info._w, ACS_HLINE, 80);
+  mvwaddstr(info._w, info._line, 1, "AIDA Rates");
+  info._line++;
+  mvwprintw(info._w, info._line, 0, "%18s      Implants", "");
+  mvwprintw(info._w, info._line, 40, "Decays", "");
+  auto const& im = _AIDA_WATCHER_STATS->implants();
+  auto const& de = _AIDA_WATCHER_STATS->decays();
+  for (int j = 0; j < 3; j++)
+  {
+    info._line++;
+    mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
+        "DSSD",
+        j + 1,
+        (double)im[j] / dt
+        );
+    mvwprintw(info._w, info._line, 40, "%8.0f Hz",
+        (double)de[j] / dt
+        );
+  }
 }
 
 void despec_watcher_clear()
@@ -306,4 +381,6 @@ void despec_watcher_clear()
   scalers_old = std::move(scalers_now);
   scalers_now.resize(16);
   //sync_ok.clear();
+  _AIDA_WATCHER_STATS->clear();
+  
 }

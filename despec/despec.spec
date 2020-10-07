@@ -22,6 +22,21 @@ FATIMA_DUMMY()
   }
 }
 
+FRS_FRS_SCALER()
+{
+  MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
+  UINT32 no NOENCODE;
+
+  if ((no & 0xFFFF0000) == 0x04800000 || (no & 0xFFFF0000) == 0x44800000)
+  {
+    list (0 <= index < 32)
+    {
+      UINT32 ch_data NOENCODE;
+      ENCODE(scalers[index], (value=ch_data));
+    }
+  }
+}
+
 WHITE_RABBIT()
 {
   MEMBER(DATA32 ts_id[1000] NO_INDEX_LIST);
@@ -74,6 +89,14 @@ SUBEVENT(tpat_subev)
   tpat = TRLOII_TPAT(id = 0xcf);
 }
 
+SUBEVENT(frs_frs_subev)
+{
+  select several
+  {
+	scaler = FRS_FRS_SCALER();
+  }
+}
+
 EVENT
 {
   //AIDA = WR_BLOCK(procid=90);
@@ -84,6 +107,8 @@ EVENT
   //FRS = WR_BLOCK(procid=10);
   revisit sub = WR_BLOCK(type=10, subtype=1);
   revisit frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
+  revisit frs_frs = frs_frs_subev(type=12, subtype=1, procid=30);
+  revisit frs_main = frs_frs_subev(type=12, subtype=1, procid=10);
   ignore_unknown_subevent;
 }
 

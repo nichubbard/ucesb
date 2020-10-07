@@ -11,11 +11,14 @@
 #define AIDA_PROCID 1
 #define AIDA_TIME_SHIFT 14000
 
+aidaeb_watcher_stats* _AIDA_WATCHER_STATS = nullptr;
+
 #define WRTS_SIZE (uint32_t)sizeof(wrts_header)
 // someone thought it a good idea to use uint32 where xe ought to have used size_t.
 
 // Allow timewarp messages to be an error or warning
-#define TIMEWARP ERROR
+//#define TIMEWARP ERROR
+#define TIMEWARP WARNING
 
 #ifdef _ENABLE_TRACE
 // Don't define this function if we don't use it :)
@@ -47,9 +50,10 @@ lmd_event *lmd_source_multievent::get_event()
       else
       {
         if (!emit_skip)
-          TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+          TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
         emit_skip++;
-        delete entry;
+        entry->reset();
+        aida_events_pool.push_back(entry);
         return get_event();
       }
   }
@@ -69,7 +73,7 @@ lmd_event *lmd_source_multievent::get_event()
     else
     {
       if (!emit_skip)
-        TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+        TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
       emit_skip++;
       triggerevent_entry& entry = trigger_event.front();
       entry.event.release();
@@ -111,9 +115,10 @@ lmd_event *lmd_source_multievent::get_event()
           else
           {
             if (!emit_skip)
-              TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+              TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
             emit_skip++;
-            delete entry;
+            entry->reset();
+            aida_events_pool.push_back(entry);
             return get_event();
           }
       }
@@ -131,7 +136,7 @@ lmd_event *lmd_source_multievent::get_event()
         else
         {
           if (!emit_skip)
-            TIMEWARP("=> Not emitting timewarped event (before %16lx)\n", emit_wr);
+            TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
           emit_skip++;
           triggerevent_entry& entry = trigger_event.front();
           entry.event.release();
@@ -268,7 +273,15 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       else
       {
         _TRACE(" new AIDA event %16lx\n", load_event_wr);
-        cur_aida = new aidaevent_entry;
+        if (aida_events_pool.empty())
+        {
+          cur_aida = new aidaevent_entry;
+        }
+        else
+        {
+          cur_aida = aida_events_pool.front();
+          aida_events_pool.pop_front();
+        }
         cur_aida->_header = se->_header;
         cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
         cur_aida->fragment_wr = load_event_wr;
@@ -348,6 +361,23 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         if ((word1 & 0xF0000000) == 0xD0000000)
         {
           cur_aida->implant = true;
+          cur_aida->implant_wr_e = load_event_wr;
+          if (cur_aida->implant_wr_s == 0) cur_aida->implant_wr_s = load_event_wr - AIDA_TIME_SHIFT;
+          if (_AIDA_WATCHER_STATS)
+          {
+            int channelID = (word1 >> 16) & 0xFFF;
+            int feeID = 1 + ((channelID >> 6) & 0x3F);
+            _AIDA_WATCHER_STATS->add_i(feeID);
+          }
+        }
+        if ((word1 & 0xF0000000) == 0xC0000000)
+        {
+          if (_AIDA_WATCHER_STATS)
+          {
+            int channelID = (word1 >> 16) & 0xFFF;
+            int feeID = 1 + ((channelID >> 6) & 0x3F);
+            _AIDA_WATCHER_STATS->add_d(feeID);
+          }
         }
 
         //_TRACE(" event time: %16" PRIx64 "\n", load_event_wr);
@@ -379,22 +409,33 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           if (cur_aida->data.size() == 2 && (cur_aida->data[0] & 0xC0000000) == 0xC0000000)
           {
               _TRACE("Discarding tiny AIDA event %8x %8x\n", cur_aida->data[0], cur_aida->data[1]);
-              delete cur_aida;
+              cur_aida->reset();
+              aida_events_pool.push_back(cur_aida);
+              cur_aida = nullptr;
           }
           else if (_conf._aida_skip_decays && !cur_aida->implant)
           {
               _TRACE("Discarding decay AIDA event");
-              delete cur_aida;
+              cur_aida->reset();
+              aida_events_pool.push_back(cur_aida);
+              cur_aida = nullptr;
           }
           else
           {
             cur_aida->fragment = false;
-            // Use to track actual event length instead for finished AIDA events
-            // I have no idea why fragment_wr differs actually
             cur_aida->fragment_wr = old_ts;
+            if (cur_aida->implant) cur_aida->timestamp = cur_aida->implant_wr_s;
             aida_events_merge.push_back(cur_aida);
           }
-          cur_aida = new aidaevent_entry;
+          if (aida_events_pool.empty())
+          {
+            cur_aida = new aidaevent_entry;
+          }
+          else
+          {
+            cur_aida = aida_events_pool.front();
+            aida_events_pool.pop_front();
+          }
           cur_aida->_header = se->_header;
           cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
           _TRACE(" new AIDA event %16lx\n", load_event_wr);
@@ -421,7 +462,9 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       }
       else
       {
-        delete cur_aida;
+          cur_aida->reset();
+          aida_events_pool.push_back(cur_aida);
+          cur_aida = nullptr;
       }
 
       _TRACE("AIDA Buffer now contains: %lu events\n", aida_events_merge.size());
@@ -540,16 +583,20 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event._subevents[0]._header._header.l_dlen = (uint32_t)(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE)/2 + 2;
 
   _file_event._header._header.l_dlen = (uint32_t)DLEN_FROM_EVENT_DATA_LENGTH(entry->data.size() * sizeof(uint32_t) + WRTS_SIZE + sizeof(lmd_subevent));
-  
+
   // AIDA events contain extra state for ucesb
   _file_event._aida_extra = true;
   _file_event._aida_implant = entry->implant;
+  if (entry->implant) {
+    entry->fragment_wr = entry->implant_wr_e;
+  }
   _file_event._aida_length = (int64_t)entry->fragment_wr - AIDA_TIME_SHIFT - entry->timestamp;
 
   wrts_header wr((uint64_t)entry->timestamp);
   memcpy(_file_event._subevents[0]._data, &wr, sizeof(wr));
   memcpy(_file_event._subevents[0]._data + WRTS_SIZE, entry->data.data(), entry->data.size() * sizeof(uint32_t));
-  delete entry;
+  entry->reset();
+  aida_events_pool.push_back(entry);
 
   _file_event._status = LMD_EVENT_GET_10_1_INFO_ATTEMPT | LMD_EVENT_HAS_10_1_INFO | LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT;
   return &_file_event;
