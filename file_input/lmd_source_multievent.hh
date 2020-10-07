@@ -42,28 +42,28 @@ public:
       dssd_counts_d.resize(max_d);
       clear();
   }
-  
+
   inline void clear()
   {
       std::fill(dssd_counts_i.begin(), dssd_counts_i.end(), 0);
       std::fill(dssd_counts_d.begin(), dssd_counts_d.end(), 0);
   }
-  
+
   inline std::vector<int64_t> const& implants() const
   {
     return dssd_counts_i;
   }
-  
+
   inline std::vector<int64_t> const& decays() const
   {
     return dssd_counts_d;
   }
-  
+
 private:
   std::map<int, int> fee_dssd;
   std::vector<int64_t> dssd_counts_i;
   std::vector<int64_t> dssd_counts_d;
-  
+
   inline void add_internal(std::vector<int64_t>& vec, int fee)
   {
       if (fee_dssd.find(fee) != fee_dssd.end())
@@ -72,7 +72,7 @@ private:
         vec[dssd - 1]++;
       }
   }
-  
+
 public:
   inline void add_i(int fee)
   {
@@ -95,9 +95,9 @@ struct aidaevent_entry
   std::vector<uint32_t> data;
   bool fragment;
   int64_t fragment_wr, implant_wr_s, implant_wr_e;
-  bool implant;
+  int flags;
 
-	aidaevent_entry() : timestamp(0), data(), fragment(true), implant_wr_s(0), implant(false)  { data.reserve(10000); }
+	aidaevent_entry() : timestamp(0), data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); }
 	~aidaevent_entry(){}
 
   void reset() {
@@ -105,7 +105,11 @@ struct aidaevent_entry
     data.clear();
     fragment = true;
     implant_wr_s = 0;
-    implant = false;
+    flags = 0;
+  }
+
+  bool implant() const {
+    return (flags & 0x1) == 0x1;
   }
 
   //void* operator new(size_t bytes, keep_buffer_wrapper &alloc);

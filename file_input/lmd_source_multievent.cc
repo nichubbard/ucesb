@@ -10,15 +10,23 @@
 
 #define AIDA_PROCID 1
 #define AIDA_TIME_SHIFT 14000
+#define AIDA_CORRELATION_PULSER 1
+
+// Allow timewarp messages to be an error or warning
+//#define TIMEWARP ERROR
+#define TIMEWARP WARNING
+
+// The following defs are automatic computations
 
 aidaeb_watcher_stats* _AIDA_WATCHER_STATS = nullptr;
 
 #define WRTS_SIZE (uint32_t)sizeof(wrts_header)
 // someone thought it a good idea to use uint32 where xe ought to have used size_t.
-
-// Allow timewarp messages to be an error or warning
-//#define TIMEWARP ERROR
-#define TIMEWARP WARNING
+//
+// This is the value of an AIDA correlation word for the pulser
+#ifdef AIDA_CORRELATION_PULSER
+static constexpr uint32_t AIDA_CORRELATION_EVENT = 0x80000000 | (AIDA_CORRELATION_PULSER << 24) | (8 << 20);
+#endif
 
 #ifdef _ENABLE_TRACE
 // Don't define this function if we don't use it :)
@@ -360,7 +368,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
 
         if ((word1 & 0xF0000000) == 0xD0000000)
         {
-          cur_aida->implant = true;
+          cur_aida->flags |= 1;
           cur_aida->implant_wr_e = load_event_wr;
           if (cur_aida->implant_wr_s == 0) cur_aida->implant_wr_s = load_event_wr - AIDA_TIME_SHIFT;
           if (_AIDA_WATCHER_STATS)
@@ -379,6 +387,12 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
             _AIDA_WATCHER_STATS->add_d(feeID);
           }
         }
+#ifdef AIDA_CORRELATION_PULSER
+        if ((word1 & 0xFFF00000) == AIDA_CORRELATION_EVENT)
+        {
+          cur_aida->flags |= 2;
+        }
+#endif
 
         //_TRACE(" event time: %16" PRIx64 "\n", load_event_wr);
 
@@ -413,7 +427,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
               aida_events_pool.push_back(cur_aida);
               cur_aida = nullptr;
           }
-          else if (_conf._aida_skip_decays && !cur_aida->implant)
+          else if (_conf._aida_skip_decays && !cur_aida->implant())
           {
               _TRACE("Discarding decay AIDA event");
               cur_aida->reset();
@@ -424,7 +438,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           {
             cur_aida->fragment = false;
             cur_aida->fragment_wr = old_ts;
-            if (cur_aida->implant) cur_aida->timestamp = cur_aida->implant_wr_s;
+            if (cur_aida->implant()) cur_aida->timestamp = cur_aida->implant_wr_s;
             aida_events_merge.push_back(cur_aida);
           }
           if (aida_events_pool.empty())
@@ -571,8 +585,13 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   _file_event._header = input_event_header;
   _file_event._header._info.l_count = (uint32_t)++l_count;
   _file_event._header._info.i_trigger = 1;
-  if (!entry->implant && entry->data.size() > 750 * 3 * 2) // 750 channels, 3 items (SYNC, SYNC, ADC), 2 32-bit words per item
+#ifdef AIDA_CORRELATION_PULSER
+  if (entry->flags & 0x2)
     _file_event._header._info.i_trigger = 3;
+#else
+  if (!entry->implant() && entry->data.size() > 750 * 3 * 2) // 750 channels, 3 items (SYNC, SYNC, ADC), 2 32-bit words per item
+    _file_event._header._info.i_trigger = 3;
+#endif
 
   _file_event._nsubevents = 1;
   _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate(sizeof (lmd_subevent));
@@ -586,8 +605,8 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
 
   // AIDA events contain extra state for ucesb
   _file_event._aida_extra = true;
-  _file_event._aida_implant = entry->implant;
-  if (entry->implant) {
+  _file_event._aida_implant = entry->implant();
+  if (entry->implant()) {
     entry->fragment_wr = entry->implant_wr_e;
   }
   _file_event._aida_length = (int64_t)entry->fragment_wr - AIDA_TIME_SHIFT - entry->timestamp;
