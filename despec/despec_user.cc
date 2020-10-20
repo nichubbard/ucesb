@@ -270,7 +270,7 @@ void despec_watcher_display(watcher_display_info& info)
     }
     else
     {
-      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8ld/s    %8ld/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8ld/s    %8ld/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, (int)(((double)pulses[i.first] + 0.5) / dt));
       if (daq_sync[i.first] == 1)
       {
         wcolor_set(info._w, 3, NULL);

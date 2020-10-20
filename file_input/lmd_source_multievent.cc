@@ -25,7 +25,7 @@ aidaeb_watcher_stats* _AIDA_WATCHER_STATS = nullptr;
 //
 // This is the value of an AIDA correlation word for the pulser
 #ifdef AIDA_CORRELATION_PULSER
-static constexpr uint32_t AIDA_CORRELATION_EVENT = 0x80000000 | (AIDA_CORRELATION_PULSER << 24) | (8 << 20);
+static constexpr uint32_t AIDA_CORRELATION_EVENT = 0x80000000 | ((AIDA_CORRELATION_PULSER - 1) << 24) | (8 << 20);
 #endif
 
 #ifdef _ENABLE_TRACE
