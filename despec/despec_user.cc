@@ -348,28 +348,37 @@ void despec_watcher_display(watcher_display_info& info)
         );
   }
   wrefresh(info._w);
-  
-  info._line++;
-  info._line++;
-  wmove(info._w, info._line, 0);
-  whline(info._w, ACS_HLINE, 80);
-  mvwaddstr(info._w, info._line, 1, "AIDA Rates");
-  info._line++;
-  mvwprintw(info._w, info._line, 0, "%18s      Implants", "");
-  mvwprintw(info._w, info._line, 40, "Decays", "");
-  auto const& im = _AIDA_WATCHER_STATS->implants();
-  auto const& de = _AIDA_WATCHER_STATS->decays();
-  for (int j = 0; j < 3; j++)
+
+  if(_conf._enable_eventbuilder)
   {
     info._line++;
-    mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
-        "DSSD",
-        j + 1,
-        (double)im[j] / dt
-        );
-    mvwprintw(info._w, info._line, 40, "%8.0f Hz",
-        (double)de[j] / dt
-        );
+    info._line++;
+    wmove(info._w, info._line, 0);
+    whline(info._w, ACS_HLINE, 80);
+    mvwaddstr(info._w, info._line, 1, "AIDA Rates");
+    info._line++;
+    mvwprintw(info._w, info._line, 0, "%18s      Implants", "");
+    mvwprintw(info._w, info._line, 40, "Decays", "");
+    auto const& im = _AIDA_WATCHER_STATS->implants();
+    auto const& de = _AIDA_WATCHER_STATS->decays();
+    for (int j = 0; j < 3; j++)
+    {
+      info._line++;
+      mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
+          "DSSD",
+          j + 1,
+          (double)im[j] / dt
+          );
+      mvwprintw(info._w, info._line, 40, "%8.0f Hz",
+          (double)de[j] / dt
+          );
+    }
+  }
+  else
+  {
+    info._line++;
+    info._line++;
+    mvwaddstr(info._w, info._line, 1, "AIDA Event Bulder is not enabled");
   }
 }
 
