@@ -9,5 +9,6 @@
 #define USER_WATCHER_INIT despec_watcher_init
 #define USER_WATCHER_DISPLAY despec_watcher_display
 #define USER_WATCHER_CLEAR despec_watcher_clear
+#define USER_KEEPALIVE_FUNCTION despec_watcher_keepalive
 
 #endif//__CONTROL_HH__

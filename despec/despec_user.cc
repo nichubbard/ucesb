@@ -13,12 +13,23 @@
 
 #include "../file_input/lmd_source_multievent.hh"
 
+#ifdef ZEROMQ
+#include "ucesb.pb.h"
+#include <zmqpp/zmqpp.hpp>
+#undef OK
+#include <google/protobuf/util/json_util.h>
+
+static despec::UcesbReport report;
+static zmqpp::context zmq_context;
+static zmqpp::socket zmq_pubber(zmq_context, zmqpp::socket_type::pub);
+#endif
+
 static int _events = 0;
 std::map<int, long> events;
 std::map<int, long> pulses;
 std::map<int, long> events_total;
-time_t _despec_last = 0;
-time_t _despec_now = 0;
+int64_t _despec_last = 0;
+int64_t _despec_now = 0;
 std::map<int, int64_t> pulsers;
 std::map<std::pair<int, int>, bool> sync_ok;
 std::map<std::pair<int, int>, int> sync_bad;
@@ -39,39 +50,33 @@ std::map<int, std::string> names =
 
 std::vector<std::string> scalers =
 {
-  "GALILEO Free",
-  "bPlas 2",
-  "---",
-  "FATIMA Accepted",
-  "Pulser",
-  "AIDA 1",
-  "AIDA 2",
-  "AIDA 3",
-  "SC41 L",
-  "SC41 R",
-  "FATIMA Free",
-  "bPlas 1&2",
-  "GALILEO Accepted",
-  "bPlas 1",
+  "bPlast Free",
+  "bPlast Accepted",
+  "FATIMA TAMEX Free",
+  "FATIMA TAMEX Accepted",
+  "FATIMA VME Free",
+  "FATIMA VME Accepted",
+  "Ge Free",
+  "Ge Accepted",
+  "bPlast Up",
+  "bPlast Down",
+  "bPlast AND",
+  "SCI41 L",
+  "SCI41 R",
+  "SCI42 L",
+  "SCI42 R"
 };
 
 std::vector<int> scaler_order =
 {
-  0,
-  12,
-  10,
-  3,
-  8,
-  9,
-  13,
-  1,
-  11,
-  -1,
-  5,
-  6,
-  7,
-  -1,
-  4
+  0, 1,
+  2, 3,
+  4, 5,
+  6, 7,
+  8, 9,
+  10, -1,
+  11, 12,
+  13, 14
 };
 
 std::vector<uint32_t> scalers_now(16);
@@ -83,18 +88,18 @@ watcher_type_info despec_watch_types[NUM_WATCH_TYPES] =
   { COLOR_YELLOW,  "Pulser" },
 };
 
-std::map<int, int> aida_dssd_map = 
+std::map<int, int> aida_dssd_map =
 {
   {1, 1},
   {2, 1},
   {3, 1},
   {4, 1},
-  
+
   {5, 2},
   {6, 2},
   {7, 2},
   {8, 2},
-  
+
   {9, 3},
   {10, 3},
   {11, 3},
@@ -133,9 +138,12 @@ void despec_watcher_event_info(watcher_event_info *info,
   info->_info &= ~WATCHER_DISPLAY_INFO_TIME;
   if (event->sub.wr.ts_high[0])
   {
-    info->_time = (uint)(((uint64_t)event->sub.wr.ts_high[0] << 32 | event->sub.wr.ts_low[0]) / (uint64_t)1e9);
+    int64_t wr = ((int64_t)event->sub.wr.ts_high[0] << 32 | event->sub.wr.ts_low[0]);
+    info->_time = (uint)(wr / (uint64_t)1e9);
     info->_info |= WATCHER_DISPLAY_INFO_TIME;
-    _despec_now = info->_time;
+    _despec_now = wr;
+    report.mutable_summary()->set_time(info->_time);
+    report.mutable_summary()->set_wr(wr);
   }
 
   for (uint i = 0; i < event->sub.dummy.scalars._num_items; i++)
@@ -198,6 +206,10 @@ void despec_watcher_event_info(watcher_event_info *info,
     }
   }
 
+  report.mutable_summary()->set_event_no(info->_event_no);
+  //_inputs
+  report.mutable_summary()->set_server(_inputs[0]._name);
+
   _events++;
 }
 
@@ -207,10 +219,35 @@ void despec_watcher_init()
   _watcher._display_channels.clear();
   _watcher._present_channels.clear();
   init_pair(5, COLOR_RED, COLOR_BLACK);
-  
+
   //extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
   _AIDA_WATCHER_STATS = new aidaeb_watcher_stats;
   _AIDA_WATCHER_STATS->load_map(aida_dssd_map);
+
+  INFO("DESPEC Initialised");
+
+#ifdef ZEROMQ
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  INFO("Google Protobuf Version Verified OK");
+  zmq_pubber.bind("tcp://*:4242");
+  INFO("ZeroMQ PUB socket running on tcp://*:4242");
+
+  std::atexit([]() {
+      zmqpp::message message;
+      message << "exit";
+      zmq_pubber.send(message);
+  });
+
+  report.mutable_summary()->set_server(_inputs[0]._name);
+
+  sleep(1);
+
+  zmqpp::message message;
+  std::string proto;
+  report.SerializeToString(&proto);
+  message << "init" << proto;
+  zmq_pubber.send(message);
+#endif
 }
 
 void format_long_int(char* buf, long i)
@@ -258,33 +295,46 @@ void despec_watcher_display(watcher_display_info& info)
   mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "Detector", "ID", "Events", "Rate", "Pulser", "Correlation");
   info._line++;
 
-  int dt = (int)(_despec_now - _despec_last);
+  //int dt = (int)(_despec_now - _despec_last);
+  double dt = (_despec_now - _despec_last) / (double)1e9;
 
   char buf[256] = { '\0' };
+  report.mutable_status()->clear_daq();
   for(auto& i: events_total)
   {
+
     format_long_int(buf, events_total[i.first]);
     if (i.first == AIDA_IMPLANT_MAGIC)
     {
-      mvwprintw(info._w, info._line, 0, "%8s%12s\t%8s    %8ld/s    ", "", "(Implants)", buf, events[i.first] / dt);
+      continue;
+      //mvwprintw(info._w, info._line, 0, "%8s%12s\t%8s    %8ld/s    ", "", "(Implants)", buf, events[i.first] / dt);
     }
     else
     {
-      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8ld/s    %8ld/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, (int)(((double)pulses[i.first] + 0.5) / dt));
+      auto report_daq = report.mutable_status()->add_daq();
+      report_daq->set_events(events_total[i.first]);
+      report_daq->set_id(i.first);
+      report_daq->set_subsystem(names[i.first]);
+      report_daq->set_rate(events[i.first] / dt);
+      report_daq->set_pulser(pulses[i.first] / dt);
+      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
       if (daq_sync[i.first] == 1)
       {
         wcolor_set(info._w, 3, NULL);
         wprintw(info._w, "%12s", "OK");
+        report_daq->set_correlation(despec::DaqInformation::GOOD);
       }
       else if (daq_sync[i.first] == 2)
       {
         wcolor_set(info._w, 5, NULL);
         wprintw(info._w, "%12s", "BAD");
+        report_daq->set_correlation(despec::DaqInformation::BAD);
       }
       else
       {
         wcolor_set(info._w, 4, NULL);
         wprintw(info._w, "%12s", "N/A");
+        report_daq->set_correlation(despec::DaqInformation::UNKNOWN);
       }
       wcolor_set(info._w, 2, NULL);
     }
@@ -330,18 +380,26 @@ void despec_watcher_display(watcher_display_info& info)
 
 #endif
 
+  report.clear_scalers();
+
   info._line++;
   wmove(info._w, info._line, 0);
   whline(info._w, ACS_HLINE, 80);
   mvwaddstr(info._w, info._line, 1, "VME Scalers");
 
-  for (int j = 0; j < scaler_order.size(); j++)
+  auto fatvme_report = report.add_scalers();
+  fatvme_report->set_key("fatima");
+  fatvme_report->clear_scalers();
+  for (size_t j = 0; j < scaler_order.size(); j++)
   {
     int i = scaler_order[j];
     int col =0 ;
     if (j % 2 == 1) col = 40;
     else info._line++;
     if (i == -1) continue;
+    auto entry = fatvme_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(scalers_now[i] - scalers_old[i]) / dt);
     mvwprintw(info._w, info._line, col, "%20s = %8.0f Hz",
         scalers[i].c_str(),
         (double)(scalers_now[i] - scalers_old[i]) / dt
@@ -361,8 +419,17 @@ void despec_watcher_display(watcher_display_info& info)
     mvwprintw(info._w, info._line, 40, "Decays", "");
     auto const& im = _AIDA_WATCHER_STATS->implants();
     auto const& de = _AIDA_WATCHER_STATS->decays();
+    auto aida_report = report.add_scalers();
+    aida_report->set_key("aida");
+    aida_report->clear_scalers();
     for (int j = 0; j < 3; j++)
     {
+      auto entry = aida_report->add_scalers();
+      entry->set_index(2 * j);
+      entry->set_rate((double)im[j] / dt);
+      entry = aida_report->add_scalers();
+      entry->set_index(2 * j + 1);
+      entry->set_rate((double)de[j] / dt);
       info._line++;
       mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
           "DSSD",
@@ -380,6 +447,39 @@ void despec_watcher_display(watcher_display_info& info)
     info._line++;
     mvwaddstr(info._w, info._line, 1, "AIDA Event Bulder is not enabled");
   }
+
+  extern watcher_window _watcher;
+  extern std::deque<std::pair<std::string, int>> errors;
+
+  report.clear_logs();
+  for (auto& e : errors)
+  {
+    auto log = report.add_logs();
+    log->set_message(e.first);
+    log->set_severity(despec::LogEntry::LogSeverity::LogEntry_LogSeverity_NORMAL);
+    if (e.second == FE_ERROR)
+    {
+      log->set_severity(despec::LogEntry::LogSeverity::LogEntry_LogSeverity_ERROR);
+    }
+    if (e.second == FE_WARNING)
+    {
+      log->set_severity(despec::LogEntry::LogSeverity::LogEntry_LogSeverity_WARNING);
+    }
+  }
+
+  report.mutable_summary()->clear_triggers();
+  for (int i = 0; i < NUM_WATCH_TYPES;  i++)
+  {
+    auto trig = report.mutable_summary()->add_triggers();
+    trig->set_name(WATCH_TYPE_NAMES[i]._name);
+    trig->set_rate(_watcher._type_count[i]);
+  }
+
+  zmqpp::message message;
+  std::string proto;
+  report.SerializeToString(&proto);
+  message << "stat" << proto;
+  zmq_pubber.send(message);
 }
 
 void despec_watcher_clear()
@@ -391,5 +491,19 @@ void despec_watcher_clear()
   scalers_now.resize(16);
   //sync_ok.clear();
   _AIDA_WATCHER_STATS->clear();
-  
+
+}
+
+void despec_watcher_keepalive(bool dead)
+{
+  if (dead)
+  {
+    zmqpp::message message;
+    report.clear_status();
+    report.clear_scalers();
+    std::string proto;
+    report.SerializeToString(&proto);
+    message << "dead" << proto;
+    zmq_pubber.send(message);
+  }
 }

@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package despec;
+
+message UcesbSummary {
+	string server = 1;
+	int32 clients = 2;
+	uint64 event_no = 3;
+	int32 time = 4;
+	uint64 wr = 5;
+
+	message Triggers {
+		string name = 1;
+		int32 rate = 2;
+	}
+
+	repeated Triggers triggers = 6;
+}
+
+message DaqInformation {
+	string subsystem = 1;
+	int32 id = 2;
+	uint64 events = 3;
+	uint32 rate = 4;
+	uint32 pulser = 5;
+
+	enum CorrelationStatus {
+		UNKNOWN = 0;
+		GOOD = 1;
+		BAD = 2;
+	}
+
+	CorrelationStatus correlation = 6;
+}
+
+message DaqStatus {
+	repeated DaqInformation daq = 1;
+}
+
+message ScalerEntry {
+	int32 index = 1;
+	int32 rate = 2;
+}
+
+message ScalerGroup {
+	string key = 1;
+	repeated ScalerEntry scalers = 2;
+}
+
+message LogEntry {
+	enum LogSeverity {
+		NORMAL = 0;
+		WARNING = 1;
+		ERROR = 2;
+	}
+
+	LogSeverity severity = 1;
+	string message = 2;
+}
+
+message UcesbReport {
+	UcesbSummary summary = 1;
+	DaqStatus status = 2;
+	repeated ScalerGroup scalers = 3;
+	repeated LogEntry logs = 4;
+}

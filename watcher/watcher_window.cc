@@ -39,6 +39,10 @@ void USER_WATCHER_DISPLAY(watcher_display_info&);
 void USER_WATCHER_CLEAR();
 #endif
 
+#ifdef USER_KEEPALIVE_FUNCTION
+void USER_KEEPALIVE_FUNCTION(bool dead);
+#endif
+
 // If none specified
 watcher_type_info dummy_watch_types[1] = { { COLOR_GREEN, NULL}, };
 
@@ -69,6 +73,7 @@ typedef void (*void_void_func)(void);
 #define COL_TEXT_ERROR 11
 #define COL_TEXT_WARNING 12
 #define COL_TEXT_INFO 13
+#define COL_TEXT_ERROR_BLINK 14
 
 std::deque<std::pair<std::string, int>> errors;
 #include "colourtext.hh"
@@ -105,6 +110,7 @@ void watcher_window::init()
   init_pair(COL_TEXT_ERROR,  COLOR_WHITE  ,COLOR_RED);
   init_pair(COL_TEXT_WARNING,COLOR_YELLOW ,COLOR_BLACK);
   init_pair(COL_TEXT_INFO,   COLOR_GREEN  ,COLOR_BLACK);
+  init_pair(COL_TEXT_ERROR_BLINK, COLOR_RED, COLOR_WHITE);
 
   for (int type = 0; type < NUM_WATCH_TYPES; type++)
     init_pair((short) (COL_TYPE_BASE+type),
@@ -132,7 +138,7 @@ void watcher_window::init()
   wbkgd(wscroll,COLOR_PAIR(COL_DATA_BKGND));
   mvwaddstr(wscroll, 2, 10, "Waiting for events...");
   wrefresh(wscroll);
-  
+
   wcolor_set(werrortop, COL_TEXT_ERROR, NULL);
   wbkgd(werrortop,COLOR_PAIR(COL_TEXT_NORMAL));
   wmove(werrortop, 0, 0);
@@ -307,32 +313,66 @@ void watcher_window::event(watcher_event_info &info)
     }
 }
 
+static void rectangle(WINDOW* w, int y1, int x1, int y2, int x2)
+{
+  mvwhline(w, y1, x1, 0, x2-x1);
+  mvwhline(w, y2, x1, 0, x2-x1);
+  mvwvline(w, y1, x1, 0, y2-y1);
+  mvwvline(w, y1, x2, 0, y2-y1);
+  mvwaddch(w, y1, x1, ACS_ULCORNER);
+  mvwaddch(w, y2, x1, ACS_LLCORNER);
+  mvwaddch(w, y1, x2, ACS_URCORNER);
+  mvwaddch(w, y2, x2, ACS_LRCORNER);
+}
+
+static void cprintw(WINDOW* w, int y, const char* msg, ...)
+{
+  char buffer[80];
+  va_list args;
+  va_start(args, msg);
+  vsprintf(buffer, msg, args);
+  int x = 5 + 70/2 - strlen(buffer)/2;
+  mvwprintw(w, y, x, buffer);
+  va_end(args);
+}
+
 void watcher_window::keepalive()
 {
   time_t now = time(NULL);
 
+#ifdef USER_KEEPALIVE_FUNCTION
+  USER_KEEPALIVE_FUNCTION((now - _last_update > 10));
+#endif
+
   if (now - _last_update > 10)
   {
     werase(wscroll);
-    wmove(wscroll, 2, 0);
-    whline(wscroll, ACS_HLINE, 80);
-    wcolor_set(wscroll, COL_TEXT_ERROR, NULL);
-    mvwprintw(wscroll, 3, 10, "! DAQ ERROR !");
+    rectangle(wscroll, 2, 5, 6, 75);
+    static int flash = 0;
+    if (flash == 0)
+    {
+      wcolor_set(wscroll, COL_TEXT_ERROR, NULL);
+      flash = 1;
+    }
+    else
+    {
+      wcolor_set(wscroll, COL_TEXT_ERROR_BLINK, NULL);
+      flash = 0;
+    }
+    cprintw(wscroll, 3, "! DAQ ERROR !");
     wcolor_set(wscroll, 2, NULL);
     wrefresh(wscroll);
     if (_last_update)
     {
-      mvwprintw(wscroll, 4, 10, "No data received from MBS in %d seconds", now - _last_update);
+      cprintw(wscroll, 4, "No data received from MBS in %d seconds", now - _last_update);
     }
     else
     {
-      mvwprintw(wscroll, 4, 10, "No data received from MBS");
+      cprintw(wscroll, 4, "No data received from MBS");
     }
     wrefresh(wscroll);
-    mvwprintw(wscroll, 5, 10, "Check the DAQ!");
-    wrefresh(wscroll);
-    wmove(wscroll, 6, 0);
-    whline(wscroll, ACS_HLINE, 80);
+    cprintw(wscroll, 5, "Check the DAQ!");
+    wmove(wscroll, 7, 0);
     wrefresh(wscroll);
   }
 }
