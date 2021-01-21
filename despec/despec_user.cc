@@ -12,6 +12,7 @@
 #include "../lu_common/colourtext.hh"
 
 #include "../file_input/lmd_source_multievent.hh"
+#include <atomic>
 
 #ifdef ZEROMQ
 #include "ucesb.pb.h"
@@ -22,6 +23,7 @@
 static despec::UcesbReport report;
 static zmqpp::context zmq_context;
 static zmqpp::socket zmq_pubber(zmq_context, zmqpp::socket_type::pub);
+extern std::atomic<int> _global_clients;
 #endif
 
 static int _events = 0;
@@ -34,6 +36,9 @@ std::map<int, int64_t> pulsers;
 std::map<std::pair<int, int>, bool> sync_ok;
 std::map<std::pair<int, int>, int> sync_bad;
 std::map<int, int> daq_sync;
+// spil data
+static bool _on_spill = false;
+static time_t _last_spill = 0;
 
 #define AIDA_IMPLANT_MAGIC 0x701
 
@@ -79,8 +84,12 @@ std::vector<int> scaler_order =
   13, 14
 };
 
-std::vector<uint32_t> scalers_now(16);
-std::vector<uint32_t> scalers_old(16);
+// 16 FATIMA scalers and 64 FRS scalers
+static constexpr size_t SCALER_COUNT = 16 + 32 + 32;
+
+std::vector<uint32_t> scalers_now(SCALER_COUNT);
+std::vector<uint32_t> scalers_old(SCALER_COUNT);
+std::vector<uint32_t> scalers_old_spill(SCALER_COUNT);
 
 watcher_type_info despec_watch_types[NUM_WATCH_TYPES] =
 {
@@ -151,6 +160,28 @@ void despec_watcher_event_info(watcher_event_info *info,
     scalers_now[i] = event->sub.dummy.scalars[i];
   }
 
+  for (uint i = 0; i < event->frs_frs.scaler.scalers._num_items; i++)
+  {
+    scalers_now[16 + i] = event->frs_frs.scaler.scalers[i];
+  }
+
+  // START EXTR Scaler triggered, so we reset the spill array and say on spill
+  if (scalers_now[16 + 8] - scalers_old_spill[16 + 8] > 0) {
+    _on_spill = true;
+    _last_spill = info->_time;
+    scalers_old_spill = scalers_now;
+  }
+
+  // STOP EXTR Scaler triggered, spill off flag
+  if (scalers_now[16 + 9] - scalers_old_spill[16 + 9] > 0) {
+    _on_spill = false;
+  }
+
+  for (uint i = 0; i < event->frs_main.scaler.scalers._num_items; i++)
+  {
+    scalers_now[16 + 32 + i] = event->frs_main.scaler.scalers[i];
+  }
+
   for (uint i = 0; i < event->sub.wr.ts_id._num_items; i++)
   {
     if (event->sub.wr.ts_id[i] == 0x200) continue;
@@ -209,6 +240,8 @@ void despec_watcher_event_info(watcher_event_info *info,
   report.mutable_summary()->set_event_no(info->_event_no);
   //_inputs
   report.mutable_summary()->set_server(_inputs[0]._name);
+  report.mutable_summary()->set_onspill(_on_spill);
+  report.mutable_summary()->set_lastspill(_last_spill);
 
   _events++;
 }
@@ -342,44 +375,6 @@ void despec_watcher_display(watcher_display_info& info)
   }
   wrefresh(info._w);
 
-#if 0
-
-  info._line += 1;
-  wmove(info._w, info._line, 0);
-  whline(info._w, ACS_HLINE, 80);
-  mvwaddstr(info._w, info._line, 1, "Pulser Correlation");
-  info._line += 1;
-
-  wmove(info._w, info._line, 0);
-  wprintw(info._w, "%8s | %8s | %12s", "Det. 1", "Det. 2", "Correlation");
-  //wprintw(info._w, "%8d", info._line);
-  info._line += 1;
-
-
-  for (auto& i : sync_bad)
-  {
-    mvwprintw(info._w, info._line, 0, "%8s | %8s | ", names[i.first.first].c_str(), names[i.first.second].c_str());
-    if (!sync_ok[i.first] && sync_bad[i.first] < 20)
-    {
-      wcolor_set(info._w, 4, NULL);
-      wprintw(info._w, "%12s", "N/A");
-    }
-    else if (sync_ok[i.first])
-    {
-      wcolor_set(info._w, 3, NULL);
-      wprintw(info._w, "%12s", "OK");
-    }
-    else
-    {
-      wcolor_set(info._w, 5, NULL);
-      wprintw(info._w, "%12s", "BAD");
-    }
-    wcolor_set(info._w, 2, NULL);
-    info._line++;
-  }
-
-#endif
-
   report.clear_scalers();
 
   info._line++;
@@ -390,6 +385,25 @@ void despec_watcher_display(watcher_display_info& info)
   auto fatvme_report = report.add_scalers();
   fatvme_report->set_key("fatima");
   fatvme_report->clear_scalers();
+  for (size_t i = 0; i < 16; i++)
+  {
+    auto entry = fatvme_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(scalers_now[i] - scalers_old[i]) / dt);
+    entry->set_spill(scalers_now[i] - scalers_old_spill[i]);
+  }
+
+  auto frs_report = report.add_scalers();
+  frs_report->set_key("frs");
+  frs_report->clear_scalers();
+  for (size_t i = 0; i < 64; i++)
+  {
+    auto entry = frs_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(scalers_now[i + 16] - scalers_old[i + 16]) / dt);
+    entry->set_spill(scalers_now[i + 16] - scalers_old_spill[i + 16]);
+  }
+
   for (size_t j = 0; j < scaler_order.size(); j++)
   {
     int i = scaler_order[j];
@@ -397,10 +411,7 @@ void despec_watcher_display(watcher_display_info& info)
     if (j % 2 == 1) col = 40;
     else info._line++;
     if (i == -1) continue;
-    auto entry = fatvme_report->add_scalers();
-    entry->set_index(i);
-    entry->set_rate((double)(scalers_now[i] - scalers_old[i]) / dt);
-    mvwprintw(info._w, info._line, col, "%20s = %8.0f Hz",
+    mvwprintw(info._w, info._line, col, "%21s = %8.0f Hz",
         scalers[i].c_str(),
         (double)(scalers_now[i] - scalers_old[i]) / dt
         );
@@ -474,6 +485,7 @@ void despec_watcher_display(watcher_display_info& info)
     trig->set_name(WATCH_TYPE_NAMES[i]._name);
     trig->set_rate(_watcher._type_count[i]);
   }
+  report.mutable_summary()->set_clients(_global_clients);
 
   zmqpp::message message;
   std::string proto;
@@ -487,8 +499,7 @@ void despec_watcher_clear()
   events.clear();
   pulses.clear();
   _despec_last = _despec_now;
-  scalers_old = std::move(scalers_now);
-  scalers_now.resize(16);
+  scalers_old = scalers_now;
   //sync_ok.clear();
   _AIDA_WATCHER_STATS->clear();
 

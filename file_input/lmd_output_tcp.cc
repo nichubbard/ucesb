@@ -51,6 +51,9 @@
  */
 
 
+#include <atomic>
+std::atomic<int> _global_clients(0);
+
 
 lmd_output_state::lmd_output_state()
 {
@@ -1042,6 +1045,8 @@ bool lmd_output_server_con::after_select(fd_set *readfds,fd_set *writefds,
 
   INFO(0,"Accepted connection [%s]...",client_dotted);
 
+  _global_clients++;
+
   return true;
 }
 
@@ -1258,6 +1263,7 @@ void *lmd_output_tcp::server()
 	      client->close();
 	      client_iter = _clients.erase(client_iter);
 	      show_connections = true;
+	      _global_clients--;
 	    }
 	  else
 	    ++client_iter;

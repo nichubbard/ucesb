@@ -15,6 +15,9 @@ message UcesbSummary {
 	}
 
 	repeated Triggers triggers = 6;
+
+	bool onspill = 7;
+	int32 lastspill = 8;
 }
 
 message DaqInformation {
@@ -40,6 +43,7 @@ message DaqStatus {
 message ScalerEntry {
 	int32 index = 1;
 	int32 rate = 2;
+	int32 spill = 3;
 }
 
 message ScalerGroup {
