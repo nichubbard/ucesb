@@ -30,6 +30,8 @@ struct lmd_event_multievent;
 class aidaeb_watcher_stats
 {
 public:
+  aidaeb_watcher_stats(size_t _copies = 1) : copies(_copies) {}
+
   inline void load_map(std::map<int, int> new_map)
   {
       fee_dssd = new_map;
@@ -38,39 +40,48 @@ public:
       {
         max_d = std::max(max_d, i.second);
       }
-      dssd_counts_i.resize(max_d);
-      dssd_counts_d.resize(max_d);
-      clear();
+      dssd_counts_i.resize(copies);
+      dssd_counts_d.resize(copies);
+      for (size_t i = 0; i < copies; i++)
+      {
+        dssd_counts_i[i].resize(max_d);
+        dssd_counts_d[i].resize(max_d);
+        clear(i);
+      }
   }
 
-  inline void clear()
+  inline void clear(size_t copy = 0)
   {
-      std::fill(dssd_counts_i.begin(), dssd_counts_i.end(), 0);
-      std::fill(dssd_counts_d.begin(), dssd_counts_d.end(), 0);
+      std::fill(dssd_counts_i[copy].begin(), dssd_counts_i[copy].end(), 0);
+      std::fill(dssd_counts_d[copy].begin(), dssd_counts_d[copy].end(), 0);
   }
 
-  inline std::vector<int64_t> const& implants() const
+  inline std::vector<int64_t> const& implants(size_t copy = 0) const
   {
-    return dssd_counts_i;
+    return dssd_counts_i[copy];
   }
 
-  inline std::vector<int64_t> const& decays() const
+  inline std::vector<int64_t> const& decays(size_t copy = 0) const
   {
-    return dssd_counts_d;
+    return dssd_counts_d[copy];
   }
 
 private:
   std::map<int, int> fee_dssd;
-  std::vector<int64_t> dssd_counts_i;
-  std::vector<int64_t> dssd_counts_d;
+  std::vector<std::vector<int64_t>> dssd_counts_i;
+  std::vector<std::vector<int64_t>> dssd_counts_d;
+  size_t copies;
 
-  inline void add_internal(std::vector<int64_t>& vec, int fee)
+  inline void add_internal(std::vector<std::vector<int64_t>>& vec, int fee)
   {
-      if (fee_dssd.find(fee) != fee_dssd.end())
+    if (fee_dssd.find(fee) != fee_dssd.end())
+    {
+      int dssd = fee_dssd[fee];
+      for(size_t i = 0; i < copies; i++)
       {
-        int dssd = fee_dssd[fee];
-        vec[dssd - 1]++;
+        vec[i][dssd - 1]++;
       }
+    }
   }
 
 public:

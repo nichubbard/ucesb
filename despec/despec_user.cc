@@ -170,6 +170,7 @@ void despec_watcher_event_info(watcher_event_info *info,
     _on_spill = true;
     _last_spill = info->_time;
     scalers_old_spill = scalers_now;
+    _AIDA_WATCHER_STATS->clear(1);
   }
 
   // STOP EXTR Scaler triggered, spill off flag
@@ -254,7 +255,7 @@ void despec_watcher_init()
   init_pair(5, COLOR_RED, COLOR_BLACK);
 
   //extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
-  _AIDA_WATCHER_STATS = new aidaeb_watcher_stats;
+  _AIDA_WATCHER_STATS = new aidaeb_watcher_stats(2);
   _AIDA_WATCHER_STATS->load_map(aida_dssd_map);
 
   INFO("DESPEC Initialised");
@@ -428,8 +429,10 @@ void despec_watcher_display(watcher_display_info& info)
     info._line++;
     mvwprintw(info._w, info._line, 0, "%18s      Implants", "");
     mvwprintw(info._w, info._line, 40, "Decays", "");
-    auto const& im = _AIDA_WATCHER_STATS->implants();
-    auto const& de = _AIDA_WATCHER_STATS->decays();
+    auto const& im_hz = _AIDA_WATCHER_STATS->implants(0);
+    auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
+    auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
+    auto const& de_sp = _AIDA_WATCHER_STATS->decays(1);
     auto aida_report = report.add_scalers();
     aida_report->set_key("aida");
     aida_report->clear_scalers();
@@ -437,18 +440,20 @@ void despec_watcher_display(watcher_display_info& info)
     {
       auto entry = aida_report->add_scalers();
       entry->set_index(2 * j);
-      entry->set_rate((double)im[j] / dt);
+      entry->set_rate((double)im_hz[j] / dt);
+      entry->set_spill(im_sp[j]);
       entry = aida_report->add_scalers();
       entry->set_index(2 * j + 1);
-      entry->set_rate((double)de[j] / dt);
+      entry->set_rate((double)de_hz[j] / dt);
+      entry->set_spill(de_sp[j]);
       info._line++;
       mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
           "DSSD",
           j + 1,
-          (double)im[j] / dt
+          (double)im_hz[j] / dt
           );
       mvwprintw(info._w, info._line, 40, "%8.0f Hz",
-          (double)de[j] / dt
+          (double)de_hz[j] / dt
           );
     }
   }
@@ -501,7 +506,7 @@ void despec_watcher_clear()
   _despec_last = _despec_now;
   scalers_old = scalers_now;
   //sync_ok.clear();
-  _AIDA_WATCHER_STATS->clear();
+  _AIDA_WATCHER_STATS->clear(0);
 
 }
 
