@@ -45,7 +45,7 @@ static time_t _last_spill = 0;
 std::map<int, std::string> names =
 {
   { 0x100 , "FRS" },
-  { 0x400 , "GALILEO" },
+  { 0x400 , "HPGe" },
   { 0x500 , "bPlas" },
   { 0x700 , "AIDA" },
   { 0x1200, "FINGER" },
