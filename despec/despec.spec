@@ -22,12 +22,31 @@ FATIMA_DUMMY()
   }
 }
 
+FRS_MAIN_SCALER()
+{
+  MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
+  UINT32 no NOENCODE;
+
+  if (no == 0xbabababa)
+  {
+    UINT32 sc NOENCODE;
+    if ((sc & 0xFFFF0000) == 0x44800000)
+    {
+      list (0 <= index < 32)
+      {
+	UINT32 ch_data NOENCODE;
+	ENCODE(scalers[index], (value=ch_data));
+      }
+    }
+  }
+}
+
 FRS_FRS_SCALER()
 {
   MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
   UINT32 no NOENCODE;
 
-  if ((no & 0xFFFF0000) == 0x04800000 || (no & 0xFFFF0000) == 0x44800000)
+  if ((no & 0xFFFF0000) == 0x04800000)
   {
     list (0 <= index < 32)
     {
@@ -89,6 +108,14 @@ SUBEVENT(tpat_subev)
   tpat = TRLOII_TPAT(id = 0xcf);
 }
 
+SUBEVENT(frs_main_subev)
+{
+  select several
+  {
+	scaler = FRS_MAIN_SCALER();
+  }
+}
+
 SUBEVENT(frs_frs_subev)
 {
   select several
@@ -108,7 +135,7 @@ EVENT
   revisit sub = WR_BLOCK(type=10, subtype=1);
   revisit frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
   revisit frs_frs = frs_frs_subev(type=12, subtype=1, procid=30);
-  revisit frs_main = frs_frs_subev(type=12, subtype=1, procid=10);
+  revisit frs_main = frs_main_subev(type=12, subtype=1, procid=10);
   ignore_unknown_subevent;
 }
 
