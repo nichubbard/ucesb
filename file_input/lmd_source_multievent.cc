@@ -16,6 +16,10 @@
 //#define TIMEWARP ERROR
 #define TIMEWARP WARNING
 
+// "Optimise" AIDA output by discarding unnecessary SYNC items
+//  and discarding tiny (useless) AIDA events
+#define AIDA_OPTIMISE
+
 // The following defs are automatic computations
 
 aidaeb_watcher_stats* _AIDA_WATCHER_STATS = nullptr;
@@ -348,11 +352,20 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           }
           uint32_t highTS = word1 & 0x000FFFFF;
           uint32_t middleTS = middleTS_raw & 0x000FFFFF;
+          uint32_t old_highTS = (load_event_wr >> 48) & 0xFFFFF;
+          uint32_t old_middleTS = (load_event_wr >> 28) & 0xFFFFF;
+#ifdef AIDA_OPTIMISE
+          if (highTS != old_highTS || middleTS != old_middleTS)
+#endif
+          {
+            _TRACE(" pushing SYNC data because it actually changed\n");
+            cur_aida->data.push_back(word1);
+            cur_aida->data.push_back(word2);
+            cur_aida->data.push_back(middleTS_raw);
+            cur_aida->data.push_back(middleTS_low);
+          }
+
           load_event_wr = (int64_t)(((uint64_t)highTS << 48) | ((uint64_t)middleTS << 28) | word2);
-          cur_aida->data.push_back(word1);
-          cur_aida->data.push_back(word2);
-          cur_aida->data.push_back(middleTS_raw);
-          cur_aida->data.push_back(middleTS_low);
           //_TRACE(" event time: %16" PRIx64 "\n", load_event_wr);
           //cur_aida->fragment_wr = load_event_wr;
           continue;
@@ -420,6 +433,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           _TRACE ("end of event %16lx\n", cur_aida->timestamp);
 #endif
           // If there is exactly one entry (2 words) and it's an ADC entry, discard it as it won't be front-back matched
+#ifdef AIDA_OPTIMISE
           if (cur_aida->data.size() == 2 && (cur_aida->data[0] & 0xC0000000) == 0xC0000000)
           {
               _TRACE("Discarding tiny AIDA event %8x %8x\n", cur_aida->data[0], cur_aida->data[1]);
@@ -427,7 +441,9 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
               aida_events_pool.push_back(cur_aida);
               cur_aida = nullptr;
           }
-          else if (_conf._aida_skip_decays && !cur_aida->implant())
+          else
+#endif
+          if (_conf._aida_skip_decays && !cur_aida->implant())
           {
               _TRACE("Discarding decay AIDA event");
               cur_aida->reset();
