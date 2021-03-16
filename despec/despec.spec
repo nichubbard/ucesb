@@ -1,4 +1,5 @@
 // -*- C++ -*-
+// vi: filetype=cpp
 #include "trloii.spec"
 
 DUMMY()
@@ -22,7 +23,10 @@ FATIMA_SCALER()
     ENCODE(scalars[index],(value=ch_data));
   }
 
-  UINT32 trailer NOENCODE;
+  UINT32 trailer NOENCODE
+  {
+     0_31: t = 0x7c000000;
+  }
 }
 
 FRS_MAIN_SCALER()
