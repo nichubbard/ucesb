@@ -7,19 +7,22 @@ DUMMY()
 }
 
 // Dummy events or unpack a scalar
-FATIMA_DUMMY()
+FATIMA_SCALER()
 {
   MEMBER(DATA32 scalars[16] ZERO_SUPPRESS_LIST);
-  UINT32 no NOENCODE;
-  
-  if (no == 0x7a001000)
+
+  UINT32 header NOENCODE
   {
-    list(0 <= index < 16)
-    {
-      UINT32 ch_data NOENCODE;
-      ENCODE(scalars[index],(value=ch_data));
-    }
+    0_31: h = 0x7a001000;
   }
+
+  list(0 <= index < 16)
+  {
+    UINT32 ch_data NOENCODE;
+    ENCODE(scalars[index],(value=ch_data));
+  }
+
+  UINT32 trailer NOENCODE;
 }
 
 FRS_MAIN_SCALER()
@@ -90,15 +93,16 @@ WHITE_RABBIT()
   ENCODE(ts_high APPEND_LIST, (value=(ts4.val << 16 | ts3.val)));
 }
 
-SUBEVENT(WR_BLOCK)
+SUBEVENT(fatima_vme)
 {
+  wr = WHITE_RABBIT();
   select optional
   {
-    wr = WHITE_RABBIT();
+    scaler = FATIMA_SCALER();
   }
   select several
   {
-    dummy = FATIMA_DUMMY();
+    dummy = DUMMY();
   }
 }
 
@@ -112,7 +116,7 @@ SUBEVENT(frs_main_subev)
 {
   select several
   {
-	scaler = FRS_MAIN_SCALER();
+    scaler = FRS_MAIN_SCALER();
   }
 }
 
@@ -120,7 +124,7 @@ SUBEVENT(frs_frs_subev)
 {
   select several
   {
-	scaler = FRS_FRS_SCALER();
+    scaler = FRS_FRS_SCALER();
   }
 }
 
@@ -132,7 +136,7 @@ EVENT
   //GALILEO = WR_BLOCK(procid=60);
   //FINGER = WR_BLOCK(procid=50);
   //FRS = WR_BLOCK(procid=10);
-  revisit sub = WR_BLOCK(type=10, subtype=1);
+  revisit fatima = fatima_vme(procid=70, type=10, subtype=1);
   revisit frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
   revisit frs_frs = frs_frs_subev(type=12, subtype=1, procid=30);
   revisit frs_main = frs_main_subev(type=12, subtype=1, procid=10);

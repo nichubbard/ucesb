@@ -1109,6 +1109,25 @@ void unpack_subevent(event_base_t &eb,
    * the producer.
    */
 
+  {
+    uint64 wr = 0;
+    __data_src_t wr_reader = src;
+    uint32 bits0, bits1, bits2, bits3, bits4;
+    wr_reader.get_uint32(&bits0); // useless
+    wr_reader.get_uint32(&bits1);
+    wr_reader.get_uint32(&bits2);
+    wr_reader.get_uint32(&bits3);
+    wr_reader.get_uint32(&bits4);
+    if ((bits1 & 0xffff0000) == 0x03e10000 && (bits2 & 0xffff0000) == 0x04e10000
+      && (bits3 & 0xffff0000) == 0x05e10000 && (bits4 & 0xffff0000) == 0x06e10000)
+    {
+      wr = (bits1 & 0xffff) | (bits2 & 0xffff) << 16
+	| ((uint64)bits3 & 0xffff) << 32
+	| ((uint64)bits4 & 0xffff) << 48;
+      eb._unpack.wr.push_back({ bits0, wr });
+    }
+  }
+
   int loc;
   try {
     loc = eb._unpack.__unpack_subevent((subevent_header*) ev_header,src);

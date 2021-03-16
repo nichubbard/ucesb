@@ -127,7 +127,7 @@ void despec_watcher_event_info(watcher_event_info *info,
     pulse = true;
   }
 
-  if (event->frs_tpat.tpat.n == 1 && event->frs_tpat.tpat.tpat[0] & 0x200)
+  if (event->frs_tpat.tpat.n == 1 && event->frs_tpat.tpat.tpat[0].value & (1 << 8))
   {
     info->_type = DESPEC_WATCH_TYPE_TCAL;
     pulse = true;
@@ -145,9 +145,9 @@ void despec_watcher_event_info(watcher_event_info *info,
   //sprint()
   // clean it for events not having it
   info->_info &= ~WATCHER_DISPLAY_INFO_TIME;
-  if (event->sub.wr.ts_high[0])
+  if (event->wr.size() > 0)
   {
-    int64_t wr = ((int64_t)event->sub.wr.ts_high[0] << 32 | event->sub.wr.ts_low[0]);
+    int64_t wr = event->wr[0].second;
     info->_time = (uint)(wr / (uint64_t)1e9);
     info->_info |= WATCHER_DISPLAY_INFO_TIME;
     _despec_now = wr;
@@ -155,9 +155,9 @@ void despec_watcher_event_info(watcher_event_info *info,
     report.mutable_summary()->set_wr(wr);
   }
 
-  for (uint i = 0; i < event->sub.dummy.scalars._num_items; i++)
+  for (uint i = 0; i < event->fatima.scaler.scalars._num_items; i++)
   {
-    scalers_now[i] = event->sub.dummy.scalars[i];
+    scalers_now[i] = event->fatima.scaler.scalars[i];
   }
 
   for (uint i = 0; i < event->frs_frs.scaler.scalers._num_items; i++)
@@ -168,7 +168,7 @@ void despec_watcher_event_info(watcher_event_info *info,
   // START EXTR Scaler triggered, so we reset the spill array and say on spill
   if (scalers_now[16 + 8] - scalers_old_spill[16 + 8] > 0) {
     _on_spill = true;
-    _last_spill = info->_time;
+    _last_spill = (uint)(_despec_now / (uint64_t)1e9);
     scalers_old_spill = scalers_now;
     _AIDA_WATCHER_STATS->clear(1);
   }
@@ -183,13 +183,13 @@ void despec_watcher_event_info(watcher_event_info *info,
     scalers_now[16 + 32 + i] = event->frs_main.scaler.scalers[i];
   }
 
-  for (uint i = 0; i < event->sub.wr.ts_id._num_items; i++)
+  for (uint i = 0; i < event->wr.size(); i++)
   {
-    if (event->sub.wr.ts_id[i] == 0x200) continue;
+    if (event->wr[i].first == 0x200) continue;
     if (pulse)
     {
-      int id = event->sub.wr.ts_id[i];
-      int64_t wr = ((int64_t)event->sub.wr.ts_high[i] << 32 | event->sub.wr.ts_low[i]);
+      int id = event->wr[i].first;
+      int64_t wr = event->wr[i].second;
       pulses[id]++;
       int64_t prev_ts = pulsers[id];
       if (prev_ts != 0)
@@ -227,8 +227,8 @@ void despec_watcher_event_info(watcher_event_info *info,
     }
     else
     {
-      events[event->sub.wr.ts_id[i]]++;
-      events_total[event->sub.wr.ts_id[i]]++;
+      events[event->wr[i].first]++;
+      events_total[event->wr[i].first]++;
 
       if (event->is_aida && event->aida_implant)
       {
@@ -260,7 +260,7 @@ void despec_watcher_init()
 
   INFO("DESPEC Initialised");
 
-#ifdef ZEROMQ
+#ifdef ZEROM
   GOOGLE_PROTOBUF_VERIFY_VERSION;
   INFO("Google Protobuf Version Verified OK");
   zmq_pubber.bind("tcp://*:4242");

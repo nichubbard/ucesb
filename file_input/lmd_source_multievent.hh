@@ -17,7 +17,7 @@ struct lmd_event_multievent;
 #include <math.h>
 #include "config.hh"
 
-#define BPLAST_DELAY_FIX 0
+//#define BPLAST_DELAY_FIX 0
 
 #define _ENABLE_TRACE 0
 #define _AIDA_DUMP 0

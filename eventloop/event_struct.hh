@@ -30,6 +30,9 @@
 #include "multi_info.hh"
 #include "pretty_dump.hh"
 
+#include <utility>
+#include <vector>
+
 class unpack_event_base
 {
 
@@ -37,6 +40,7 @@ public:
   uint16 trigger;
   uint16 dummy;
   uint32 event_no;
+  std::vector<std::pair<int, uint64>> wr;
   
 #if STICKY_EVENT_IS_NONTRIVIAL
   uint32 sticky_idx;
@@ -54,6 +58,7 @@ public:
     trigger  = 0;
     dummy    = 0;
     event_no = 0;
+    wr.clear();
   }
 
 public:

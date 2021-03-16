@@ -53,20 +53,22 @@
 
 static const std::string fatima_scalers_names[16] =
 {
-  "GALILEO Free",
-  "bPlas 2",
-  "",
-  "FATIMA Accepted",
+  "bPlast Free",
+  "bPlast Accepted",
+  "FATIMA TAMEX Free",
+  "FATIMA TAMEX Accepted",
+  "FATIMA VME Free",
+  "FATIMA VME Accepted",
+  "Ge Free",
+  "Ge Accepted",
+  "bPlast Up",
+  "bPlast Down",
+  "bPlast AND",
+  "SCI41 L",
+  "SCI41 R",
+  "SCI42 L",
+  "SCI42 R",
   "Pulser",
-  "AIDA 1",
-  "AIDA 2",
-  "AIDA 3",
-  "SC41 L",
-  "SC41 R",
-  "FATIMA Free",
-  "bPlas 1&2",
-  "GALILEO Accepted",
-  "bPlas 1",
 };
 
 static const std::string frs_frs_names[32] =
@@ -115,7 +117,8 @@ static const std::string frs_main_names[32] =
   "SCI31L",
   "SCI31R",
   "SCI11",
-  "SCI51"
+  "SCI22L",
+  "SCI22R"
 };
 
 #ifndef USE_ITEMS_INFO
@@ -421,11 +424,11 @@ int main(int argc,char *argv[])
 
   printf ("Disconnected from server.\n");
 
-  float scale = fatima_scalers[4] / 2.0;
+  float scale = fatima_scalers[15] / 2.0;
   for (int i = 0; i < 16; i++)
   {
     if (fatima_scalers_names[i] == "") continue;
-    std::cout << "Scaler #" << std::setw(2) << i << ": " << std::setw(20) << fatima_scalers_names[i]
+    std::cout << "Scaler #" << std::setw(2) << i << ": " << std::setw(25) << fatima_scalers_names[i]
       << " : " << std::setw(16) << fatima_scalers[i]
       << " : " << std::setw(16) << (fatima_scalers[i] / scale) << std::endl;
   }
@@ -439,7 +442,7 @@ int main(int argc,char *argv[])
     if (i < 32) name =frs_frs_names[i];
     else name = frs_main_names[i - 32];
     if (name == "") continue;
-    std::cout << "Scaler #" << std::setw(2) << i << ": " << std::setw(20) << name
+    std::cout << "Scaler #" << std::setw(2) << i << ": " << std::setw(25) << name
       << " : " << std::setw(16) << frs_scalers[i]
       << " : " << std::setw(16) << (frs_scalers[i] / scale)
       << std::endl;
