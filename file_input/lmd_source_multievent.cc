@@ -511,7 +511,6 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
   entry.timestamp = load_event_wr;
 
 #if BPLAST_DELAY_FIX
-
   if (se->_header.i_procid == 80)
   {
     _TRACE("Fixing plastic by copying old data :)\n");
@@ -570,7 +569,67 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       return load_events();
     }
   }
+#endif
 
+#if FATIMA_DELAY_FIX
+  if (se->_header.i_procid == 75)
+  {
+    _TRACE("Fixing fatima by copying old data :)\n");
+
+    if (fatima_buffer.event._nsubevents > 0)
+    {
+      _TRACE("Fixing fatima by copying old data 2\n");
+
+      entry.event._header = fatima_buffer.event._header;
+      entry.event._status = LMD_EVENT_GET_10_1_INFO_ATTEMPT | LMD_EVENT_HAS_10_1_INFO | LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT;
+      entry.event._swapping = fatima_buffer.event._swapping;
+      entry.event._nsubevents = fatima_buffer.event._nsubevents;
+
+      entry.event._subevents = (lmd_subevent*)entry.event._defrag_event.allocate(entry.event._nsubevents * sizeof(lmd_subevent));
+      for (int i = 0; i < entry.event._nsubevents; i++)
+      {
+        size_t nsubev = SUBEVENT_DATA_LENGTH_FROM_DLEN(fatima_buffer.event._subevents[i]._header._header.l_dlen);
+        entry.event._subevents[i]._header = fatima_buffer.event._subevents[i]._header;
+        entry.event._subevents[i]._data = (char*)entry.event._defrag_event_many.allocate(nsubev);
+        memcpy(entry.event._subevents[i]._data, fatima_buffer.event._subevents[i]._data, nsubev);
+
+        _TRACE("Copying actual WR timestamp into MBS data\n");
+        wrts_header wr(entry.timestamp);
+        memcpy(&entry.event._subevents[0]._data[4], &wr.lower16, sizeof(wr) - sizeof(uint32_t));
+      }
+    }
+
+    _TRACE("Copying fatima data to a buffer\n");
+    fatima_buffer.event.release();
+    fatima_buffer.event._header = _file_event._header;
+    fatima_buffer.event._status = LMD_EVENT_GET_10_1_INFO_ATTEMPT | LMD_EVENT_HAS_10_1_INFO | LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT;
+    fatima_buffer.event._swapping = _file_event._swapping;
+    fatima_buffer.event._nsubevents = _file_event._nsubevents;
+    // allocate subevent array
+    fatima_buffer.event._subevents = (lmd_subevent*)fatima_buffer.event._defrag_event.allocate(fatima_buffer.event._nsubevents * sizeof(lmd_subevent));
+    // copy subevents over
+    for (int i = 0; i < fatima_buffer.event._nsubevents; i++)
+    {
+      size_t nsubev = SUBEVENT_DATA_LENGTH_FROM_DLEN(_file_event._subevents[i]._header._header.l_dlen);
+      fatima_buffer.event._subevents[i]._header = _file_event._subevents[i]._header;
+      fatima_buffer.event._subevents[i]._data = (char*)fatima_buffer.event._defrag_event_many.allocate(nsubev);
+      memcpy(fatima_buffer.event._subevents[i]._data, _file_event._subevents[i]._data, nsubev);
+    }
+
+    if (entry.event._nsubevents > 0)
+    {
+      return other_event;
+    }
+    else
+    {
+      _TRACE("First fatima event is only buffered\n");
+      entry.event.release();
+      free(entry.event._defrag_event._buf);
+      free(entry.event._defrag_event_many._first);
+      trigger_event.pop_back();
+      return load_events();
+    }
+  }
 #endif
 
   // Copy the data over to ensure ownership of pointerss
@@ -673,6 +732,10 @@ lmd_source_multievent::lmd_source_multievent() : emit_wr(0), emit_skip(0), aida_
 #if BPLAST_DELAY_FIX
   WARNING("bPlas WR Correction is ACTIVE");
   plastic_buffer.event._nsubevents = 0;
+#endif
+#if FATIMA_DELAY_FIX
+  WARNING("FATIMA TAMEX WR Correction is ACTIVE");
+  fatima_buffer.event._nsubevents = 0;
 #endif
 }
 

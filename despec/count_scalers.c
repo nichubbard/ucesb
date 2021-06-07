@@ -339,23 +339,23 @@ int main(int argc,char *argv[])
 	    }
 
 	  /* Do whatever is wanted with the data. */
-	  if (event.sub_dummy_scalars == 16)
+	  if (event.fatima_scaler_scalars == 16)
 	  {
 	    if (!fatima_scalers_init)
 	    {
 	      fatima_scalers_init = true;
-	      for(int i = 0; i < 16; i++) fatima_scalers_last[i] = event.sub_dummy_scalarsv[i] ;
+	      for(int i = 0; i < 16; i++) fatima_scalers_last[i] = event.fatima_scaler_scalarsv[i] ;
 	      printf("\x1B[KFatima Scalers initialised\n");
 	    }
 
 	    for (int i = 0; i < 16; i++)
 	    {
-	      int64_t delta = event.sub_dummy_scalarsv[i] - fatima_scalers_last[i];
+	      int64_t delta = event.fatima_scaler_scalarsv[i] - fatima_scalers_last[i];
 	      if (delta < 0) {
 		delta += std::numeric_limits<uint32_t>::max();
 	      }
 	      fatima_scalers[i] += delta;
-	      fatima_scalers_last[i] = event.sub_dummy_scalarsv[i];
+	      fatima_scalers_last[i] = event.fatima_scaler_scalarsv[i];
 	    }
 	  }
 

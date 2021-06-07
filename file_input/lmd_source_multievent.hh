@@ -17,7 +17,8 @@ struct lmd_event_multievent;
 #include <math.h>
 #include "config.hh"
 
-//#define BPLAST_DELAY_FIX 0
+//#define BPLAST_DELAY_FIX 1
+//#define FATIMA_DELAY_FIX 1
 
 #define _ENABLE_TRACE 0
 #define _AIDA_DUMP 0
@@ -158,6 +159,9 @@ protected:
   triggerevent_queue trigger_event;
 #if BPLAST_DELAY_FIX
   triggerevent_entry plastic_buffer;
+#endif
+#if FATIMA_DELAY_FIX
+  triggerevent_entry fatima_buffer;
 #endif
 
   file_status_t load_events();

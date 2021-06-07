@@ -53,6 +53,8 @@ std::map<int, std::string> names =
   { 0x1600, "FAT. TMX" },
 };
 
+std::vector<int> expected = { 0x100, 0x400, 0x500, 0x700, 0x1500, 0x1600 };
+
 std::vector<std::string> scalers =
 {
   "bPlast Free",
@@ -109,10 +111,15 @@ std::map<int, int> aida_dssd_map =
   {7, 2},
   {8, 2},
 
-  {9, 3},
-  {10, 3},
-  {11, 3},
-  {12, 3},
+  {9, 1},
+  {10, 1},
+  {11, 1},
+  {12, 1},
+
+  {13, 2},
+  {14, 2},
+  {15, 2},
+  {16, 2}
 };
 
 void despec_watcher_event_info(watcher_event_info *info,
@@ -191,6 +198,7 @@ void despec_watcher_event_info(watcher_event_info *info,
       int id = event->wr[i].first;
       int64_t wr = event->wr[i].second;
       pulses[id]++;
+      if (!events_total[id]) events_total[id] = 0;
       int64_t prev_ts = pulsers[id];
       if (prev_ts != 0)
       {
@@ -238,6 +246,15 @@ void despec_watcher_event_info(watcher_event_info *info,
     }
   }
 
+  // No pulser for 2 minutes - downgrade to ? status again
+  for (auto& i : pulsers)
+  {
+    if (i.second + 120e9 < _despec_now)
+    {
+      daq_sync[i.first] = 0;
+    }
+  }
+
   report.mutable_summary()->set_event_no(info->_event_no);
   //_inputs
   report.mutable_summary()->set_server(_inputs[0]._name);
@@ -258,9 +275,15 @@ void despec_watcher_init()
   _AIDA_WATCHER_STATS = new aidaeb_watcher_stats(2);
   _AIDA_WATCHER_STATS->load_map(aida_dssd_map);
 
+  // Create all expected subsystems so they're always shown
+  for (auto i : expected)
+  {
+    events_total[i] = 0;
+  }
+
   INFO("DESPEC Initialised");
 
-#ifdef ZEROM
+#ifdef ZEROMQ
   GOOGLE_PROTOBUF_VERIFY_VERSION;
   INFO("Google Protobuf Version Verified OK");
   zmq_pubber.bind("tcp://*:4242");
@@ -436,7 +459,7 @@ void despec_watcher_display(watcher_display_info& info)
     auto aida_report = report.add_scalers();
     aida_report->set_key("aida");
     aida_report->clear_scalers();
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < 2; j++)
     {
       auto entry = aida_report->add_scalers();
       entry->set_index(2 * j);
