@@ -1,6 +1,13 @@
 UCESB - unpack & check every single bit
 >>>>>===<========<=====<=====<======<==
 
+*** For DESPEC Specific README and information enter the folder ./despec ***
+===========================
+  To build despec ucesb :
+ cd despec
+ make
+==========================
+
 Contents
 ========
 
