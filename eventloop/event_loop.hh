@@ -126,6 +126,9 @@ struct stitch_info
   bool     _has_stamp;
   bool     _combine;
   bool     _badstamp;
+#ifdef USE_INPUTFILTER	
+  bool     _implant[2];
+#endif
 };
 
 class paw_ntuple;

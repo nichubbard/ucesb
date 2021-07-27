@@ -383,22 +383,43 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         {
           cur_aida->flags |= 1;
           cur_aida->implant_wr_e = load_event_wr;
-          if (cur_aida->implant_wr_s == 0) cur_aida->implant_wr_s = load_event_wr - AIDA_TIME_SHIFT;
+          int channelID = (word1 >> 16) & 0xFFF;
+          int feeID = 1 + ((channelID >> 6) & 0x3F);
           if (_AIDA_WATCHER_STATS)
           {
-            int channelID = (word1 >> 16) & 0xFFF;
-            int feeID = 1 + ((channelID >> 6) & 0x3F);
             _AIDA_WATCHER_STATS->add_i(feeID);
           }
+          int asic = channelID / 16;
+          auto& m = cur_aida->multiplexer(feeID, asic);
+          if (load_event_wr - m.wr >= 1990 && load_event_wr - m.wr <= 2010) {
+            m.N++;
+          }
+          else {
+            m.N = 0;
+          }
+          if (cur_aida->implant_wr_s == 0) {
+            cur_aida->implant_wr_s = load_event_wr - AIDA_TIME_SHIFT - (m.N * 2000);
+            _TRACE("correcting implant WR time by %d multiplexer cycles\n", m.N);
+          }
+          m.wr = load_event_wr;
         }
         if ((word1 & 0xF0000000) == 0xC0000000)
         {
+          int channelID = (word1 >> 16) & 0xFFF;
+          int feeID = 1 + ((channelID >> 6) & 0x3F);
           if (_AIDA_WATCHER_STATS)
           {
-            int channelID = (word1 >> 16) & 0xFFF;
-            int feeID = 1 + ((channelID >> 6) & 0x3F);
             _AIDA_WATCHER_STATS->add_d(feeID);
           }
+          int asic = channelID / 16;
+          auto& m = cur_aida->multiplexer(feeID, asic);
+          if (load_event_wr - m.wr >= 1990 && load_event_wr - m.wr <= 2010) {
+            m.N++;
+          }
+          else {
+            m.N = 0;
+          }
+          m.wr = load_event_wr;
         }
 #ifdef AIDA_CORRELATION_PULSER
         if ((word1 & 0xFFF00000) == AIDA_CORRELATION_EVENT)
@@ -426,11 +447,11 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
         aida_skip = 0;
 
         // UPDATE: Only ADC items can break apart events (INFO words don't really matter athis point)
-        if ((word1 & 0xF0000000) == 0xC0000000 && load_event_wr - old_ts > _conf._eventbuilder_window)
+        if ((word1 & 0xC0000000) == 0xC0000000 && load_event_wr - old_ts > _conf._eventbuilder_window)
         {
           // End of Event
 #if _AIDA_DUMP
-          _TRACE ("end of event %16lx\n", cur_aida->timestamp);
+          _TRACE ("end of event (before last word) %16lx\n", cur_aida->timestamp);
 #endif
           // If there is exactly one entry (2 words) and it's an ADC entry, discard it as it won't be front-back matched
 #ifdef AIDA_OPTIMISE
@@ -681,10 +702,12 @@ lmd_event *lmd_source_multievent::emit_aida(aidaevent_entry* entry)
   // AIDA events contain extra state for ucesb
   _file_event._aida_extra = true;
   _file_event._aida_implant = entry->implant();
+  _file_event._aida_length = (int64_t)entry->fragment_wr - AIDA_TIME_SHIFT - entry->timestamp;
   if (entry->implant()) {
     entry->fragment_wr = entry->implant_wr_e;
+    //_file_event._aida_length = (int64_t)entry->implant_wr_s - entry->timestamp; // Only count length from start to implant for overlap... implant is instant
+    _file_event._aida_length = 0; // Aida implants have 0 length
   }
-  _file_event._aida_length = (int64_t)entry->fragment_wr - AIDA_TIME_SHIFT - entry->timestamp;
 
   wrts_header wr((uint64_t)entry->timestamp);
   memcpy(_file_event._subevents[0]._data, &wr, sizeof(wr));
@@ -717,6 +740,10 @@ lmd_event *lmd_source_multievent::emit_other()
       _file_event._subevents[i]._data = (char*)_file_event._defrag_event_many.allocate(nsubev);
       memcpy(_file_event._subevents[i]._data, entry.event._subevents[i]._data, nsubev);
     }
+
+    _file_event._aida_extra = false;
+    _file_event._aida_implant = false;
+    _file_event._aida_length = 0;
 
     entry.event.release();
     free(entry.event._defrag_event._buf);

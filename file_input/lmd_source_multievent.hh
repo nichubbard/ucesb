@@ -99,6 +99,29 @@ public:
 
 extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
 
+class multiplexer_data
+{
+public:
+  struct multiplexer_entry
+  {
+    uint64_t wr;
+    int N;
+  };
+
+  multiplexer_data() {}
+
+  void clear() { multiplexer_wrs.clear(); }
+
+  multiplexer_entry& operator()(size_t fee, size_t asic) {
+    size_t indx = fee * 4 + asic;
+    if (multiplexer_wrs.size() < 1 + indx) multiplexer_wrs.resize(indx + 1);
+    return multiplexer_wrs[indx];
+  }
+
+private:
+  std::vector<multiplexer_entry> multiplexer_wrs;
+};
+
 struct aidaevent_entry
 {
   //keep_buffer_wrapper *data_alloc;
@@ -108,8 +131,10 @@ struct aidaevent_entry
   bool fragment;
   int64_t fragment_wr, implant_wr_s, implant_wr_e;
   int flags;
+  // clean this up later if it works
+  multiplexer_data multiplexer;
 
-	aidaevent_entry() : timestamp(0), data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); }
+	aidaevent_entry() : timestamp(0), data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); reset(); }
 	~aidaevent_entry(){}
 
   void reset() {
@@ -118,6 +143,7 @@ struct aidaevent_entry
     fragment = true;
     implant_wr_s = 0;
     flags = 0;
+    multiplexer.clear();
   }
 
   bool implant() const {

@@ -1294,6 +1294,15 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   // (unordered may be due to other (previous) stamp being wrong).
   stitch->_badstamp = false;
 
+  bool is_implant_aida = false;
+  bool is_implant_frs = false;
+  if (src_event->_aida_implant) is_implant_aida = true;
+  // todo: figure out how to spot an FRS event in a non stupid way
+  if(src_event->_subevents[0]._data[1] == 0x1) {
+    is_implant_frs = true;
+  }
+
+
   if (stitch->_has_stamp)
     {
       if (false && timestamp < stitch->_last_stamp)
@@ -1313,7 +1322,18 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	  if ((int64_t) (timestamp - stitch->_last_stamp) <
 	      _conf._event_stitch_value)
 	    {
-	      stitch->_combine = true;
+	      if ((is_implant_aida && !stitch->_implant[0])
+		    || (is_implant_frs && !stitch->_implant[1]))
+	      {
+		stitch->_combine = true;
+		stitch->_implant[0] |= is_implant_aida;
+		stitch->_implant[1] |= is_implant_frs;
+		stitch->_last_stamp = timestamp + _conf._event_stitch_value;
+	      }
+	      else if (!is_implant_aida && !is_implant_frs)
+	      {
+		stitch->_combine = true;
+	      }
 	      // printf("ordered -> !bad combine\n");
 	      // Do not change stitch->_last_stamp, we are combining
 	      // against the stamp of the first event in this new event.
@@ -1331,17 +1351,27 @@ void ucesb_event_loop::stitch_event(event_base &eb,
    */
 
 #ifdef USE_INPUTFILTER 
-  if (_conf._aida_new_stitch && src_event->_aida_extra)
+  // Only make the window wide at the start of stitching
+  if (_conf._aida_new_stitch && src_event->_aida_extra && !stitch->_combine)
   {
     timestamp += src_event->_aida_length;
+  }
+
+  // Do not stitch special triggers
+  if (src_event->_header._info.i_trigger >= 10 && src_event->_header._info.i_trigger <= 13)
+  {
+    stitch->_combine = false;
   }
 #endif
 
   //if (timestamp > stitch->_last_stamp)
-  stitch->_last_stamp = timestamp;
+  if (!stitch->_implant[0] && !stitch->_implant[1])
+    stitch->_last_stamp = timestamp;
   if (!stitch->_combine)
     {
       stitch->_has_stamp = true;
+      stitch->_implant[0] = is_implant_aida;
+      stitch->_implant[1] = is_implant_frs;
     }
   // printf("stitch->_last_stamp = timestamp\n");
 }
