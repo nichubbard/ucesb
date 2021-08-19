@@ -158,8 +158,10 @@ void despec_watcher_event_info(watcher_event_info *info,
     info->_time = (uint)(wr / (uint64_t)1e9);
     info->_info |= WATCHER_DISPLAY_INFO_TIME;
     _despec_now = wr;
+#ifdef ZEROMQ
     report.mutable_summary()->set_time(info->_time);
     report.mutable_summary()->set_wr(wr);
+#endif
   }
 
   for (uint i = 0; i < event->fatima.scaler.scalars._num_items; i++)
@@ -255,11 +257,13 @@ void despec_watcher_event_info(watcher_event_info *info,
     }
   }
 
+#ifdef ZEROMQ
   report.mutable_summary()->set_event_no(info->_event_no);
   //_inputs
   report.mutable_summary()->set_server(_inputs[0]._name);
   report.mutable_summary()->set_onspill(_on_spill);
   report.mutable_summary()->set_lastspill(_last_spill);
+#endif
 
   _events++;
 }
@@ -356,7 +360,9 @@ void despec_watcher_display(watcher_display_info& info)
   double dt = (_despec_now - _despec_last) / (double)1e9;
 
   char buf[256] = { '\0' };
+#ifdef ZEROMQ
   report.mutable_status()->clear_daq();
+#endif
   for(auto& i: events_total)
   {
 
@@ -368,30 +374,38 @@ void despec_watcher_display(watcher_display_info& info)
     }
     else
     {
+#ifdef ZEROMQ
       auto report_daq = report.mutable_status()->add_daq();
       report_daq->set_events(events_total[i.first]);
       report_daq->set_id(i.first);
       report_daq->set_subsystem(names[i.first]);
       report_daq->set_rate(events[i.first] / dt);
       report_daq->set_pulser(pulses[i.first] / dt);
+#endif
       mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
       if (daq_sync[i.first] == 1)
       {
         wcolor_set(info._w, 3, NULL);
         wprintw(info._w, "%12s", "OK");
+#ifdef ZEROMQ
         report_daq->set_correlation(despec::DaqInformation::GOOD);
+#endif
       }
       else if (daq_sync[i.first] == 2)
       {
         wcolor_set(info._w, 5, NULL);
         wprintw(info._w, "%12s", "BAD");
+#ifdef ZEROMQ
         report_daq->set_correlation(despec::DaqInformation::BAD);
+#endif
       }
       else
       {
         wcolor_set(info._w, 4, NULL);
         wprintw(info._w, "%12s", "N/A");
+#ifdef ZEROMQ
         report_daq->set_correlation(despec::DaqInformation::UNKNOWN);
+#endif
       }
       wcolor_set(info._w, 2, NULL);
     }
@@ -399,13 +413,16 @@ void despec_watcher_display(watcher_display_info& info)
   }
   wrefresh(info._w);
 
+#ifdef ZEROMQ
   report.clear_scalers();
+#endif
 
   info._line++;
   wmove(info._w, info._line, 0);
   whline(info._w, ACS_HLINE, 80);
   mvwaddstr(info._w, info._line, 1, "VME Scalers");
 
+#ifdef ZEROMQ
   auto fatvme_report = report.add_scalers();
   fatvme_report->set_key("fatima");
   fatvme_report->clear_scalers();
@@ -427,6 +444,7 @@ void despec_watcher_display(watcher_display_info& info)
     entry->set_rate((double)(scalers_now[i + 16] - scalers_old[i + 16]) / dt);
     entry->set_spill(scalers_now[i + 16] - scalers_old_spill[i + 16]);
   }
+#endif
 
   for (size_t j = 0; j < scaler_order.size(); j++)
   {
@@ -456,11 +474,14 @@ void despec_watcher_display(watcher_display_info& info)
     auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
     auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
     auto const& de_sp = _AIDA_WATCHER_STATS->decays(1);
+#ifdef ZEROMQ
     auto aida_report = report.add_scalers();
     aida_report->set_key("aida");
     aida_report->clear_scalers();
+#endif
     for (int j = 0; j < 2; j++)
     {
+#ifdef ZEROMQ
       auto entry = aida_report->add_scalers();
       entry->set_index(2 * j);
       entry->set_rate((double)im_hz[j] / dt);
@@ -469,6 +490,7 @@ void despec_watcher_display(watcher_display_info& info)
       entry->set_index(2 * j + 1);
       entry->set_rate((double)de_hz[j] / dt);
       entry->set_spill(de_sp[j]);
+#endif
       info._line++;
       mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
           "DSSD",
@@ -488,8 +510,9 @@ void despec_watcher_display(watcher_display_info& info)
   }
 
   extern watcher_window _watcher;
-  extern std::deque<std::pair<std::string, int>> errors;
 
+#ifdef ZEROMQ
+  extern std::deque<std::pair<std::string, int>> errors;
   report.clear_logs();
   for (auto& e : errors)
   {
@@ -520,6 +543,7 @@ void despec_watcher_display(watcher_display_info& info)
   report.SerializeToString(&proto);
   message << "stat" << proto;
   zmq_pubber.send(message);
+#endif
 }
 
 void despec_watcher_clear()
@@ -535,6 +559,7 @@ void despec_watcher_clear()
 
 void despec_watcher_keepalive(bool dead)
 {
+#ifdef ZEROMQ
   if (dead)
   {
     zmqpp::message message;
@@ -545,4 +570,5 @@ void despec_watcher_keepalive(bool dead)
     message << "dead" << proto;
     zmq_pubber.send(message);
   }
+#endif
 }
