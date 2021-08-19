@@ -22,6 +22,7 @@
 #define __WRITING_NTUPLE_H__
 
 #include "ntuple_item.hh"
+#include "ext_data_proto.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -97,25 +98,30 @@ public:
   {
     uint32_t offset = (uint32_t) (((char*) dest) - _base_ptr);
     // printf ("%d...\n",offset);
-    *(_p++) = htonl(offset | mark);
+    *(_p++) = htonl(mark | EXTERNAL_WRITER_MARK_CANARY);
+    *(_p++) = htonl(offset);
   }
 
-  void dest_int(uint32_t *dest)
+  void dest_int(uint32_t *dest, uint32_t mark = 0)
   {
-    dest_offset(dest,0x40000000);
+    dest_offset(dest,mark | EXTERNAL_WRITER_MARK_CLEAR_ZERO);
   }
 
   void dest_float(float *dest)
   {
-    dest_offset(dest,0);
+    dest_offset(dest,EXTERNAL_WRITER_MARK_CLEAR_NAN);
   }
 
-  void dest_int_ctrl(uint32_t *dest,uint32_t max_items)
+  void dest_int_ctrl(uint32_t *dest,uint32_t max_items,
+		     uint32_t mark = 0)
   {
     assert(_iter_info == NULL);
     assert(max_items);
 
-    dest_offset(dest,0x80000000 | 0x40000000);
+    dest_offset(dest,
+		mark |
+		EXTERNAL_WRITER_MARK_LOOP |
+		EXTERNAL_WRITER_MARK_CLEAR_ZERO);
     // And the information about the step size!
     _iter_info = _p;
     *(_p++) = htonl(max_items);
@@ -129,11 +135,12 @@ public:
     assert(_iter_info);
 
     uint32_t all_iter_size = (uint32_t) (_p - (_iter_info + 2));
-    uint32_t one_iter_size = all_iter_size / ntohl(_iter_info[0]);
+    uint32_t num_iter = ntohl(_iter_info[0]);
+    uint32_t one_iter_items = all_iter_size / num_iter / 2;
 
-    assert (one_iter_size * ntohl(_iter_info[0]) == all_iter_size);
+    assert (2 * one_iter_items * num_iter == all_iter_size);
 
-    _iter_info[1] = htonl(one_iter_size);
+    _iter_info[1] = htonl(one_iter_items);
 
     _iter_info = NULL;
   }
@@ -176,6 +183,15 @@ public:
 #define IND_ITEM_TYPE_INT_USHORT    0x0008
 #define IND_ITEM_TYPE_INT_UCHAR     0x0010
 #define IND_ITEM_TYPE_INT_INDEX_CUT 0x0020 // reuse IND_ITEM_OFFSET_SHIFT
+
+/* Timestamp info for time-stitching in struct_writer. */
+#define IND_ITEM_TYPE_TS_LO         0x0100
+#define IND_ITEM_TYPE_TS_HI         0x0200
+#define IND_ITEM_TYPE_TS_SRCID      0x0400
+#define IND_ITEM_TYPE_MEVENTNO      0x0800
+#define IND_ITEM_TYPE_MRG_STAT      0x1000
+#define IND_ITEM_TYPE_MRG_MASK      0x2000
+#define IND_ITEM_TYPE_MULT_NON0     0x4000
 
 /*
 #define IND_ITEM_OFFSET_SHIFT       5 // 0x0020 and above

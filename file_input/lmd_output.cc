@@ -201,8 +201,10 @@ void lmd_out_common_options()
   printf ("native              Native byte order (this machine).\n");
   printf ("big                 Big endian byte order.\n");
   printf ("little              Little endian byte order.\n");
-  printf ("incl=               Subevent inclusion.\n");
-  printf ("excl=               Subevent exclusion.\n");
+  printf ("incl=               (Sub)event inclusion; name or tag list: tag1=N[:tag2=N...]\n");
+  printf ("                    Subev tags: type,subtype,[proc]id,[sub]crate,ctrl|control\n");
+  printf ("                    Event tags: trig,wr_id\n");
+  printf ("excl=               Subevent exclusion.  (See incl= above.)\n");
   printf ("skipempty           Skip events with no subevents.\n");
 }
 

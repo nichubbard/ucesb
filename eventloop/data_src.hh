@@ -37,7 +37,7 @@
 
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
 
-template<int swapping,int scramble>
+template<int swapping,int scramble,int account>
 class __data_src
 {
 public:
@@ -62,6 +62,7 @@ public:
 public:
   int is_swapping()  { return swapping; }
   int is_scrambled() { return scramble; }
+  int is_account()   { return account; }
 
 public:
   char *_data;
@@ -259,7 +260,7 @@ public:
 
 #if defined(USE_PAX_INPUT) || defined(USE_GENF_INPUT) || defined(USE_EBYE_INPUT_16)
 
-template<int swapping>
+template<int swapping,int account>
 class __data_src
 {
 public:
@@ -283,6 +284,7 @@ public:
 
 public:
   int is_swapping()  { return swapping; }
+  int is_account()   { return account; }
 
 public:
   uint16 *_data;
@@ -349,7 +351,7 @@ public:
 
 #ifdef USE_EBYE_INPUT_32
 
-template<int swapping>
+template<int swapping,int account>
 class __data_src
 {
 public:
@@ -373,6 +375,7 @@ public:
 
 public:
   int is_swapping()  { return swapping; }
+  int is_account()   { return account; }
 
 public:
   uint32 *_data;
@@ -432,6 +435,27 @@ public:
 
 #endif
 
+extern uint64 _data_account[];
+
+inline void do_account_uint64(int account_id)
+{
+  _data_account[account_id] += sizeof (uint64);
+}
+
+inline void do_account_uint32(int account_id)
+{
+  _data_account[account_id] += sizeof (uint32);
+}
+
+inline void do_account_uint16(int account_id)
+{
+  _data_account[account_id] += sizeof (uint16);
+}
+
+inline void do_account_uint8(int account_id)
+{
+  _data_account[account_id] += sizeof (uint8);
+}
 
 #endif//__DATA_SRC_HH__
 

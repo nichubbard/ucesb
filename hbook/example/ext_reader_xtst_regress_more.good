@@ -1,2 +1,7 @@
+Structure was not completely mapped (0x0003).
+Item                                     Offset   Success
+---------------------------------------- -------- ---------------------------
+regressextra_junk                        34076    (0x02) no dest - not mapped
+---------------------------------------- -------- ---------------------------
 1000 events passed test (23393 words).
 (Sticky corr base sum: 7263)

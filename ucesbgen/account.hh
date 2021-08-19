@@ -1,6 +1,6 @@
 /* This file is part of UCESB - a tool for data unpacking and processing.
  *
- * Copyright (C) 2016  GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ * Copyright (C) 2021  Haakan T. Johansson  <f96hajo@chalmers.se>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,49 +18,12 @@
  * MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __ACCOUNT_HH__
+#define __ACCOUNT_HH__
 
-#include "definitions.hh"
-#include "parse_error.hh"
-#include "account.hh"
+int new_account_item(const char *name, const char *ident);
 
-#include "signal_errors.hh"
+void generate_account_items();
 
-extern int lexer_read_fd;
-
-bool parse_definitions();
-
-void usage()
-{
-  printf ("ucesbgen\n"
-	  "usage ucesbgen\n");
-  printf ("    ");
-}
-
-int main(int /*argc*/,char *argv[])
-{
-  lexer_read_fd = 0; // read from stdin
-
-  setup_segfault_coredump(argv[0]);
-
-  if (!parse_definitions())
-    ERROR("%s: Aborting!\n",argv[0]);
-
-  map_definitions();
-
-  dump_definitions();
-
-  check_consistency();
-
-  generate_unpack_code();
-
-  generate_signals();
-
-  generate_locations();
-
-  generate_account_items();
-
-  return 0;
-}
+#endif//__ACCOUNT_HH__
 

@@ -24,6 +24,7 @@
 #include "error.hh"
 #include "colourtext.hh"
 #include "parse_util.hh"
+#include "format_prefix.hh"
 
 #include "mc_def.hh"
 
@@ -39,6 +40,7 @@
 #include <sys/select.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <math.h>
 
 
 #include "util.hh"
@@ -135,6 +137,7 @@ void usage()
   printf ("  --debug           Print events causing errors.\n");
   printf ("  --colour=yes|no   Force colour and markup on or off.\n");
   printf ("  --event-sizes     Show average sizes of events and subevents.\n");
+  printf ("  --data-sizes      Show data size usage by data members.\n");
 
 #if defined(USE_EXT_WRITER)
   printf ("  --monitor[=PORT]  Status information server.\n");
@@ -202,6 +205,8 @@ void usage()
   USAGE_COMMAND_LINE_OPTIONS();
 #endif
   printf ("\n");
+  printf ("Note: most options offer additional usage info when passed the argument 'help'.\n");
+  printf ("\n");
   /*
   printf ("Parse order: all output options will be effective from start,\n"
 	  "input (files) are treated in order.");
@@ -209,6 +214,12 @@ void usage()
 }
 
 status_monitor _status;
+
+format_diff_info _ev_diff_info;
+format_diff_info _evr_diff_info;
+format_diff_info _mev_diff_info;
+format_diff_info _mevr_diff_info;
+format_diff_info _err_diff_info;
 
 config_opts _conf;
 
@@ -265,6 +276,14 @@ void sigint_handler(int sig)
       _conf._max_events = 1;
     }
 }
+
+volatile int _update_progress = 0;
+
+void sigalarm_handler(int sig)
+{
+  _update_progress = 1;
+}
+
 
 /********************************************************************/
 
@@ -774,6 +793,9 @@ int main(int argc, char **argv)
       else if (MATCH_ARG("--event-sizes")) {
 	_conf._event_sizes = 1;
       }
+      else if (MATCH_ARG("--data-sizes")) {
+	_conf._account = 1;
+      }
       else if (MATCH_ARG("--print")) {
 	_conf._print = 1;
       }
@@ -989,6 +1011,19 @@ int main(int argc, char **argv)
   action.sa_flags   = 0;
   sigaction(SIGINT,&action,NULL);
 
+  // Copied from hbook/ext_file_writer.cc
+  struct itimerval ival;
+  memset(&ival,0,sizeof(ival));
+  ival.it_interval.tv_usec = 250000; // 250000 us == 0.25 s
+  ival.it_value.tv_usec    = 250000;
+  setitimer(ITIMER_REAL,&ival,NULL);
+
+  memset(&action,0,sizeof(action));
+  action.sa_handler = sigalarm_handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags   = 0;
+  sigaction(SIGALRM,&action,NULL);
+
   // We don't want any SIGPIPE signals to kill us
 
   sigset_t sigmask;
@@ -1109,7 +1144,13 @@ int main(int argc, char **argv)
       )
     {
 #ifdef USE_LMD_INPUT
-      _ts_align_hist = new tstamp_alignment(_conf._ts_align_hist_command);
+      _ts_align_hist = new tstamp_alignment(_conf._ts_align_hist_command,
+# ifdef USE_MERGING
+          _conf._merge_event_mode
+# else
+          0
+# endif
+          );
 #endif
     }
 
@@ -1127,8 +1168,6 @@ int main(int argc, char **argv)
 
     uint64_t   errors_file = 0;
 
-    uint64_t   show_events = 1;
-    uint64_t   next_show = show_events;
     uint64_t   last_show = 0;
     uint64_t   last_show_multi = 0;
 
@@ -1495,10 +1534,20 @@ get_next_event:
 
 #if defined(USE_LMD_INPUT)
 	      if (file_event->is_sticky())
-		loop.unpack_event(*sticky_event);
+		{
+		  if (_conf._account)
+		    loop.unpack_event<sticky_event_base,1>(*sticky_event);
+		  else
+		    loop.unpack_event<sticky_event_base,0>(*sticky_event);
+		}
 	      else
 #endif
-	      loop.unpack_event(*event);
+		{
+		  if (_conf._account)
+		    loop.unpack_event<event_base,1>(*event);
+		  else
+		    loop.unpack_event<event_base,0>(*event);
+		}
 		}
 
 	      int num_multi = 0;
@@ -1760,7 +1809,8 @@ get_next_event:
 		  if (!stitch._combine || stitch._badstamp)
 		    output._event.clear();
 
-		  if (!output._dest->_select.accept_event(&file_event->_header))
+		  if (!output._dest->_select.accept_event(file_event,
+							  &file_event->_header))
 		    continue;
 
 #ifdef COPY_OUTPUT_FILE_EVENT
@@ -1855,11 +1905,22 @@ get_next_event:
 #endif
 #endif
 	      {
-		if (_status._events >= next_show)
+		if (_update_progress)
 		  {
+		    _update_progress=0;
+
 		    timeval now;
 
 		    gettimeofday(&now,NULL);
+
+                    const static char spinner_symbols[] = "-\\|/";
+                    const static size_t spinner_symbols_len =
+		      strlen(spinner_symbols);
+		    static int spinner_count = 0;
+                    int spinner_current =
+		      spinner_symbols[spinner_count %
+				      spinner_symbols_len];
+		    spinner_count++;
 
 		    _ti_info.update();
 
@@ -1874,7 +1935,7 @@ get_next_event:
 			double elapsed = (double) (now.tv_sec - last_show_time.tv_sec) +
 			  1.0e-6 * (double) (now.tv_usec - last_show_time.tv_usec);
 
-			if (elapsed > 0.2)
+			if (elapsed > 0.05)
 			  {
 			    /* Do not update the time for the first events,
 			     * to quickly slow progress >= 1. */
@@ -1882,8 +1943,30 @@ get_next_event:
 			      last_show_time = now;
 
 			    double event_rate =
-			      (double) (_status._events-last_show) *
-			      0.001 / elapsed;
+			      ((double) (_status._events - last_show)) /
+			      elapsed;
+
+			    // Come up with a new interval such that spinner
+			    // rate corresponds to log unpack speed.
+
+			    // At 1 Hz (and lower) we want 1 update/s.
+			    // At 1 MHz, we want say 11 updates/s.
+
+			    double update_freq = 1. * log(event_rate) / M_LN10;
+			    double interval = 1. / update_freq;
+
+			    if (interval > 1) // 999999 to not set seconds
+			      ival.it_value.tv_usec = 999999;
+			    else if (interval < 0.05)
+			      ival.it_value.tv_usec = 20000;
+			    else
+			      ival.it_value.tv_usec =
+				(int) (1.e6 * interval);
+
+			    setitimer(ITIMER_REAL,&ival,NULL);
+
+			    //printf ("ival: %d   \n",
+			    //    (int) ival.it_value.tv_usec);
 
 #ifdef USE_MERGING
 			    if (_conf._merge_concurrent_files > 1)
@@ -1896,69 +1979,97 @@ get_next_event:
 				    source_event_base *seb = (*iter);
 
 				    double rate =
-				      (double) (seb->_events -
-						seb->_events_last_show) /
+				      ((double) (seb->_events -
+						 seb->_events_last_show)) /
 				      elapsed;
 				    seb->_events_last_show = seb->_events;
 
-				    if (rate < 19)
-				      fprintf (stderr,
-					       "[%s%5.2f%s/s] ",
-					       CT_ERR(BOLD),
-					       rate,
-					       CT_ERR(NORM));
-				    else if (rate < 19999)
-				      fprintf (stderr,
-					       "[%s%5.0f%s/s] ",
-					       CT_ERR(BOLD),
-					       rate,
-					       CT_ERR(NORM));
-				    else
-				      fprintf (stderr,
-					       "[%s%4.0f%sk/s] ",
-					       CT_ERR(BOLD),
-					       rate * 0.001,
-					       CT_ERR(NORM));
+				    char r_str[64];
 
+				    format_prefix(r_str, sizeof (r_str),
+						  rate, 5,
+						  &seb->_ev_diff_info);
+
+				    fprintf (stderr,
+					     "[%s%s%s/s] ",
+					     CT_ERR(BOLD),
+					     r_str,
+					     CT_ERR(NORM));
 				  }
 
+				char ev_str[64];
+				char evr_str[64];
+
+				format_prefix(ev_str, sizeof (ev_str),
+					      (double) _status._events, 7,
+					      &_ev_diff_info);
+				format_prefix(evr_str, sizeof (evr_str),
+					      event_rate, 5,
+					      &_evr_diff_info);
+
 				fprintf(stderr,
-					"%s%" PRIu64 "%s  (%s%.1f%sk/s)  ",
+					"%s%s%s  (%s%s%s/s)  ",
 					CT_ERR(BOLD_GREEN),
-					_status._events,
+					ev_str,
 					CT_ERR(NORM_DEF_COL),
 					CT_ERR(BOLD),
-					event_rate,
+					evr_str,
 					CT_ERR(NORM));
 
 				if (prev_event_merge_order)
 				  print_current_merge_order(prev_event_merge_order);
 
-				fprintf(stderr,"   \r");
+				fprintf(stderr," %c   \r", spinner_current);
 			      }
-			    else
-#endif
+			    else // !(_conf._merge_concurrent_files > 1)
+#endif // USE_MERGING
 			      {
-			    fprintf(stderr,"Processed: "
-				    "%s%" PRIu64 "%s  (%s%.1f%sk/s)  "
-				    "%s%" PRIu64 "%s  (%s%.1f%sk/s) "
-				    "(%s%" PRIu64 "%s errors)      \r",
+                                double mevent_rate =
+                                  ((double) (_status._multi_events-
+                                             last_show_multi)) / elapsed;
+
+				char ev_str[64];
+				char evr_str[64];
+				char mev_str[64];
+				char mevr_str[64];
+				char err_str[64];
+
+				format_prefix(ev_str, sizeof (ev_str),
+					      (double) _status._events, 7,
+					      &_ev_diff_info);
+				format_prefix(evr_str, sizeof (evr_str),
+					      event_rate, 5,
+					      &_evr_diff_info);
+				format_prefix(mev_str, sizeof (mev_str),
+					      (double) _status._multi_events, 7,
+					      &_mev_diff_info);
+				format_prefix(mevr_str, sizeof (mevr_str),
+					      mevent_rate, 5,
+					      &_mevr_diff_info);
+				format_prefix(err_str, sizeof (err_str),
+					      (double) _status._errors, 5,
+					      &_err_diff_info);
+
+				fprintf(stderr,"Processed: "
+				    "%s%s%s (%s%s%s/s)  "
+				    "%s%s%s (%s%s%s/s) "
+				    "(%s%s%s errors) %c     \r",
 				    CT_ERR(BOLD_GREEN),
-				    _status._events,
+				    ev_str,
 				    CT_ERR(NORM_DEF_COL),
 				    CT_ERR(BOLD),
-				    event_rate,
+				    evr_str,
 				    CT_ERR(NORM),
 				    CT_ERR(BOLD_BLUE),
-				    _status._multi_events,
+				    mev_str,
 				    CT_ERR(NORM_DEF_COL),
 				    CT_ERR(BOLD),
-				    (double) (_status._multi_events-
-					      last_show_multi)*0.001/elapsed,
+				    mevr_str,
 				    CT_ERR(NORM),
 				    CT_ERR(BOLD_RED),
-				    _status._errors,
-				    CT_ERR(NORM_DEF_COL));
+				    err_str,
+				    CT_ERR(NORM_DEF_COL),
+				    spinner_current);
 			      }
 			    unsigned int nlines = 0;
 #if defined(USE_LMD_INPUT)
@@ -1978,12 +2089,6 @@ get_next_event:
 			    last_show_multi = _status._multi_events;
 			  }
 		      }
-
-		    if (_status._events >=
-			show_events * (show_events <= 200 ? 20 : 2000))
-		      show_events *= 10;
-
-		    next_show += show_events;
 		  }
 #if defined(USE_EXT_WRITER)
 		MON_CHECK_COPY_BLOCK(&_status_block, &_status);
@@ -2076,7 +2181,7 @@ get_next_event:
     timeval next_show_time;
 
     show_interval.tv_sec  = 0;
-    show_interval.tv_usec = 200000; // 200 ms, 5 Hz
+    show_interval.tv_usec = 250000; // 250 ms, 4 Hz
 
     next_show_time = last_show_time;
 

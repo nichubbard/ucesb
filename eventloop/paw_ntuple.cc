@@ -292,6 +292,9 @@ void enumerate_member_paw_ntuple(const signal_id &id,
       item = new ntuple_item(name,(int*)    info._addr,ptr_offset);
       item->_flags |= NTUPLE_ITEM_IS_ARRAY_MASK;
       break;
+    case ENUM_TYPE_UINT64:
+      item = new ntuple_item(name,(uint64*) info._addr,ptr_offset);
+      break;
     default:
       ERROR("Unhandled ENUM_TYPE (0x%x) for item '%s'.",type, name);
     }
@@ -357,6 +360,14 @@ void enumerate_member_paw_ntuple(const signal_id &id,
   if (info._type & ENUM_IS_LIST_LIMIT2)
     item->_flags |= NTUPLE_ITEM_OMIT;
 
+  if (info._type & ENUM_NTUPLE_TS_LO)    item->_flags |= NTUPLE_ITEM_TS_LO;
+  if (info._type & ENUM_NTUPLE_TS_HI)    item->_flags |= NTUPLE_ITEM_TS_HI;
+  if (info._type & ENUM_NTUPLE_TS_SRCID) item->_flags |= NTUPLE_ITEM_TS_SRCID;
+  if (info._type & ENUM_NTUPLE_MEVENTNO) item->_flags |= NTUPLE_ITEM_MEVENTNO;
+  if (info._type & ENUM_NTUPLE_MRG_STAT) item->_flags |= NTUPLE_ITEM_MRG_STAT;
+  if (info._type & ENUM_NTUPLE_MRG_MASK) item->_flags |= NTUPLE_ITEM_MRG_MASK;
+  if (info._type & ENUM_NTUPLE_MULT_NON0) item->_flags |=NTUPLE_ITEM_MULT_NON0;
+
   ntuple->_listing->push_back(item);
 
   //printf ("\n");
@@ -382,15 +393,19 @@ const char *request_level_str(int level)
 
 void paw_ntuple_usage()
 {
+  // Note: options with CAPITAL letters change the structure layout.
+  // Other options change the behaviour of the export.
+
   printf ("\n");
   printf ("HBOOK/ROOT/STRUCT output (--ntuple) options:\n");
   printf ("\n");
   printf ("UNPACK,RAW,CAL,USER         Include requested level data.\n");
   printf ("[UNPACK|RAW|CAL|USER]:name  Include 'name'd member of level data.\n");
-  printf ("UR,URC,URCUS        Prefix UNPACK,RAW,(CAL),(USER) level data with U,R,C,U.\n");
+  printf ("UR,URC,URCUS        Prefix INFO,UNPACK,RAW,(CAL),(USER) level with I,U,R,C,U.\n");
   printf ("TGLV                Include both toggle values.\n");
   printf ("NOTGLI              Do not include toggle index.\n");
   printf ("NOTRIGEVENTNO       Do not include TRIG, EVENTNO members.\n");
+  printf ("NOTASINFO           Do not use separate INFO block for TRIG, EVENTNO, ...\n");
   printf ("CWN                 Produce columnwise HBOOK ntuple (default with .nt*/.hb*).\n");
   printf ("ROOT                Produce ROOT tree (default with .root).\n");
   printf ("STRUCT|SERVER       Run STRUCT server to send data.\n");
@@ -399,6 +414,7 @@ void paw_ntuple_usage()
   printf ("UPPER               Make all variable names upper case.\n");
   printf ("LOWER               Make all variable names lower case.\n");
   printf ("H2ROOT              Make all variable names like h2root.\n");
+  printf ("time-stitch=N       Combine events with timestamps with difference <= N.\n");
   printf ("id=ID               Set the ntuple ID.\n");
   printf ("title=TITLE         Set the tree TITLE.\n");
   printf ("ftitle=FTITLE       Set the File TITLE.\n");
@@ -409,9 +425,11 @@ void paw_ntuple_usage()
   printf ("incl=               Subevent inclusion.\n");
   printf ("excl=               Subevent exclusion.\n");
 #endif
-  printf ("NOSHM               Do not use shared memory communication.\n");
-  printf ("GDB                 Run the external program via gdb (backtrace fault).\n");
-  printf ("VALGRIND            Run the external program via valgrind.\n");
+  printf ("BITPACK             Bitpack STRUCT data even if not using network server.\n");
+  printf ("noshm               Do not use shared memory communication.\n");
+  printf ("dumpraw             Dump raw protocol data.\n");
+  printf ("gdb                 Run the external program via gdb (backtrace fault).\n");
+  printf ("valgrind            Run the external program via valgrind.\n");
   printf ("\n");
 }
 
@@ -454,6 +472,8 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 #endif
   int toggle_include = ENUM_IS_TOGGLE_I;
   bool inc_trig_eventno = true;
+  bool as_info = true;
+  int ts_merge_window = 0;
 
   uint ntuple_type = 0;
   uint ntuple_opt = 0;
@@ -515,6 +535,8 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 	toggle_include |= ENUM_IS_TOGGLE_V;
       else if (MATCH_ARG("NOTRIGEVENTNO"))
 	inc_trig_eventno = false;
+      else if (MATCH_ARG("NOTASINFO"))
+	as_info = false;
       else if (MATCH_PREFIX("UNPACK:",post))
 	{
 	  request_level_detailed |= NTUPLE_WRITER_UNPACK;
@@ -565,6 +587,8 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 	ntuple_type |= NTUPLE_CASE_LOWER;
       else if (MATCH_ARG("H2ROOT"))
 	ntuple_type |= NTUPLE_CASE_H2ROOT;
+      else if (MATCH_PREFIX("time-stitch=",post))
+	ts_merge_window = atoi(post);
       else if (MATCH_PREFIX("ID=",post) || MATCH_PREFIX("id=",post))
 	id = strdup(post);
       else if (MATCH_PREFIX("TITLE=",post) || MATCH_PREFIX("title=",post))
@@ -592,11 +616,39 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
       else if (MATCH_PREFIX("excl=",post))
 	ntuple->_raw_select->parse_request(post,false);
 #endif
+      else if (MATCH_ARG("BITPACK"))
+	ntuple_opt |= NTUPLE_OPT_WRITER_BITPACK;
       else if (MATCH_ARG("NOSHM"))
+	{
+	  WARNING("Option --ntuple=NOSHM is deprecated, "
+		  "use --ntuple=noshm instead.");
+	  ntuple_opt |= NTUPLE_OPT_WRITER_NO_SHM;
+	}
+      else if (MATCH_ARG("noshm"))
 	ntuple_opt |= NTUPLE_OPT_WRITER_NO_SHM;
+      else if (MATCH_ARG("DUMPRAW"))
+	{
+	  WARNING("Option --ntuple=DUMPRAW is deprecated, "
+		  "use --ntuple=dumpraw instead.");
+	  ntuple_opt |= NTUPLE_OPT_DUMP_RAW;
+	}
+      else if (MATCH_ARG("dumpraw"))
+	ntuple_opt |= NTUPLE_OPT_DUMP_RAW;
       else if (MATCH_ARG("GDB"))
+	{
+	  WARNING("Option --ntuple=GDB is deprecated, "
+		  "use --ntuple=gdb instead.");
+	  ntuple_opt |= NTUPLE_OPT_EXT_GDB;
+	}
+      else if (MATCH_ARG("gdb"))
 	ntuple_opt |= NTUPLE_OPT_EXT_GDB;
       else if (MATCH_ARG("VALGRIND"))
+	{
+	  WARNING("Option --ntuple=VALGRIND is deprecated, "
+		  "use --ntuple=valgrind instead.");
+	  ntuple_opt |= NTUPLE_OPT_EXT_VALGRIND;
+	}
+      else if (MATCH_ARG("valgrind"))
 	ntuple_opt |= NTUPLE_OPT_EXT_VALGRIND;
       else
 	requests.add_detector_request(request,0);
@@ -681,26 +733,35 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 				 NTUPLE_TYPE_STRUCT_HH |
 				 NTUPLE_TYPE_STRUCT));
 
-  extra._include_always = inc_trig_eventno; /* true */
+  /* Special mode while searching for the ENUM_NTUPLE_ALWAYS items. */
+  extra._include_always = true;
 
 #define ENUMERATE_MEMBERS_UNCOND(data, level,		    \
 				 block, block_prefix)	    \
   {							    \
     extra._level = (level);				    \
     extra._detailed_only = false;			    \
-    extra._block = block;				    \
+    extra._block = (block);				    \
     extra._block_prefix =				    \
-      (prefix_level & (level)) ? block_prefix : "";	    \
+      (prefix_level & (level)) ? (block_prefix) : "";	    \
     data.enumerate_members(signal_id(),enumerate_info(),    \
 			   enumerate_member_paw_ntuple,	    \
 			   &extra);			    \
   }
 
-  ENUMERATE_MEMBERS_UNCOND(_static_event._unpack,
-			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
-  ENUMERATE_MEMBERS_UNCOND(_static_event._raw,
-			   NTUPLE_WRITER_UNPACK, "RAW", "R");
+  if (inc_trig_eventno)
+    {
+      ENUMERATE_MEMBERS_UNCOND(_static_event._unpack,
+			       NTUPLE_WRITER_UNPACK,
+			       as_info ? "INFO" : "UNPACK",
+			       as_info ? "I" : "U");
+      ENUMERATE_MEMBERS_UNCOND(_static_event._raw,
+			       NTUPLE_WRITER_UNPACK,
+			       as_info ? "INFO" : "RAW",
+			       as_info ? "I" : "R");
+    }
 
+  /* Special mode done. */
   extra._include_always = false;
 
 #define ENUMERATE_MEMBERS(data, level, block, block_prefix) \
@@ -708,9 +769,9 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
     {							    \
       extra._level = (level);				    \
       extra._detailed_only = !(request_level & (level));    \
-      extra._block = block;				    \
+      extra._block = (block);				    \
       extra._block_prefix =				    \
-	(prefix_level & (level)) ? block_prefix : "";	    \
+	(prefix_level & (level)) ? (block_prefix) : "";	    \
       data.enumerate_members(signal_id(),enumerate_info(),  \
 			     enumerate_member_paw_ntuple,   \
 			     &extra);			    \
@@ -767,16 +828,20 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
   extra._include_always = inc_trig_eventno; /* true */
 
   ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._unpack,
-			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
+			   NTUPLE_WRITER_UNPACK,
+			   as_info ? "INFO" : "UNPACK",
+			   as_info ? "I" : "U");
   ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._raw,
-			   NTUPLE_WRITER_UNPACK, "RAW", "R");
+			   NTUPLE_WRITER_UNPACK,
+			   as_info ? "INFO" : "RAW",
+			   as_info ? "I" : "R");
 
   extra._include_always = false;
 
   ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._unpack,
 			   NTUPLE_WRITER_UNPACK, "UNPACK", "U");
   ENUMERATE_MEMBERS_UNCOND(_static_sticky_event._raw,
-			   NTUPLE_WRITER_UNPACK, "RAW", "W");
+			   NTUPLE_WRITER_UNPACK, "RAW", "R");
 
   }
 
@@ -846,11 +911,11 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
       staged->_struct_index = i;
 
       if (i == 0)
-	staged->open_x(filename,ftitle,
+	staged->open_xx(filename,ftitle,
 		       ntuple_type, ntuple_opt,
 		       struct_server_port,
 		       timeslice, timeslice_subdir,
-		       autosave
+		       autosave, ts_merge_window
 #if defined(USE_LMD_INPUT)
 		       ,1
 #endif

@@ -36,9 +36,15 @@
 #define LMD_TCP_INFO_BUFSIZE_NODATA     -1
 #define LMD_TCP_INFO_BUFSIZE_MAXCLIENTS -2
 
-#define LMD_PORT_MAP_MARK         0x50540000
-#define LMD_PORT_MAP_MARK_MASK    0xffff0000
-#define LMD_PORT_MAP_PORT_MASK    0x0000ffff
+/* Info about the data port is put in the 'streams' member. */
+#define LMD_TCP_INFO_STREAMS_PORT_MAP_MARK         0x50540000
+#define LMD_TCP_INFO_STREAMS_PORT_MAP_MARK_MASK    0xffff0000
+#define LMD_TCP_INFO_STREAMS_PORT_MAP_PORT_MASK    0x0000ffff
+
+/* Info about number of connection attemps/s in the 'streams' member. */
+#define LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_MARK       0x50550000
+#define LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_MARK_MASK  0xffff0000
+#define LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_RATE_MASK  0x0000ffff
 
 struct ltcp_filter_opcode
 {

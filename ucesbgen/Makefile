@@ -27,7 +27,7 @@ GENOBJS = $(GENDIR)/parser.o $(GENDIR)/lexer.o
 OBJS    = ucesbgen.o str_set.o file_line.o signal_id.o \
 	dumper.o prefix_unit.o \
 	definitions.o variable.o structure.o signal.o \
-	param_arg.o bits_spec.o encode.o \
+	param_arg.o bits_spec.o encode.o account.o \
 	unpack_code.o match_code.o signal_errors.o
 #	rcsu.o cable_node.o hardware_def.o hardware_handler.o \
 #	hw_module.o daq_code.o enumerate.o trace.o str_set.o

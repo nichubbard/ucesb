@@ -149,9 +149,22 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SST::__unpack,uint32 sam,uint32 gtb,uint32 si
 
   __buffer.advance(sizeof(uint32)); // take first_word as eaten
 
+  uint32 huff_words = header.count-2;
+
   // New style (huffman encoded...)
 
-  if (first_word != 0)
+  uint32 coffee_info = 0;
+  uint32 coffee_version = 0;
+
+  if (first_word == 0x01c0ffee)
+    {
+      __buffer.get_uint32(&coffee_version);
+      // printf ("version %08x\n", coffee_version);
+      __buffer.get_uint32(&coffee_info);
+
+      huff_words -= 2;
+    }
+  else if (first_word != 0)
     ERROR("Unexpected SST subheader: %08x",first_word);
 
   // The count should be at least 2 (first word, and the huffman XOR)
@@ -168,10 +181,19 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SST::__unpack,uint32 sam,uint32 gtb,uint32 si
   uint32 *src_end = src;
   uint32 encoded_xor_calc = 0;
 
-  for (int i = header.count-2; i; --i)
+  if (first_word == 0x01c0ffee)
+    {
+      encoded_xor_calc ^= first_word;
+      encoded_xor_calc ^= coffee_version;
+      encoded_xor_calc ^= coffee_info;
+    }
+
+  for (int i = huff_words; i; --i)
     {
       __buffer.get_uint32(src_end);
       encoded_xor_calc ^= *src_end;
+
+      // printf ("%d %08x %08x\n",i,*src_end, encoded_xor_calc);
 
       src_end++;
     }
@@ -186,16 +208,109 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_SST::__unpack,uint32 sam,uint32 gtb,uint32 si
 	  encoded_xor_calc,encoded_xor,
 	  encoded_xor_calc ^ encoded_xor,
 	  sam,gtb,siderem);
+
+  if (first_word == 0x01c0ffee)
+    {
+      /* 1028 was not correct as worst-case length.
+       * In case the packaging has jumped over single values,
+       * then there will be an additional chunk, which uses two values
+       * to pack.  Packaging should have merged these as well, as
+       * that would be cheaper.  Anyhow, no major harm.
+       */
+      uint32 chunk[2048];
+      // forgot XOR
+
+      uint32 huff_len = coffee_info & 0xffff;
+      if (huff_len > countof(chunk))
+        {
+          ERROR("SST chunk data length %u > max %u "
+                "sam%dgtb%dsid%d",
+                huff_len, (uint32)countof(chunk),
+                sam,gtb,siderem);
+          return;
+        }
+      uint32 chunks = coffee_info >> 16;
+
+      uint32 *chunk_end = chunk + huff_len;
+
+#if 0
+      /* Hard-code an event: */
+
+      src_end = src;
+
+      huff_len = 0x1c;
+      uint32_t chunk_end = chunk + huff_len;
+
+      *(src_end++) = 0xbbed93df;
+      *(src_end++) = 0xc000678d;
+      *(src_end++) = 0x0000000d;
+      *(src_end++) = 0x10001dc0;
+#endif
+
+      //printf ("decode and get %d words.\n", huff_len);
+
+      decode_stream(src,src_end,
+		    chunk,chunk_end);
+
+      uint32 *pstarts = chunk;
+      uint32 *plens   = chunk + chunks;
+      uint32 *pvalues = chunk + chunks * 2;
+
+      uint32 prev_start = 0;
+
+      uint32 *dp = dest;
+      uint32 j = 0;
+      for (uint32 i = 0; i < chunks; i++)
+	{
+	  uint32 start, len, end;
+
+	  start = *(pstarts++) + prev_start;
+	  len   = *(plens++);
+          end   = start + len;
+
+	  //printf ("[%d..%d]:\n", start, end-1);
+	  /*
+	  if (huff_len > 1028)
+	    printf ("[%d..%d]:\n", start, end-1);
+	  */
+
+          for (; j < start; j++)
+            {
+              *dp++ = 0;
+            }
+	  for (; j < end; j++)
+	    {
+	      //printf (" %4d: %4d\n", j, *(pvalues++));
+              *dp++ = *pvalues++;
+	    }
+
+	  prev_start = start;
+	}
+
+      if (pvalues != chunk_end)
+	ERROR("Wrong total number of values.");
+
+      for (; j < 1024; j++)
+        {
+          *dp++ = 0;
+        }
+
+      assert(dp == dest_end);
+    }
+  else
+    {
+      decode_stream(src,src_end,
+          dest,dest_end);
+    }
+
   /*
   UNUSED(src);
   UNUSED(src_end);
   UNUSED(dest);
   UNUSED(dest_end);
   */
-  decode_stream(src,src_end,
-		dest,dest_end);
 
-  uint16* ped_add = _sst_ped_add[branch][sam][gtb][siderem];
+  uint32* ped_add = _sst_ped_add[branch][sam][gtb][siderem];
 
   if (!ped_add)
     ERROR("(compression) pedestals for branch%d sam%dgtb%dsid%d not known",

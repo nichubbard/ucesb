@@ -1,6 +1,6 @@
 /* This file is part of UCESB - a tool for data unpacking and processing.
  *
- * Copyright (C) 2016  GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ * Copyright (C) 2021  Haakan T. Johansson  <f96hajo@chalmers.se>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,49 +18,24 @@
  * MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __ACCOUNTING_HH__
+#define __ACCOUNTING_HH__
 
-#include "definitions.hh"
-#include "parse_error.hh"
-#include "account.hh"
+#include "data_src.hh"
 
-#include "signal_errors.hh"
+// extern _data_account[] is in data_src.hh, such that that does not
+// need to include more (this) files.
 
-extern int lexer_read_fd;
-
-bool parse_definitions();
-
-void usage()
+struct account_id
 {
-  printf ("ucesbgen\n"
-	  "usage ucesbgen\n");
-  printf ("    ");
-}
+  int         _internal;
 
-int main(int /*argc*/,char *argv[])
-{
-  lexer_read_fd = 0; // read from stdin
+  const char* _name;
+  const char* _ident;
+};
 
-  setup_segfault_coredump(argv[0]);
+void account_init();
+void account_show();
 
-  if (!parse_definitions())
-    ERROR("%s: Aborting!\n",argv[0]);
-
-  map_definitions();
-
-  dump_definitions();
-
-  check_consistency();
-
-  generate_unpack_code();
-
-  generate_signals();
-
-  generate_locations();
-
-  generate_account_items();
-
-  return 0;
-}
+#endif//__ACCOUNTING_HH__
 

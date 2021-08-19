@@ -123,7 +123,8 @@ int _signal_spec_order_index = 0;
   bits_spec_list *bits_list;
   bits_spec      *bits_item;
 
-  encode_spec    *encode;
+  encode_spec_base *encode_base;
+  encode_spec      *encode;
   encode_spec_list *encode_list;
 
   param_list *par_list;
@@ -265,6 +266,9 @@ int _signal_spec_order_index = 0;
 %type <iValue>      select_flag
 %type <encode_list> encode_item_list
 %type <encode>      encode_item
+%type <encode_base> cond_or_encode_item
+%type <encode_base> cond_encode_item
+%type <encode_list> cond_encode_else_item
 %type <bits_list>   data_item_bits_list
 %type <bits_item>   data_item_bits
 %type <iValue>      data_item_size
@@ -614,9 +618,14 @@ zero_suppress:
         ;
 
 encode_item_list:
-          encode_item                  { $$ = create_list($1); }
-        | encode_item_list encode_item { $$ = append_list($1,$2); }
+          cond_or_encode_item                  { $$ = create_list((encode_spec_base*) $1); }
+        | encode_item_list cond_or_encode_item { $$ = append_list($1,$2); }
         ;
+
+cond_or_encode_item:
+          encode_item      { $$ = $1; }
+        | cond_encode_item { $$ = $1; }
+	;
 
 encode_item:
 	  ENCODE '(' var_named_single_indexed encode_flags ',' '(' arg_list ')' ')' ';' { encode_spec *encode = new encode_spec(CURR_FILE_LINE,$3,$7,$4); $$ = encode; }
@@ -626,6 +635,16 @@ encode_flags:
 	              { $$ = 0; }
 	| APPEND_LIST { $$ = ES_APPEND_LIST; }
         ;
+
+cond_encode_item:
+	  T_IF '(' var_expr ')' '{' encode_item_list '}' cond_encode_else_item { encode_cond *cond = new encode_cond(CURR_FILE_LINE,$3,$6,$8); $$ = cond; }
+        ;
+
+cond_encode_else_item:
+	  T_ELSE '{' encode_item_list '}'  { $$ = $3; }
+	| T_ELSE encode_item             { $$ = create_list((encode_spec_base*) $2); }
+	|                                { $$ = NULL; }
+	;
 
 data_item_size:
 	  UINT64 { $$ = 64; }

@@ -53,7 +53,7 @@ int main(int argc,char *argv[])
     exit(1);
 
   if (client.setup(&event_layout,sizeof(event_layout),
-		   NULL,
+		   NULL, NULL,
 		   sizeof(event)))
     {
       /* Handle events. */

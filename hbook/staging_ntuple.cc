@@ -41,6 +41,7 @@ void stage_ntuple_item::storage_size(indexed_item &write_ptrs,size_t &size)
     INFO(0,"Storage:  %s",_item->_name.c_str());
 
   write_ptrs._items_per_entry++;
+
   write_ptrs._info_slots_per_entry += 2;
   if (_item->_ctrl_mask._ptr) // bitmask
     write_ptrs._info_slots_per_entry += 2;
@@ -195,6 +196,15 @@ void init_cwn_var(ntuple_item *item,
       type = "ui";
       var_type |= EXTERNAL_WRITER_FLAG_TYPE_UINT32;
     }
+  else if (item->_type == ntuple_item::UINT64)
+    {
+      ERROR("64-bit uint not handled.");
+      // TODO: can be fixed; suggestion to make 2 entries, hi and lo.
+      // issue will be in unpacking part to place items correctly.
+      // possibly with the compresed data, which give fixed
+      // locations.  Perhaps give extra word-swap array to make
+      // post-unpack corrections?
+    }
   else if (item->_type == ntuple_item::INT_INDEX_CUT ||
 	   item->_type == ntuple_item::INT_INDEX)
     {
@@ -211,6 +221,14 @@ void init_cwn_var(ntuple_item *item,
     }
   else
     assert (false);
+
+  if (item->_flags & NTUPLE_ITEM_TS_LO)    write_info |= IND_ITEM_TYPE_TS_LO;
+  if (item->_flags & NTUPLE_ITEM_TS_HI)    write_info |= IND_ITEM_TYPE_TS_HI;
+  if (item->_flags & NTUPLE_ITEM_TS_SRCID) write_info |=IND_ITEM_TYPE_TS_SRCID;
+  if (item->_flags & NTUPLE_ITEM_MEVENTNO) write_info |=IND_ITEM_TYPE_MEVENTNO;
+  if (item->_flags & NTUPLE_ITEM_MRG_STAT) write_info |=IND_ITEM_TYPE_MRG_STAT;
+  if (item->_flags & NTUPLE_ITEM_MRG_MASK) write_info |=IND_ITEM_TYPE_MRG_MASK;
+  if (item->_flags & NTUPLE_ITEM_MULT_NON0)write_info |=IND_ITEM_TYPE_MULT_NON0;
 
   info.fix_case(var_name);
 
@@ -426,6 +444,9 @@ void stage_ntuple_index_var<Tsni_ind,Tsni_vect>::init_cwn_vars(Tindexed_item &wr
       first_item = false;
       base_indices = indexed_indices;
     }
+
+  assert(write_ptrs._info_slots_per_entry == base_indices._slot_ind);
+  assert(write_ptrs._items_per_entry      == base_indices._dest_ind);
 }
 
 template<typename Tsni_ind,typename Tsni_vect>

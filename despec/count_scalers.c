@@ -128,6 +128,7 @@ static const std::string frs_main_names[32] =
 int main(int argc,char *argv[])
 {
   struct ext_data_client *client;
+  uint32_t struct_map_success;
   int ret, ok;
   FILE *empty_fid = NULL;
 
@@ -258,10 +259,10 @@ int main(int argc,char *argv[])
   if (ext_data_setup(client,
 #if !USE_ITEMS_INFO
 		     &event_layout,sizeof(event_layout),
-		     NULL,
+		     NULL, NULL,
 #else
 		     NULL,0,
-		     struct_info,
+		     struct_info, &struct_map_success
 #endif
 		     sizeof(event),
 		     "", NULL) != 0)

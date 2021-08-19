@@ -48,6 +48,7 @@ public:
    */
   int setup(const void *struct_layout_info,size_t size_info,
 	    ext_data_struct_info *struct_info,
+	    uint32_t *struct_map_success,
 	    size_t size_buf,
 	    const char *name_id = "", int *struct_id = NULL);
 

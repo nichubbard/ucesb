@@ -3,748 +3,548 @@ TRIGGER =              2
 EVENTNO =       27744691
 TGL1E =              237
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     237
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        237
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744692
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744693
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744694
 TGL1E =              304
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     304
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        304
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744695
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744696
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =             3696
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    3696
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       3696
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744697
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744698
 TGL1E =              224
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     224
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        224
 TGL1T =             4051
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    4051
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       4051
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744699
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =             3252
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    3252
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       3252
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744700
 TGL1E =              506
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     506
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        506
+TGL1E_tglv2 =          0
 TGL1T =             1558
 TGL1T_tgli =           1
-TGL1T_tglv1 =
-                    1558
-TGL1T_tglv2 =
-                    2206
+TGL1T_tglv1 =       1558
+TGL1T_tglv2 =       2206
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744701
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744702
 TGL1E =              330
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     330
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        330
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744703
 TGL1E =              230
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     230
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        230
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744704
 TGL1E =              264
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     264
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        264
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744705
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744706
 TGL1E =              203
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     203
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        203
+TGL1E_tglv2 =          0
 TGL1T =              989
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                     989
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =        989
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744707
 TGL1E =              184
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     184
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        184
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744708
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744709
 TGL1E =              431
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     431
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        431
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744710
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744711
 TGL1E =              337
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     337
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        337
 TGL1T =             2144
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    2144
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       2144
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744712
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744713
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744714
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744715
 TGL1E =              502
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     502
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        502
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744716
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744717
 TGL1E =              245
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     245
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        245
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744718
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744719
 TGL1E =              247
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     247
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        247
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744720
 TGL1E =              344
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     344
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        344
 TGL1T =             2223
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    2223
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       2223
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744721
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =              773
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                     773
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =        773
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744722
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744723
 TGL1E =              268
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     268
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        268
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744724
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744725
 TGL1E =              526
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     526
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        526
+TGL1E_tglv2 =          0
 TGL1T =             1922
 TGL1T_tgli =           1
-TGL1T_tglv1 =
-                    1922
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =       1922
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744726
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744727
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744728
 TGL1E =              330
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     330
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        330
 TGL1T =             2019
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    2019
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       2019
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744729
 TGL1E =              265
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     265
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        265
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744730
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744731
 TGL1E =              261
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     261
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        261
+TGL1E_tglv2 =          0
 TGL1T =             2898
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    2898
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       2898
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744732
 TGL1E =              275
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     275
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        275
 TGL1T =             2365
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    2365
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       2365
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744733
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744734
 TGL1E =              263
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     263
-TGL1E_tglv2 =
-                     291
+TGL1E_tglv1 =        263
+TGL1E_tglv2 =        291
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744735
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744736
 TGL1E =              255
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     255
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        255
+TGL1E_tglv2 =          0
 TGL1T =             2905
 TGL1T_tgli =           2
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                    2905
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =       2905
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744737
 TGL1E =              242
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     242
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        242
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744738
 TGL1E =                0
 TGL1E_tgli =           0
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =          0
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744739
 TGL1E =              206
 TGL1E_tgli =           2
-TGL1E_tglv1 =
-                       0
-TGL1E_tglv2 =
-                     206
+TGL1E_tglv1 =          0
+TGL1E_tglv2 =        206
 TGL1T =                0
 TGL1T_tgli =           0
-TGL1T_tglv1 =
-                       0
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =          0
+TGL1T_tglv2 =          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744740
 TGL1E =              479
 TGL1E_tgli =           1
-TGL1E_tglv1 =
-                     479
-TGL1E_tglv2 =
-                       0
+TGL1E_tglv1 =        479
+TGL1E_tglv2 =          0
 TGL1T =             1857
 TGL1T_tgli =           1
-TGL1T_tglv1 =
-                    1857
-TGL1T_tglv2 =
-                       0
+TGL1T_tglv1 =       1857
+TGL1T_tglv2 =          0

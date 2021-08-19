@@ -67,7 +67,7 @@ int main(int argc,char *argv[])
 
   if (ext_data_setup_stderr(client,
 			    &event_layout,sizeof(event_layout),
-			    NULL,
+			    NULL, NULL,
 			    sizeof(event),
 			    "", NULL))
     {

@@ -4,19 +4,13 @@ EVENTNO =       27744691
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         237
-TGL_E_tgli[TGL] =
-                       1
-TGL_E_tglv1[TGL] =
-                     237
-TGL_E_tglv2[TGL] =
-                       0
+TGL_E_tgli[TGL] =      1
+TGL_E_tglv1[TGL] =   237
+TGL_E_tglv2[TGL] =     0
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744692
@@ -31,19 +25,13 @@ EVENTNO =       27744694
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         304
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     304
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   304
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744695
@@ -54,19 +42,13 @@ EVENTNO =       27744696
 TGL =                  1
 TGLI[TGL] =            2
 TGL_E[TGL] =           0
-TGL_E_tgli[TGL] =
-                       0
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                       0
+TGL_E_tgli[TGL] =      0
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =     0
 TGL_T[TGL] =        3696
-TGL_T_tgli[TGL] =
-                       2
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                    3696
+TGL_T_tgli[TGL] =      2
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =  3696
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744697
@@ -77,57 +59,39 @@ EVENTNO =       27744698
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        224
-TGL_E_tgli[TGL] =
-                       0          2
-TGL_E_tglv1[TGL] =
-                       0          0
-TGL_E_tglv2[TGL] =
-                       0        224
+TGL_E_tgli[TGL] =      0          2
+TGL_E_tglv1[TGL] =     0          0
+TGL_E_tglv2[TGL] =     0        224
 TGL_T[TGL] =        4051          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    4051          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  4051          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744699
 TGL =                  1
 TGLI[TGL] =            2
 TGL_E[TGL] =           0
-TGL_E_tgli[TGL] =
-                       0
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                       0
+TGL_E_tgli[TGL] =      0
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =     0
 TGL_T[TGL] =        3252
-TGL_T_tgli[TGL] =
-                       2
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                    3252
+TGL_T_tgli[TGL] =      2
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =  3252
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744700
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        506
-TGL_E_tgli[TGL] =
-                       0          1
-TGL_E_tglv1[TGL] =
-                       0        506
-TGL_E_tglv2[TGL] =
-                       0          0
+TGL_E_tgli[TGL] =      0          1
+TGL_E_tglv1[TGL] =     0        506
+TGL_E_tglv2[TGL] =     0          0
 TGL_T[TGL] =        1558          0
-TGL_T_tgli[TGL] =
-                       1          0
-TGL_T_tglv1[TGL] =
-                    1558          0
-TGL_T_tglv2[TGL] =
-                    2206          0
+TGL_T_tgli[TGL] =      1          0
+TGL_T_tglv1[TGL] =  1558          0
+TGL_T_tglv2[TGL] =  2206          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744701
@@ -138,57 +102,39 @@ EVENTNO =       27744702
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         330
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     330
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   330
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744703
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         230
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     230
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   230
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744704
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         264
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     264
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   264
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744705
@@ -199,38 +145,26 @@ EVENTNO =       27744706
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        203
-TGL_E_tgli[TGL] =
-                       0          1
-TGL_E_tglv1[TGL] =
-                       0        203
-TGL_E_tglv2[TGL] =
-                       0          0
+TGL_E_tgli[TGL] =      0          1
+TGL_E_tglv1[TGL] =     0        203
+TGL_E_tglv2[TGL] =     0          0
 TGL_T[TGL] =         989          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                     989          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =   989          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744707
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         184
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     184
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   184
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744708
@@ -241,19 +175,13 @@ EVENTNO =       27744709
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         431
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     431
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   431
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744710
@@ -264,19 +192,13 @@ EVENTNO =       27744711
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        337
-TGL_E_tgli[TGL] =
-                       0          2
-TGL_E_tglv1[TGL] =
-                       0          0
-TGL_E_tglv2[TGL] =
-                       0        337
+TGL_E_tgli[TGL] =      0          2
+TGL_E_tglv1[TGL] =     0          0
+TGL_E_tglv2[TGL] =     0        337
 TGL_T[TGL] =        2144          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    2144          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  2144          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744712
@@ -295,19 +217,13 @@ EVENTNO =       27744715
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         502
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     502
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   502
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744716
@@ -318,19 +234,13 @@ EVENTNO =       27744717
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         245
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     245
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   245
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744718
@@ -341,57 +251,39 @@ EVENTNO =       27744719
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         247
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     247
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   247
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744720
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        344
-TGL_E_tgli[TGL] =
-                       0          2
-TGL_E_tglv1[TGL] =
-                       0          0
-TGL_E_tglv2[TGL] =
-                       0        344
+TGL_E_tgli[TGL] =      0          2
+TGL_E_tglv1[TGL] =     0          0
+TGL_E_tglv2[TGL] =     0        344
 TGL_T[TGL] =        2223          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    2223          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  2223          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744721
 TGL =                  1
 TGLI[TGL] =            2
 TGL_E[TGL] =           0
-TGL_E_tgli[TGL] =
-                       0
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                       0
+TGL_E_tgli[TGL] =      0
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =     0
 TGL_T[TGL] =         773
-TGL_T_tgli[TGL] =
-                       2
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                     773
+TGL_T_tgli[TGL] =      2
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =   773
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744722
@@ -402,19 +294,13 @@ EVENTNO =       27744723
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         268
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     268
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   268
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744724
@@ -425,19 +311,13 @@ EVENTNO =       27744725
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        526
-TGL_E_tgli[TGL] =
-                       0          1
-TGL_E_tglv1[TGL] =
-                       0        526
-TGL_E_tglv2[TGL] =
-                       0          0
+TGL_E_tgli[TGL] =      0          1
+TGL_E_tglv1[TGL] =     0        526
+TGL_E_tglv2[TGL] =     0          0
 TGL_T[TGL] =        1922          0
-TGL_T_tgli[TGL] =
-                       1          0
-TGL_T_tglv1[TGL] =
-                    1922          0
-TGL_T_tglv2[TGL] =
-                       0          0
+TGL_T_tgli[TGL] =      1          0
+TGL_T_tglv1[TGL] =  1922          0
+TGL_T_tglv2[TGL] =     0          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744726
@@ -452,38 +332,26 @@ EVENTNO =       27744728
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        330
-TGL_E_tgli[TGL] =
-                       0          2
-TGL_E_tglv1[TGL] =
-                       0          0
-TGL_E_tglv2[TGL] =
-                       0        330
+TGL_E_tgli[TGL] =      0          2
+TGL_E_tglv1[TGL] =     0          0
+TGL_E_tglv2[TGL] =     0        330
 TGL_T[TGL] =        2019          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    2019          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  2019          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744729
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         265
-TGL_E_tgli[TGL] =
-                       1
-TGL_E_tglv1[TGL] =
-                     265
-TGL_E_tglv2[TGL] =
-                       0
+TGL_E_tgli[TGL] =      1
+TGL_E_tglv1[TGL] =   265
+TGL_E_tglv2[TGL] =     0
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744730
@@ -494,38 +362,26 @@ EVENTNO =       27744731
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        261
-TGL_E_tgli[TGL] =
-                       0          1
-TGL_E_tglv1[TGL] =
-                       0        261
-TGL_E_tglv2[TGL] =
-                       0          0
+TGL_E_tgli[TGL] =      0          1
+TGL_E_tglv1[TGL] =     0        261
+TGL_E_tglv2[TGL] =     0          0
 TGL_T[TGL] =        2898          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    2898          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  2898          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744732
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        275
-TGL_E_tgli[TGL] =
-                       0          2
-TGL_E_tglv1[TGL] =
-                       0          0
-TGL_E_tglv2[TGL] =
-                       0        275
+TGL_E_tgli[TGL] =      0          2
+TGL_E_tglv1[TGL] =     0          0
+TGL_E_tglv2[TGL] =     0        275
 TGL_T[TGL] =        2365          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    2365          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  2365          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744733
@@ -536,19 +392,13 @@ EVENTNO =       27744734
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         263
-TGL_E_tgli[TGL] =
-                       1
-TGL_E_tglv1[TGL] =
-                     263
-TGL_E_tglv2[TGL] =
-                     291
+TGL_E_tgli[TGL] =      1
+TGL_E_tglv1[TGL] =   263
+TGL_E_tglv2[TGL] =   291
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744735
@@ -559,38 +409,26 @@ EVENTNO =       27744736
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        255
-TGL_E_tgli[TGL] =
-                       0          1
-TGL_E_tglv1[TGL] =
-                       0        255
-TGL_E_tglv2[TGL] =
-                       0          0
+TGL_E_tgli[TGL] =      0          1
+TGL_E_tglv1[TGL] =     0        255
+TGL_E_tglv2[TGL] =     0          0
 TGL_T[TGL] =        2905          0
-TGL_T_tgli[TGL] =
-                       2          0
-TGL_T_tglv1[TGL] =
-                       0          0
-TGL_T_tglv2[TGL] =
-                    2905          0
+TGL_T_tgli[TGL] =      2          0
+TGL_T_tglv1[TGL] =     0          0
+TGL_T_tglv2[TGL] =  2905          0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744737
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         242
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     242
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   242
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744738
@@ -601,35 +439,23 @@ EVENTNO =       27744739
 TGL =                  1
 TGLI[TGL] =            3
 TGL_E[TGL] =         206
-TGL_E_tgli[TGL] =
-                       2
-TGL_E_tglv1[TGL] =
-                       0
-TGL_E_tglv2[TGL] =
-                     206
+TGL_E_tgli[TGL] =      2
+TGL_E_tglv1[TGL] =     0
+TGL_E_tglv2[TGL] =   206
 TGL_T[TGL] =           0
-TGL_T_tgli[TGL] =
-                       0
-TGL_T_tglv1[TGL] =
-                       0
-TGL_T_tglv2[TGL] =
-                       0
+TGL_T_tgli[TGL] =      0
+TGL_T_tglv1[TGL] =     0
+TGL_T_tglv2[TGL] =     0
 --- === --- === ---
 TRIGGER =              2
 EVENTNO =       27744740
 TGL =                  2
 TGLI[TGL] =            2          3
 TGL_E[TGL] =           0        479
-TGL_E_tgli[TGL] =
-                       0          1
-TGL_E_tglv1[TGL] =
-                       0        479
-TGL_E_tglv2[TGL] =
-                       0          0
+TGL_E_tgli[TGL] =      0          1
+TGL_E_tglv1[TGL] =     0        479
+TGL_E_tglv2[TGL] =     0          0
 TGL_T[TGL] =        1857          0
-TGL_T_tgli[TGL] =
-                       1          0
-TGL_T_tglv1[TGL] =
-                    1857          0
-TGL_T_tglv2[TGL] =
-                       0          0
+TGL_T_tgli[TGL] =      1          0
+TGL_T_tglv1[TGL] =  1857          0
+TGL_T_tglv2[TGL] =     0          0

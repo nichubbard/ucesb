@@ -36,6 +36,7 @@
 
 #include "config.hh"
 #include "thread_param.hh"
+#include "format_prefix.hh"
 
 #include <set>
 #include <vector>
@@ -73,6 +74,8 @@ struct source_event_base
 
   uint64_t    _events;           // for display
   uint64_t    _events_last_show; // for display
+
+  format_diff_info _ev_diff_info;
 
   ssize_t     _tstamp_align_index;
 
@@ -220,7 +223,7 @@ public:
   static void stitch_event(event_base &eb,
 			   stitch_info *stitch);
 
-  template<typename T_event_base>
+  template<typename T_event_base,int account>
   static void unpack_event(T_event_base &eb);
   // the following is used before error printing, to ensure that
   // whatever data is available, is available unfragmented.

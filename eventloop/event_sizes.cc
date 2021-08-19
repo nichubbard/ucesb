@@ -45,8 +45,8 @@ void show_sizes(const char *prename,
 	  prename,CT_OUT(BOLD),name,CT_OUT(NORM),
 	  (int)(20-strlen(prename)-strlen(name)),"");
 
-  printf ("    (%s%6" PRIu64 "%s %s%6" PRIu64 "%s)"
-	  "        %s%8.1f%s%6.1f (%10.0f)\n",
+  printf ("    (%s%7" PRIu64 "%s %s%7" PRIu64 "%s)"
+	  "        %s%8.1f%s%7.1f (%10.0f)\n",
 	  CT_OUT(GREEN),es_event->_min,CT_OUT(DEF_COL),
 	  CT_OUT(RED),es_event->_max,CT_OUT(DEF_COL),
 	  CT_OUT(MAGENTA),
@@ -62,8 +62,8 @@ void show_sizes(const char *prename,
       const event_size *es_info = iter->second;
 
       printf ("%s%5d%s/%s%5d%s %s%5d%s:%s%3d%s:%s%3d%s "
-	      "(%s%6" PRIu64 "%s %s%6" PRIu64 "%s)"
-	      "%s%8.1f%s%s%8.1f%s%s%6.1f%s (%s%10.0f%s)\n",
+	      "(%s%7" PRIu64 "%s %s%7" PRIu64 "%s)"
+	      "%s%8.1f%s%s%8.1f%s%s%7.1f%s (%s%10.0f%s)\n",
 	      CT_OUT(BOLD),(uint16) ident._info._header.i_type,CT_OUT(NORM),
 	      CT_OUT(BOLD),(uint16) ident._info._header.i_subtype,CT_OUT(NORM),
 	      CT_OUT(BOLD),(uint16) ident._info.i_procid,CT_OUT(NORM),
@@ -104,7 +104,7 @@ void event_sizes::show()
 
   memset(&ev_total,0,sizeof(ev_total));
 
-  printf (" %stype/stype%s  %sprid%s %scrt%s %sctrl%s    %smin%s    %smax%s  %savg(ev)%s %savg(tot)%s %shead%s  %soccurances%s\n",
+  printf (" %stype/stype%s  %sprid%s %scrt%s %sctrl%s     %smin%s     %smax%s  %savg(ev)%s %savg(tot)%s  %shead%s  %soccurances%s\n",
 	  CT_OUT(UL),CT_OUT(NORM),
 	  CT_OUT(UL),CT_OUT(NORM),
 	  CT_OUT(UL),CT_OUT(NORM),

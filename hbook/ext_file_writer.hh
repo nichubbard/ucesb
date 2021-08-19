@@ -72,17 +72,17 @@ struct ext_write_config_comm
 
   ext_write_config_comm *_next;
 
-  uint32_t   *_sort_u32_raw; // For next event in buffer
+  uint32_t   *_raw_sort_u32; // For next event in buffer
   uint32_t    _keep_alive_event;
-
-  uint32_t   *_raw_ptr;
-  uint32_t    _raw_words;
 };
 
 struct ext_write_config
 {
   ext_write_config_comm *_comms;
   bool        _forked;
+  int         _dump_raw;
+
+  uint32_t    _ts_merge_window;
 
 #if USING_CERNLIB || USING_ROOT
   const char *_outfile;
@@ -106,15 +106,36 @@ struct ext_write_config
   int         _debug_header;
   int         _port;
   int         _stdout;
+  int         _bitpack;
 
-#define EXT_WRITER_DUMP_FORMAT_NORMAL 1
-#define EXT_WRITER_DUMP_FORMAT_COMPACT_JSON   2
-#define EXT_WRITER_DUMP_FORMAT_HUMAN_JSON   3    
+#define EXT_WRITER_DUMP_FORMAT_NORMAL        1
+#define EXT_WRITER_DUMP_FORMAT_NORMAL_WIDE   2
+#define EXT_WRITER_DUMP_FORMAT_COMPACT_JSON  3
+#define EXT_WRITER_DUMP_FORMAT_HUMAN_JSON    4
   int         _dump;
 #endif
 };
 
 extern ext_write_config _config;
+
+/* ****************************************************************** */
+
+struct offset_array
+{
+  size_t    _length; // in uint32_t words
+  uint32_t* _ptr;
+  uint32_t  _static_items;
+  uint32_t  _max_items;
+
+  uint32_t  _poffset_ts_lo;
+  uint32_t  _poffset_ts_hi;
+  uint32_t  _poffset_ts_srcid;
+  uint32_t  _poffset_meventno;
+  uint32_t  _poffset_mrg_stat;
+  uint32_t  _poffset_mrg_mask;
+};
+
+/* ****************************************************************** */
 
 struct ext_file_net_stat
 {
@@ -138,6 +159,26 @@ char *ext_net_io_reserve_chunk(size_t length,bool init_chunk,
 void ext_net_io_commit_chunk(size_t length,send_item_chunk *chunk);
 
 void ext_net_io_server_close();
+
+/* ****************************************************************** */
+
+void request_ntuple_fill(ext_write_config_comm *comm,
+			 void *msg,uint32_t *left,
+			 external_writer_buf_header *header, uint32_t length,
+			 bool from_merge);
+
+void ext_merge_insert_chunk(ext_write_config_comm *comm,
+			    offset_array *oa,
+			    uint32_t *msgstart,
+			    uint32_t prelen, uint32_t plen,
+			    uint32_t maxdestplen);
+
+void ext_merge_sort_all(offset_array *oa,
+			uint32_t maxdestplen);
+
+extern uint32_t _max_loop_size;
+
+/* ****************************************************************** */
 
 #endif/*DO_EXT_NET_DECL*/
 

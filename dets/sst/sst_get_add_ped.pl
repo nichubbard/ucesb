@@ -22,6 +22,17 @@
 use strict;
 use warnings;
 
+# Default to shift of 3 (old value).
+my $pedshift = 3;
+
+if (defined($ARGV[0]) &&
+    $ARGV[0] =~ /^--ped-shift=(\d+)$/)
+{
+    $pedshift = $1;
+
+    shift @ARGV;
+}
+
 print <<"EndOfText";
 
 /*************************************************************
@@ -47,7 +58,7 @@ while(my $line = <>)
 	my $varname = "_sst_ped_add_branch${branch}sam${sam}gtb${gtb}sid${sid}";
 	$varnames{"[$branch][$sam][$gtb][$sid]"} = $varname;
 
-	print ("uint16 ${varname}[1024] = {\n");
+	print ("uint32 ${varname}[1024] = {\n");
 	for (my $i = 0; $i < 1024; $i += 16) {
 	    my $valline = <>;
 
@@ -57,7 +68,7 @@ while(my $line = <>)
 
 	    for (my $j = 0; $j < 16; $j ++) {
 		my $index = $i + $j;
-		my $value = hex($values[$j]) >> 3;
+		my $value = hex($values[$j]) >> $pedshift;
 		print "$value,";
 	    }
 	    print ("\n");
@@ -75,7 +86,7 @@ print <<"EndOfText";
 
 \#include <memory.h>
 
-uint16 *_sst_ped_add[4][16][2][16];
+uint32 *_sst_ped_add[4][16][2][16];
 
 void init_sst_ped_add()
 {

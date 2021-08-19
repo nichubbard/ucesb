@@ -61,6 +61,7 @@ int main(int argc,char *argv[])
   EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
 #else
   struct ext_data_structure_info *struct_info = NULL;
+  uint32_t struct_map_success;
 #endif
   uint32_t last_event_no = 0;
   const void *raw;
@@ -175,10 +176,10 @@ int main(int argc,char *argv[])
   if (ext_data_setup(client,
 #if !USE_ITEMS_INFO
 		     &event_layout,sizeof(event_layout),
-		     NULL,
+		     NULL, NULL,
 #else
 		     NULL,0,
-		     struct_info,
+		     struct_info, &struct_map_success,
 #endif
 		     sizeof(event),
 		     "", NULL) != 0)
@@ -187,8 +188,26 @@ int main(int argc,char *argv[])
       fprintf (stderr,"Failed to setup with data from server '%s': %s\n",
 	       argv[1],ext_data_last_error(client));
       /* Not more fatal than that we can disconnect. */
+      goto disconnect;
     }
-  else
+
+#if USE_ITEMS_INFO
+  if (struct_map_success & ~EXT_DATA_ITEM_MAP_OK)
+    {
+      fprintf (stderr, "Structure was not completely mapped (0x%04x).\n",
+	       struct_map_success);
+      /* Print user-friendly report of mapping issues. */
+      ext_data_struct_info_print_map_success(struct_info,
+					     stderr,
+					     EXT_DATA_ITEM_MAP_OK);
+      /* In principle could continue (as much as possible was mapped),
+       * but general suggestion is to be very wary and not weary about
+       * missing or unmapped items.
+       */
+      goto disconnect;
+    }
+#endif
+
     {
       /* Handle events. */
 
@@ -268,6 +287,7 @@ int main(int argc,char *argv[])
 	}
     }
 
+ disconnect:
 #if USE_ITEMS_INFO
   ext_data_struct_info_free(struct_info);
 #endif

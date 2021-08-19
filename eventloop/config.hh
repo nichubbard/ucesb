@@ -76,6 +76,7 @@ struct config_opts
 
   int _show_members;
   int _event_sizes;
+  int _account;
   int _show_calib;
 
   char const *_ts_align_hist_command;

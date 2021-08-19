@@ -30,16 +30,36 @@
 
 #define ES_APPEND_LIST 0x01
 
+class encode_spec_base
+{
+public:
+  encode_spec_base(const file_line &loc)
+  {
+    _loc = loc;
+  }
+
+public:
+  virtual ~encode_spec_base() { }
+
+public:
+  virtual void dump(dumper &d) const = 0;
+
+public:
+  file_line _loc;
+};
+
+typedef std::vector<encode_spec_base*> encode_spec_list;
+
 struct encode_spec
+  : public encode_spec_base
 {
 public:
   encode_spec(const file_line &loc,
 	      const var_name *name,
 	      const argument_list *args,
 	      int flags)
+    : encode_spec_base(loc)
   {
-    _loc = loc;
-
     _name = name;
     _args = args;
 
@@ -56,11 +76,33 @@ public:
   const var_name *_name;
   const argument_list *_args;
   int _flags;
-
-public:
-  file_line _loc;
 };
 
-typedef std::vector<encode_spec*> encode_spec_list;
+struct encode_cond
+  : public encode_spec_base
+{
+public:
+  encode_cond(const file_line &loc,
+	      const variable *expr,
+	      const encode_spec_list *items,
+	      const encode_spec_list *items_else)
+    : encode_spec_base(loc)
+  {
+    _expr = expr;
+    _items = items;
+    _items_else = items_else;
+  }
+
+public:
+  virtual ~encode_cond() { }
+
+public:
+  virtual void dump(dumper &d) const;
+
+public:
+  const variable         *_expr;
+  const encode_spec_list *_items;
+  const encode_spec_list *_items_else;
+};
 
 #endif//__ENCODE_HH__

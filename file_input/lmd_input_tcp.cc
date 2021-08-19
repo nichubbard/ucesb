@@ -751,9 +751,10 @@ size_t lmd_input_tcp_buffer::read_info(int *data_port)
 	  _info.streams);
   */
   if (data_port &&
-      (_info.streams & LMD_PORT_MAP_MARK_MASK) == LMD_PORT_MAP_MARK)
+      (_info.streams & LMD_TCP_INFO_STREAMS_PORT_MAP_MARK_MASK) ==
+      LMD_TCP_INFO_STREAMS_PORT_MAP_MARK)
     {
-      *data_port = _info.streams & LMD_PORT_MAP_PORT_MASK;
+      *data_port = _info.streams & LMD_TCP_INFO_STREAMS_PORT_MAP_PORT_MASK;
       INFO(0,"Redirected -> port %d", *data_port);
       return 0;
     }
@@ -767,6 +768,20 @@ size_t lmd_input_tcp_buffer::read_info(int *data_port)
 
   if (_info.bufsize == (uint32_t) LMD_TCP_INFO_BUFSIZE_MAXCLIENTS)
     {
+      int rate = 0;
+
+      if ((_info.streams & LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_MARK_MASK) ==
+	  LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_MARK)
+	{
+	  rate =
+	    (_info.streams & LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_RATE_MASK);
+
+	  WARNING("Failing connection rate at server: %d/s.", rate);
+	  if (rate > 5)
+	    WARNING("Are you hammering?  "
+		    "Please put a 'sleep 5' in the busy wait loop.");
+	}
+
       ERROR("Buffer size -2, "
 	    "hint that maximum number of clients are already connected.");
     }
@@ -818,10 +833,10 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
       return count;
     }
 
-  // we first make sure enough space is available in the output 'pipe'
-  // memory
+  // We first make sure enough space for the buffer header is
+  // available in the output 'pipe' memory.
 
-  do_read(buf,_info.bufsize);
+  do_read(buf,sizeof (s_bufhe_host));
 
   // Make sure enough of the buffer is intact, such that the lmd input
   // reader (also in case it detects an error) would be able to
@@ -853,9 +868,14 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
 
   size_t buffer_size_dlen = BUFFER_SIZE_FROM_DLEN(l_dlen);
 
-  if (buffer_size_dlen != _info.bufsize)
-    ERROR("Buffer size mismatch (buf:0x%x != info:0x%x).",
+  if (buffer_size_dlen > _info.bufsize)
+    ERROR("Buffer size mismatch (buf:0x%x > info:0x%x).",
 	  (int) buffer_size_dlen,_info.bufsize);
+
+  // Read the remaining data.
+
+  do_read(((char *) buf) + sizeof (s_bufhe_host),
+	  buffer_size_dlen - sizeof (s_bufhe_host));
 
   // Check if it is the keep-alive buffer.  In that case, silently eat
   // it!  Careful: we have not been byte-swapped.  But the entries
@@ -881,7 +901,7 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
   if (((sint32) l_evt) < 0)
     *nbufs = -1;
 
-  return _info.bufsize;
+  return buffer_size_dlen;
 }
 
 /////////////////////////////////////////////////////////////////////

@@ -66,6 +66,7 @@ int main(int argc,char *argv[])
 #endif
   struct ext_data_structure_info *struct_info = NULL;
   struct ext_data_structure_info *sticky_struct_info = NULL;
+  uint32_t struct_map_success;
   int ok;
 
   uint64_t num_good = 0;
@@ -127,21 +128,54 @@ int main(int argc,char *argv[])
 #else
 			     NULL, 0,
 #endif
-			     struct_info,/*NULL,*/
+			     struct_info, &struct_map_success,
 			     sizeof(event),
 			     "", &hevent_id))
     {
       fprintf (stderr,"Failed to setup data structure from stream.\n");
       exit(1);
     }
+
+  if (struct_map_success & ~EXT_DATA_ITEM_MAP_OK)
+    {
+      /* It would generally make sense to print these errors to
+       * stderr, but since we want to verify them, we dump to
+       * stdout.
+       *
+       * The sticky handling further down uses stderr, and expects
+       * a good match, so would be the typical recommended handling.
+       */
+
+      fprintf (stdout,"Structure was not completely mapped (0x%04x).\n",
+	       struct_map_success);
+
+      ext_data_struct_info_print_map_success(struct_info,
+					     stdout,
+					     EXT_DATA_ITEM_MAP_OK);
+
+      /* Normally, it would be a good idea to exit.
+       * But since we use this script for testing, we do not.
+       */
+      /* exit(1); */
+    }
   
   if (!ext_data_setup_stderr(client,
 			     NULL, 0,
-			     sticky_struct_info,/*NULL,*/
+			     sticky_struct_info, &struct_map_success,
 			     sizeof(sticky),
 			     "hsticky", &hsticky_id))
     {
       fprintf (stderr,"Failed to setup sticky data structure from stream.\n");
+      exit(1);
+    }
+
+  if (struct_map_success & ~EXT_DATA_ITEM_MAP_OK)
+    {
+      fprintf (stderr,"Sticky structure was not completely mapped (0x%04x).\n",
+	       struct_map_success);
+      ext_data_struct_info_print_map_success(sticky_struct_info,
+					     stderr,
+					     EXT_DATA_ITEM_MAP_OK);
       exit(1);
     }
 

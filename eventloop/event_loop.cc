@@ -48,7 +48,9 @@
 #include "reclaim.hh"
 
 #include "event_sizes.hh"
+#include "accounting.hh"
 #include "tstamp_alignment.hh"
+#include "select_event.hh"
 
 #include "../common/strndup.hh"
 
@@ -228,6 +230,8 @@ void ucesb_event_loop::preprocess()
 
   if (_conf._event_sizes)
     _event_sizes.init();
+  if (_conf._account)
+    account_init();
 
   correlation_init(_corr_commands);
 
@@ -251,6 +255,8 @@ void ucesb_event_loop::postprocess()
 
   if (_conf._event_sizes)
     _event_sizes.show();
+  if (_conf._account)
+    account_show();
 
 #ifdef EXIT_USER_FUNCTION
   EXIT_USER_FUNCTION();
@@ -360,19 +366,21 @@ void ucesb_event_loop::close_output()
 #include "wr_stamp.hh"
 
 #if defined(USE_LMD_INPUT)
-void apply_timestamp_slope(lmd_subevent_10_1_host const &a_header, int a_tsid,
-    uint64_t &a_timestamp)
+void apply_timestamp_slope(lmd_subevent_10_1_host const &a_header,
+			   uint32_t a_tsid, uint64_t &a_timestamp)
 {
   bool found_hit = false;
   for (std::vector<time_slope>::const_iterator it =
       _conf_time_slope_vector.begin(); it != _conf_time_slope_vector.end();
       ++it) {
-#define APPLY_TIMESTAMP_SLOPE_SKIP(ts_part, event_part)\
-    (it->ts_part != -1 && it->ts_part != event_part)
+
+#define APPLY_TIMESTAMP_SLOPE_SKIP(ts_part, event_part)	\
+      (it->ts_part != -1 && it->ts_part != (event_part))
+
     if (APPLY_TIMESTAMP_SLOPE_SKIP(proc, a_header.i_procid)) continue;
     if (APPLY_TIMESTAMP_SLOPE_SKIP(ctrl, a_header.h_control)) continue;
     if (APPLY_TIMESTAMP_SLOPE_SKIP(crate, a_header.h_subcrate)) continue;
-    if (APPLY_TIMESTAMP_SLOPE_SKIP(tsid, a_tsid)) continue;
+    if (APPLY_TIMESTAMP_SLOPE_SKIP(tsid, (int) a_tsid)) continue;
     if (found_hit) {
       ERROR("Several time-slope matches for event, please be more specific.");
     }
@@ -462,6 +470,65 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
   return true;
 }
 
+int get_wr_id(FILE_INPUT_EVENT *src_event)
+{
+  if (src_event->_nsubevents < 1)
+    ERROR("No subevents, cannot get a WR time stamp.");
+
+  typedef __typeof__(*src_event->_subevents) subevent_t;
+
+  subevent_t *subevent_info = &src_event->_subevents[0 /* subevent */];
+
+  char *start;
+  char *end;
+
+  src_event->get_subevent_data_src(subevent_info,start,end);
+
+  // The timestamp info is as 32-bit words, so we need only care about
+  // swapping.
+
+  uint32_t *data     = (uint32_t *) start;
+  uint32_t *data_end = (uint32_t *) end;
+
+  if (data + 1 > data_end)
+    ERROR("First subevent does not have data enough for WR time stamp branch"
+	  " id.");
+
+  int swapping = src_event->_swapping;
+
+  uint32_t error_branch_id = SWAPPING_BSWAP_32(data[0]);
+
+  if (error_branch_id & WR_STAMP_EBID_UNUSED)
+    ERROR("Unused bits set in WR time stamp branch ID word: 0x%08x "
+	  "(full: 0x%08x).",
+	  error_branch_id & WR_STAMP_EBID_UNUSED,
+	  error_branch_id);
+
+  /* Even if we only want to get the ID, make sure the rest of the data
+   * is fine too.
+   */
+
+  if (data + 5 > data_end)
+    ERROR("First subevent does not have data enough "
+	  "for WR time stamp values.");
+
+  uint32_t id      = SWAPPING_BSWAP_32(data[0]);
+  uint32_t ts_0_16 = SWAPPING_BSWAP_32(data[1]);
+  uint32_t ts_1_16 = SWAPPING_BSWAP_32(data[2]);
+  uint32_t ts_2_16 = SWAPPING_BSWAP_32(data[3]);
+  uint32_t ts_3_16 = SWAPPING_BSWAP_32(data[4]);
+
+  if ((ts_0_16 & WR_STAMP_DATA_ID_MASK) != WR_STAMP_DATA_0_16_ID ||
+      (ts_1_16 & WR_STAMP_DATA_ID_MASK) != WR_STAMP_DATA_1_16_ID ||
+      (ts_2_16 & WR_STAMP_DATA_ID_MASK) != WR_STAMP_DATA_2_16_ID ||
+      (ts_3_16 & WR_STAMP_DATA_ID_MASK) != WR_STAMP_DATA_3_16_ID)
+    ERROR("WR time stamp word has wrong marker.  "
+	  "(0x%08x 0x%08x 0x%08x 0x%08x)",
+	  ts_0_16, ts_1_16, ts_2_16, ts_3_16);
+
+  return (id & WR_STAMP_EBID_BRANCH_ID_MASK) >> 8;
+}
+
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 		      uint64_t *timestamp,
 		      ssize_t *ts_align_index)
@@ -537,6 +604,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
       ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
       (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
       (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
+
   apply_timestamp_slope(subevent_info->_header, id, *timestamp);
 
   return true;
@@ -651,6 +719,14 @@ int do_check_merge_event_after(const merge_event_order *prev,
 
       if (x->_event->_unpack.event_no == prev->event_no)
 	return MERGE_EVENTS_ERROR_ORDER_SAME;
+
+      /* We allow previous event to be within a large range,
+       * in case the wrapping was preceeded by some skipping.
+       */
+      if (x->_event->_unpack.event_no == 0 &&
+	  (prev->event_no & 0xff000000) == 0xff000000)
+	return 0;
+
       return MERGE_EVENTS_ERROR_ORDER_BEFORE;
     case MERGE_EVENTS_MODE_TITRIS_TIME:
     case MERGE_EVENTS_MODE_WR_TIME:
@@ -1377,7 +1453,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 }
 #endif
 
-template<typename T_event_base>
+template<typename T_event_base,int account>
 void ucesb_event_loop::unpack_event(T_event_base &eb)
 {
   eb._unpack_fail._prev = eb._unpack_fail._this = eb._unpack_fail._next = NULL;
@@ -1467,12 +1543,12 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 	{
 	  if (scramble)
 	    {
-	      __data_src<1,1> src(start,end);
+	      __data_src<1,1,account> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	  else
 	    {
-	      __data_src<1,0> src(start,end);
+	      __data_src<1,0,account> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	}
@@ -1480,12 +1556,12 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 	{
 	  if (scramble)
 	    {
-	      __data_src<0,1> src(start,end);
+	      __data_src<0,1,account> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	  else
 	    {
-	      __data_src<0,0> src(start,end);
+	      __data_src<0,0,account> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	}
@@ -1493,17 +1569,17 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 #ifdef USE_HLD_INPUT
       if (subevent_info->_swapping)
 	{
-	  __data_src<1,0> src(start,end);
+	  __data_src<1,0,account> src(start,end);
 	  unpack_subevent(eb,&subevent_info->_header,src,start);
 	}
       else
 	{
-	  __data_src<0,0> src(start,end);
+	  __data_src<0,0,account> src(start,end);
 	  unpack_subevent(eb,&subevent_info->_header,src,start);
 	}
 #endif
 #ifdef USE_RIDF_INPUT
-      __data_src<0,0> src(start,end);
+      __data_src<0,0,account> src(start,end);
       unpack_subevent(eb,&subevent_info->_header,src,start);
 #endif
     }
@@ -1524,13 +1600,13 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 
   if (src_event->_swapping)
     {
-      __data_src<1> src(start,end);
+      __data_src<1,account> src(start,end);
 
       unpack_subevent(eb,&src_event->_header,src,start);
     }
   else
     {
-      __data_src<0> src(start,end);
+      __data_src<0,account> src(start,end);
 
       unpack_subevent(eb,&src_event->_header,src,start);
     }
@@ -1541,9 +1617,13 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 
 // Force instantiation
 template
-void ucesb_event_loop::unpack_event<event_base>(event_base &eb);
+void ucesb_event_loop::unpack_event<event_base,0>(event_base &eb);
 template
-void ucesb_event_loop::unpack_event<sticky_event_base>(sticky_event_base &eb);
+void ucesb_event_loop::unpack_event<event_base,1>(event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base,0>(sticky_event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base,1>(sticky_event_base &eb);
 
 void ucesb_event_loop::force_event_data(event_base &eb
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)

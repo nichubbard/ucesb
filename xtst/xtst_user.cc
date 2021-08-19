@@ -164,6 +164,36 @@ int user_function(unpack_event *event)
   return 1;
 }
 
+void raw_user_function(unpack_event *unpack_event,
+		       raw_event *raw_event)
+{
+  for (int j = 0; j < 16; j++)
+    {
+      for (int i = 1; i <= 4; i++)
+	{
+	  WR_STAMP *wrstamp = &(unpack_event->regress[j].wr[i]);
+
+	  if (wrstamp->srcid.value == i)
+	    {
+	      raw_event->tstamp_srcid = i;
+	      raw_event->tstamp_lo =
+		(wrstamp->t2.value << 16) | wrstamp->t1.value;
+	      raw_event->tstamp_hi =
+		(wrstamp->t4.value << 16) | wrstamp->t3.value;
+	    }
+	}
+    }
+
+  /*
+  fprintf (stderr,
+	   "TS: %08x %08x:%08x\n",
+	   raw_event->tstamp_srcid,
+	   raw_event->tstamp_hi,
+	   raw_event->tstamp_lo);
+  */
+}
+
+
 #endif//UNPACKER_IS_xtst
 
 #ifdef UNPACKER_IS_xtst_toggle

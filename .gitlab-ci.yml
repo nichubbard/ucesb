@@ -13,12 +13,14 @@ stages:
 .docker: &docker
   tags:
     - docker
+  retry: 1
 
 # User-mode emulation, requires binfmt_misc to be set up
 .qemu: &qemu
   tags:
     - docker
     - binfmt
+  retry: 1
 
 ###
 # Build rules, these contain the 'script'
@@ -111,9 +113,9 @@ stages:
         software-properties-common wget m4 help2man > /dev/null
     - add-apt-repository ppa:ubuntu-toolchain-r/test > /dev/null
     - apt-get update -yq > /dev/null
-    - apt-get install -y gcc-6 g++-6 > /dev/null
-    - export CC=gcc-6
-    - export CXX=g++-6
+    - apt-get install -y gcc g++ > /dev/null
+    - export CC=gcc
+    - export CXX=g++
     - export FLEXURL=https://github.com/westes/flex/releases/download
     - wget ${FLEXURL}/v${FLEX}/flex-${FLEX}.tar.gz > /dev/null
     - tar -xf flex-${FLEX}.tar.gz
@@ -152,21 +154,26 @@ stages:
   variables:
     PORT: "2222"
 
+# -device e1000 not working for arm
 .qemu-system-arm: &qemu-system-arm
   image: munken/qemu:arm
   before_script:
     - qemu-system-arm -M vexpress-a9 -kernel /qemu/vmlinuz-3.2.0-4-vexpress
         -initrd /qemu/initrd.img-3.2.0-4-vexpress -drive
         if=sd,file=/qemu/debian_wheezy_armhf_apt.qcow2 -append
-        "root=/dev/mmcblk0p2" -redir tcp:2222::22 -m 512 -monitor
-        unix:/tmp/monitor,server,nowait -daemonize -display none
+        "root=/dev/mmcblk0p2" -m 512
+        -redir tcp:2222::22
+        -monitor unix:/tmp/monitor,server,nowait
+        -daemonize -display none
   <<: *qemu-system
 
 .qemu-system-ppc: &qemu-system-ppc
   image: munken/qemu:ppc
   before_script:
-    - qemu-system-ppc -hda /qemu/debian_wheezy_powerpc_gcc.qcow2 -redir
-        tcp:${PORT}::22 -m 512 -monitor unix:/tmp/monitor,server,nowait
+    - qemu-system-ppc -hda /qemu/debian_wheezy_powerpc_gcc.qcow2 -m 512
+        -device e1000,netdev=net0
+        -netdev user,id=net0,hostfwd=tcp::${PORT}-:22
+        -monitor unix:/tmp/monitor,server,nowait
         -daemonize -display none
   <<: *qemu-system
 
@@ -384,15 +391,15 @@ Ubuntu Xenial clang clang++ all:
   <<: *docker
   <<: *build  
 
-Xenial root6 gcc-6 g++-6 all flex 2.6.1:
+Xenial root6 gcc g++ all flex 2.6.1:
   stage: build
-  image: munken/root:xenial-root6
+  image: munken/root2:ubuntu-xenial
   <<: *docker
   <<: *ubuntu-gcc6
 
-Xenial root6 gcc-6 g++-6 all flex 2.6.2:
+Xenial root6 gcc g++ all flex 2.6.2:
   stage: build
-  image: munken/root:xenial-root6
+  image: munken/root2:ubuntu-xenial
   <<: *docker
   <<: *ubuntu-gcc6
 
@@ -422,19 +429,24 @@ Ubuntu Disco clang clang++ all:
 
 Arch minimal gcc g++ all:
   stage: build
-  image: archlinux/base
+  # also see drasi CI for more archlinux fixes
+  image: archlinux/archlinux:base
   before_script:
-    - pacman -Syu --noconfirm
-    - pacman -S base-devel git flex bison ncurses --noconfirm --needed
+    # - pacman -Syu --noconfirm
+    # - pacman -S base-devel git flex bison ncurses --noconfirm --needed
+    # - pacman/arch broken, workaround: combine into one command
+    - pacman -Syu --noconfirm --needed base-devel git flex bison ncurses
   <<: *docker
   <<: *build
 
 Arch minimal clang clang++ all:
   stage: build
-  image: archlinux/base
+  image: archlinux/archlinux:base
   before_script:
-    - pacman -Syu --noconfirm
-    - pacman -S base-devel git flex bison ncurses clang --noconfirm --needed
+    # - pacman -Syu --noconfirm
+    # - pacman -S base-devel git flex bison ncurses clang --noconfirm --needed
+    # - pacman/arch broken, workaround: combine into one command
+    - pacman -Syu --noconfirm --needed base-devel git flex bison ncurses clang
   <<: *docker
   <<: *build
 
@@ -444,7 +456,43 @@ gcc-latest minimal gcc g++ all:
   <<: *docker
   <<: *debian
 
-Debian Jessie gcc g++ all:
+Debian buster gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-buster-gcc
+  <<: *docker
+  <<: *build
+
+Debian buster clang clang++ all:
+  stage: build
+  image: munken/build-essential:debian-buster-clang
+  <<: *docker
+  <<: *build
+
+Debian stretch gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-stretch-gcc
+  <<: *docker
+  <<: *build
+
+Debian stretch clang clang++ all:
+  stage: build
+  image: munken/build-essential:debian-stretch-clang
+  <<: *docker
+  <<: *build
+
+Debian stretch clang-7 clang++-7 all:
+  stage: build
+  image: munken/build-essential:debian-stretch-clang-7
+  <<: *docker
+  <<: *build
+
+Debian stretch clang-8 clang++-8 all:
+  stage: build
+  image: munken/build-essential:debian-stretch-clang-8
+  <<: *docker
+  <<: *build
+
+Debian jessie gcc g++ all:
   stage: build
   image: munken/build-essential:debian-jessie-gcc
   <<: *docker

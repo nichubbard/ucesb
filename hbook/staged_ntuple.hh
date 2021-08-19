@@ -82,13 +82,14 @@ public:
   external_writer *get_ext() { return _ext; }
 
 public:
-  void open_x(const char *filename,
+  void open_xx(const char *filename,
 	      const char *ftitle,
 	      int ntuple_type,
 	      int ntuple_opt,
 	      int server_port = -1,
 	      int timeslice = 0, int timeslice_subdir = 0,
 	      int autosave = 0,
+	      int ts_merge_window = 0,
 	      uint sort_u32_words = 0);
   void stage_x(vect_ntuple_items &list,int hid,
 	       const char *id, const char *title,

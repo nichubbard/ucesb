@@ -81,6 +81,7 @@ int ext_data_clnt::nonblocking_fd()
 int ext_data_clnt::setup(const void *struct_layout_info,
 			 size_t size_info,
 			 ext_data_struct_info *struct_info,
+			 uint32_t *struct_map_success,
 			 size_t size_buf,
 			 const char *name_id, int *struct_id)
 {
@@ -89,7 +90,9 @@ int ext_data_clnt::setup(const void *struct_layout_info,
     (struct ext_data_structure_info *) struct_info->_info : NULL;
 
   return ext_data_setup((ext_data_client *) _client,
-			struct_layout_info,size_info,si,size_buf,
+			struct_layout_info, size_info,
+			si, struct_map_success,
+			size_buf,
 			name_id, struct_id);
 }
 
@@ -153,6 +156,7 @@ int ext_data_clnt_stderr::nonblocking_fd()
 int ext_data_clnt_stderr::setup(const void *struct_layout_info,
 				size_t size_info,
 				ext_data_struct_info *struct_info,
+				uint32_t *struct_map_success,
 				size_t size_buf,
 				const char *name_id, int *struct_id)
 {
@@ -161,8 +165,10 @@ int ext_data_clnt_stderr::setup(const void *struct_layout_info,
     (struct ext_data_structure_info *) struct_info->_info : NULL;
 
   return ext_data_setup_stderr((ext_data_client *) _client,
-			       struct_layout_info,size_info,si,size_buf,
-			       name_id,struct_id);
+			       struct_layout_info, size_info,
+			       si, struct_map_success,
+			       size_buf,
+			       name_id, struct_id);
 }
 
 int ext_data_clnt_stderr::next_event(int *struct_id)

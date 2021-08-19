@@ -31,3 +31,23 @@ void encode_spec::dump(dumper &d) const
   dump_list_paren(_args,d,"()");
   d.text(");");
 }
+
+void encode_cond::dump(dumper &d) const
+{
+  bool recursive = true;
+
+  d.text("if(");
+  _expr->dump(d);
+  d.text(")");
+  d.nl();
+  if (recursive)
+    dump_list_braces(_items,d);
+  if (_items_else)
+    {
+      d.nl();
+      d.text("else");
+      d.nl();
+      if (recursive)
+	dump_list_braces(_items_else,d);
+    }
+}

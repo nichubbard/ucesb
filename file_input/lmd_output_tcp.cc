@@ -355,12 +355,33 @@ lmd_output_stream *lmd_output_state::get_next_client_stream(lmd_output_stream *s
 
   lmd_output_stream *next_stream = stream->_next;
 
+  time_t now = (_dropold ? time(NULL) : 0);
+
   // See if we have to skip forward through the streams...
   for ( ; next_stream; next_stream = next_stream->_next)
     {
+      /* If we wnt to drop buffers that have become too old, we
+       * only consider dropping buffers that are not recovery
+       * buffers.  Recovery buffers will be skipped further down.
+       */
+      if (_dropold &&
+	  !(next_stream->_flags & LOS_FLAGS_STICKY_RECOVERY_MASK))
+	{
+	  /* How old is the buffer? */
+
+	  time_t age = now - next_stream->_created;
+
+	  if (age > _dropold)
+	    {
+	      //printf ("drop.\n");
+	      goto prepare_skip;
+	    }
+	}
+
       if (_sendonce &&
 	  next_stream->_clients)
 	{
+	prepare_skip:
 	  if (next_stream->_flags & LOS_FLAGS_HAS_STICKY_EVENT)
 	    {
 	      WARNING("Sendonce and sticky events gives lousy performance!  "
@@ -653,7 +674,8 @@ bool lmd_output_client_con::after_select(fd_set *readfds,fd_set *writefds,
       if (_server_con->_data_port != -1)
 	{
 	  // We use the dummy field to transmit the port number
-	  info.streams = LMD_PORT_MAP_MARK | _server_con->_data_port;
+	  info.streams =
+	    LMD_TCP_INFO_STREAMS_PORT_MAP_MARK | _server_con->_data_port;
 	}
 
 
@@ -1748,6 +1770,8 @@ void lmd_output_tcp::get_buffer()
   _state._fill_stream->_max_fill =
     _state._stream_bufs * _state._buf_size;
 
+  _state._fill_stream->_created = time(NULL);
+
   _cur_buf_start = (uint8 *) _state._fill_stream->_bufs;
   _cur_buf_length = _state._buf_size;
 
@@ -1846,6 +1870,7 @@ void lmd_server_usage()
   printf ("trans[:PORT]        Transport server protocol.\n");
   printf ("flush=N             Flush interval (s).\n");
   printf ("hold                Wait for clients, no data discarded.\n");
+  printf ("dropold=N           Drop buffers older than N s.\n");
   printf ("sendonce            Only one receiver per stream, for fan-out.\n");
   printf ("forcemap            No data transmission on fixed port (avoid timeout on bind).\n");
   printf ("nopmap              Do not provide port mapping port.\n");
@@ -1903,6 +1928,8 @@ lmd_output_tcp *parse_open_lmd_server(const char *command)
 	out_tcp->_hold = true;
       else if (MATCH_C_ARG("sendonce"))
 	out_tcp->_state._sendonce = true;
+      else if (MATCH_C_PREFIX("dropold=",post))
+	out_tcp->_state._dropold = atoi(post);
       else if (MATCH_C_ARG("forcemap"))
 	forcemap = true;
       else if (MATCH_C_ARG("nopmap"))

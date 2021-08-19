@@ -90,7 +90,8 @@ inline void display_range_bins(watcher_display_info& info,
 	      ((j + DRB_OUTPUT_WIDTH) * NUM_WATCH_STAT_RANGE_BINS) / width);
       */
       for (int bin = (j * NUM_WATCH_STAT_RANGE_BINS) / width;
-	   bin < ((j + DRB_OUTPUT_WIDTH) * NUM_WATCH_STAT_RANGE_BINS) / width; bin++)
+	   bin < ((j + DRB_OUTPUT_WIDTH) * NUM_WATCH_STAT_RANGE_BINS) / width;
+	   bin++)
 	{
 	  watch_stat_range_bin &stat = data->_bins[range][bin];
 
@@ -165,11 +166,11 @@ void watcher_channel::collect_raw(uint raw,uint type,
 	bin = 0;
       else
 	bin = 1 + (int) ((log(value) * (double) (NUM_WATCH_BINS-1)) /
-			 log(_max + 1));
+			 log((double) _max + 1.0));
     }
   else
-    bin = (int) (((value - _min) * (double) NUM_WATCH_BINS) /
-		 ((double)_max - _min + 1));
+    bin = (int) ((((double) value - (double) _min) * (double) NUM_WATCH_BINS) /
+		 ((double) _max - (double) _min + 1.0));
 
   _range_hit[range] = HI_LOW_HYSTERESIS;
   _data[type]._bins[range][bin]++;
@@ -182,11 +183,12 @@ void watcher_channel::collect_raw(uint raw,uint type,
 	    bin = 0;
 	  else
 	    bin = (int) ((log(value) * (double) NUM_WATCH_STAT_RANGE_BINS) /
-			 log(_max + 1));
+			 log((double) _max + 1.0));
 	}
       else
-	bin = (int) (((value - _min) * (double) NUM_WATCH_STAT_RANGE_BINS) /
-		     (_max - _min + 1));
+	bin = (int) ((((double) value - (double) _min) *
+		      (double) NUM_WATCH_STAT_RANGE_BINS) /
+		     ((double) _max - (double) _min + 1.0));
 
       watch_stat_range_bin &stat = _stat_range._bins[range][bin];
 

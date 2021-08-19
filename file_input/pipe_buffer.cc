@@ -179,8 +179,8 @@ void *pipe_buffer::reader()
 
     buffer_full:
       /*
-      printf ("_avail: %08x  _done: %08x  _size: %08x  (need_signal:%d)\n",
-	      _avail,_done,_size,_reader_needs_signal);
+      printf ("_avail: %08zx  _done: %08zx  _size: %08zx  (need_wakeup:%d)\n",
+	      _avail,_done,_size,_need_consumer_wakeup != NULL);
       */
       // int n = select(nfds+1,&rfds,NULL);
 

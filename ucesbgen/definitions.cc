@@ -81,34 +81,34 @@ void insert_signal_to_all(signal_spec *signal)
 		       "Several signals with name (without toggle): %s (0x%x, 0x%x)\n",
 		       signal->_name, found->_tag, signal->_tag);
 
-	if (signal->_tag & found->_tag & SIGNAL_TAG_TOGGLE_MASK)
+      if (signal->_tag & found->_tag & SIGNAL_TAG_TOGGLE_MASK)
 	ERROR_LOC_PREV(signal->_loc, found->_loc,
 		       "Several signals with name "
 		       "(with overlapping toggle): %s\n",
 		       signal->_name);
 	
-	if ((signal->_tag ^ found->_tag) & ~(SIGNAL_TAG_TOGGLE_MASK))
-	  ERROR_LOC_PREV(signal->_loc, found->_loc,
-			 "Several signals with name (with toggle) "
-			 "have mismatched tags: %s (0x%x, 0x%x)\n",
-			 signal->_name, found->_tag, signal->_tag);
+      if ((signal->_tag ^ found->_tag) & ~(SIGNAL_TAG_TOGGLE_MASK))
+	ERROR_LOC_PREV(signal->_loc, found->_loc,
+		       "Several signals with name (with toggle) "
+		       "have mismatched tags: %s (0x%x, 0x%x)\n",
+		       signal->_name, found->_tag, signal->_tag);
 
-	/* We have additional toggles.  So insert them. */
-	/*
+      /* We have additional toggles.  So insert them. */
+      /*
 	fprintf (stderr, "%p %p %p %p\n",
 		 found->_ident[0],found->_ident[1],
 		 signal->_ident[0],signal->_ident[1]);
-	*/
-	for (int i = 0; i < MAX_NUM_TOGGLE; i++)
-	  if (signal->_ident[i])
-	    {
-	      assert(!found->_ident[i]);
-	      found->_ident[i] = signal->_ident[i];
-	    }
+      */
+      for (int i = 0; i < MAX_NUM_TOGGLE; i++)
+	if (signal->_ident[i])
+	  {
+	    assert(!found->_ident[i]);
+	    found->_ident[i] = signal->_ident[i];
+	  }
 
-	found->_tag |= signal->_tag;
+      found->_tag |= signal->_tag;
 	
-	return;
+      return;
     }
 
   all_signals.insert(signal_map::value_type(signal->_name,

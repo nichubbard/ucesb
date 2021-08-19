@@ -1,6 +1,6 @@
-/* This file is part of UCESB - a tool for data unpacking and processing.
+/* This file is part of DRASI - a data acquisition data pump.
  *
- * Copyright (C) 2016  Haakan T. Johansson  <f96hajo@chalmers.se>
+ * Copyright (C) 2017  Haakan T. Johansson  <f96hajo@chalmers.se>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,29 +18,26 @@
  * MA  02110-1301  USA
  */
 
-#ifndef __CONTROL_HH__
-#define __CONTROL_HH__
+#ifndef __FORMAT_PREFIX_H__
+#define __FORMAT_PREFIX_H__
 
-#ifdef UNPACKER_IS_xtst
+#include <stdint.h>
+#include <stdlib.h>
 
-#define INIT_USER_FUNCTION    init_function
+/********************************************************************/
 
-#define STICKY_SUBEVENT_USER_FUNCTION    sticky_subevent_user_function
+typedef struct format_diff_info_t
+{
+  uint8_t _prefix;
+  uint8_t _prefix_age;
+} format_diff_info;
 
-#define UNPACK_EVENT_USER_FUNCTION    user_function
+/********************************************************************/
 
-#define RAW_EVENT_USER_FUNCTION       raw_user_function
+void format_prefix(char *buf, size_t size,
+		   double val, int max_width,
+		   format_diff_info *info);
 
-#define USING_TSTAMP 1
+/********************************************************************/
 
-#endif//UNPACKER_IS_xtst
-
-#ifdef UNPACKER_IS_xtst_toggle
-
-#define UNPACK_EVENT_USER_FUNCTION  user_function_multi
-
-#define USING_MULTI_EVENTS 1
-
-#endif//UNPACKER_IS_xtst_toggle
-
-#endif//__CONTROL_HH__
+#endif/*__FORMAT_PREFIX_H__*/

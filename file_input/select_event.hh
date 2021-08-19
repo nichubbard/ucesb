@@ -28,6 +28,8 @@
 
 #include <vector>
 
+struct lmd_event;
+
 struct select_event_request_item
 {
   int _offset;
@@ -45,7 +47,8 @@ public:
   int add_item(const char *cmd);
 
 public:
-  bool match(const void *ptr) const;
+  bool match(lmd_event *event,
+	     const void *ptr) const;
 };
 
 #define SELECT_FLAG_INCLUDE   0x0001
@@ -70,8 +73,10 @@ public:
   void add_item(const select_event_request &item,bool incl,
 		const char *command);
 
-  bool match(const void *ptr) const;
-  bool accept(const void *ptr) const;
+  bool match(lmd_event *event,
+	     const void *ptr) const;
+  bool accept(lmd_event *event,
+	      const void *ptr) const;
 };
 
 
@@ -104,12 +109,17 @@ public:
 
 
 public:
-  bool accept_event(const lmd_event_10_1_host *header) const;
+  bool accept_event(lmd_event *event,
+		    const lmd_event_10_1_host *header) const;
   bool accept_subevent(const lmd_subevent_10_1_host *header) const;
 
   bool accept_final_event(lmd_event_out *event) const;
 
-
 };
+
+#if defined(USE_LMD_INPUT)
+// Implemented in event_loop.cc
+int get_wr_id(lmd_event *event);
+#endif
 
 #endif//__SELECT_EVENT_HH__

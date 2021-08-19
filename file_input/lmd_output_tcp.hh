@@ -60,7 +60,7 @@ struct lmd_output_buffer
 					    LOS_FLAGS_STICKY_RECOVERY_MORE)
 // This stream contains sticky events
 #define LOS_FLAGS_HAS_STICKY_EVENT          0x04
-// If a client is about to go beyond this stream, them it will
+// If a client is about to go beyond this stream, then it will
 // loose sticky events, so it needs to find a recovery stream. 
 #define LOS_FLAGS_STICKY_LOST_AFTER         0x08
 
@@ -75,6 +75,8 @@ struct lmd_output_stream
   size_t _filled;   // only increased by the filling routine
   size_t _max_fill; // more than this will never be filled (may only
 		    // decrease while active filling)
+
+  time_t _created;  // time of creation
 
   int    _clients;  // number of clients sending from this buffer
 
@@ -163,6 +165,7 @@ struct lmd_output_state
   // Each buffer (stream) is only sent to one receiver, useful for
   // fanout to multiple processing instances.
   bool _sendonce;
+  int  _dropold;
 
 public:
   uint32 _buf_size;
@@ -339,6 +342,7 @@ public:
 
     _hold = false;
     _state._sendonce = false;
+    _state._dropold = 0;
 
     _flush_interval = 10; // flush every 10s by default
   }

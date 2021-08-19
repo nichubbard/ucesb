@@ -26,7 +26,7 @@ FLEX_PATCH_PIPELINE=\
 	  -e "s/yy_create_buffer\(.*\),\(.*\)int\(.*\)size/yy_create_buffer\\1,\\2yy_size_t\\3size/" \
 	  -e "s/scan_bytes(\(.*\), *len *);/scan_bytes( \\1, (size_t) len );/" \
 	  -e "s/scan_bytes(\(.*\), *(int) *strlen\(.*\));/scan_bytes( \\1, strlen \\2);/" \
-	  -e "s/\(\s*\)\(.*\) offset = \(.*\);/\\1\\2 offset = (\\2) (\\3);/" \
+	  -e "s/\([[:space:]]*\)\(.*\) offset = \(.*\);/\\1\\2 offset = (\\2) (\\3);/" \
 	  -e "s/return (int) \(.*\);/return \\1;/" \
 	  -e "s/find_rule:/goto find_rule; find_rule:/" \
 # intentionally empty
@@ -35,3 +35,5 @@ FLEX_PATCH_PIPELINE=\
 #	  -e "s/int offset =/size_t offset =/"
 #	  -e "s/int number_to_move =/int number_to_move = (int)/"
 #	  -e "s/i < _yybytes_len/i < (int) _yybytes_len/"
+
+# Note: above: using [[:space:]] instead of \s to avoid sed error in FreeBSD.

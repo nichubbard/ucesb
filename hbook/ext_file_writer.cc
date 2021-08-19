@@ -225,6 +225,8 @@ struct stage_array
   size_t _length;
   char*  _ptr;
 
+  // char*  _merge_ptr;
+
 #if STRUCT_WRITER
   uint32_t *_offset_value;
 
@@ -238,14 +240,6 @@ struct stage_array
 #else
   stage_array_item_vector _items_v;
 #endif
-};
-
-struct offset_array
-{
-  size_t    _length; // in uint32_t words
-  uint32_t* _ptr;
-  uint32_t  _static_items;
-  uint32_t  _max_items;
 };
 
 #if USING_ROOT
@@ -755,6 +749,18 @@ void request_named_string(void *msg,uint32_t *left)
 
 void full_write(int fd,const void *buf,size_t count);
 
+void merge_all_remaining()
+{
+  for (global_struct_vector::iterator iter = _structures.begin();
+       iter != _structures.end(); ++iter)
+    {
+      global_struct *s = *iter;
+
+      ext_merge_sort_all(&s->_offset_array,
+			 s->_stage_array._length);
+    }
+}
+
 void close_structure(global_struct *s, size_t *num_trees)
 {
 #if USING_CERNLIB
@@ -897,6 +903,12 @@ void request_alloc_array(void *msg,uint32_t *left)
 
   memset(s->_stage_array._ptr,0,s->_stage_array._length);
 
+  // TODO: This is only used when merging (time stitching).
+  // For now: be lazy and always allocate it.
+  // s->_stage_array._merge_ptr = (char*) malloc(size);
+  // if (!s->_stage_array._merge_ptr)
+  //   ERR_MSG("Failure allocating merge array with size %d.",size);
+
 #if STRUCT_WRITER
   if (s->_stage_array._length < (1 << (4 + 2)))
     s->_stage_array._rewrite_max_bytes_per_item = 5;
@@ -909,7 +921,7 @@ void request_alloc_array(void *msg,uint32_t *left)
   else
     s->_stage_array._rewrite_max_bytes_per_item = 9;
 
-  s->_stage_array._offset_value = (uint32_t*) malloc(size*2);
+  s->_stage_array._offset_value = (uint32_t*) malloc(size/* *2 */);
 
   if (!s->_stage_array._ptr)
     ERR_MSG("Failure allocating offset/value array with size %d.",size*2);
@@ -987,6 +999,13 @@ void request_array_offsets(void *msg,uint32_t *left)
   s->_offset_array._static_items = 0;
   s->_offset_array._max_items = 0;
 
+  s->_offset_array._poffset_ts_lo    = (uint32_t) -1;
+  s->_offset_array._poffset_ts_hi    = (uint32_t) -1;
+  s->_offset_array._poffset_ts_srcid = (uint32_t) -1;
+  s->_offset_array._poffset_meventno = (uint32_t) -1;
+  s->_offset_array._poffset_mrg_stat = (uint32_t) -1;
+  s->_offset_array._poffset_mrg_mask = (uint32_t) -1;
+
   // MSG ("offsets: %d \n", _offset_array._length);
 
   if (!s->_offset_array._ptr)
@@ -1000,6 +1019,11 @@ void request_array_offsets(void *msg,uint32_t *left)
 
   uint32_t *d    = s->_offset_array._ptr;
 
+  uint32_t p_offset = 0;
+  bool had_loop = false;
+
+  bool expect_mind_loop2 = false;
+
   // We reset the entire stage array, to use that to verify that each
   // item is used once
 
@@ -1009,10 +1033,15 @@ void request_array_offsets(void *msg,uint32_t *left)
 
   while (o < oend)
     {
-      uint32_t offset_mark = *(d++) = ntohl(*(o++));
-      uint32_t offset = offset_mark & 0x3fffffff;
+      uint32_t mark   = *(d++) = ntohl(*(o++));
+      uint32_t offset = *(d++) = ntohl(*(o++));
 
       // MSG("Offset entry @ %d : %d",(int) (o - (uint32_t *) msg)-1,offset);
+
+      if ((mark & EXTERNAL_WRITER_MARK_CANARY_MASK) !=
+	  EXTERNAL_WRITER_MARK_CANARY)
+	ERR_MSG("Mark entry @ %zd has bad canary (%" PRIx32 ").",
+		(o - (uint32_t *) msg)-2,mark);
 
       if (offset >= s->_stage_array._length)
 	ERR_MSG("Offset entry @ %zd is outside (%" PRIu32 ") stage array "
@@ -1025,58 +1054,183 @@ void request_array_offsets(void *msg,uint32_t *left)
       (*((uint32_t *) (s->_stage_array._ptr + offset)))++;
       s->_offset_array._static_items++;
 
-      // MSG ("offset: %d %c",offset,(offset_mark & 0x80000000) ? '*' : ' ');
-
-      if (offset_mark & 0x80000000)
+      if ((mark & (EXTERNAL_WRITER_MARK_TS_LO |
+		   EXTERNAL_WRITER_MARK_TS_HI |
+		   EXTERNAL_WRITER_MARK_TS_SRCID |
+		   EXTERNAL_WRITER_MARK_MEVENTNO |
+		   EXTERNAL_WRITER_MARK_MRG_STAT |
+		   EXTERNAL_WRITER_MARK_MRG_MASK)) &&
+	  had_loop)
 	{
-	  if (!(offset_mark & 0x40000000))
-	    ERR_MSG("Offset ctrl entry @ %zd marker says clean float.",
-		    (o - (uint32_t *) msg)-1);
+	  /* The offset to the item in the raw (before stage) data
+	   * could vary due to loops.  Offset would be jumping around.
+	   */
+	  ERR_MSG("Mark entry @ %zd has merge info (%08x) after loop item, "
+		  "offset not fixed.",
+		  (o - (uint32_t *) msg)-2, mark);
+	}
+
+      if (mark & EXTERNAL_WRITER_MARK_TS_LO)
+	s->_offset_array._poffset_ts_lo = p_offset;
+      if (mark & EXTERNAL_WRITER_MARK_TS_HI)
+	s->_offset_array._poffset_ts_hi = p_offset;
+      if (mark & EXTERNAL_WRITER_MARK_TS_SRCID)
+	s->_offset_array._poffset_ts_srcid = p_offset;
+      if (mark & EXTERNAL_WRITER_MARK_MEVENTNO)
+	s->_offset_array._poffset_meventno = p_offset;
+      if (mark & EXTERNAL_WRITER_MARK_MRG_STAT)
+	s->_offset_array._poffset_mrg_stat = p_offset;
+      if (mark & EXTERNAL_WRITER_MARK_MRG_MASK)
+	s->_offset_array._poffset_mrg_mask = p_offset;
+
+      if (!(mark & EXTERNAL_WRITER_MARK_LOOP) &&
+	  (mark & (EXTERNAL_WRITER_MARK_ARRAY_IND1 |
+		   EXTERNAL_WRITER_MARK_ARRAY_MIND)))
+	ERR_MSG("Mark entry @ %zd has loop specialisation info (%08x) "
+		"but is not loop control.",
+		(o - (uint32_t *) msg)-2, mark);
+
+      if ((mark & EXTERNAL_WRITER_MARK_LOOP) &&
+	  (mark & (EXTERNAL_WRITER_MARK_ITEM_INDEX |
+		   EXTERNAL_WRITER_MARK_ITEM_ENDNUM)))
+	ERR_MSG("Mark entry @ %zd has array index item info (%08x) "
+		"but is loop control.",
+		(o - (uint32_t *) msg)-2, mark);
+
+      if (expect_mind_loop2 &&
+	  !(mark & EXTERNAL_WRITER_MARK_LOOP))
+	{
+	  ERR_MSG("Mark entry @ %zd expected to be 2nd loop after m-ind loop, "
+		  "but is not loop control (%08x).",
+		  (o - (uint32_t *) msg)-2, mark);
+	}
+
+      bool loop_mark_array_ind1 = !!(mark & EXTERNAL_WRITER_MARK_ARRAY_IND1);
+      bool loop_mark_array_mind = !!(mark & EXTERNAL_WRITER_MARK_ARRAY_MIND);
+
+      // MSG ("offset: %d %c",offset,(mark & EXTERNAL_WRITER_COMPACT_PACKED) ? '*' : ' ');
+
+      p_offset++; /* No need to increment in loop, will vary. */
+
+      if (mark & EXTERNAL_WRITER_MARK_LOOP)
+	{
+	  had_loop = true;
+
+	  if (!(mark & EXTERNAL_WRITER_MARK_CLEAR_ZERO))
+	    ERR_MSG("Offset ctrl entry @ %zd=0x%zx marker "
+		    "says clean float (NaN).",
+		    (o - (uint32_t *) msg)-1,(o - (uint32_t *) msg)-1);
 
 	  if (o + 2 > oend)
-	    ERR_MSG("Offset ctrl entry @ %zd overflows array (%d).",
-		    (o - (uint32_t *) msg)-1,*left);
+	    ERR_MSG("Offset ctrl entry @ %zd=0x%zx overflows array (%d).",
+		    (o - (uint32_t *) msg)-1,(o - (uint32_t *) msg)-1,
+		    *left);
 
 	  uint32_t max_loops = *(d++) = ntohl(*(o++));
 	  uint32_t loop_size = *(d++) = ntohl(*(o++));
+
+	  if ((mark & EXTERNAL_WRITER_MARK_ARRAY_MIND) &&
+	      loop_size != 2)
+	    ERR_MSG("Mark ctrl entry @ %zd=0x%zx specifies multi-index "
+		    "loop, but loop_size (%d) != 2.",
+		    (o - (uint32_t *) msg)-4,(o - (uint32_t *) msg)-4,
+		    loop_size);
 
 	  // MSG ("               %d * %d",max_loops,loop_size);
 
 	  uint32_t items = max_loops * loop_size;
 
-	  if (o + items > oend)
-	    ERR_MSG("Offset ctrl entry @ %zd specifies controlled"
+	  if (oend - o < 2 * items)
+	    ERR_MSG("Offset ctrl entry @ %zd=0x%zx specifies controlled "
 		    "entries (%" PRIu32 " * %" PRIu32 ") overflowing array (%"
 		    PRIu32").",
-		    (o - (uint32_t *) msg)-1,max_loops,loop_size,*left);
+		    (o - (uint32_t *) msg)-1,(o - (uint32_t *) msg)-1,
+		    max_loops,loop_size,*left);
 
 	  s->_offset_array._max_items += items;
 
-	  for (int i = items; i; i--)
-	    {
-	      // Make sure there are no markers (although they would
-	      // be ignored)
+	  if (loop_size > _max_loop_size)
+	    _max_loop_size = loop_size;
 
-	      offset_mark = *(d++) = ntohl(*(o++));
-	      offset = offset_mark & 0x3fffffff;
+	  for (int l = 0; l < max_loops; l++)
+	    for (int i = 0; i < loop_size; i++)
+	      {
+		// Make sure there are no markers (although they would
+		// be ignored)
 
-	      if (offset >= s->_stage_array._length)
-		ERR_MSG("Offset entry @ %zd is outside (%" PRIu32
-			") stage array (%zd).",
-			(o - (uint32_t *) msg)-1,offset,
-			s->_stage_array._length);
-	      if (offset & 3)
-		ERR_MSG("Offset entry @ %zd is unaligned (%d).",
-			(o - (uint32_t *) msg)-1,offset);
+		mark   = *(d++) = ntohl(*(o++));
+		offset = *(d++) = ntohl(*(o++));
 
-	      (*((uint32_t *) (s->_stage_array._ptr + offset)))++;
+		if (offset >= s->_stage_array._length)
+		  ERR_MSG("Offset entry @ %zd=0x%zx is outside "
+			  "(%" PRIu32 ") stage array (%zd).",
+			  (o - (uint32_t *) msg)-1,(o - (uint32_t *) msg)-1,
+			  offset,
+			  s->_stage_array._length);
+		if (offset & 3)
+		  ERR_MSG("Offset entry @ %zd=0x%zx is unaligned (%d).",
+			  (o - (uint32_t *) msg)-1,(o - (uint32_t *) msg)-1,
+			  offset);
 
-	      if (offset_mark & 0x80000000)
-		ERR_MSG("Controlled offset array item @ %zd is marked"
-			"as control item.",(o - (uint32_t *) msg));
-	    }
+		(*((uint32_t *) (s->_stage_array._ptr + offset)))++;
+
+		if (mark & EXTERNAL_WRITER_MARK_LOOP)
+		  ERR_MSG("Controlled offset array item (%d,%d) "
+			  "@ %zd=0x%zx is marked "
+			  "(0x%08x) as control item.",
+			  l,i,
+			  (o - (uint32_t *) msg)-2,(o - (uint32_t *) msg)-2,
+			  mark);
+
+		bool mark_item_index =
+		  !!(mark & EXTERNAL_WRITER_MARK_ITEM_INDEX);
+		bool mark_item_endnum =
+		  !!(mark & EXTERNAL_WRITER_MARK_ITEM_ENDNUM);
+
+		if (mark_item_index && (i != 0))
+		  ERR_MSG("Controlled offset array item (%d,%d) "
+			  "@ %zd=0x%zx is marked "
+			  "(0x%08x) as index at non-0 index.",
+			  l,i,
+			  (o - (uint32_t *) msg)-2,(o - (uint32_t *) msg)-2,
+			  mark);
+
+		if (mark_item_endnum && (i != 1))
+		  ERR_MSG("Controlled offset array item (%d,%d) "
+			  "@ %zd=0x%zx is marked "
+			  "(0x%08x) as endnum at non-1 index.",
+			  l,i,
+			  (o - (uint32_t *) msg)-2,(o - (uint32_t *) msg)-2,
+			  mark);
+
+		if ((loop_mark_array_ind1 ||
+		     loop_mark_array_mind) && i == 0 &&
+		    !mark_item_index)
+		  ERR_MSG("Controlled offset array item (%d,%d) "
+			  "@ %zd=0x%zx is not marked "
+			  "(0x%08x) as index, "
+			  "but at index 0 of ind1/m-ind loop.",
+			  l,i,
+			  (o - (uint32_t *) msg)-2,(o - (uint32_t *) msg)-2,
+			  mark);
+
+		if (loop_mark_array_mind && i == 1 &&
+		    !mark_item_endnum)
+		  ERR_MSG("Controlled offset array item (%d,%d) "
+			  "@ %zd=0x%zx is not marked "
+			  "(0x%08x) as index, "
+			  "but at index 1 of ind1/m-ind loop.",
+			  l,i,
+			  (o - (uint32_t *) msg)-2,(o - (uint32_t *) msg)-2,
+			  mark);
+	      }
 	}
+
+      expect_mind_loop2 = loop_mark_array_mind;
     }
+
+  if (expect_mind_loop2)
+    ERR_MSG("Missing expected 2nd loop after m-ind loop.");
 
   s->_offset_array._max_items += s->_offset_array._static_items;
 
@@ -1095,9 +1249,29 @@ void request_array_offsets(void *msg,uint32_t *left)
   if (s->_offset_array._max_items > _g._max_offset_array_items)
     _g._max_offset_array_items = s->_offset_array._max_items;
 
+  if (_config._ts_merge_window &&
+      s->_offset_array._poffset_ts_lo == (uint32_t) -1)
+    ERR_MSG("Cannot merge (time_stitch) without TSTAMPLO.");
+  if (_config._ts_merge_window &&
+      s->_offset_array._poffset_ts_hi == (uint32_t) -1)
+    ERR_MSG("Cannot merge (time_stitch) without TSTAMPHI.");
+  if (_config._ts_merge_window &&
+      s->_offset_array._poffset_ts_srcid == (uint32_t) -1)
+    ERR_MSG("Cannot merge (time_stitch) without TSTAMPSRCID.");
+
   // OK, we are happy with the offset array
 
   // MSG("Offsets...");
+
+  /*
+  fprintf(stderr, "merge offsets: %d %d %d %d %d %d\n",
+	  s->_offset_array._poffset_ts_lo,
+	  s->_offset_array._poffset_ts_hi,
+	  s->_offset_array._poffset_ts_srcid,
+	  s->_offset_array._poffset_meventno,
+	  s->_offset_array._poffset_mrg_stat,
+	  s->_offset_array._poffset_mrg_mask);
+  */
 
   /* This structure is done. */
   _cur_structure = NULL;
@@ -2063,6 +2237,8 @@ void write_structure_header(FILE *fid, global_struct *s,
     {
       if ((i & 3) == 0 && i)
 	fprintf (fid," \\\n   ");
+      if ((i & 3) == 0)
+	fprintf (fid,"/* %4d */", i);
       fprintf (fid," 0x%08x,",s->_offset_array._ptr[i]);
     }
 
@@ -2262,7 +2438,7 @@ void request_setup_done(void *msg,uint32_t *left,int reader,int writer)
 
       if (ext_data_setup(_reader_client,
 			 &slo,sizeof(slo),
-			 NULL,
+			 NULL, NULL,
 			 s->_stage_array._length,
 			 "", NULL) != 0)
 	{
@@ -2281,6 +2457,13 @@ void dump_array_normal(global_struct *s)
 {
   // Dump all entries...
 
+  // 10 * 6 + 5 = 65 tokens, i.e. 14 left (from 79)
+  // eating into the 10 available for the value itself, 24
+
+  int cols =
+    (_config._dump == EXT_WRITER_DUMP_FORMAT_NORMAL_WIDE) ? 4 : 6;
+  int startcol = 80 - cols * 11 - 1;
+
   printf ("--- === --- === ---\n");
 
   for (stage_array_item_map::iterator iter = s->_stage_array._items.begin();
@@ -2289,7 +2472,7 @@ void dump_array_normal(global_struct *s)
       stage_array_item &item = iter->second;
       uint32_t offset = iter->first;
 
-      char tmp[64];
+      char tmp1[64];
 
       int items = 1;
 
@@ -2305,58 +2488,71 @@ void dump_array_normal(global_struct *s)
 	      if (items == 0)
 		continue;
 
-	      snprintf (tmp,sizeof(tmp),"%s[%s]",
-			item._var_name,item._var_ctrl_name);
+	      snprintf (tmp1, sizeof(tmp1), "%s[%s]",
+			item._var_name, item._var_ctrl_name);
 	    }
 	  else
 	    {
 	      items = item._var_array_len;
 
-	      snprintf (tmp,sizeof(tmp),"%s[%d]",
-			item._var_name,item._var_array_len);
+	      snprintf (tmp1, sizeof(tmp1), "%s[%d]",
+			item._var_name, item._var_array_len);
 	    }
 	}
       else
-	snprintf (tmp,sizeof(tmp),"%s",item._var_name);
+	snprintf (tmp1, sizeof(tmp1), "%s", item._var_name);
 
-      printf ("%s =",tmp);
-
-      size_t l = strlen(tmp) + 2;
-
-      if (l < 13)
-	printf ("%*s",(int) (13 - l),"");
-      else
-	printf ("\n%*s",13,"");
-
-      // 11 * 6 = 66 tokens, i.e. 14 left
+      if (items == 0)
+	printf ("%s =", tmp1);
 
       char *p = s->_stage_array._ptr + offset;
 
       for (int i = 0; i < items; i++, p += sizeof(uint32_t))
 	{
-	  if (i && (i % 6) == 0)
-	    printf ("\n%*s",13,"");
+	  char tmp2[64];
 
 	  switch (item._var_type & EXTERNAL_WRITER_FLAG_TYPE_MASK)
 	    {
 	    case EXTERNAL_WRITER_FLAG_TYPE_INT32: {
-	      printf (" %10d",(int) *((int32_t *) p)); // PRId32
+	      snprintf (tmp2, sizeof(tmp2),
+		       "%d",(int) *((int32_t *) p)); // PRId32
 	      break;
 	    }
 	    case EXTERNAL_WRITER_FLAG_TYPE_UINT32: {
-	      printf (" %10u",(unsigned int) *((uint32_t *) p)); // PRIu32
+	      snprintf (tmp2, sizeof(tmp2),
+		       "%u",(unsigned int) *((uint32_t *) p)); // PRIu32
 	      break;
 	    }
 	    case EXTERNAL_WRITER_FLAG_TYPE_FLOAT32: {
 	      float f = *((float *) p);
 	      if (fabs(f) < 0.01 || fabs(f) > 1000000)
-		printf (" %10.3e",f); // x.yyyE+02
+		snprintf (tmp2, sizeof(tmp2), "%.3e",f); // x.yyyE+02
 	      else if (fabs(f) >= 9)
-		printf (" %10.6g",f); // x.yyyyyy
+		snprintf (tmp2, sizeof(tmp2), "%.6g",f); // x.yyyyyy
 	      else
-		printf (" %10.6f",f); // x.yyyyyy
+		snprintf (tmp2, sizeof(tmp2), "%.6f",f); // x.yyyyyy
 	      break;
 	    }
+	    }
+
+	  if (i == 0)
+	    {
+	      size_t l1 = strlen(tmp1);
+	      size_t l2 = strlen(tmp2);
+
+	      if (l1 + 3 + l2 <= startcol + 11)
+		printf ("%s = %*s",
+			tmp1, (int) (startcol + 11 - l1 - 3), tmp2);
+	      else
+		printf ("%s =\n%*s %10s",
+			tmp1, startcol, "", tmp2);
+	    }
+	  else
+	    {
+	      if (i && (i % 6) == 0)
+		printf ("\n%*s", startcol, "");
+
+	      printf (" %10s", tmp2);
 	    }
 	}
 
@@ -2666,32 +2862,37 @@ void radix_sort(uint32_t *src,
 void request_keep_alive(ext_write_config_comm *comm,
 			void *msg,uint32_t *left)
 {
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
+  comm->_raw_sort_u32 = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 1;
 }
 
 void prehandle_keep_alive(ext_write_config_comm *comm,
 			  void *msg,uint32_t *left)
 {
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
+  comm->_raw_sort_u32 = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 1;
 }
 
 void prehandle_ntuple_fill(ext_write_config_comm *comm,
 			   void *msg,uint32_t *left)
 {
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
+  comm->_raw_sort_u32 = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
   comm->_keep_alive_event = 0;
 }
 
 void request_ntuple_fill(ext_write_config_comm *comm,
 			 void *msg,uint32_t *left,
-			 external_writer_buf_header **header
-#if STRUCT_WRITER
-			 ,send_item_chunk **chunk
-#endif
-			 )
+			 external_writer_buf_header *header, uint32_t length,
+			 bool from_merge)
 {
+  uint32_t *raw_sort_u32 = NULL;
+  uint32_t *raw_ptr = NULL;
+  uint32_t  raw_words = 0;
+
+#if STRUCT_WRITER
+  send_item_chunk *chunk = NULL;
+#endif
+
 #if USING_CERNLIB || USING_ROOT
   if (_got_sigalarm_timesliced)
     {
@@ -2747,10 +2948,18 @@ void request_ntuple_fill(ext_write_config_comm *comm,
     }
 #endif
 
+  uint32_t *msgstart = (uint32_t *) msg;
+  uint32_t msglen   = *left;
+
   // MSG("left %d.",*left);
 
-  comm->_sort_u32_raw = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
-  comm->_keep_alive_event = 0;
+  raw_sort_u32 = get_buf_raw_ptr(&msg,left,_g._sort_u32_words);
+
+  if (comm)
+    {
+      comm->_raw_sort_u32 = raw_sort_u32;
+      comm->_keep_alive_event = 0;
+    }
 
   uint32_t struct_index = get_buf_uint32(&msg,left);
   uint32_t ntuple_index = get_buf_uint32(&msg,left);
@@ -2763,15 +2972,16 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
   if (s->_max_raw_words)
     {
-      comm->_raw_words = get_buf_uint32(&msg,left);
-      comm->_raw_ptr = get_buf_raw_ptr(&msg,left,comm->_raw_words);
+      raw_words = get_buf_uint32(&msg,left);
+      raw_ptr = get_buf_raw_ptr(&msg,left,raw_words);
     }
 
   uint32_t marker = get_buf_uint32(&msg,left);
-  uint32_t compact_marker = marker & 0xc0000000;
+  uint32_t compact_marker = marker & (EXTERNAL_WRITER_COMPACT_PACKED |
+				      EXTERNAL_WRITER_COMPACT_NONPACKED);
 
-  if (compact_marker != 0x80000000 &&
-      compact_marker != 0x40000000)
+  if (compact_marker != EXTERNAL_WRITER_COMPACT_PACKED &&
+      compact_marker != EXTERNAL_WRITER_COMPACT_NONPACKED)
     {
 	ERR_MSG("Compact marker invalid (0x%08x) .", compact_marker);
     }
@@ -2781,7 +2991,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
   if (!s->_stage_array._length)
     ERR_MSG("Cannot fill using unallocated array.");
 
-  if (!(marker & 0x80000000))
+  if (_config._ts_merge_window &&
+      (marker & EXTERNAL_WRITER_COMPACT_PACKED))
+    ERR_MSG("Cannot merge (time_stitch) from compacted array.");
+
+  if (!(marker & EXTERNAL_WRITER_COMPACT_PACKED))
     {
       // Non-compacted array.
 
@@ -2806,8 +3020,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       uint32_t *o    = s->_offset_array._ptr;
       uint32_t *oend = s->_offset_array._ptr + s->_offset_array._length;
 
-      uint32_t *p    = (uint32_t *) msg;
-      uint32_t *pend = (uint32_t *) (((char*) msg) + *left);
+      uint32_t *pstart = (uint32_t *) msg;
+      uint32_t plen   = *left;
+
+      uint32_t *p    = pstart;
+      uint32_t *pend = (uint32_t *) (((char*) pstart) + plen);
 
 #if STRUCT_WRITER
       uint32_t *pp    = (uint32_t *) s->_stage_array._offset_value;
@@ -2830,17 +3047,18 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
       while (o < oend)
 	{
-	  uint32_t offset_mark = *(o++);
-	  uint32_t offset = offset_mark & 0x3fffffff;
-	  uint32_t mark = offset_mark & 0x80000000;
+	  uint32_t mark   = *(o++);
+	  uint32_t offset = *(o++);
+	  uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
 	  //uint32_t coffset = ntohl(offset);
 	  uint32_t value = ntohl(*(p++));
 
-	  // MSG("%08x : %08x : %08x",coffset,offset,value);
+	  // MSG("%08x : %08x : %08x",offset,offset,value);
 
 #if STRUCT_WRITER
 	  *(ppp++) = offset;
-	  *(ppp++) = value;
+	  /**(ppp++) = value;*/
+	  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 #else
 	  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 #endif
@@ -2849,14 +3067,14 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
 	  // was it an controlling variable?
 
-	  if (mark)
+	  if (loop)
 	    {
 	      uint32_t max_loops = *(o++);
 	      uint32_t loop_size = *(o++);
 
 	      // MSG ("               %d * %d",max_loops,loop_size);
 
-	      uint32_t *onext = o + max_loops * loop_size;
+	      uint32_t *onext = o + 2 * max_loops * loop_size;
 
 	      if (value > max_loops)
 		ERR_MSG("Fill ctrl item at offset %d "
@@ -2864,6 +3082,10 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 			offset,value,max_loops);
 
 	      uint32_t items = value * loop_size;
+
+	      // MSG ("               %d * %d => %d",value,loop_size,items);
+
+	      // onext has already been checked in request_array_offsets()
 
 	      if (pend - pcheck < items)
 		ERR_MSG("Fill value array too short (%zd) "
@@ -2878,7 +3100,8 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
 	      for (int i = items; i; i--)
 		{
-		  offset = (*(o++)) & 0x3fffffff;
+		  mark   = *(o++);
+		  offset = *(o++);
 		  //coffset = ntohl(*(p++));
 		  value = ntohl(*(p++));
 
@@ -2888,7 +3111,8 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
 #if STRUCT_WRITER
 		  *(ppp++) = offset;
-		  *(ppp++) = value;
+		  /**(ppp++) = value;*/
+		  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 #else
 		  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
 #endif
@@ -2909,9 +3133,40 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       *left = 0; // consumed all data
       // msg = pend; // not really needed... (as left is 0)
 
+#if STRUCT_WRITER
+      assert(pp <= s->_stage_array._offset_value + s->_stage_array._length);
+#endif
+      
+      // fprintf (stderr,"merge: %d\n", _config._ts_merge_window);
+
+      if (!from_merge &&
+	  _config._ts_merge_window)
+	{
+	  ext_merge_insert_chunk(comm,
+				 &s->_offset_array,
+				 msgstart,
+				 (uint32_t) ((char *) pstart -
+					     (char *) msgstart),
+				 (uint32_t) ((char *) pend -
+					     (char *) pstart),
+				 s->_stage_array._length);
+
+	  /* After the event was inserted into the merge queue,
+	   * we drop it.  It will eventually come back here with
+	   * from_merge set.
+	   */
+	  return;
+	}
+
       ////////////////////////////////////////
 
 #if STRUCT_WRITER
+      /* Do not create the compacted data if we are not writing
+       * to network.  It is just expensive.
+       */
+      if (_config._port != 0 ||
+	  _config._bitpack)
+	{
       // uint32_t *_masks[BUCKET_SORT_LEVELS];
       // int       _num_masks[BUCKET_SORT_LEVELS];
 
@@ -2922,16 +3177,16 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       memset(s->_stage_array._masks[0],0,
 	     s->_stage_array._num_masks[0] * sizeof(uint32_t));
 
-      while (pp + 1 < ppp)
+      while (pp/* + 1*/ < ppp)
 	{
 	  uint32_t offset = *(pp++);
-	  uint32_t value  = *(pp++);
+	  /*uint32_t value  = *(pp++);*/
 
 	  if (offset + sizeof(uint32_t) > s->_stage_array._length)
 	    ERR_MSG("Fill item offset (%" PRIu32 ") outside array (%zd).",
 		    offset,s->_stage_array._length);
 
-	  *((uint32_t *) (s->_stage_array._ptr + offset)) = value;
+	  /**((uint32_t *) (s->_stage_array._ptr + offset)) = value;*/
 
 	  uint32_t mask_item = (offset / sizeof(uint32_t));
 	  uint32_t mask_shift = (BUCKET_SORT_LEVELS - 1) * BUCKET_SORT_SHIFT;
@@ -3076,29 +3331,30 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // That way, we save a memcpy operation.
 
       size_t max_length = s->_stage_array._rewrite_max_bytes_per_item *
-	((ppp - s->_stage_array._offset_value) / 2);
+	((ppp - s->_stage_array._offset_value)/* / 2*/);
 
       max_length = (max_length + 3) & ~3; // 4-byte alignment
       max_length += sizeof (external_writer_buf_header);
       max_length +=
 	(_g._sort_u32_words +
-	 (s->_max_raw_words ? 1 + comm->_raw_words : 0) +
+	 (s->_max_raw_words ? 1 + raw_words : 0) +
 	 3) * // 3: struct_index + ntuple_index + mark_dest
 	sizeof (uint32_t);
 
       char *net_io_chunk =
-	ext_net_io_reserve_chunk(max_length,false,chunk);
+	ext_net_io_reserve_chunk(max_length,false,&chunk);
 
-      memcpy(net_io_chunk,*header,sizeof(**header));
-      (*header)->_length = (uint32_t) -1; // force error if someone uses the old data!
+      header = (external_writer_buf_header *) net_io_chunk;
 
-      *header = (external_writer_buf_header *) net_io_chunk;
+      header->_request = htonl(EXTERNAL_WRITER_BUF_NTUPLE_FILL |
+			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
+      header->_length = (uint32_t) -1;
 
       // sizeof (external_writer_buf_header)
 
-      uint32_t *sort_u32_dest = (uint32_t*) (*header + 1);
+      uint32_t *sort_u32_dest = (uint32_t*) (header + 1);
       for (uint32_t i = 0; i < _g._sort_u32_words; i++)
-	sort_u32_dest[i] = comm->_sort_u32_raw[i];
+	sort_u32_dest[i] = raw_sort_u32[i];
 
       uint32_t *struct_index_dest =
 	sort_u32_dest + _g._sort_u32_words;
@@ -3113,11 +3369,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
       if (s->_max_raw_words)
 	{
-	  *(raw_dest++) = htonl(comm->_raw_words);
-	  memcpy(raw_dest, comm->_raw_ptr,
-		 sizeof(uint32_t) * comm->_raw_words);
+	  *(raw_dest++) = htonl(raw_words);
+	  memcpy(raw_dest, raw_ptr,
+		 sizeof(uint32_t) * raw_words);
 
-	  raw_dest += comm->_raw_words;
+	  raw_dest += raw_words;
 	}
 
       uint32_t *mark_dest = raw_dest;
@@ -3287,14 +3543,14 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 
       uint32_t compact_len = ((char *) dest - (char *) (mark_dest + 1));
 
-      *mark_dest = htonl(0x80000000 | compact_len);
+      *mark_dest = htonl(EXTERNAL_WRITER_COMPACT_PACKED | compact_len);
 
       // Pad with zeros (to make comparisons work)
 
-      memset(dest,0,(-((char *) dest - (char *) *header))&3);
+      memset(dest,0,(-((char *) dest - (char *) header)) & 3);
 
       uint32_t new_length =
-	((((char *) dest - (char *) *header) + 3) & ~3);
+	((((char *) dest - (char *) header) + 3) & ~3);
       /*
       MSG("rewrite: %d items (%d bpi), %d / nl: %d ml: %d",
 	  (ppp - _stage_array._offset_value) / 2,
@@ -3303,7 +3559,9 @@ void request_ntuple_fill(ext_write_config_comm *comm,
 	  new_length,max_length);
       */
       assert(new_length <= max_length);
-      (*header)->_length = htonl(new_length);
+      header->_length = htonl(new_length);
+
+      length = new_length;
 
       // note, we cannot commit the chunk yet, as we also intend to
       // use it as a source if writing to stdout.  And after
@@ -3358,6 +3616,7 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       printf ("---> %d %d\n",
 	      ((char *) end) - ((char*) msg),header_dest->_length);
       */
+	}
 #endif
     }
   else
@@ -3502,11 +3761,30 @@ void request_ntuple_fill(ext_write_config_comm *comm,
     }
 #endif
 #if STRUCT_WRITER
-  if (_config._dump == EXT_WRITER_DUMP_FORMAT_NORMAL)
+  if (_config._dump == EXT_WRITER_DUMP_FORMAT_NORMAL ||
+      _config._dump == EXT_WRITER_DUMP_FORMAT_NORMAL_WIDE)
     dump_array_normal(s);
   else if (_config._dump == EXT_WRITER_DUMP_FORMAT_HUMAN_JSON ||
 	   _config._dump == EXT_WRITER_DUMP_FORMAT_COMPACT_JSON)
     dump_array_json(s);
+
+  if (!chunk)
+    {
+      // We have not compacted the data, so emit as it is.
+
+      char *net_io_chunk =
+	ext_net_io_reserve_chunk(length,
+				 false /* request <
+					  EXTERNAL_WRITER_BUF_NTUPLE_FILL */,
+				 &chunk);
+
+      memcpy(net_io_chunk,header,length);
+    }
+
+  if (_config._stdout)
+    full_write(STDOUT_FILENO,header,length);
+
+  ext_net_io_commit_chunk(length,chunk);
 #endif
 
  statistics:
@@ -3624,7 +3902,7 @@ bool ntuple_get_event(char *msg,char **end)
 
     start[0] = htonl(0); // struct_index (0, only one when reading)
     start[0] = htonl(0); // ntuple_index (0, only one when reading)
-    start[1] = htonl(0x40000000); // marker, non-compacted
+    start[1] = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
     uint32_t *cur = start + 3;
 
@@ -3636,9 +3914,9 @@ bool ntuple_get_event(char *msg,char **end)
 
     while (o < oend)
       {
-	uint32_t offset_mark = *(o++);
-	uint32_t offset = offset_mark & 0x3fffffff;
-	uint32_t mark = offset_mark & 0x80000000;
+	uint32_t mark   = *(o++);
+	uint32_t offset = *(o++);
+	uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
 
 	uint32_t value = *((uint32_t *) (s->_stage_array._ptr + offset));
 
@@ -3646,7 +3924,7 @@ bool ntuple_get_event(char *msg,char **end)
 	// anyhow
 	*(cur++) = htonl(value);
 
-	if (mark)
+	if (loop)
 	  {
 	    // It's a loop control.  Make sure the value was within
 	    // limits.
@@ -3666,7 +3944,7 @@ bool ntuple_get_event(char *msg,char **end)
 		goto read_abort;
 	      }
 
-	    uint32_t *onext = o + max_loops * loop_size;
+	    uint32_t *onext = o + 2 * max_loops * loop_size;
 	    uint32_t items = value * loop_size;
 
 	    for (int i = items; i; i--)
@@ -3949,29 +4227,25 @@ bool handle_request(ext_write_config_comm *comm,
   bool quit = false;
   size_t expand = 0;
 
-#if STRUCT_WRITER
-  send_item_chunk *chunk = NULL;
-#endif
-
-  /*
-  fprintf (stderr,"\nRR %d: %d - %d = %d\n",
-	   request, ntohl(header->_length),sizeof(*header),left);
-  {
-    uint32_t n = ntohl(header->_length) / sizeof (uint32_t);
-    uint32_t *p = (uint32_t *) header;
-    for (int i = 0; i < n; i++)
+  if (_config._dump_raw)
+    {
+      fprintf (stderr,"\nRR %d: %d - %zd = %d = 0x%x\n",
+	       request, ntohl(header->_length),sizeof(*header),left,left);
       {
-	if (i % 8 == 0)
-	  fprintf (stderr,"%4x: ", i);
-	fprintf (stderr,"%08x ", ntohl(*(p++)));
-	if (i % 8 == 7)
-	  fprintf (stderr,"\n");
-
+	uint32_t n = ntohl(header->_length) / sizeof (uint32_t);
+	uint32_t *p = (uint32_t *) header;
+	for (int i = 0; i < n; i++)
+	  {
+	    if (i % 8 == 0)
+	      fprintf (stderr,"%4x: ", i);
+	    fprintf (stderr,"%08x ", ntohl(*(p++)));
+	    if (i % 8 == 7)
+	      fprintf (stderr,"\n");
+	  }
+	fprintf (stderr,"\n");
+	fflush(stderr);
       }
-    fprintf (stderr,"\n");
-    fflush(stderr);
-  }
-  */
+    }
 
   switch (request)
     {
@@ -4026,17 +4300,25 @@ bool handle_request(ext_write_config_comm *comm,
     case EXTERNAL_WRITER_BUF_NTUPLE_FILL:
       // May change the message inline (including header)
       request_ntuple_fill(comm,
-			  header+1,&left,&header
-#if STRUCT_WRITER
-			  ,&chunk
-#endif
-			  );
+			  header+1,&left,
+			  header,length,
+			  false);
       break;
     case EXTERNAL_WRITER_BUF_KEEP_ALIVE:
       request_keep_alive(comm,
 			 header+1,&left);
       break;
     case EXTERNAL_WRITER_BUF_DONE:
+      /* Dump all merge data we have before we copy the 'done/abort'
+       * entry.
+       */
+      merge_all_remaining();
+      /* Note: there is also an exit path internally on abort.  Since
+       * that is an uncontrolled exit, we do not emit incomplete merges
+       * for that one.  Consequently, we also do not merge remaining
+       * for ABORT messages.
+       */
+      /*FALLTHROUGH*/
     case EXTERNAL_WRITER_BUF_ABORT:
       quit = true;
       break; // not very reachable
@@ -4054,23 +4336,26 @@ bool handle_request(ext_write_config_comm *comm,
 	    request,left);
 
 #if STRUCT_WRITER
-  // re-read the length if it was changed
-  length  = ntohl(header->_length);
-
-  if (!chunk)
+  if (request != EXTERNAL_WRITER_BUF_NTUPLE_FILL)
     {
+      // We no longer change the header (ntuple fill handles writing
+      // by itself).  So just check that the length was not changed.
+      assert (length == ntohl(header->_length));
+
+      send_item_chunk *chunk = NULL;
+
       char *net_io_chunk =
 	ext_net_io_reserve_chunk(length,
 				 request < EXTERNAL_WRITER_BUF_NTUPLE_FILL,
 				 &chunk);
 
       memcpy(net_io_chunk,header,length);
+
+      if (_config._stdout)
+	full_write(STDOUT_FILENO,header,length);
+
+      ext_net_io_commit_chunk(length,chunk);
     }
-
-  if (_config._stdout)
-    full_write(STDOUT_FILENO,header,length);
-
-  ext_net_io_commit_chunk(length,chunk);
 #endif
 
   if (expand)
@@ -4539,8 +4824,8 @@ int comm_next_item_compare_less(ext_write_config_comm *comm1,
 {
   for (uint32_t i = 0; i < _g._sort_u32_words; i++)
     {
-      uint32_t v1 = ntohl(comm1->_sort_u32_raw[i]);
-      uint32_t v2 = ntohl(comm2->_sort_u32_raw[i]);
+      uint32_t v1 = ntohl(comm1->_raw_sort_u32[i]);
+      uint32_t v2 = ntohl(comm2->_raw_sort_u32[i]);
 
       if (v1 < v2)
 	return 1;
@@ -4836,11 +5121,14 @@ void usage(char *cmdname)
   printf ("  --insrc=SRV:PRT|-  Input src when reading data. (internal use only)\n");
   printf ("  --header=FILE      Write data structure declaration to FILE.\n");
   printf ("  --id=ID            Override ID of header written.\n");
+  printf ("  --dump-raw         Dump raw protocol data.\n");
   printf ("  --debug-header     Litter header declaration with offsets and sizes.\n");
   printf ("  --server[=PORT]    Run a external data server (at PORT).\n");
   printf ("  --stdout           Write data to stdout.\n");
-  printf ("  --dump[=FORMAT]    Make text dump of data.  (FORMAT: normal, [compact_]json)\n");
+  printf ("  --dump[=FORMAT]    Make text dump of data.  (FORMAT: normal, wide, [compact_]json)\n");
+  printf ("  --bitpack          Bitpack STRUCT data even if not using network server.\n");
 #endif
+  printf ("  --time-stitch=N    Combine events with timestamps with difference <= N.\n");
   printf ("  --colour=yes|no    Force colour and markup on or off.\n");
   printf ("  --forked=fd1,fd2   File descriptors for forked comm. (internal use only)\n");
   printf ("  --shm-forked=fd,fd1,fd2  Use shared memory communication. (internal use only)\n");
@@ -4935,6 +5223,9 @@ int main(int argc,char *argv[])
 
 	colourtext_setforce(force);
       }
+      else if (MATCH_PREFIX("--time-stitch=",post)) {
+	_config._ts_merge_window = atoi(post);
+      }
 #if USING_CERNLIB || USING_ROOT
       else if (MATCH_PREFIX("--outfile=",post)) {
 	_config._outfile = post;
@@ -4980,6 +5271,9 @@ int main(int argc,char *argv[])
 	else
 	  _config._header_id = post;
       }
+      else if (MATCH_ARG("--dump-raw")) {
+	_config._dump_raw = 1;
+      }
       else if (MATCH_ARG("--debug-header")) {
 	_config._debug_header = 1;
       }
@@ -4992,12 +5286,17 @@ int main(int argc,char *argv[])
       else if (MATCH_ARG("--stdout")) {
 	_config._stdout = 1;
       }
+      else if (MATCH_ARG("--bitpack")) {
+	_config._bitpack = 1;
+      }
       else if (MATCH_ARG("--dump")) {
 	_config._dump = EXT_WRITER_DUMP_FORMAT_NORMAL;
       }
       else if (MATCH_PREFIX("--dump=",post)) {
 	if (strcmp(post,"normal") == 0)
 	  _config._dump = EXT_WRITER_DUMP_FORMAT_NORMAL;
+	else if (strcmp(post,"wide") == 0)
+	  _config._dump = EXT_WRITER_DUMP_FORMAT_NORMAL_WIDE;
 	else if (strcmp(post,"json") == 0)
 	  _config._dump = EXT_WRITER_DUMP_FORMAT_HUMAN_JSON;
 	else if (strcmp(post,"compact_json") == 0)

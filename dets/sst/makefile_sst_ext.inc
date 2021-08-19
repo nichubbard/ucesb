@@ -29,6 +29,8 @@ CXXFLAGS += -I$(DSPCODE_DIR)
 
 SST_DET_ADD_PED = $(SST_DIR)/sst_get_add_ped.pl
 
+# Use 'SST_GET_ADD_PED_ARG = --ped-shift=0' for c0ffee-compression.
+
 $(GENDIR)/sst_ped_add.hh: sidped_daq.txt $(SST_DET_ADD_PED)
 	@echo " GET_PED $@"
-	@perl $(SST_DET_ADD_PED) < $< > $@
+	@perl $(SST_DET_ADD_PED) $(SST_GET_ADD_PED_ARG) < $< > $@

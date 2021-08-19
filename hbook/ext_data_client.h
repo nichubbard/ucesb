@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include <sys/types.h>
 
@@ -176,6 +177,111 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
 
 /*************************************************************************/
 
+#define EXT_DATA_ITEM_MAP_MATCH          0x0001u /* Perfect match. */
+#define EXT_DATA_ITEM_MAP_NO_DEST        0x0002u /* Left-over server item. */
+#define EXT_DATA_ITEM_MAP_NOT_FOUND      0x0004u /* Item not found. */
+#define EXT_DATA_ITEM_MAP_TYPE_MISMATCH  0x0008u /* Server item has different
+						    type. */
+#define EXT_DATA_ITEM_MAP_CTRL_MISMATCH  0x0010u /* Server item has different
+						    controlling item. */
+#define EXT_DATA_ITEM_MAP_ARRAY_FEWER    0x0020u /* Array, client shorter. */
+#define EXT_DATA_ITEM_MAP_ARRAY_MORE     0x0040u /* Array, client longer. */
+#define EXT_DATA_ITEM_MAP_NOT_DONE       0x0080u /* Never reached mapping. */
+
+/* This mask identifies mappings which loose no data. */
+#define EXT_DATA_ITEM_MAP_OK            (EXT_DATA_ITEM_MAP_MATCH | \
+					 EXT_DATA_ITEM_MAP_ARRAY_MORE)
+
+/* Return information on how the structure members were mapped from
+ * the data structure given by the server after ext_data_setup().  The
+ * result is given in the return arguments.  @map_success is one of
+ * the constants EXT_DATA_ITEM_MAP_... above.
+ *
+ * First call theis function with @restart = 1, and as long as it
+ * returns success, with @restart = 0.
+ *
+ * Note that information is also reported about items in the server
+ * structure that have not been mapped, i.e. ..._NO_DEST.
+ *
+ * Do not call this function after the ext_data_client connection has
+ * been closed.
+ *
+ * Note the convenience function ext_data_struct_info_print_map_success()
+ * below!
+ *
+ * @struct_info     Information structure.
+ * @kind            Kind of item to return.  (1 = start client items,
+ *                  2 = start server items, 0 = continue).
+ * @var_name        Name of item (result).
+ * @offset          Offset of item (result).
+ * @map_success     Matching outcome (result).
+ *
+ * Return value:
+ *
+ *  1  success (item returned).
+ *  0  end of data (index outside array).
+ * -1  failure.  See errno.
+ *
+ * Possible errors:
+ *
+ * EFAULT           @struct_info is NULL.
+ */
+
+int
+ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
+				 int restart,
+				 const char **var_name,
+				 uint32_t *offset,
+				 uint32_t *map_success);
+
+/*************************************************************************/
+
+/* Print a table of members and their mapping success.
+ *
+ * Do not call this function after the ext_data_client connection has
+ * been closed.
+ *
+ * @struct_info     Information structure.
+ * @stream          FILE pointer for output.
+ * @exclude_success Flags to not include in listing.
+ *                  (EXT_DATA_ITEM_MAP_OK only prints causing data loss).
+ *
+ * Return value:
+ *
+ *  1  success (item returned).
+ * -1  failure.  See errno.
+ *
+ * Possible errors:
+ *
+ * EFAULT           @struct_info is NULL.
+ */
+
+int
+ext_data_struct_info_print_map_success(struct ext_data_structure_info *
+				       /* */ struct_info,
+				       FILE *stream,
+				       uint32_t exclude_success);
+
+/*************************************************************************/
+
+/* Constants for time-stitching irregularities. */
+
+/* There was another (unmerged) event within the timestamp merge window. */
+#define EXT_FILE_MERGE_NEXT_SRCID_WITHIN_WINDOW  0x01
+/* There was a previous (unmerged) event within the timestamp merge window. */
+/* The previous event would have EXT_FILE_MERGE_NEXT_SRCID_WITHIN_WINDOW set.*/
+#define EXT_FILE_MERGE_PREV_SRCID_WITHIN_WINDOW  0x02
+/* Several sources had non-zero value for a static integer value. */
+#define EXT_FILE_MERGE_MULTIPLE_IVALUE           0x04
+/* Several sources had non-zero value for a static float value. */
+#define EXT_FILE_MERGE_MULTIPLE_FVALUE           0x08
+/* Too many items for array - overflow. */
+#define EXT_FILE_MERGE_ARRAY_OVERFLOW            0x10
+/* Too many items for multi-item indexed array - overflow. */
+#define EXT_FILE_MERGE_ARRAY_MINDEX_OVERFLOW     0x20
+
+/*************************************************************************/
+
 /* Connect to a TCP external data client.
  *
  * @server          Either a HOSTNAME or a HOSTNAME:PORT.
@@ -251,6 +357,12 @@ struct ext_data_client *ext_data_open_out();
  * @struct_info         Detailed structure member information.
  *                      Allows mapping of items when sending structure
  *                      is different from structure to be filled.
+ * @struct_map_success  Returns overall mapping success of @struct_info.
+ *                      In order to not have silent data loss, it is
+ *                      suggested to only continue if
+ *                      (struct_map_success & ~EXT_DATA_ITEM_MAP_OK).
+ *                      ext_data_struct_info_print_map_success() can be
+ *                      used to print a report of mapping issues.
  *                      Can be NULL (no mapping possible).
  * @size_buf            Size of the structure to be filled.
  *                      Use sizeof(struct).
@@ -264,6 +376,7 @@ struct ext_data_client *ext_data_open_out();
  *
  * EINVAL           @struct_layout_info is wrong.
  * ENOMSG           @name_id does not exist in server structure list.
+ * EBUSY            Structure has already been mapped.
  * EPROTO           Protocol error, version mismatch?
  * EBADMSG          Internal protocol fault.  Bug?
  * ENOMEM           Failure to allocate memory.
@@ -274,6 +387,7 @@ struct ext_data_client *ext_data_open_out();
 int ext_data_setup(struct ext_data_client *client,
 		   const void *struct_layout_info,size_t size_info,
 		   struct ext_data_structure_info *struct_info,
+		   uint32_t *struct_map_success,
 		   size_t size_buf,
 		   const char *name_id, int *struct_id);
 
@@ -615,6 +729,7 @@ struct ext_data_client *ext_data_open_out_stderr();
 int ext_data_setup_stderr(struct ext_data_client *client,
 			  const void *struct_layout_info,size_t size_info,
 			  struct ext_data_structure_info *struct_info,
+			  uint32_t *struct_map_success,
 			  size_t size_buf,
 			  const char *name_id, int *struct_id);
 

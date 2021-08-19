@@ -41,7 +41,7 @@
 #endif
 
 // The UNLIKELY(...) should also be in the PEEK_FROM_BUFFER, but it
-// seems menay versions (random) of gcc then comes with spurious warnings
+// seems many versions (random) of gcc then comes with spurious warnings
 // about __match_peek possibly being used unitialized...
 
 #define PEEK_FROM_BUFFER(loc,data_type,dest) {                      \
@@ -50,19 +50,33 @@
   }                                                                 \
 }
 
-#define READ_FROM_BUFFER(loc,data_type,dest) {                     \
+#define READ_FROM_BUFFER(loc,data_type,dest,account_id) {	   \
+  if (UNLIKELY(!__buffer.get_##data_type(&dest))) {                \
+    ERROR_U_LOC(loc,"Error while reading %s from buffer.",#dest);  \
+  }                                                                \
+  if (__buffer.is_account()) do_account_##data_type(account_id);   \
+}
+
+#define MATCH_READ_FROM_BUFFER(loc,data_type,dest,account_id) {	   \
   if (UNLIKELY(!__buffer.get_##data_type(&dest))) {                \
     ERROR_U_LOC(loc,"Error while reading %s from buffer.",#dest);  \
   }                                                                \
 }
 
-#define PEEK_FROM_BUFFER_FULL(loc,data_type,dest,dest_full) {      \
+#define PEEK_FROM_BUFFER_FULL(loc,data_type,dest,dest_full,account_id) { \
   if (UNLIKELY(!__buffer.peek_##data_type(&dest_full))) {          \
     ERROR_U_LOC(loc,"Error while reading %s from buffer.",#dest);  \
   }                                                                \
 }
 
-#define READ_FROM_BUFFER_FULL(loc,data_type,dest,dest_full) {      \
+#define READ_FROM_BUFFER_FULL(loc,data_type,dest,dest_full,account_id) { \
+  if (UNLIKELY(!__buffer.get_##data_type(&dest_full))) {           \
+    ERROR_U_LOC(loc,"Error while reading %s from buffer.",#dest);  \
+  }                                                                \
+  if (__buffer.is_account()) do_account_##data_type(account_id);   \
+}
+
+#define MATCH_READ_FROM_BUFFER_FULL(loc,data_type,dest,dest_full,account_id) {\
   if (UNLIKELY(!__buffer.get_##data_type(&dest_full))) {           \
     ERROR_U_LOC(loc,"Error while reading %s from buffer.",#dest);  \
   }                                                                \

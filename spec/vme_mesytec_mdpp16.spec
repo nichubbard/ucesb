@@ -22,19 +22,32 @@
 
 /*
  * ------------------------------------------------------------------------
- *  MULTI-HIT ADC AND TDC
+ *  MULTI-HIT ADC AND TDC or QDC (depending on firmware)
  * ------------------------------------------------------------------------
  * 16 SIGNAL INPUTS ARE PRESENT ON THE VME MODULE
+ *
+ * SCP FIRMWARE:
  * 34 CHANNELS ARE ENCODED
  * data [0..15] : ADC VALUE FOR INPUT 0..15
  * data [16..31]: TDC VALUE FOR INPUT 0..15
  * data [32]    : TDC VALUE FOR TRIGGER INPUT T0
  * data [33]    : TDC VALUE FOR TRIGGER INPUT T1
+ *
+ * QDC FIRMWARE:
+ * 48 CHANNELS ARE ENCODED
+ * data [0..15] : ADC VALUE LONG INTEGRATION
+ * data [16..31]: TDC VALUE FOR INPUT 0..15
+ * data [32]    : TDC VALUE FOR TRIGGER INPUT T0
+ * data [33]    : TDC VALUE FOR TRIGGER INPUT T1
+ * data [48..63]: ADC VALUE SHORT INTEGRATION
  */
 
 VME_MESYTEC_MDPP16(geom)
 {
-  MEMBER(DATA16_OVERFLOW data[34] ZERO_SUPPRESS_MULTI(20));
+  MEMBER(DATA16_OVERFLOW adc[16] ZERO_SUPPRESS_MULTI(20));
+  MEMBER(DATA16_OVERFLOW tdc[16] ZERO_SUPPRESS_MULTI(20));
+  MEMBER(DATA16_OVERFLOW trig_tdc[16] ZERO_SUPPRESS_MULTI(20));
+  MEMBER(DATA16_OVERFLOW adc_short[16] ZERO_SUPPRESS_MULTI(20));
 
   MARK_COUNT(start);
   UINT32 header NOENCODE
@@ -50,13 +63,29 @@ VME_MESYTEC_MDPP16(geom)
   several UINT32 ch_data NOENCODE
   {
     0_15:  value;
-    16_21: channel;
+    16_19: channel;
+    20_21: ch_kind;
     22: overflow;
     23: pileup;
     24_27: 0b0000;
     28_31: 0b0001;
 
-    ENCODE(data[channel], (value = value, overflow = overflow, pileup = pileup));
+    if (ch_kind == 0) {
+      ENCODE(adc[channel],
+	     (value = value, overflow = overflow, pileup = pileup));
+    }
+    if (ch_kind == 1) {
+      ENCODE(tdc[channel],
+	     (value = value, overflow = overflow, pileup = pileup));
+    }
+    if (ch_kind == 2) {
+      ENCODE(trig_tdc[channel],
+	     (value = value, overflow = overflow, pileup = pileup));
+    }
+    if (ch_kind == 3) {
+      ENCODE(adc_short[channel],
+	     (value = value, overflow = overflow, pileup = pileup));
+    }
   }
 
   several UINT32 fill_word NOENCODE

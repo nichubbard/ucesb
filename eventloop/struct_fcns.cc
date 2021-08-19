@@ -117,7 +117,7 @@ void enumerate_members_uint64(const uint64 *ptr,const signal_id &id,
 			      const enumerate_info &info,
 			      enumerate_fcn callback,void *extra)
 {
-  callback(id,enumerate_info(info,ptr,ENUM_TYPE_UINT),extra);
+  callback(id,enumerate_info(info,ptr,ENUM_TYPE_UINT64),extra);
 }
 
 void enumerate_members_int(const int *ptr,const signal_id &id,

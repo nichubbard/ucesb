@@ -102,7 +102,7 @@ public:
   vect_tstamp_alignment_histo  _vect_histo;
 
 public:
-  tstamp_alignment(char const *);
+  tstamp_alignment(char const *a_command, int a_merge_style);
   ssize_t get_index(const lmd_subevent *subevent_info,
 		   uint titris_branch_id);
   void account(ssize_t index, uint64_t stamp);

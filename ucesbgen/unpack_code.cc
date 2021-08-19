@@ -24,6 +24,7 @@
 #include "dump_list.hh"
 #include "parse_error.hh"
 #include "str_set.hh"
+#include "account.hh"
 
 // We generate the unpack code recursively, i.e. whenever an subevent
 // needs another subevent, that other subevent has to be processed
@@ -348,7 +349,7 @@ void struct_unpack_code::gen(const struct_definition *str,
       d.text(")\n");
     }
 
-  gen(str->_body,d,type,mei,!!subevent_header,true);
+  gen(str->_header,str->_body,d,type,mei,!!subevent_header,true);
 
   if (type & UCT_HEADER)
     {
@@ -399,21 +400,37 @@ void struct_unpack_code::gen(const struct_definition *str,
 
 void gen_indexed_decl(indexed_decl_map &indexed_decl,dumper &d)
 {
+  indexed_decl_map_rev_sort indexed_decl_rev_sort;
+
   for (indexed_decl_map::iterator array = indexed_decl.begin();
        array != indexed_decl.end(); array++)
     {
-      d.text_fmt("%s(",(array->second._opts & STRUCT_DECL_OPTS_MULTI) ? "MULTI" : "SINGLE");
-      d.text_fmt("%s,",array->second._type);
-      d.text_fmt("%s",array->first);
-      if (array->second._max_items)
-	d.text_fmt("[%d]",array->second._max_items);
-      if (array->second._max_items2)
-	d.text_fmt("[%d]",array->second._max_items2);
+      indexed_decl_rev_sort.
+	insert(indexed_decl_map_rev_sort::value_type(array->second,
+						     array->first));
+    }
+
+  for (indexed_decl_map_rev_sort::iterator array =
+	 indexed_decl_rev_sort.begin();
+       array != indexed_decl_rev_sort.end(); array++)
+    {
+      indexed_type_ind *info = array->first;
+
+      d.text_fmt("%s(",
+		 (info->_opts & STRUCT_DECL_OPTS_MULTI) ?
+		 "MULTI" : "SINGLE");
+      d.text_fmt("%s,",info->_type);
+      d.text_fmt("%s",array->second);
+      if (info->_max_items)
+	d.text_fmt("[%d]",info->_max_items);
+      if (info->_max_items2)
+	d.text_fmt("[%d]",info->_max_items2);
       d.text(");\n");
     }
 }
 
-void struct_unpack_code::gen(const struct_item_list *list,
+void struct_unpack_code::gen(const struct_header *header,
+			     const struct_item_list *list,
 			     dumper &d,uint32 type,
 			     match_end_info *mei,
 			     bool last_subevent_item,
@@ -440,7 +457,8 @@ void struct_unpack_code::gen(const struct_item_list *list,
 
       sd.nl();
 
-      gen(indexed_decl,item,sd,type,mei,last_subevent_item && i == list->end());
+      gen(indexed_decl,
+	  header,item,sd,type,mei,last_subevent_item && i == list->end());
 
       if (mei && mei->_match_ended)
 	break;
@@ -481,12 +499,15 @@ void struct_unpack_code::gen(const file_line &loc,
     }
 }
 
-indexed_type_ind::indexed_type_ind(const char *type,int max_items,int max_items2,int opts)
+indexed_type_ind::indexed_type_ind(const char *type,
+				   int max_items,int max_items2,int opts,
+				   const file_line &loc)
 {
   _type       = type;
   _max_items  = max_items;
   _max_items2 = max_items2;
   _opts       = opts;
+  _loc        = loc;
 }
 
 void insert_indexed_decl(indexed_decl_map &indexed_decl,
@@ -500,44 +521,46 @@ void insert_indexed_decl(indexed_decl_map &indexed_decl,
 
   std::pair<indexed_decl_map::iterator,bool> exist;
 
-  exist = indexed_decl.insert(
-			      indexed_decl_map::value_type(name,
-							   indexed_type_ind(type,
-									    vi->_index+1,
-									    vi->_index2+1,
-									    opts)));
+  indexed_type_ind *info = new indexed_type_ind(type,
+					      vi->_index+1,
+					      vi->_index2+1,
+					      opts,
+					      decl->_loc);
+
+  exist = indexed_decl.insert(indexed_decl_map::value_type(name,info));
 
   if (!exist.second) // name was already in list
     {
-      indexed_type_ind &info = exist.first->second;
+      info = exist.first->second;
 
-      if (strcmp(info._type,type) != 0)
+      if (strcmp(info->_type,type) != 0)
 	ERROR_LOC(decl->_loc,"Items with same name (%s), has different types (%s != %s)",
-		  name,info._type,type);
+		  name,info->_type,type);
 
-      if (info._opts != opts)
+      if (info->_opts != opts)
 	ERROR_LOC(decl->_loc,"Items with same name (%s), has different options (multi)",
 		  name);
 
-      if ((info._max_items == 0) !=
+      if ((info->_max_items == 0) !=
 	  (vi->_index == -1))
 	ERROR_LOC(decl->_loc,"Items with same name (%s), has different array [] / not array",
 		  name);
 
-      if ((info._max_items2 == 0) !=
+      if ((info->_max_items2 == 0) !=
 	  (vi->_index2 == -1))
 	ERROR_LOC(decl->_loc,"Items with same name (%s), has different array [] depths",
 		  name);
 
-      if (info._max_items < vi->_index+1)
-	info._max_items = vi->_index+1;
-      if (info._max_items2 < vi->_index2+1)
-	info._max_items2 = vi->_index2+1;
+      if (info->_max_items < vi->_index+1)
+	info->_max_items = vi->_index+1;
+      if (info->_max_items2 < vi->_index2+1)
+	info->_max_items2 = vi->_index2+1;
     }
 }
 
 
 void struct_unpack_code::gen(indexed_decl_map &indexed_decl,
+			     const struct_header *header,
 			     const struct_item *item,dumper &d,uint32 type,
 			     match_end_info *mei,
 			     bool last_subevent_item)
@@ -554,12 +577,15 @@ void struct_unpack_code::gen(indexed_decl_map &indexed_decl,
   const struct_encode    *encode;
   const struct_match_end *match_end;
 
-  if ((data    = dynamic_cast<const struct_data*   >(item))) gen(data   ,d,type,mei);
+  if ((data    = dynamic_cast<const struct_data*   >(item))) gen(header,
+								 data   ,d,type,mei);
   if ((decl    = dynamic_cast<const struct_decl*   >(item))) gen(indexed_decl,
 								 decl   ,d,type,mei);
-  if ((list    = dynamic_cast<const struct_list*   >(item))) gen(list   ,d,type,mei,last_subevent_item);
+  if ((list    = dynamic_cast<const struct_list*   >(item))) gen(header,
+								 list   ,d,type,mei,last_subevent_item);
   if ((select  = dynamic_cast<const struct_select* >(item))) gen(select ,d,type,mei,last_subevent_item);
-  if ((cond    = dynamic_cast<const struct_cond*   >(item))) gen(cond   ,d,type,mei,last_subevent_item);
+  if ((cond    = dynamic_cast<const struct_cond*   >(item))) gen(header,
+								 cond   ,d,type,mei,last_subevent_item);
   if ((member  = dynamic_cast<const struct_member* >(item))) gen(member ,d,type);
   if ((mark    = dynamic_cast<const struct_mark*   >(item))) gen(mark   ,d,type);
   if ((check   = dynamic_cast<const struct_check_count*>(item))) gen(check  ,d,type);
@@ -567,6 +593,17 @@ void struct_unpack_code::gen(indexed_decl_map &indexed_decl,
   if ((match_end = dynamic_cast<const struct_match_end* >(item))) gen(match_end ,d,type,mei);
 
   if (d._current > d._indent) d.nl();
+}
+
+void struct_unpack_code::gen(const encode_spec_base *item,
+			     dumper &d,uint32 type,
+			     const prefix_ident *prefix)
+{
+  const encode_spec      *spec;
+  const encode_cond      *cond;
+
+  if ((spec = dynamic_cast<const encode_spec*>(item))) gen(spec,d,type,prefix);
+  if ((cond = dynamic_cast<const encode_cond*>(item))) gen(cond,d,type,prefix);
 }
 
 void struct_unpack_code::gen(const encode_spec *encode,dumper &d,uint32 type,
@@ -645,12 +682,64 @@ void struct_unpack_code::gen(const encode_spec *encode,dumper &d,uint32 type,
     }
 }
 
+void struct_unpack_code::gen(const encode_cond *cond,dumper &d,uint32 type,
+			     const prefix_ident *prefix)
+{
+  // This is largely duplicated from gen(const struct_cond *cond, ...)
+
+  const var_external *external;
+
+  external = gen_external_header(cond->_expr,d,type);
+
+  if (type & UCT_UNPACK)
+    {
+      d.text("if (");
+
+      if (external)
+	d.text_fmt("%s()",external->_name);
+      else
+	cond->_expr->dump(d,prefix);
+
+      d.text(")\n");
+    }
+
+  gen(cond->_items,d,type,prefix);
+
+  if (cond->_items_else)
+    {
+      if (type & (UCT_UNPACK | UCT_MATCH | UCT_PACKER))
+	{
+	  d.text("else\n");
+	  gen(cond->_items_else,d,type,prefix);
+	}
+    }
+}
+
+void struct_unpack_code::gen(const encode_spec_list *list,dumper &d,uint32 type,
+			     const prefix_ident *prefix)
+{
+  encode_spec_list::const_iterator encode;
+  bool indent = list->size() > 1;
+
+  if (indent)
+    d.text("{\n");
+  dumper sd(d,indent ? 2 : 0);
+
+  for (encode = list->begin();
+       encode != list->end(); ++encode)
+    gen(*encode,sd,type,prefix);
+
+  if (indent)
+    d.text("}\n");
+}
+
 void struct_unpack_code::gen(const struct_encode *encode,dumper &d,uint32 type)
 {
   gen(encode->_encode,d,type,NULL);
 }
 
-void struct_unpack_code::gen(const struct_data *data,dumper &d,uint32 type,
+void struct_unpack_code::gen(const struct_header *header,
+			     const struct_data *data,dumper &d,uint32 type,
 			     match_end_info *mei)
 {
   const char *data_type = "";
@@ -715,6 +804,11 @@ void struct_unpack_code::gen(const struct_data *data,dumper &d,uint32 type,
 
       if (type & (UCT_UNPACK | UCT_MATCH))
 	{
+	  const char *match_prefix = "";
+
+	  if (type & UCT_MATCH)
+	    match_prefix = "MATCH_";
+
 	  if (data->_flags & (SD_FLAGS_OPTIONAL | SD_FLAGS_SEVERAL))
 	    {
 	      // If there is no bitfield, the only thing that can stop
@@ -731,9 +825,14 @@ void struct_unpack_code::gen(const struct_data *data,dumper &d,uint32 type,
 	      d.text_fmt("if (__buffer.empty()) goto %s;\n",data_done_label);
 	    }
 
-	  d.text_fmt("READ_FROM_BUFFER(%d,%s,%s%s);\n",
+	  int account_id =
+	    new_account_item(header->_name, data->_ident);
+
+	  d.text_fmt("%sREAD_FROM_BUFFER(%d,%s,%s%s,%d);\n",
+		     match_prefix,
 		     data->_loc._internal,
-		     data_type,prefix,data->_ident);
+		     data_type,prefix,data->_ident,
+		     account_id);
 
 	  if ((type & UCT_UNPACK) &&
 	      (data->_flags & SD_FLAGS_SEVERAL))
@@ -843,7 +942,11 @@ void struct_unpack_code::gen(const struct_data *data,dumper &d,uint32 type,
 
   if (type & (UCT_UNPACK | UCT_MATCH))
     {
+      const char *match_prefix = "";
       const char *read_prefix = "READ";
+
+      if (type & UCT_MATCH)
+	match_prefix = "MATCH_";
 
       if (data->_flags & (SD_FLAGS_OPTIONAL | SD_FLAGS_SEVERAL))
 	{
@@ -852,16 +955,21 @@ void struct_unpack_code::gen(const struct_data *data,dumper &d,uint32 type,
 	  data_done_label = strdup(label);
 	  d.text_fmt("if (__buffer.empty()) goto %s;\n",data_done_label);
 
+	  match_prefix = "";
 	  read_prefix = "PEEK";
 	}
 
-
       // First we need to get the data from the buffer
 
-      d.text_fmt("%s_FROM_BUFFER_FULL(%d,%s,%s,%s%s.%s);\n",
+      int account_id =
+	new_account_item(header->_name, data->_ident);
+
+      d.text_fmt("%s%s_FROM_BUFFER_FULL(%d,%s,%s,%s%s.%s,%d);\n",
+		 match_prefix,
 		 read_prefix,
 		 data->_loc._internal,
-		 data_type,data->_ident,prefix,data->_ident,full_name);
+		 data_type,data->_ident,prefix,data->_ident,full_name,
+		 account_id);
 
       // Then we need to check it...
 
@@ -945,11 +1053,7 @@ void struct_unpack_code::gen(const struct_data *data,dumper &d,uint32 type,
 	    name_prefix._list = data->_bits;
 	    name_prefix._prefix = name_prefix_str;
 
-	    encode_spec_list::const_iterator encode;
-
-	    for (encode = data->_encode->begin();
-		 encode != data->_encode->end(); ++encode)
-	      gen(*encode,d,type,&name_prefix);
+	    gen(data->_encode,d,type,&name_prefix);
 	  }
       }
 
@@ -1096,7 +1200,8 @@ const var_external *struct_unpack_code::gen_external_header(const variable *var,
   return external;
 }
 
-void struct_unpack_code::gen(const struct_list*    list,   dumper &d,uint32 type,
+void struct_unpack_code::gen(const struct_header *header,
+			     const struct_list*    list,   dumper &d,uint32 type,
 			     match_end_info *mei,
 			     bool last_subevent_item)
 {
@@ -1122,7 +1227,7 @@ void struct_unpack_code::gen(const struct_list*    list,   dumper &d,uint32 type
       d.text(")\n");
     }
 
-  gen(list->_items,d,type,mei,last_subevent_item,false);
+  gen(header,list->_items,d,type,mei,last_subevent_item,false);
 }
 
 void struct_unpack_code::gen(const struct_select*select,dumper &d,uint32 type,
@@ -1508,7 +1613,8 @@ void struct_unpack_code::gen_match(const file_line &loc,
     }
 }
 
-void struct_unpack_code::gen(const struct_cond *cond,dumper &d,uint32 type,
+void struct_unpack_code::gen(const struct_header *header,
+			     const struct_cond *cond,dumper &d,uint32 type,
 			     match_end_info *mei,
 			     bool last_subevent_item)
 {
@@ -1532,7 +1638,7 @@ void struct_unpack_code::gen(const struct_cond *cond,dumper &d,uint32 type,
   if (mei)
     smei1 = new match_end_info(*mei);
 
-  gen(cond->_items,d,type,smei1,last_subevent_item,false);
+  gen(header,cond->_items,d,type,smei1,last_subevent_item,false);
   if (cond->_items_else)
     {
       if (type & (UCT_UNPACK | UCT_MATCH | UCT_PACKER))
@@ -1543,7 +1649,7 @@ void struct_unpack_code::gen(const struct_cond *cond,dumper &d,uint32 type,
       match_end_info *smei2 = NULL;
       if (mei)
 	smei2 = new match_end_info(*mei);
-      gen(cond->_items_else,d,type,smei2,last_subevent_item,false);
+      gen(header,cond->_items_else,d,type,smei2,last_subevent_item,false);
 
       // only in case both branches ended their matching, we end
       // the matching...

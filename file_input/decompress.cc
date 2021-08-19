@@ -36,7 +36,24 @@
 #include <fcntl.h>
 #include <ctype.h>
 
-#define MIN_BUFFER_SIZE 0x01000000 // 16 MB prefetch buffer
+#define MIN_BUFFER_SIZE     0x01000000 //  8 MB prefetch buffer
+
+#define DEFAULT_BUFFER_SIZE 0x04000000 // 64 MB prefetch buffer
+
+size_t get_prefetch_size()
+{
+  size_t prefetch_size = MIN_BUFFER_SIZE;
+
+  if (!_conf._input_buffer)
+    prefetch_size = DEFAULT_BUFFER_SIZE;
+  else
+    {
+      while (prefetch_size < _conf._input_buffer)
+	prefetch_size *= 2;
+    }
+
+  return prefetch_size;
+}
 
 decompressor::decompressor()
 {
@@ -621,9 +638,7 @@ void data_input_source::connect(const char *name,int type
   tpb->set_next_file(blocked_next_file,wakeup_next_file);
 #endif
 
-  size_t prefetch_size = MIN_BUFFER_SIZE;
-  while (prefetch_size < _conf._input_buffer)
-    prefetch_size *= 2;
+  size_t prefetch_size = get_prefetch_size();
 
   // Three times the size required.  We need twice to handle events
   // fragmented between streams (ucesb generated).  And then another
@@ -632,7 +647,7 @@ void data_input_source::connect(const char *name,int type
   while (prefetch_size < minsize * 3)
     prefetch_size *= 2;
 
-  INFO(0,"Server data: %zdkiB chunks; prefetch buffer: %zdMiB.",
+  INFO(0,"Server data: %zd kiB chunks; prefetch buffer: %zd MiB.",
        minsize >> 10, prefetch_size >> 20);
 
   tpb->init(server,prefetch_size
@@ -873,10 +888,8 @@ void data_input_source::open(const char *filename
 	      (int) push_magic_len);
       */
 
-      size_t prefetch_size = MIN_BUFFER_SIZE;
-      while (prefetch_size < _conf._input_buffer)
-	prefetch_size *= 2;
-      
+      size_t prefetch_size = get_prefetch_size();
+
       pb->init(fd,push_magic,push_magic_len,
 	       prefetch_size
 #ifdef USE_PTHREAD
@@ -936,9 +949,7 @@ void data_input_source::open_rfio(const char *filename
   rpb->set_next_file(blocked_next_file,wakeup_next_file);
 #endif
 
-  size_t prefetch_size = MIN_BUFFER_SIZE;
-  while (prefetch_size < _conf._input_buffer)
-    prefetch_size *= 2;
+  size_t prefetch_size = get_prefetch_size();
   
   rpb->init(fd/*,magic*/,prefetch_size
 #ifdef USE_PTHREAD

@@ -244,30 +244,43 @@ STICKY_ACTIVE()
 
 WR_STAMP(id)
 {
+  MEMBER(DATA16 srcid);
+  MEMBER(DATA16 err);
+  MEMBER(DATA16 t1);
+  MEMBER(DATA16 t2);
+  MEMBER(DATA16 t3);
+  MEMBER(DATA16 t4);
+
   UINT32 header NOENCODE
   {
     8_11: id = MATCH(id);
     16:   error;
+    ENCODE(srcid, (value=id));
+    ENCODE(err, (value=error));
   }
   UINT32 data0 NOENCODE
   {
-    0_15: v;
+    0_15: t1;
     16_31: 0x03e1;
+    ENCODE(t1, (value=t1));
   };
   UINT32 data1 NOENCODE
   {
-    0_15: v;
+    0_15: t2;
     16_31: 0x04e1;
+    ENCODE(t2, (value=t2));
   };
   UINT32 data2 NOENCODE
   {
-    0_15: v;
+    0_15: t3;
     16_31: 0x05e1;
+    ENCODE(t3, (value=t3));
   };
   UINT32 data3 NOENCODE
   {
-    0_15: v;
+    0_15: t4;
     16_31: 0x06e1;
+    ENCODE(t4, (value=t4));
   };
 }
 
@@ -557,6 +570,8 @@ SIGNAL(ZZP1_1_U_1,vme.tdc2.data[7],(DATA12,uint32));
 SIGNAL(ZERO_SUPPRESS: ZZP1_1_U_10);
 SIGNAL(ZZP1_1_L_1,vme.tdc2.data[8],(DATA12,uint64));
 SIGNAL(ZERO_SUPPRESS: ZZP1_1_L_10);
+
+SIGNAL(ITEMsixtyfour,,uint64);
 
 SIGNAL(STCORR,regress[0].sticky_active.corr,uint32);
 

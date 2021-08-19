@@ -88,14 +88,14 @@ int main(int argc,char *argv[])
 
   if (!ext_data_setup_stderr(client,
 			     &event_layout,sizeof(event_layout),
-			     NULL,
+			     NULL, NULL,
 			     sizeof(event),
 			     "", &h99_id))
     goto failed_setup;
 
   if (!ext_data_setup_stderr(client,
 			     &event_b_layout,sizeof(event_b_layout),
-			     NULL,
+			     NULL, NULL,
 			     sizeof(event_b),
 			     "h98", &h98_id))
     goto failed_setup;

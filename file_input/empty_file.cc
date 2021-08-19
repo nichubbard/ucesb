@@ -83,6 +83,7 @@ void usage(char *cmdname)
   printf ("  --random-trig     Random trigger no (LMD only).\n");
   printf ("  --titris-stamp=N  Write titris stamp in first subevent, id=N (LMD only).\n");
   printf ("  --wr-stamp=N      Write WR stamp in first subevent, id=N (LMD only).\n");
+  printf ("                    (or N=mergetest, gives id=1..4)\n");
   printf ("  --bad-stamp=N     Write bad stamps every so often.\n");
   printf ("  --caen-v775=N     Write CAEN V775 subevent.\n");
   printf ("  --caen-v1290=N    Write CAEN V1290 subevent.\n");
@@ -186,7 +187,10 @@ int main(int argc,char *argv[])
 	_conf._titris_stamp = atol(post);
       }
       else if (MATCH_PREFIX("--wr-stamp=",post)) {
-	_conf._wr_stamp = atol(post);
+	if (strcmp(post,"mergetest") == 0)
+	  _conf._wr_stamp = -1;
+	else
+	  _conf._wr_stamp = atol(post);
       }
       else if (MATCH_PREFIX("--bad-stamp=",post)) {
 	_conf._bad_stamp = atol(post);
@@ -215,7 +219,8 @@ int main(int argc,char *argv[])
       else if (MATCH_PREFIX("--events=",post)) {
 	_conf._max_events = atol(post);
       }
-      else if (MATCH_PREFIX("--first-event-no=",post)) {
+      else if (MATCH_PREFIX("--first-event-no=",post) ||
+	       MATCH_PREFIX("--first-ev-no=",post)) {
 	_conf._first_event_no = atol(post);
       }
       else if (MATCH_PREFIX("--rate=",post)) {
@@ -410,19 +415,42 @@ char *create_titris_stamp(char *data_write,
 }
 
 char *create_wr_stamp(char *data_write,
-		      uint64_t *rstate_badwr)
+		      uint64_t *rstate_badwr,
+		      uint64_t *rstate_wrid,
+		      uint64_t *rstate_wrinc,
+		      uint64_t *wr_time)
 {
   uint32_t *wr_stamp = (uint32_t *) data_write;
 
   struct timespec now;
+  uint32_t id;
+  uint64_t stamp;
 
-  clock_gettime(CLOCK_REALTIME, &now);
+  if (_conf._wr_stamp == -1)
+    {
+      id = (rxs64s(rstate_wrid) & 0x03) + 1;
 
-  // Lets write the time-stamp in units of
-  // 10 ns...  This is arbitrary.
+      stamp = *wr_time;
 
-  uint64_t stamp = (1000000000 * now.tv_sec +
-		    (now.tv_nsec / 1));
+      uint64_t inc = rxs64s(rstate_wrinc);
+
+      *wr_time += (inc & 0x3ff);
+
+      if ((inc & 0x1f000000) == 0)
+	*wr_time |= 0xffffe000;   // Make jump forward
+    }
+  else
+    {
+      id = _conf._wr_stamp;
+
+      clock_gettime(CLOCK_REALTIME, &now);
+
+      // Lets write the time-stamp in units of
+      // 10 ns...  This is arbitrary.
+
+      stamp = (1000000000 * now.tv_sec +
+	       (now.tv_nsec / 1));
+    }
 
   if (_conf._bad_stamp &&
       (rxs64s(rstate_badwr) % _conf._bad_stamp) == 0)
@@ -432,7 +460,7 @@ char *create_wr_stamp(char *data_write,
 	       "Inject BAD: %016" PRIx64 "  \n", stamp);
     }
 
-  wr_stamp[0] = _conf._wr_stamp << 8;
+  wr_stamp[0] = (id & 0xff) << 8;
   wr_stamp[1] = WR_STAMP_DATA_0_16_ID |
     (uint32_t) ( stamp        & 0xffff);
   wr_stamp[2] = WR_STAMP_DATA_1_16_ID |
@@ -454,11 +482,15 @@ void write_data_lmd()
   uint64_t rstate_sevsize = 3;
   uint64_t rstate_badtitris = 4;
   uint64_t rstate_badwr = 5;
+  uint64_t rstate_wrid = 11;
+  uint64_t rstate_wrinc = 12;
   uint64_t rstate_sim_caen = 6;
   uint64_t rstate_multi = 7;
   uint64_t rstate_sticky_base = 8;
   uint64_t rstate_sticky_corr = 9;
   uint64_t rstate_sticky_frac = 10;
+
+  uint64_t wr_time = 0x00000003ffffc000ll; // 0000 0003 ffff c000
 
   uint64_t timeslot_nev = 0;
   struct timeval timeslot_start;
@@ -821,7 +853,10 @@ void write_data_lmd()
 	      if (write_wr_stamp)
 		{
 		  sevp_write = create_wr_stamp(sevp_write,
-					       &rstate_badwr);
+					       &rstate_badwr,
+					       &rstate_wrid,
+					       &rstate_wrinc,
+					       &wr_time);
 		  write_wr_stamp = false;
 		}
 	      uint32_t *p_num_toggle_ev = NULL;

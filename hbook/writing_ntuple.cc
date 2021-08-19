@@ -252,7 +252,24 @@ void cwn_ptrs_indexed_item(read_write_ptrs_external &w,indexed_item *array,
 	}
       else // integer
 	{
-	  w.dest_int((uint32_t *) dest);
+	  uint32_t mark = 0;
+
+	  if (info & IND_ITEM_TYPE_TS_LO)
+	    mark |= EXTERNAL_WRITER_MARK_TS_LO;
+	  if (info & IND_ITEM_TYPE_TS_HI)
+	    mark |= EXTERNAL_WRITER_MARK_TS_HI;
+	  if (info & IND_ITEM_TYPE_TS_SRCID)
+	    mark |= EXTERNAL_WRITER_MARK_TS_SRCID;
+	  if (info & IND_ITEM_TYPE_MEVENTNO)
+	    mark |= EXTERNAL_WRITER_MARK_MEVENTNO;
+	  if (info & IND_ITEM_TYPE_MRG_STAT)
+	    mark |= EXTERNAL_WRITER_MARK_MRG_STAT;
+	  if (info & IND_ITEM_TYPE_MRG_MASK)
+	    mark |= EXTERNAL_WRITER_MARK_MRG_MASK;
+	  if (info & IND_ITEM_TYPE_MULT_NON0)
+	    mark |= EXTERNAL_WRITER_MARK_MULT_NON0;
+
+	  w.dest_int((uint32_t *) dest, mark);
 	}
     }
 }
@@ -565,13 +582,15 @@ void cwn_ptrs_array_item(read_write_ptrs_external &w,array_item *array,
 
       uint32_t used_items = item->_items_used;
 
-      w.dest_int_ctrl((item->_dest),used_items);
+      w.dest_int_ctrl((item->_dest),used_items,
+		      EXTERNAL_WRITER_MARK_ARRAY_IND1);
 
       uint32_t *indices = item->_dest+1;
 
       for (uint32_t k = 0; k < used_items; k++)
 	{
-	  w.dest_int((indices++)/*,k*/);
+	  w.dest_int((indices++)/*,k*/,
+		     EXTERNAL_WRITER_MARK_ITEM_INDEX);
 
 	  cwn_ptrs_indexed_item(w,item,1,k);
 	}
@@ -709,10 +728,11 @@ void cwn_ptrs_array2_item(read_write_ptrs_external &w,array2_item *array,
 
       /* First the array with indices and end location. */
 
-      uint32_t used_items = item->_items_used;
+      uint32_t used_items  = item->_items_used;
       uint32_t used_items2 = item->_items_used2;
 
-      w.dest_int_ctrl((item->_dest2),used_items);
+      w.dest_int_ctrl((item->_dest2),used_items,
+		      EXTERNAL_WRITER_MARK_ARRAY_MIND);
 
       uint32_t *indices = item->_dest2+1;
       uint32_t *endloc  = indices+used_items;
@@ -720,8 +740,10 @@ void cwn_ptrs_array2_item(read_write_ptrs_external &w,array2_item *array,
       //printf ("%p\n",w._p);
       for (uint32_t k = 0; k < used_items; k++)
 	{
-	  w.dest_int((indices++)/*,k*/);
-	  w.dest_int((endloc++)/*,k*/);
+	  w.dest_int((indices++)/*,k*/,
+		     EXTERNAL_WRITER_MARK_ITEM_INDEX);
+	  w.dest_int((endloc++)/*,k*/,
+		     EXTERNAL_WRITER_MARK_ITEM_ENDNUM);
 	}
       w.ctrl_over();
 

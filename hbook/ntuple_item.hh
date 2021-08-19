@@ -64,6 +64,15 @@ struct ntuple_mask
 #define NTUPLE_ITEM_HAS_MASK_OFL   0x0040
 #define NTUPLE_ITEM_OMIT           0x0080
 
+/* Timestamp info for time-stitching in struct_writer. */
+#define NTUPLE_ITEM_TS_LO          0x0100
+#define NTUPLE_ITEM_TS_HI          0x0200
+#define NTUPLE_ITEM_TS_SRCID       0x0400
+#define NTUPLE_ITEM_MEVENTNO       0x0800
+#define NTUPLE_ITEM_MRG_STAT       0x1000
+#define NTUPLE_ITEM_MRG_MASK       0x2000
+#define NTUPLE_ITEM_MULT_NON0      0x4000
+
 struct ntuple_item
 {
   enum ptr_type

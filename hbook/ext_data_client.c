@@ -21,7 +21,7 @@
 #include "ext_data_proto.h"
 #include "ext_data_client.h"
 
-#include "ext_file_writer.hh"
+/* #include "ext_file_writer.hh" */
 
 #include <unistd.h>
 #include <errno.h>
@@ -81,6 +81,8 @@ struct ext_data_structure_item
   uint32_t    _limit_min;
   uint32_t    _limit_max;
 
+  uint32_t    _map_success;
+
 #if STRUCT_WRITER
   uint32_t    _ctrl_offset;
 #endif
@@ -96,6 +98,14 @@ struct ext_data_structure_info
 {
   struct ext_data_structure_item *_items;
 
+  /* Used while returning items for ext_data_struct_info_map_success(). */
+  struct ext_data_structure_item *_ret_item;
+  int         _ret_for_server;
+
+  struct ext_data_structure_info *_server_struct_info;
+
+  uint32_t    _map_success;
+
   const char *_last_error;
 };
 
@@ -108,18 +118,25 @@ struct ext_data_client_struct
    */
   uint32_t  _max_raw_words;
 
-  uint32_t _orig_xor_sum_msg;
-  size_t _orig_struct_size;
-  void  *_orig_array; /* for mapping */
+  uint32_t  _orig_xor_sum_msg;
+  size_t    _orig_struct_size;
+  void     *_orig_array; /* for mapping */
 
-  size_t _struct_size;
-  uint32_t _max_pack_items;
-  uint32_t _static_pack_items;
+  uint32_t  _orig_max_pack_items;
+  uint32_t  _orig_static_pack_items;
 
-  uint32_t *_pack_list;
-  uint32_t *_pack_list_end;
+  uint32_t *_orig_pack_list;
+  uint32_t *_orig_pack_list_end;
 
-  uint32_t *_reverse_pack;
+  size_t    _dest_struct_size;
+
+  uint32_t  _dest_max_pack_items;
+  uint32_t  _dest_static_pack_items;
+
+  uint32_t *_dest_pack_list;
+  uint32_t *_dest_pack_list_end;
+
+  uint32_t *_dest_reverse_pack;
 
   uint32_t *_map_list;
   uint32_t *_map_list_end;
@@ -144,8 +161,7 @@ struct ext_data_client
   size_t _buf_used;
   size_t _buf_filled;
 
-  /* Todo: the following is never allocated?? */
-  uint32_t *_raw_ptr;
+  uint32_t *_raw_ptr;  /* This is not allocated; just used. */
   uint32_t  _raw_words;
   uint32_t *_raw_swapped;
 
@@ -199,6 +215,13 @@ struct ext_data_structure_info *ext_data_struct_info_alloc()
 
   struct_info->_items = NULL;
 
+  struct_info->_map_success = (uint32_t) -1;
+
+  struct_info->_ret_item = NULL;
+  struct_info->_ret_for_server = 0;
+
+  struct_info->_server_struct_info = NULL;
+
   struct_info->_last_error = NULL;
 
   return struct_info;
@@ -237,10 +260,148 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info)
   return struct_info->_last_error;
 }
 
-
-
 #define DEBUG_MATCHING(...) do { } while (0)
-/*#define DEBUG_MATCHING(...) do { printf (__VA_ARGS__); } while (0)*/
+/*efine DEBUG_MATCHING(...) do { fprintf (stderr,__VA_ARGS__); } while (0)*/
+
+int
+ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
+				 int restart,
+				 const char **var_name,
+				 uint32_t *offset,
+				 uint32_t *map_success)
+{
+  struct ext_data_structure_item *item;
+  
+  if (!struct_info)
+    {
+      /* struct_info->_last_error = "Struct_info context NULL."; */
+      errno = EFAULT;
+      return -1;
+    }
+
+  if (restart == 1)
+    {
+      struct_info->_ret_item = struct_info->_items;
+      struct_info->_ret_for_server = 0;
+      /*DEBUG_MATCHING("restart...\n");*/
+    }
+
+  item = struct_info->_ret_item;
+
+  if (!item &&
+      struct_info->_ret_for_server == 0)
+    {
+      /* We are out of client items, continue with the server list. */
+      item = struct_info->_ret_item =
+	struct_info->_server_struct_info->_items;
+      struct_info->_ret_for_server = 1;
+      /*
+      DEBUG_MATCHING("server... %p %p\n",
+		     struct_info->_server_struct_info,
+		     struct_info->_ret_item);
+      */
+    }
+  /*
+  if (item)
+    DEBUG_MATCHING("%s : %x\n", item->_var_name, item->_map_success);
+  */
+  if (struct_info->_ret_for_server)
+    {
+      /* For server list, we only report items that
+       * are missing destination. */
+      while (item &&
+	     item->_map_success != EXT_DATA_ITEM_MAP_NO_DEST)
+	{
+	  /*
+	  if (item)
+	    DEBUG_MATCHING("%s : %x\n", item->_var_name, item->_map_success);
+	  */
+	  struct_info->_ret_item = item = item->_next_off_item;
+	}
+      /*DEBUG_MATCHING("skipped...\n");*/
+  }
+
+  if (!item)
+    return 0;
+
+  if (var_name)
+    *var_name = item->_var_name;
+
+  if (offset)
+    *offset = item->_offset;
+
+  if (map_success)
+    *map_success = item->_map_success;
+
+  /* Prepare to get next item. */
+
+  struct_info->_ret_item = item->_next_off_item;
+
+  return 1;
+}
+
+int
+ext_data_struct_info_print_map_success(struct ext_data_structure_info *
+				       /* */ struct_info,
+				       FILE *stream,
+				       uint32_t exclude_success)
+{
+  int restart = 0;
+  const char *var_name;
+  uint32_t offset;
+  uint32_t map_success;
+
+  fprintf (stream, "%-40s %-8s %-6s\n",
+	   "Item", "Offset", "Success");
+
+  fprintf (stream, "%-40s %-8s %-6s\n",
+	   "----------------------------------------",
+	   "--------", "---------------------------");
+
+  for (restart = 1; ; restart = 0)
+    {
+      int ret;
+
+      ret =
+	ext_data_struct_info_map_success(struct_info,
+					 restart,
+					 &var_name, &offset, &map_success);
+
+      if (ret == -1)
+	return -1;
+
+      if (!ret)
+	break;
+
+      if (!(map_success & ~exclude_success))
+	continue;
+
+      fprintf (stream, "%-40s %-8d (0x%02x)",
+	       var_name, offset, map_success);
+
+#define EXT_DATA_PRINT_MAP_SUCCESS(x,str)  do {		\
+	if (map_success & (EXT_DATA_ITEM_MAP_##x)) {	\
+	  fprintf (stream, " %s", str);			\
+	}						\
+      } while (0)
+
+      EXT_DATA_PRINT_MAP_SUCCESS(MATCH,         "match");
+      EXT_DATA_PRINT_MAP_SUCCESS(NO_DEST,       "no dest - not mapped");
+      EXT_DATA_PRINT_MAP_SUCCESS(NOT_FOUND,     "not found");
+      EXT_DATA_PRINT_MAP_SUCCESS(TYPE_MISMATCH, "type mismatch");
+      EXT_DATA_PRINT_MAP_SUCCESS(CTRL_MISMATCH, "ctrl item mismatch");
+      EXT_DATA_PRINT_MAP_SUCCESS(ARRAY_FEWER,   "array short");
+      EXT_DATA_PRINT_MAP_SUCCESS(ARRAY_MORE,    "array longer");
+
+      fprintf (stream, "\n");
+    }
+
+  fprintf (stream, "%-40s %-8s %-6s\n",
+	   "----------------------------------------",
+	   "--------", "---------------------------");
+
+  return 1;
+}
 
 int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 			      size_t offset, size_t size,
@@ -282,7 +443,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
   item->_length = (uint32_t) size;
   item->_block = NULL;
   item->_var_name = strdup(name);
-  item->_var_ctrl_name = ctrl_name ? strdup(ctrl_name) : "";
+  item->_var_ctrl_name = strdup(ctrl_name ? ctrl_name : "");
   item->_var_type = type;
   if (limit_max >= 0)
     {
@@ -295,6 +456,8 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
       item->_limit_max = -1;
     }
   item->_ctrl_item = NULL;
+
+  item->_map_success = (uint32_t) -1;
 
   /* We better be strict.  Ensure that no previously described item
    * has the same name, or overlaps in the structure.
@@ -376,13 +539,18 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
   return -1;
 }
 
+#define MAP_LIST_MARK_LOOP        0x80000000
+#define MAP_LIST_SRC_OFFSET_MASK  0x7fffffff
+
 int ext_data_struct_match_items(struct ext_data_client *client,
 				struct ext_data_client_struct *clistr,
 				const struct ext_data_structure_info *from,
 				const struct ext_data_structure_info *to,
-				int *all_to_same_from)
+				int *all_to_same_from,
+				uint32_t *map_success)
 {
   struct ext_data_structure_item *item;
+  struct ext_data_structure_item *match;
   int items, ctrl_items;
   size_t map_list_items;
 
@@ -401,6 +569,8 @@ int ext_data_struct_match_items(struct ext_data_client *client,
    * garbage.  In such cases, the remap copy is needed.
    */
 
+  *map_success = 0;
+
   /* First clear all temporaries. */
 
   item = to->_items;
@@ -409,7 +579,18 @@ int ext_data_struct_match_items(struct ext_data_client *client,
     {
       item->_match_item = NULL;
       item->_child_item = NULL;
+      item->_map_success = 0;
       item = item->_next_off_item;
+    }
+
+  /* Clear all from temporaries. */
+
+  match = from->_items;
+
+  while (match)
+    {
+      match->_map_success = 0;
+      match = match->_next_off_item;
     }
 
   /* For each item in the @to list, we want to find possible
@@ -422,8 +603,6 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 
   while (item)
     {
-      struct ext_data_structure_item *match;
-
       /* We always find the item by name! */
 
       match = from->_items;
@@ -436,6 +615,7 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	  if (!match)
 	    {
 	      DEBUG_MATCHING("no match.\n");
+	      item->_map_success = EXT_DATA_ITEM_MAP_NOT_FOUND;
 	      goto no_match;
 	    }
 
@@ -452,6 +632,8 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	{
 	  DEBUG_MATCHING("type mismatch (%d -> %d).\n",
 			 match->_var_type, item->_var_type);
+	  item->_map_success =
+	    match->_map_success = EXT_DATA_ITEM_MAP_TYPE_MISMATCH;
 	  goto no_match;
 	}
 
@@ -461,12 +643,30 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	{
 	  DEBUG_MATCHING("ctrl mismatch ([%s] -> ).\n",
 			 match->_var_ctrl_name);
+	  item->_map_success =
+	    match->_map_success = EXT_DATA_ITEM_MAP_CTRL_MISMATCH;
 	  goto no_match;
 	}
 
       /* So it is a good match. */
 
       item->_match_item = match;
+
+      if (item->_length == match->_length)
+	{
+	  item->_map_success =
+	    match->_map_success = EXT_DATA_ITEM_MAP_MATCH;
+	}
+      else if (item->_length < match->_length)
+	{
+	  item->_map_success  = EXT_DATA_ITEM_MAP_ARRAY_FEWER;
+	  match->_map_success = EXT_DATA_ITEM_MAP_ARRAY_MORE;
+	}
+      else /* (item->_length > match->_length) */
+	{
+	  item->_map_success  = EXT_DATA_ITEM_MAP_ARRAY_MORE;
+	  match->_map_success = EXT_DATA_ITEM_MAP_ARRAY_FEWER;
+	}
 
       /* If we have a controlling item, it shall be added to that list.
        */
@@ -489,10 +689,30 @@ int ext_data_struct_match_items(struct ext_data_client *client,
       DEBUG_MATCHING("ok!\n");
 
       goto next_item;
+
     no_match:
       *all_to_same_from = 0;
     next_item:
+      *map_success |= item->_map_success;
       item = item->_next_off_item;
+    }
+
+  DEBUG_MATCHING("Done matching items.\n");
+  
+  /* Mark all source items that were not matched. */
+  
+  match = from->_items;
+
+  while (match)
+    {
+      if (!match->_map_success)
+	{
+	  DEBUG_MATCHING("No match for \'%s\' [%s], missing dest.\n",
+			 match->_var_name, match->_var_ctrl_name);
+	  *map_success |=
+	    match->_map_success = EXT_DATA_ITEM_MAP_NO_DEST;
+	}
+      match = match->_next_off_item;
     }
 
   /* How much will it contribute to the remap list size?
@@ -584,7 +804,7 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	      if (item->_limit_max < max_loops)
 		max_loops = item->_limit_max;
 
-	      *o_mark |= 0x80000000;           /* mark | [dest] */
+	      *o_mark |= MAP_LIST_MARK_LOOP; /* mark | [dest] */
 	      *(o++) = max_loops;              /* loops */
 	      o_loop_size = o++;               /* items */
 
@@ -634,18 +854,18 @@ ext_data_struct_map_items(const struct ext_data_client_struct *clistr,
     {
       uint32_t offset_src_mark = *(o++);
       uint32_t offset_dest     = *(o++);
-      uint32_t offset_src = offset_src_mark & 0x3fffffff;
-      uint32_t mark = offset_src_mark & 0x80000000;
+      uint32_t offset_src = offset_src_mark & MAP_LIST_SRC_OFFSET_MASK;
+      uint32_t loop = offset_src_mark & MAP_LIST_MARK_LOOP;
       uint32_t value;
       /*
       printf ("0x%08x 0x%08x : %5d %5d %s\n",
-	      offset_src_mark, offset_dest,
+              offset_src_mark, offset_dest,
 	      offset_src, offset_dest, mark ? "l" : "");
       fflush(stdout);
       */
       value = *((uint32_t *) (src + offset_src));
 
-      if (mark)
+      if (loop)
 	{
 	  uint32_t max_loops = *(o++);
 	  uint32_t loop_size = *(o++);
@@ -806,8 +1026,9 @@ static void ext_data_clistr_free(struct ext_data_client_struct *clistr)
   free((char *) clistr->_id);
 
   free(clistr->_orig_array);
-  free(clistr->_pack_list);
-  free(clistr->_reverse_pack);
+  free(clistr->_orig_pack_list);
+  free(clistr->_dest_pack_list);
+  free(clistr->_dest_reverse_pack);
   free(clistr->_map_list);
 
   ext_data_struct_info_free(clistr->_struct_info_msg);
@@ -816,13 +1037,14 @@ static void ext_data_clistr_free(struct ext_data_client_struct *clistr)
 static void ext_data_free(struct ext_data_client *client)
 {
   int i;
-  
+
   free(client->_buf);
 
   for (i = 0; i < client->_num_structures; i++)
     ext_data_clistr_free(client->_structures+i);
 
   free(client->_structures);
+  free(client->_raw_swapped);
 
   free(client); /* Note! we also free the structure itself. */
 }
@@ -836,13 +1058,19 @@ void ext_data_clear_client_struct(struct ext_data_client_struct *clistr)
   clistr->_orig_xor_sum_msg = 0;
   clistr->_orig_struct_size = 0;
   clistr->_orig_array = NULL;
-  clistr->_struct_size = 0;
-  clistr->_max_pack_items = 0;
-  clistr->_static_pack_items = 0;
+  clistr->_orig_max_pack_items = 0;
+  clistr->_orig_static_pack_items = 0;
 
-  clistr->_pack_list = NULL;
-  clistr->_pack_list_end = NULL;
-  clistr->_reverse_pack = NULL;
+  clistr->_orig_pack_list = NULL;
+  clistr->_orig_pack_list_end = NULL;
+
+  clistr->_dest_struct_size = 0;
+  clistr->_dest_max_pack_items = 0;
+  clistr->_dest_static_pack_items = 0;
+
+  clistr->_dest_pack_list = NULL;
+  clistr->_dest_pack_list_end = NULL;
+  clistr->_dest_reverse_pack = NULL;
 
   clistr->_map_list = NULL;
   clistr->_map_list_end = NULL;
@@ -1348,9 +1576,11 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 	case EXTERNAL_WRITER_BUF_ARRAY_OFFSETS:
 	  {
 	    uint32_t *p = (uint32_t *) (header+1);
+	    uint32_t length_left = ntohl(header->_length) -
+	      sizeof(struct external_writer_buf_header);
+	    uint32_t pack_list_items;
 
-	    if (ntohl(header->_length) <
-		sizeof(struct external_writer_buf_header) + sizeof(uint32_t))
+	    if (length_left < sizeof(uint32_t))
 	      {
 		client->_last_error =
 		  "Bad array offsets message size during setup.";
@@ -1368,13 +1598,105 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 
 	    clistr->_orig_xor_sum_msg = ntohl(p[0]);
 
+	    p++;
+	    length_left -= sizeof(uint32_t);
+
 	    /* And then follows the actual offset array... */
+	    /* Make our own copy of the pack list. */
+
+	    pack_list_items = length_left / sizeof(uint32_t);
+
+	    clistr->_orig_pack_list =
+	      (uint32_t *) malloc (pack_list_items * sizeof(uint32_t));
+	    
+	    if (!clistr->_orig_pack_list)
+	      {
+		client->_last_error =
+		  "Memory allocation failure (orig pack list).";
+		errno = ENOMEM;
+		return -1;
+	      }
+
+	    clistr->_orig_pack_list_end =
+	      clistr->_orig_pack_list + pack_list_items;
 
 	    /* TODO: verify that offsets match the list we have! */
 	    /* Note: if it is from a writer, there will be no offsets
 	     * (at least yet), only the xor.
 	     */
 
+      {
+	uint32_t *o    = p;
+	uint32_t *oend = o + pack_list_items;
+
+	uint32_t *d = clistr->_orig_pack_list;
+
+	clistr->_orig_max_pack_items = 0;
+	clistr->_orig_static_pack_items = 0;
+
+	/* fprintf (stderr, "PACK_LIST: %d\n", pack_list_items); */
+
+	while (o < oend)
+	  {
+	    uint32_t mark   = *(d++) = ntohl(*(o++));
+	    uint32_t offset = *(d++) = ntohl(*(o++));
+	    uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
+
+	    (void) offset;
+
+	    /* fprintf (stderr, "PL, OM: %08x\n", mark); */
+
+	    clistr->_orig_static_pack_items++;
+
+	    if (loop)
+	      {
+		uint32_t max_loops = *(d++) = ntohl(*(o++));
+		uint32_t loop_size = *(d++) = ntohl(*(o++));
+
+		uint32_t items = max_loops * loop_size;
+		uint32_t i;
+
+		/*fprintf (stderr, "PL, LOOP: %08x %08x\n",
+		  max_loops, loop_size);*/
+
+		if (oend - o < (ssize_t) (2 * items))
+		  {
+		    client->_last_error =
+		      "Pack-list malformed, too many loop items.";
+		    errno = EPROTO;
+		    return -1;
+		  }
+
+		clistr->_orig_max_pack_items += items;
+
+		for (i = items; i; i--)
+		  {
+		    mark   = *(d++) = ntohl(*(o++));
+		    offset = *(d++) = ntohl(*(o++));
+
+		    /* fprintf (stderr, "PL, Li: %08x %08x\n", mark, offset); */
+		  }
+	      }
+	  }
+	clistr->_orig_max_pack_items += clistr->_orig_static_pack_items;
+
+	if (d != clistr->_orig_pack_list_end)
+	  {
+	    client->_last_error =
+	      "Pack-list malformed, copy failure.";
+	    errno = EPROTO;
+	    return -1;
+	  }
+	
+	/*
+  	fprintf (stderr,
+		 "PACK_LIST_END: %d %d\n",
+		 clistr->_orig_static_pack_items,
+		 clistr->_orig_max_pack_items);
+	*/
+    }
+
+            /* TODO: what is this?: */
 	    clistr = NULL;
 
 	    break;
@@ -1429,6 +1751,7 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 		return -1;
 	      }
 
+	    /* fprintf (stderr, "STRUCT_INDEX: %d\n", struct_index); */
 	    clistr = ext_data_alloc_client_struct(client);
 
 	    if (!clistr)
@@ -1685,6 +2008,7 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 int ext_data_setup(struct ext_data_client *client,
 		   const void *struct_layout_info,size_t size_info,
 		   struct ext_data_structure_info *struct_info,
+		   uint32_t *struct_map_success,
 		   size_t size_buf,
 		   const char *name_id, int *struct_id)
 {
@@ -1694,6 +2018,9 @@ int ext_data_setup(struct ext_data_client *client,
   const struct ext_data_structure_layout_item *slo_items;
   const uint32_t *slo_pack_list;
   uint32_t i;
+
+  if (struct_map_success)
+    *struct_map_success = EXT_DATA_ITEM_MAP_NOT_DONE;
 
   if (!client)
     {
@@ -1802,6 +2129,14 @@ int ext_data_setup(struct ext_data_client *client,
 	  errno = ENOMSG;
 	  return -1;
 	}
+
+      if (clistr->_dest_struct_size)
+	{
+	  client->_last_error = "Requested structure (ntuple) "
+	    "already mapped.";
+	  errno = EBUSY;
+	  return -1;
+	}
     }
 
   /* */
@@ -1879,23 +2214,24 @@ int ext_data_setup(struct ext_data_client *client,
        * program just had it as a temporary variable).
        */
 
-      clistr->_pack_list =
+      clistr->_dest_pack_list =
 	(uint32_t *) malloc (slo->_pack_list_items * sizeof(uint32_t));
 
-      if (!clistr->_pack_list)
+      if (!clistr->_dest_pack_list)
 	{
-	  client->_last_error = "Memory allocation failure (pack list).";
+	  client->_last_error = "Memory allocation failure (dest pack list).";
 	  errno = ENOMEM;
 	  return -1;
 	}
 
-      clistr->_pack_list_end = clistr->_pack_list + slo->_pack_list_items;
+      clistr->_dest_pack_list_end =
+	clistr->_dest_pack_list + slo->_pack_list_items;
 
       slo_items =
 	((const struct ext_data_structure_layout_item *) (slo + 1)) - 1;
       slo_pack_list = (const uint32_t *) (slo_items + slo->_num_items);
 
-      memcpy(clistr->_pack_list,slo_pack_list,
+      memcpy(clistr->_dest_pack_list,slo_pack_list,
 	     slo->_pack_list_items * sizeof(uint32_t));
 
       /* Make the reverse list, to be able to quickly (directly) look any
@@ -1903,57 +2239,57 @@ int ext_data_setup(struct ext_data_client *client,
        * worst case message size.
        */
 
-      clistr->_reverse_pack =
+      clistr->_dest_reverse_pack =
 	(uint32_t *) malloc (size_buf * sizeof(uint32_t));
 
-      if (!clistr->_reverse_pack)
+      if (!clistr->_dest_reverse_pack)
 	{
 	  client->_last_error = "Memory allocation failure (reverse pack).";
 	  errno = ENOMEM;
 	  return -1;
 	}
 
-      memset(clistr->_reverse_pack,0,size_buf * sizeof(uint32_t));
+      memset(clistr->_dest_reverse_pack,0,size_buf * sizeof(uint32_t));
 
       // Loop over the entire offset buffer...
 
       {
-	uint32_t *o    = clistr->_pack_list;
-	uint32_t *oend = clistr->_pack_list_end;
+	uint32_t *o    = clistr->_dest_pack_list;
+	uint32_t *oend = clistr->_dest_pack_list_end;
 
-	clistr->_max_pack_items = 0;
-	clistr->_static_pack_items = 0;
+	clistr->_dest_max_pack_items = 0;
+	clistr->_dest_static_pack_items = 0;
 
 	while (o < oend)
 	  {
-	    uint32_t offset_mark = *(o++);
-	    uint32_t offset = offset_mark & 0x3fffffff;
-	    uint32_t mark = offset_mark & 0x80000000;
+	    uint32_t mark   = *(o++);
+	    uint32_t offset = *(o++);
+	    uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
 
-	    clistr->_static_pack_items++;
+	    clistr->_dest_static_pack_items++;
 
-	    if (mark)
+	    if (loop)
 	      {
 		uint32_t max_loops = *(o++);
 		uint32_t loop_size = *(o++);
 
 		uint32_t items = max_loops * loop_size;
 
-		uint32_t *onext = o + items;
+		uint32_t *onext = o + 2 * items;
 
-		clistr->_max_pack_items += items;
+		clistr->_dest_max_pack_items += items;
 
-		clistr->_reverse_pack[offset] =
-		  (uint32_t) (o - clistr->_pack_list);
+		clistr->_dest_reverse_pack[offset] =
+		  (uint32_t) (o - clistr->_dest_pack_list);
 
 		o = onext;
 	      }
 	  }
-	clistr->_max_pack_items += clistr->_static_pack_items;
+	clistr->_dest_max_pack_items += clistr->_dest_static_pack_items;
       }
     }
 
-  clistr->_struct_size = size_buf;
+  clistr->_dest_struct_size = size_buf;
 
   if (client->_state == EXT_DATA_STATE_OPEN_OUT)
     {
@@ -1976,7 +2312,7 @@ int ext_data_setup(struct ext_data_client *client,
        * The size is limited by the pack list.  Plus the message header.
        */
 
-      size_t bufsize = clistr->_max_pack_items * sizeof(uint32_t) +
+      size_t bufsize = clistr->_dest_max_pack_items * sizeof(uint32_t) +
 	sizeof(struct external_writer_buf_header) + 2 * sizeof(uint32_t);
 
       /* The other messages we send first are fixed length, and
@@ -2039,7 +2375,7 @@ int ext_data_setup(struct ext_data_client *client,
       header->_request = htonl(EXTERNAL_WRITER_BUF_ALLOC_ARRAY |
 			       EXTERNAL_WRITER_REQUEST_HI_MAGIC);
       p = (uint32_t *) (header+1);
-      *(p++) = htonl((uint32_t) clistr->_struct_size);
+      *(p++) = htonl((uint32_t) clistr->_dest_struct_size);
       header->_length = htonl((uint32_t) (((char *) p) - ((char *) header)));
 
       // EXTERNAL_WRITER_BUF_RESIZE      /* tell size? */
@@ -2094,7 +2430,7 @@ int ext_data_setup(struct ext_data_client *client,
   /* Now do the checking. */
 
   if (!struct_info &&
-      clistr->_struct_size != clistr->_orig_struct_size)
+      clistr->_dest_struct_size != clistr->_orig_struct_size)
     {
       client->_last_error =
 	"Bad alloc message struct size during setup.";
@@ -2126,16 +2462,23 @@ int ext_data_setup(struct ext_data_client *client,
     {
       int ret;
       int all_to_same_from;
+      uint32_t map_success;
 
       /* Create mapping between the two structures. */
+
+      struct_info->_server_struct_info = clistr->_struct_info_msg;
 
       ret = ext_data_struct_match_items(client, clistr,
 					clistr->_struct_info_msg,
 					struct_info,
-					&all_to_same_from);
+					&all_to_same_from,
+					&map_success);
 
       if (ret)
 	return ret; /* -1 ? */
+
+      if (struct_map_success)
+	*struct_map_success = map_success;
 
       /* We as an optimisation do *not* use the temporary
        * orig_array buffer if we have an exact structure
@@ -2143,7 +2486,7 @@ int ext_data_setup(struct ext_data_client *client,
        */
 
       if (!all_to_same_from ||
-	  clistr->_orig_struct_size != clistr->_struct_size)
+	  clistr->_orig_struct_size != clistr->_dest_struct_size)
 	{
 	  clistr->_orig_array = malloc (clistr->_orig_struct_size);
 
@@ -2249,6 +2592,7 @@ int ext_data_write_bitpacked_event(char *dest,size_t dest_size,
 
 int ext_data_write_packed_event(struct ext_data_client *client,
 				char *dest,
+				int struct_id,
 				uint32_t *src,uint32_t *end_src)
 {
   const struct ext_data_client_struct *clistr;
@@ -2259,36 +2603,41 @@ int ext_data_write_packed_event(struct ext_data_client *client,
   uint32_t *o;
   uint32_t *oend;
 
-  int struct_id = 0;
-
   if (struct_id >= client->_num_structures)
     return -5;
 
   clistr = &client->_structures[struct_id];
 
-  o    = clistr->_pack_list;
-  oend = clistr->_pack_list_end;
+  o    = clistr->_orig_pack_list;
+  oend = clistr->_orig_pack_list_end;
 
-  if (pend - p < (ssize_t) clistr->_static_pack_items)
+  /*
+  fprintf (stderr, "[str: %d] %zd cmp %zd\n",
+	   struct_id,
+	   pend - p,
+	   (ssize_t) clistr->_orig_static_pack_items);
+  */
+  
+  if (pend - p < (ssize_t) clistr->_orig_static_pack_items)
     return -1;
 
-  uint32_t *pcheck = p + clistr->_static_pack_items;
+  uint32_t *pcheck = p + clistr->_orig_static_pack_items;
 
   while (o < oend)
     {
-      uint32_t offset_mark = *(o++);
-      uint32_t offset = offset_mark & 0x3fffffff;
-      uint32_t mark = offset_mark & 0x80000000;
+      uint32_t mark   = *(o++);
+      uint32_t offset = *(o++);
+      uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
       uint32_t value = ntohl(*(p++));
 
       *((uint32_t *) (dest + offset)) = value;
 
-      if (mark)
+      if (loop)
 	{
 	  uint32_t max_loops = *(o++);
 	  uint32_t loop_size = *(o++);
 
-	  uint32_t *onext = o + max_loops * loop_size;
+	  uint32_t *onext = o + 2 * max_loops * loop_size;
 
 	  if (value > max_loops)
 	    return -2;
@@ -2303,7 +2652,8 @@ int ext_data_write_packed_event(struct ext_data_client *client,
 
 	  for (i = items; i; i--)
 	    {
-	      offset = (*(o++)) & 0x3fffffff;
+	      mark   = *(o++);
+	      offset = *(o++);
 	      value = ntohl(*(p++));
 
 	      *((uint32_t *) (dest + offset)) = value;
@@ -2476,7 +2826,7 @@ int ext_data_fetch_event(struct ext_data_client *client,
 
   clistr = &client->_structures[struct_id];
 
-  if (size != clistr->_struct_size)
+  if (size != clistr->_dest_struct_size)
     {
       client->_last_error = "Buffer size mismatch.";
       errno = EINVAL;
@@ -2600,18 +2950,21 @@ int ext_data_fetch_event(struct ext_data_client *client,
       }
 
     marker = ntohl(*(p++));
-    compact_marker = marker & 0xc0000000;
+    compact_marker = marker & (EXTERNAL_WRITER_COMPACT_PACKED |
+			       EXTERNAL_WRITER_COMPACT_NONPACKED);
 
-    if (compact_marker != 0x80000000 &&
-	compact_marker != 0x40000000)
+    if (compact_marker != EXTERNAL_WRITER_COMPACT_PACKED &&
+	compact_marker != EXTERNAL_WRITER_COMPACT_NONPACKED)
       {
 	client->_last_error = "Compact marker invalid.";
 	errno = EBADMSG;
 	return -1;
       }
 
-    if (compact_marker & 0x40000000)
+    if (compact_marker & EXTERNAL_WRITER_COMPACT_NONPACKED)
       {
+	int ret;
+	
 	/* It is not bit-packed.  Use the pack list.
 	 */
 
@@ -2626,9 +2979,12 @@ int ext_data_fetch_event(struct ext_data_client *client,
 	return 2;
 #endif
 
-	if (ext_data_write_packed_event(client,unpack_buf,
-					p,end))
+	ret = ext_data_write_packed_event(client,unpack_buf,
+					  struct_index,p,end);
+
+	if (ret)
 	  {
+	    /* fprintf (stderr, "ret=%d\n", ret); */
 	    client->_last_error = "Event message unpack failure.";
 	    errno = EBADMSG;
 	    return -1;
@@ -2766,14 +3122,14 @@ int ext_data_clear_event(struct ext_data_client *client,
 
   clistr = &client->_structures[struct_id];
 
-  if (size != clistr->_struct_size)
+  if (size != clistr->_dest_struct_size)
     {
       client->_last_error = "Buffer size mismatch.";
       errno = EINVAL;
       return -1;
     }
 
-  if (!clistr->_pack_list)
+  if (!clistr->_dest_pack_list)
     {
       /* Setup was called without struct_layout_info (i.e. only with
        * struct_info) - we have no pack list, so do not know where
@@ -2790,26 +3146,27 @@ int ext_data_clear_event(struct ext_data_client *client,
   /* Run through the offset list and clean the data structure.
    */
 
-  o    = clistr->_pack_list;
-  oend = clistr->_pack_list_end;
+  o    = clistr->_dest_pack_list;
+  oend = clistr->_dest_pack_list_end;
 
   b = (char*) buf;
 
   while (o < oend)
     {
-      uint32_t offset_mark = *(o++);
-      uint32_t offset = offset_mark & 0x3fffffff;
-      uint32_t mark = offset_mark & 0x80000000;
-      uint32_t clear_nan_zero = offset_mark & 0x40000000;
+      uint32_t mark   = *(o++);
+      uint32_t offset = *(o++);
+      uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
+      uint32_t clear_zero =
+	mark & EXTERNAL_WRITER_MARK_CLEAR_ZERO;
 
       // Dirty trick with the NaN clearing, to avoid branching.  If
       // marker (bit 30) shifted down to bit 4, i.e. value 16 is set,
       // then we'll shift the NaN bits out and the value used for
       // clearing will be 0.
       (*((uint32_t *) (b + offset))) =
-	(uint32_t) 0x7fc00000 << (clear_nan_zero >> 26);
+	(uint32_t) 0x7fc00000 << (clear_zero >> 26);
 
-      if (mark)
+      if (loop)
 	{
 	  // It's a loop control.  Make sure the value was within
 	  // limits.
@@ -2817,7 +3174,7 @@ int ext_data_clear_event(struct ext_data_client *client,
 	  uint32_t max_loops = *(o++);
 	  uint32_t loop_size = *(o++);
 
-	  uint32_t *onext = o + max_loops * loop_size;
+	  uint32_t *onext = o + 2 * max_loops * loop_size;
 
 	  if (clear_zzp_lists)
 	    {
@@ -2826,13 +3183,14 @@ int ext_data_clear_event(struct ext_data_client *client,
 
 	      for (i = items; i; i--)
 		{
-		  uint32_t item_offset_mark = *(o++);
-		  uint32_t item_offset = item_offset_mark & 0x3fffffff;
-		  uint32_t item_clear_nan_zero = item_offset_mark & 0x40000000;
+		  uint32_t item_mark = *(o++);
+		  uint32_t item_offset = *(o++);
+		  uint32_t item_clear_zero =
+		    item_mark & EXTERNAL_WRITER_MARK_CLEAR_ZERO;
 
 		  // Dirty trick (nan <-> zero)...
 		  (*((uint32_t *) (b + item_offset))) =
-		    (uint32_t) 0x7fc00000 << (item_clear_nan_zero >> 26);
+		    (uint32_t) 0x7fc00000 << (item_clear_zero >> 26);
 		}
 	    }
 	  o = onext;
@@ -2874,9 +3232,9 @@ void ext_data_clear_zzp_lists(struct ext_data_client *client,
 
   item_offset = (int) ((char *) item - (char *) buf);
 
-  item_info = clistr->_reverse_pack[item_offset];
+  item_info = clistr->_dest_reverse_pack[item_offset];
 
-  o = clistr->_pack_list + item_info;
+  o = clistr->_dest_pack_list + item_info;
 
   value = *((uint32_t *) item);
 
@@ -2903,13 +3261,14 @@ void ext_data_clear_zzp_lists(struct ext_data_client *client,
 
   for (i = items; i; i--)
     {
-      uint32_t offset_mark = *(o++);
-      uint32_t offset = offset_mark & 0x3fffffff;
-      uint32_t clear_nan_zero = offset_mark & 0x40000000;
+      uint32_t mark   = *(o++);
+      uint32_t offset = *(o++);
+      uint32_t clear_zero =
+	mark & EXTERNAL_WRITER_MARK_CLEAR_ZERO;
 
       // Dirty trick (nan <-> zero)...
       (*((uint32_t *) (b + offset))) =
-	(uint32_t) 0x7fc00000 << (clear_nan_zero >> 26);
+	(uint32_t) 0x7fc00000 << (clear_zero >> 26);
     }
 }
 
@@ -2951,7 +3310,7 @@ int ext_data_write_event(struct ext_data_client *client,
 
   clistr = &client->_structures[struct_id];
 
-  if (size != clistr->_struct_size)
+  if (size != clistr->_dest_struct_size)
     {
       client->_last_error = "Buffer size mismatch.";
       errno = EINVAL;
@@ -2963,7 +3322,7 @@ int ext_data_write_event(struct ext_data_client *client,
 
   if (client->_buf_alloc - client->_buf_filled <
       sizeof (struct external_writer_buf_header) + 3 * sizeof(uint32_t) +
-      clistr->_max_pack_items * sizeof(uint32_t))
+      clistr->_dest_max_pack_items * sizeof(uint32_t))
     {
       if (ext_data_flush_buffer(client))
 	return -1; // errno has been set
@@ -2976,28 +3335,28 @@ int ext_data_write_event(struct ext_data_client *client,
 
   *(cur++) = htonl(0); /* struct_index */
   *(cur++) = htonl(0); /* ntuple_index */
-  *(cur++) = htonl(0x40000000); /* marker for non-packed event */
+  *(cur++) = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
   /* Run through the offset list and write the data to the buffer.
    */
 
-  o    = clistr->_pack_list;
-  oend = clistr->_pack_list_end;
+  o    = clistr->_dest_pack_list;
+  oend = clistr->_dest_pack_list_end;
 
   b = (char*) buf;
 
   while (o < oend)
     {
-      uint32_t offset_mark = *(o++);
-      uint32_t offset = offset_mark & 0x3fffffff;
-      uint32_t mark = offset_mark & 0x80000000;
-      // uint32_t clear_nan_zero = offset_mark & 0x40000000;
+      uint32_t mark   = *(o++);
+      uint32_t offset = *(o++);
+      uint32_t loop = mark & EXTERNAL_WRITER_MARK_LOOP;
+      // uint32_t clear_nan_zero = mark & EXTERNAL_WRITER_MARK_CLEAR_NAN;
 
       uint32_t value = (*((uint32_t *) (b + offset)));
 
       *(cur++) = htonl(value);
 
-      if (mark)
+      if (loop)
 	{
 	  // It's a loop control.  Make sure the value was within
 	  // limits.
@@ -3012,15 +3371,18 @@ int ext_data_write_event(struct ext_data_client *client,
 	      return (int) offset;
 	    }
 
-	  uint32_t *onext = o + max_loops * loop_size;
+	  uint32_t *onext = o + 2 * max_loops * loop_size;
 	  uint32_t items = value * loop_size;
 	  uint32_t i;
 
 	  for (i = items; i; i--)
 	    {
-	      uint32_t item_offset_mark = *(o++);
-	      uint32_t item_offset = item_offset_mark & 0x3fffffff;
-	      // uint32_t clear_nan_zero = offset_mark & 0x40000000;
+	      uint32_t item_mark   = *(o++);
+	      uint32_t item_offset = *(o++);
+	      // uint32_t item_clear_nan_zero =
+	      //   item_mark & EXTERNAL_WRITER_MARK_CLEAR_NAN;
+
+	      (void) item_mark;
 
 	      value = (*((uint32_t *) (b + item_offset)));
 
@@ -3243,11 +3605,14 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  const void *struct_layout_info,
 			  size_t size_info,
 			  struct ext_data_structure_info *struct_info,
+			  uint32_t *struct_map_success,
 			  size_t size_buf,
 			  const char *name_id, int *struct_id)
 {
   int ret = ext_data_setup(client,
-			   struct_layout_info,size_info,struct_info,size_buf,
+			   struct_layout_info, size_info,
+			   struct_info, struct_map_success,
+			   size_buf,
 			   name_id,struct_id);
 
   if (ret == -1)

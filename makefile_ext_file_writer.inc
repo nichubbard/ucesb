@@ -48,9 +48,11 @@ endif
 
 #########################################################
 
+ifndef NO_ROOT
 FILE_ROOT_CONFIG:=$(shell which root-config 2> /dev/null)
 ifeq (,$(FILE_ROOT_CONFIG))
 FILE_ROOT_CONFIG=$(shell which $(ROOTSYS)/bin/root-config 2> /dev/null)
+endif
 endif
 
 ifneq (,$(FILE_ROOT_CONFIG))

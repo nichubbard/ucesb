@@ -74,8 +74,10 @@ void send_offsets_mystruct(external_writer *ew)
   ew->send_hbname_branch("DEF",offsetof(mystruct,e),sizeof(event.e),
 			 "e",7,"",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
 
-  uint32_t offset_msg_size = (1+1+1+(2)+4+7) * (uint32_t) sizeof(uint32_t);
-  uint32_t fill_msg_size = (1 + (1+1+1+4+7)) * (uint32_t) sizeof(uint32_t);
+  uint32_t offset_msg_size =
+    (2*(1+1+1)+(2)+2*4+2*7) * (uint32_t) sizeof(uint32_t);
+  uint32_t fill_msg_size =
+    (1 + (1+1+1+4+7)) * (uint32_t) sizeof(uint32_t);
 
   uint32_t maxmsgsize =
     fill_msg_size > offset_msg_size ?
@@ -86,16 +88,28 @@ void send_offsets_mystruct(external_writer *ew)
   {
     uint32_t *o = ew->prepare_send_offsets(offset_msg_size);
 
-    *(o++) = htonl((uint32_t) offsetof(mystruct,a) | 0x40000000);
+    *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		   EXTERNAL_WRITER_MARK_CLEAR_ZERO);
+    *(o++) = htonl((uint32_t) offsetof(mystruct,a));
+    *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		   EXTERNAL_WRITER_MARK_CLEAR_NAN);
     *(o++) = htonl((uint32_t) offsetof(mystruct,c));
-    *(o++) = htonl((uint32_t) offsetof(mystruct,b) | 0x80000000 | 0x40000000);
+    *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		   EXTERNAL_WRITER_MARK_LOOP |
+		   EXTERNAL_WRITER_MARK_CLEAR_ZERO);
+    *(o++) = htonl((uint32_t) offsetof(mystruct,b));
     *(o++) = htonl(4);
     *(o++) = htonl(1);
     for (int l = 0; l < 4; l++) {
+      *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		     EXTERNAL_WRITER_MARK_CLEAR_NAN);
       *(o++) = htonl((uint32_t) ((offsetof(mystruct,d)+l*sizeof(float))));
     }
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 7; i++) {
+      *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		     EXTERNAL_WRITER_MARK_CLEAR_NAN);
       *(o++) = htonl((uint32_t) ((offsetof(mystruct,e)+i*sizeof(float))));
+    }
     ew->send_offsets_fill(o);
   }
 }
@@ -108,7 +122,7 @@ void send_fill_mystruct(external_writer *ew,
 
   uint32_t *p = ew->prepare_send_fill_x(fill_msg_size, 0, ntuple_index);
 
-  *(p++) = htonl(0x40000000); /* marker */
+  *(p++) = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
   {
     *(p++) = htonl((s.a));
@@ -143,7 +157,7 @@ void send_offsets_secondstruct(external_writer *ew)
                          sizeof(/*secondstruct.h*/float),
                          "h",-1,"",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
 
-  uint32_t offset_msg_size = (2 + 2 * 0) * (uint32_t) sizeof(uint32_t);
+  uint32_t offset_msg_size = (2*2 + 2 * 0) * (uint32_t) sizeof(uint32_t);
   uint32_t fill_msg_size = (1 + 2) * (uint32_t) sizeof(uint32_t);
 
   ew->set_max_message_size(fill_msg_size > offset_msg_size ?
@@ -152,7 +166,11 @@ void send_offsets_secondstruct(external_writer *ew)
   {
     uint32_t *o = ew->prepare_send_offsets(offset_msg_size);
 
-    *(o++) = htonl((uint32_t) offsetof(secondstruct,g) | 0x40000000);
+    *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		   EXTERNAL_WRITER_MARK_CLEAR_ZERO);
+    *(o++) = htonl((uint32_t) offsetof(secondstruct,g));
+    *(o++) = htonl(EXTERNAL_WRITER_MARK_CANARY |
+		   EXTERNAL_WRITER_MARK_CLEAR_NAN);
     *(o++) = htonl((uint32_t) offsetof(secondstruct,h));
 
     ew->send_offsets_fill(o);
@@ -168,7 +186,7 @@ void send_fill_secondstruct(external_writer *ew,
   uint32_t *p = ew->prepare_send_fill_x(fill_msg_size,1,ntuple_index,
 					NULL,NULL,0);
 
-  *(p++) = htonl(0x40000000); // marker that we are not compacted
+  *(p++) = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
   *(p++) = htonl((s.g));
   *(p++) = htonl(external_write_float_as_uint32(s.h));
@@ -218,7 +236,7 @@ int main(int argc, char *argv[])
 
   ew->init_x(type | NTUPLE_CASE_KEEP, opt,
 	     filename,"Title",-1,generate_header,
-	     false,false,false);
+	     false,false,false, 0);
 
   ew->send_file_open(0);
 

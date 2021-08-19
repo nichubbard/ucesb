@@ -147,9 +147,10 @@ GENERATED = $(GENDIR)/clean_structures.hh \
 	$(GENDIR)/revoke.hh \
 	$(GENDIR)/unpacker_defines.hh
 
-OBJS    = unpacker.o event_loop.o correlation.o corr_plot_dense.o \
+OBJS    = unpacker.o event_loop.o \
+	correlation.o corr_plot_dense.o corr_plot_dense2.o\
 	convert_picture.o pretty_dump.o \
-	event_sizes.o tstamp_alignment.o \
+	event_sizes.o tstamp_alignment.o accounting.o \
 	mainfcn.o parse_util.o location.o \
 	common.o zero_suppress_map.o signal_id_map.o \
 	struct_fcns.o struct_mapping.o multi_chunk_fcn.o \
@@ -163,7 +164,7 @@ OBJS    = unpacker.o event_loop.o correlation.o corr_plot_dense.o \
 	decompress.o forked_child.o logfile.o \
 	map_info.o calib_info.o mc_def.o \
 	mille_output.o \
-	set_thread_name.o \
+	set_thread_name.o format_prefix.o \
 	mc_parser.o mc_lexer.o
 GENOBJS =
 
@@ -653,6 +654,10 @@ $(GENDIR)/locations.hh: $(GENDIR)/$(UNPACKER).uce $(VERIFYUCESB)
 	@echo " EXTRACT $@"
 	@$(EXTRACT) LOCATIONS < $< > $@
 
+$(GENDIR)/account_ids.hh: $(GENDIR)/$(UNPACKER).uce $(VERIFYUCESB)
+	@echo " EXTRACT $@"
+	@$(EXTRACT) ACCOUNT_IDS < $< > $@
+
 $(GENDIR)/unpacker_defines.hh: $(GENDIR)/$(UNPACKER).uce $(VERIFYUCESB)
 	@echo " EXTRACT $@"
 	@$(EXTRACT) UNPACKER_DEFINES < $< > $@
@@ -805,7 +810,7 @@ $(VERIFYPSDC): $(GENDIR)/reparse_raw.psd $(GENDIR)/verify_reparse_raw.psd
 #########################################################
 
 $(OBJDIR)/unpacker.o: $(GENDIR)/unpacker.hh $(GENDIR)/matcher.hh \
-	$(GENDIR)/packer.hh $(GENDIR)/locations.hh \
+	$(GENDIR)/packer.hh $(GENDIR)/locations.hh $(GENDIR)/account_ids.hh \
 	$(GENDIR)/structures.hh $(GENDIR)/data_mapping.hh
 
 #########################################################
@@ -1012,10 +1017,12 @@ TESTRESULTS := $(filter $(addsuffix %,$(TESTFILES)),$(TESTRESULTS))
 
 $(GENDIR)/$(UNPACKER).runfilestamp.%: $(UNPACKER)
 	@echo "TESTFILE $*"
+	@#echo
 	@#echo "FULL: $*"
 	@#echo "SRC.: $(firstword $(subst .ntupleopt., ,$*))"
 	@#echo "OPT.: $(lastword $(subst .ntupleopt., ,$(*:.dump.good=)))"
-	@#echo "$(*:.dump.good=)"
+	@#echo "....: $(*:.dump.good=)"
+	@#echo
 	@(./$< testfiles/$(firstword $(subst .ntupleopt., ,$*)) \
 	    --ntuple=$(lastword $(subst .ntupleopt., ,$(*:.dump.good=))),STRUCT,- > $@.struct 2> $@.unpack.err && \
 	  cat $@.struct | $(UCESB_BASE_DIR)/hbook/struct_writer - --dump \
@@ -1031,7 +1038,26 @@ $(GENDIR)/$(UNPACKER).runfilestamp.%: $(UNPACKER)
 	@rm $@.unpack.err $@.dump.err $@.dump $@.struct
 	@touch $@
 
-$(GENDIR)/$(UNPACKER).runstamps: $(addprefix $(GENDIR)/$(UNPACKER).runfilestamp.,$(TESTRESULTS))
+$(GENDIR)/$(UNPACKER).bitpack.runfilestamp.%: $(UNPACKER)
+	@echo "TESTFILE (BITPACK) $*"
+	@(./$< testfiles/$(firstword $(subst .ntupleopt., ,$*)) \
+	    --ntuple=$(lastword $(subst .ntupleopt., ,$(*:.dump.good=))),BITPACK,STRUCT,- > $@.struct 2> $@.unpack.err && \
+	  cat $@.struct | $(UCESB_BASE_DIR)/hbook/struct_writer - --dump \
+	    > $@.dump 2> $@.dump.err && \
+	  diff -u testfiles/$* $@.dump ) || \
+	  ( echo "Failure while running: './$< testfiles/$(*:.dump.good=)" ; \
+	    echo "Comparing to 'testfiles/$*':" ; \
+	    echo "--- stdout: ---" ; cat $@.unpack.err ; \
+	    echo "--- stderr: ---" ; cat $@.dump.err ; \
+	    echo "---------------" ; \
+	    echo "$@.dump" ; \
+	    echo "---------------" ; false)
+	@rm $@.unpack.err $@.dump.err $@.dump $@.struct
+	@touch $@
+
+$(GENDIR)/$(UNPACKER).runstamps: \
+	$(addprefix $(GENDIR)/$(UNPACKER).runfilestamp.,$(TESTRESULTS)) \
+	$(addprefix $(GENDIR)/$(UNPACKER).bitpack.runfilestamp.,$(TESTRESULTS))
 
 #########################################################
 # Link

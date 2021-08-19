@@ -218,7 +218,8 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
 			     const char *filename,const char *ftitle,
 			     int server_port,int generate_header,
 			     int timeslice,int timeslice_subdir,
-			     int autosave)
+			     int autosave,
+			     int ts_merge_window)
 {
   int fd_mem = -1;
   bool shm = !(opt & NTUPLE_OPT_WRITER_NO_SHM);
@@ -319,6 +320,25 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
   if (opt & (NTUPLE_OPT_EXT_GDB | NTUPLE_OPT_EXT_VALGRIND))
     {
       argv[argc++] = strdup(argv0_replace(ext_writer));
+    }
+
+  if (opt & NTUPLE_OPT_WRITER_BITPACK)
+    {
+      if (type & (NTUPLE_TYPE_STRUCT | NTUPLE_TYPE_STRUCT_HH))
+	{
+	  argv[argc++] = strdup("--bitpack");
+	}
+      else
+	{
+	  ERROR("Bitpack only makes sense with struct writer.");
+	}
+    }
+
+  if (ts_merge_window)
+    {
+      snprintf (tmp,sizeof(tmp),
+		"--time-stitch=%d",ts_merge_window);
+      argv[argc++] = strdup(tmp);
     }
 
   // fork_pipes points to XXXXX,XXXXX, so that actual numbers can be
@@ -426,6 +446,11 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
 			"--server=%d",server_port); argv[argc++] = strdup(tmp);
 	    }
 	}
+    }
+
+  if (opt & NTUPLE_OPT_DUMP_RAW)
+    {
+      argv[argc++] = strdup("--dump-raw");
     }
 
   argv[argc++] = NULL; // terminate

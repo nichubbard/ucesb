@@ -48,11 +48,13 @@
 
 // Separate variable: (could reuse bits)
 
-#define NTUPLE_OPT_WRITER_NO_SHM     0x4000
-#define NTUPLE_OPT_READER_INPUT      0x8000 // use as a reader!
+#define NTUPLE_OPT_WRITER_BITPACK  0x004000
+#define NTUPLE_OPT_WRITER_NO_SHM   0x008000
+#define NTUPLE_OPT_READER_INPUT    0x010000 // use as a reader!
 
-#define NTUPLE_OPT_EXT_GDB         0x010000
-#define NTUPLE_OPT_EXT_VALGRIND    0x020000
+#define NTUPLE_OPT_DUMP_RAW        0x020000
+#define NTUPLE_OPT_EXT_GDB         0x040000
+#define NTUPLE_OPT_EXT_VALGRIND    0x080000
 
 class ext_writer_buf
 {
@@ -180,7 +182,7 @@ public:
 	      const char *filename,const char *ftitle,
 	      int server_port,int generate_header,
 	      int timeslice,int timeslice_subdir,
-	      int autosave);
+	      int autosave,int ts_merge_window);
   void close();
 
 public:

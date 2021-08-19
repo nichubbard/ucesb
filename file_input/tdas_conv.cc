@@ -31,6 +31,7 @@
 #include "lmd_event.hh"
 
 #define USE_LMD_INPUT 1
+#define TDAS_CONV 1
 
 #include "lmd_output.hh"
 

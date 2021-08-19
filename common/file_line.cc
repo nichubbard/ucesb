@@ -69,7 +69,6 @@ void generate_locations()
     }
   printf ("};\n");
 
-
   print_footer("LOCATIONS");
 }
 #endif

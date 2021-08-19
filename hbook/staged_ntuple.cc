@@ -59,13 +59,14 @@ void staged_ntuple::set_ext(external_writer *ext)
   _external_ext = true;
 }
 
-void staged_ntuple::open_x(const char *filename,
+void staged_ntuple::open_xx(const char *filename,
 			   const char *ftitle,
 			   int ntuple_type,
 			   int ntuple_opt,
 			   int server_port,
 			   int timeslice, int timeslice_subdir,
 			   int autosave,
+			   int ts_merge_window,
 			   uint sort_u32_words)
 {
   _ext = new external_writer();
@@ -77,7 +78,8 @@ void staged_ntuple::open_x(const char *filename,
 	       filename,ftitle,
 	       server_port,
 	       !!(ntuple_type & NTUPLE_TYPE_STRUCT_HH),
-	       timeslice,timeslice_subdir,autosave);
+	       timeslice,timeslice_subdir,autosave,
+	       ts_merge_window);
   _ext->send_file_open(sort_u32_words);
 
   _x_ntuple_type = ntuple_type;
@@ -450,6 +452,9 @@ void staged_ntuple::stage_x(vect_ntuple_items &listing,
   assert(_index_item + index_vars == ptr_index_item);
   assert(_array_item + array_vars == ptr_array_item);
 
+  assert(_global_array._info_slots_per_entry == global_indices._slot_ind);
+  assert(_global_array._items_per_entry      == global_indices._dest_ind);
+
   // ERROR("Not finished yet!");
 
   if (_ext)
@@ -489,7 +494,7 @@ void staged_ntuple::stage_x(vect_ntuple_items &listing,
 
       read_write_ptrs_external w;
 
-      size = (_array_entries +
+      size = (2 * _array_entries +
 	      2 * (_entries_index + _entries_array) +
 	      4 * (_entries_array2)) *
 	sizeof(uint32_t);
@@ -588,7 +593,7 @@ void staged_ntuple::event(void *base,uint *sort_u32,
       if (fill_raw)
 	fill_raw->_callback(fill_raw);
 
-      start[0] = htonl(0x40000000); // marker that we're not compacted
+      start[0] = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
       w._p = start + 1;
 
@@ -646,7 +651,7 @@ bool staged_ntuple::get_event()
       if (end < start+3 ||
 	  ntohl(start[0]) != 0 || // struct_index != 0
 	  ntohl(start[1]) != 0 || // ntuple_index != 0
-	  ntohl(start[2]) != 0x40000000)   // non-packed
+	  ntohl(start[2]) != EXTERNAL_WRITER_COMPACT_NONPACKED)
 	ERROR("Malformed event message from external reader.");
 
 

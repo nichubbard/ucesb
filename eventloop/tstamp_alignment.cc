@@ -73,7 +73,8 @@ void tstamp_alignment_histo::add_histos(size_t n, int is_lin, uint range,
 }
 
 
-tstamp_alignment::tstamp_alignment(char const *a_command):
+tstamp_alignment::tstamp_alignment(char const *a_command, int a_merge_style):
+  _style(a_merge_style),
   _is_lin(0),
   _range(1000000),
   _bin_num(32)
@@ -108,28 +109,35 @@ tstamp_alignment::tstamp_alignment(char const *a_command):
           _is_lin = 0;
           goto parse_time_stamp_hist_options_next;
         }
-#define TIME_HIST_COMPONENT(dst, src)\
-      do {\
-        char const *opt = #src"=";\
-        size_t optlen = strlen(opt);\
-        if (strncmp(p, opt, optlen) == 0) {\
-          p += optlen;\
-          char *end;\
-          int value = (int)strtod(p, &end);\
-          if (p == end || end[0] != '\0') {\
-            ERROR("Invalid number for \""#src"\" in time stamp histogram option \"%s\".", a_command);\
-          }\
-          dst = value;\
-          goto parse_time_stamp_hist_options_next;\
-        }\
+
+#define TIME_HIST_COMPONENT(dst, src)					\
+      do {								\
+        char const *opt = #src"=";					\
+        size_t optlen = strlen(opt);					\
+        if (strncmp(p, opt, optlen) == 0) {				\
+          p += optlen;							\
+          char *end;							\
+          int value = (int)strtod(p, &end);				\
+          if (p == end || end[0] != '\0') {				\
+            ERROR("Invalid number for \""#src"\" in "			\
+		  "time stamp histogram option \"%s\".", a_command);	\
+	  }								\
+	  dst = value;							\
+	  goto parse_time_stamp_hist_options_next;			\
+	}								\
       } while (0)
+
       TIME_HIST_COMPONENT(_range, range);
       TIME_HIST_COMPONENT(_bin_num, bins);
-      ERROR("Unknown time stamp histogram option \"%s\", in \"%s\".",request,a_command);
+      ERROR("Unknown time stamp histogram option \"%s\", in \"%s\".",
+	    request,a_command);
 parse_time_stamp_hist_options_next:
       free(request);
       cmd = req_end + (*req_end == ',');
     }
+  if (_style <= 0)
+    ERROR("No time stamp histogram style in \"%s\" or by merge style %d.",
+	  a_command,a_merge_style);
 }
 
 ssize_t tstamp_alignment::get_index(const lmd_subevent *subevent_info,
@@ -319,14 +327,15 @@ void tstamp_alignment::usage()
   printf ("\n");
   printf (" [props] is a comma-separated combination of the following properties for the\n");
   printf (" histograms:\n");
-  printf ("  log        - logarithmic time scale, ignores remaining properties.\n");
+  printf ("  wr|titris  - timestamp format.\n");
+  printf ("  log        - logarithmic time scale, ignores properties below.\n");
   printf ("  lin        - linear time scale.\n");
   printf ("  range=num  - maximum negative and positive extent, default=1e6.\n");
   printf ("  bins=num   - number of bins on one side of 0, default=16 means 2x16+1 columns.\n");
   printf ("\n");
   printf ("Examples:\n");
-  printf (" --tstamp-hist=log\n");
-  printf (" --tstamp-hist=lin,range=1e3,bins=40\n");
+  printf (" --tstamp-hist=log,wr\n");
+  printf (" --tstamp-hist=lin,wr,range=1e3,bins=40\n");
   printf ("\n");
 }
 

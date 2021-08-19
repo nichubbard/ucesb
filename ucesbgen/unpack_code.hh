@@ -36,7 +36,8 @@
 struct indexed_type_ind
 {
 public:
-  indexed_type_ind(const char *type,int max_items,int max_items2,int opts);
+  indexed_type_ind(const char *type,int max_items,int max_items2,int opts,
+		   const file_line &loc);
 
 public:
   const char *_type;
@@ -44,9 +45,19 @@ public:
   int         _max_items2;
 
   int         _opts;
+
+  file_line   _loc; // for sorting items
+
+public:
+  bool operator<(const indexed_type_ind &rhs) const {
+    return _loc._internal < rhs._loc._internal;
+  }
 };
 
-typedef std::map<const char*/*name*/,indexed_type_ind> indexed_decl_map;
+typedef std::map<const char*/*name*/,indexed_type_ind*> indexed_decl_map;
+
+typedef std::map<indexed_type_ind*,const char*,
+		 compare_ptr<indexed_type_ind> > indexed_decl_map_rev_sort;
 
 struct match_info
 {
@@ -93,23 +104,28 @@ public:
 public:
   void gen(const struct_definition *str,dumper &d,uint32 type,
 	   match_end_info *mei);
-  void gen(const struct_item_list *list,dumper &d,uint32 type,
+  void gen(const struct_header *header,
+	   const struct_item_list *list,dumper &d,uint32 type,
 	   match_end_info *mei,bool last_subevent_item,bool is_function);
   void gen(const file_line &loc,const struct_decl_list *list,dumper &d,uint32 type);
 
   void gen(indexed_decl_map &indexed_decl,
+	   const struct_header *header,
 	   const struct_item   *item,   dumper &d,uint32 type,
 	   match_end_info *mei,bool last_subevent_item);
-  void gen(const struct_data   *data,   dumper &d,uint32 type,
+  void gen(const struct_header *header,
+	   const struct_data   *data,   dumper &d,uint32 type,
 	   match_end_info *mei);
   void gen(indexed_decl_map &indexed_decl,
 	   const struct_decl   *decl,   dumper &d,uint32 type,
 	   match_end_info *mei);
-  void gen(const struct_list   *list,   dumper &d,uint32 type,
+  void gen(const struct_header *header,
+	   const struct_list   *list,   dumper &d,uint32 type,
 	   match_end_info *mei,bool last_subevent_item);
   void gen(const struct_select *select, dumper &d,uint32 type,
 	   match_end_info *mei,bool last_subevent_item);
-  void gen(const struct_cond   *cond,   dumper &d,uint32 type,
+  void gen(const struct_header *header,
+	   const struct_cond   *cond,   dumper &d,uint32 type,
 	   match_end_info *mei,bool last_subevent_item);
   void gen(const struct_member *member,  dumper &d,uint32 type);
   void gen(const struct_mark   *mark,    dumper &d,uint32 type);
@@ -135,7 +151,14 @@ public:
 
   void gen(const event_definition *evt,dumper &d,uint32 type);
 
+  void gen(const encode_spec_list *list,dumper &d,uint32 type,
+	   const prefix_ident *prefix);
+
+  void gen(const encode_spec_base *encode,   dumper &d,uint32 type,
+	   const prefix_ident *prefix);
   void gen(const encode_spec  *encode,   dumper &d,uint32 type,
+	   const prefix_ident *prefix);
+  void gen(const encode_cond  *cond,   dumper &d,uint32 type,
 	   const prefix_ident *prefix);
 
   const var_external *gen_external_header(const variable *v,dumper &d,uint32 type);
