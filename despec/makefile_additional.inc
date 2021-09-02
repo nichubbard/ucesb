@@ -3,7 +3,7 @@
 # ------- OPTIONS -------------
 # Enable ZeroMQ (Remote monitoring) code - requires extra libraries (not default at GSI)
 # libzmq libzmqpp (ZeroMQ) and Google Protobuf
-USE_ZEROMQ=y
+#USE_ZEROMQ=y
 # Enable bPlast broken f_user correction - only use if f_user was broken!
 #BPLAST_FIX=y
 # Enable FATIMA TAMEX broken f_user correction - only use if f_user was broken!

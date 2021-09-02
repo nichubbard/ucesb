@@ -10,6 +10,16 @@ This does *not* work as a (useful) unpacker, it only unpacks a few variables for
 Its main purpose is AIDA event building and time-stitching, both online and offline.
 It also contains a simple online monitor UI based on the ucesb watcher.
 
+## Compiling
+To compile you can just run `make` in this directory, which will run the proper ucesb make to build `despec` 
+
+You can change some options in `makefile_addictional.inc` to control the building.
+If you are at GSI you may want to disable ZeroMQ (the remote monitoring code) to avoid needing the libraries.
+If you want to build it you will need Google Protobuf and ZeroMQ for C/C++
+
+After compiling you can try `./despec --help` to see all the options
+
+
 ## AIDA
 The command `--aida` activates AIDA event building mode, which transforms 64KB AIDA event blocks
 from MIDAS into small blocks corresponding to physical events.
