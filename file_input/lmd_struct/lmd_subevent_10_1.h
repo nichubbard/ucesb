@@ -24,7 +24,7 @@
 #include "lmd_event_10_1.h"
 
 /********************************************************************/
-/* GSI VME subevent header */
+/* GOOSY VME subevent header. */
 
 typedef struct
 {
