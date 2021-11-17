@@ -62,7 +62,7 @@ lmd_event *lmd_source_multievent::get_event()
       else
       {
         if (!emit_skip)
-          TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
+          TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", entry->timestamp, emit_wr);
         emit_skip++;
         entry->reset();
         aida_events_pool.push_back(entry);
@@ -85,13 +85,14 @@ lmd_event *lmd_source_multievent::get_event()
     else
     {
       if (!emit_skip)
-        TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
+        TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", trigger_event.front().timestamp, emit_wr);
       emit_skip++;
       triggerevent_entry& entry = trigger_event.front();
       entry.event.release();
       free(entry.event._defrag_event._buf);
       free(entry.event._defrag_event_many._first);
       trigger_event.pop_front();
+      lmd_source::release_events();
       return get_event();
     }
   }
@@ -127,7 +128,7 @@ lmd_event *lmd_source_multievent::get_event()
           else
           {
             if (!emit_skip)
-              TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
+              TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", entry->timestamp, emit_wr);
             emit_skip++;
             entry->reset();
             aida_events_pool.push_back(entry);
@@ -148,13 +149,14 @@ lmd_event *lmd_source_multievent::get_event()
         else
         {
           if (!emit_skip)
-            TIMEWARP("=> Not emitting timewarped event (before %16lx)", emit_wr);
+            TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", trigger_event.front().timestamp, emit_wr);
           emit_skip++;
           triggerevent_entry& entry = trigger_event.front();
           entry.event.release();
           free(entry.event._defrag_event._buf);
           free(entry.event._defrag_event_many._first);
           trigger_event.pop_front();
+          lmd_source::release_events();
           return get_event();
         }
       }
