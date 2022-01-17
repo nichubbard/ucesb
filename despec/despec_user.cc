@@ -42,52 +42,7 @@ static time_t _last_spill = 0;
 
 #define AIDA_IMPLANT_MAGIC 0x701
 
-std::map<int, std::string> names =
-{
-  { 0x100 , "FRS" },
-  { 0x400 , "HPGe" },
-  { 0x500 , "bPlas" },
-  { 0x700 , "AIDA" },
-  { 0x1200, "FINGER" },
-  { 0x1500, "FAT. VME" },
-  { 0x1600, "FAT. TMX" },
-};
-
-std::vector<int> expected = { 0x100, 0x400, 0x500, 0x700, 0x1500, 0x1600 };
-
-std::vector<std::string> scalers =
-{
-  "bPlast Free",
-  "bPlast Accepted",
-  "FATIMA TAMEX Free",
-  "FATIMA TAMEX Accepted",
-  "FATIMA VME Free",
-  "FATIMA VME Accepted",
-  "Ge Free",
-  "Ge Accepted",
-  "bPlast Up",
-  "bPlast Down",
-  "bPlast AND",
-  "SCI41 L",
-  "SCI41 R",
-  "SCI42 L",
-  "SCI42 R"
-};
-
-std::vector<int> scaler_order =
-{
-  0, 1,
-  2, 3,
-  4, 5,
-  6, 7,
-  8, 9,
-  10, -1,
-  11, 12,
-  13, 14
-};
-
-// 16 FATIMA scalers and 64 FRS scalers
-static constexpr size_t SCALER_COUNT = 16 + 32 + 32;
+#include DESPEC_EXPERIMENT_H
 
 std::vector<uint32_t> scalers_now(SCALER_COUNT);
 std::vector<uint32_t> scalers_old(SCALER_COUNT);
@@ -97,29 +52,6 @@ watcher_type_info despec_watch_types[NUM_WATCH_TYPES] =
 {
   { COLOR_GREEN,   "Physics" },
   { COLOR_YELLOW,  "Pulser" },
-};
-
-std::map<int, int> aida_dssd_map =
-{
-  {1, 1},
-  {2, 1},
-  {3, 1},
-  {4, 1},
-
-  {5, 2},
-  {6, 2},
-  {7, 2},
-  {8, 2},
-
-  {9, 1},
-  {10, 1},
-  {11, 1},
-  {12, 1},
-
-  {13, 2},
-  {14, 2},
-  {15, 2},
-  {16, 2}
 };
 
 void despec_watcher_event_info(watcher_event_info *info,
@@ -134,7 +66,7 @@ void despec_watcher_event_info(watcher_event_info *info,
     pulse = true;
   }
 
-  if (event->frs_tpat.tpat.n == 1 && event->frs_tpat.tpat.tpat[0].value & (1 << 8))
+  if (event->frs_tpat.tpat.n == 1 && event->frs_tpat.tpat.tpat[0].value & FRS_TPAT_PULSER)
   {
     info->_type = DESPEC_WATCH_TYPE_TCAL;
     pulse = true;
@@ -171,11 +103,11 @@ void despec_watcher_event_info(watcher_event_info *info,
 
   for (uint i = 0; i < event->frs_frs.scaler.scalers._num_items; i++)
   {
-    scalers_now[16 + i] = event->frs_frs.scaler.scalers[i];
+    scalers_now[SCALER_FATIMA_COUNT + i] = event->frs_frs.scaler.scalers[i];
   }
 
   // START EXTR Scaler triggered, so we reset the spill array and say on spill
-  if (scalers_now[16 + 8] - scalers_old_spill[16 + 8] > 0) {
+  if (scalers_now[SCALER_START_EXTR] - scalers_old_spill[SCALER_START_EXTR] > 0) {
     _on_spill = true;
     _last_spill = (uint)(_despec_now / (uint64_t)1e9);
     scalers_old_spill = scalers_now;
@@ -183,13 +115,14 @@ void despec_watcher_event_info(watcher_event_info *info,
   }
 
   // STOP EXTR Scaler triggered, spill off flag
-  if (scalers_now[16 + 9] - scalers_old_spill[16 + 9] > 0) {
+  if (scalers_now[SCALER_STOP_EXTR] - scalers_old_spill[SCALER_STOP_EXTR] > 0) {
     _on_spill = false;
   }
 
   for (uint i = 0; i < event->frs_main.scaler.scalers._num_items; i++)
   {
-    scalers_now[16 + 32 + i] = event->frs_main.scaler.scalers[i];
+    scalers_now[SCALER_FATIMA_COUNT + SCALER_FRS_FRS_COUNT + i] =
+      event->frs_main.scaler.scalers[i];
   }
 
   for (uint i = 0; i < event->wr.size(); i++)
@@ -426,7 +359,7 @@ void despec_watcher_display(watcher_display_info& info)
   auto fatvme_report = report.add_scalers();
   fatvme_report->set_key("fatima");
   fatvme_report->clear_scalers();
-  for (size_t i = 0; i < 16; i++)
+  for (size_t i = 0; i < SCALER_FATIMA_COUNT; i++)
   {
     auto entry = fatvme_report->add_scalers();
     entry->set_index(i);
@@ -437,12 +370,14 @@ void despec_watcher_display(watcher_display_info& info)
   auto frs_report = report.add_scalers();
   frs_report->set_key("frs");
   frs_report->clear_scalers();
-  for (size_t i = 0; i < 64; i++)
+  for (size_t i = 0; i < SCALER_FRS_FRS_COUNT + SCALER_FRS_MAIN_COUNT; i++)
   {
     auto entry = frs_report->add_scalers();
     entry->set_index(i);
-    entry->set_rate((double)(scalers_now[i + 16] - scalers_old[i + 16]) / dt);
-    entry->set_spill(scalers_now[i + 16] - scalers_old_spill[i + 16]);
+    entry->set_rate((double)(scalers_now[i + SCALER_FATIMA_COUNT] -
+          scalers_old[i + SCALER_FATIMA_COUNT]) / dt);
+    entry->set_spill(scalers_now[i + SCALER_FATIMA_COUNT] -
+        scalers_old_spill[i + SCALER_FATIMA_COUNT]);
   }
 #endif
 
@@ -479,7 +414,7 @@ void despec_watcher_display(watcher_display_info& info)
     aida_report->set_key("aida");
     aida_report->clear_scalers();
 #endif
-    for (int j = 0; j < 2; j++)
+    for (size_t j = 0; j < AIDA_DSSDS; j++)
     {
 #ifdef ZEROMQ
       auto entry = aida_report->add_scalers();
