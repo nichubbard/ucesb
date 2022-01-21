@@ -104,11 +104,13 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 
 /*************************************************************************/
 
-#define EXT_DATA_ITEM_TYPE_INT32   0x01
-#define EXT_DATA_ITEM_TYPE_UINT32  0x02
-#define EXT_DATA_ITEM_TYPE_FLOAT32 0x03
-#define EXT_DATA_ITEM_TYPE_MASK    0x03 /* mask of previous items */
-#define EXT_DATA_ITEM_HAS_LIMIT    0x04 /* flag */
+#define EXT_DATA_ITEM_TYPE_INT32     0x01
+#define EXT_DATA_ITEM_TYPE_UINT32    0x02
+#define EXT_DATA_ITEM_TYPE_FLOAT32   0x03
+#define EXT_DATA_ITEM_TYPE_UINT64HI  0x04
+#define EXT_DATA_ITEM_TYPE_UINT64LO  0x05
+#define EXT_DATA_ITEM_TYPE_MASK      0x07 /* mask of previous items */
+#define EXT_DATA_ITEM_HAS_LIMIT      0x08 /* flag */
 
 /* The following convenience macros are used by auto-generated code.
  * Also suggested to be used directly???

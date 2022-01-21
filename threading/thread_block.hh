@@ -165,7 +165,8 @@ public:
 
 	TDBG("n:%d",n);
 
-	assert(!((size_t) n & (sizeof(token)-1))); // even multiple of token (which must be power of 2)
+	assert(n == -1 ||
+	       !((size_t) n & (sizeof(token)-1))); // even multiple of token (which must be power of 2)
 
 	if (n >= 1)
 	  return token;

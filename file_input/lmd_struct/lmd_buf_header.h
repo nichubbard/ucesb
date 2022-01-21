@@ -33,7 +33,7 @@
  */
 
 /********************************************************************/
-/* GSI buffer header */
+/* GOOSY buffer header. */
 
 /* (0x8000 - sizeof(s_bufhe))/2
  * Above this buffer size (as given by l_dlen) l_free[2] is used to
@@ -78,11 +78,17 @@ typedef s_bufhe_big_endian         s_bufhe_network_order;
 
 /********************************************************************/
 
-#define LMD_BUF_HEADER_10_1_TYPE            10
-#define LMD_BUF_HEADER_10_1_SUBTYPE         1
+#define LMD_BUF_HEADER_10_1_TYPE                  10  /* fixed size */
+#define LMD_BUF_HEADER_10_1_SUBTYPE               1
 
-#define LMD_BUF_HEADER_HAS_STICKY_TYPE      0x4b59
-#define LMD_BUF_HEADER_HAS_STICKY_SUBTYPE   0x5354
+#define LMD_BUF_HEADER_100_1_TYPE                 100 /* variable size */
+#define LMD_BUF_HEADER_100_1_SUBTYPE              1
+
+#define LMD_BUF_HEADER_HAS_STICKY_TYPE            0x4b59
+#define LMD_BUF_HEADER_HAS_STICKY_SUBTYPE         0x5354
+
+#define LMD_BUF_HEADER_HAS_STICKY_VARSZ_TYPE      0x4bb3
+#define LMD_BUF_HEADER_HAS_STICKY_VARSZ_SUBTYPE   0x5354
 
 /********************************************************************/
 

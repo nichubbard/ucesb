@@ -254,6 +254,10 @@ void cwn_ptrs_indexed_item(read_write_ptrs_external &w,indexed_item *array,
 	{
 	  uint32_t mark = 0;
 
+	  if (info & IND_ITEM_TYPE_64_HI)
+	    mark |= EXTERNAL_WRITER_MARK_64_HI;
+	  if (info & IND_ITEM_TYPE_64_LO)
+	    mark |= EXTERNAL_WRITER_MARK_64_LO;
 	  if (info & IND_ITEM_TYPE_TS_LO)
 	    mark |= EXTERNAL_WRITER_MARK_TS_LO;
 	  if (info & IND_ITEM_TYPE_TS_HI)

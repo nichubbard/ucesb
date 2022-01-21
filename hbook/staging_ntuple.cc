@@ -35,18 +35,25 @@
 
 #define DEBUG_STAGING 0
 
-void stage_ntuple_item::storage_size(indexed_item &write_ptrs,size_t &size)
+void storage_size(ntuple_item *item,
+		  indexed_item &write_ptrs,size_t &size,
+		  size_t num_used = 1)
 {
   if (DEBUG_STAGING)
-    INFO(0,"Storage:  %s",_item->_name.c_str());
+    INFO(0,"Storage:  %s",item->_name.c_str());
 
   write_ptrs._items_per_entry++;
 
   write_ptrs._info_slots_per_entry += 2;
-  if (_item->_ctrl_mask._ptr) // bitmask
+  if (item->_ctrl_mask._ptr) // bitmask
     write_ptrs._info_slots_per_entry += 2;
 
-  size += sizeof(float);
+  size += num_used * sizeof(float);
+}
+
+void stage_ntuple_item::storage_size(indexed_item &write_ptrs,size_t &size)
+{
+  ::storage_size(_item, write_ptrs, size);
 }
 
 void init_cwn_hbname(stage_ntuple_info &info,
@@ -89,6 +96,12 @@ void init_cwn_var(ntuple_item *item,
   ntuple_limit limit;
 
   uint32_t write_info = 0;
+
+  uint32_t index_info_off = index * write_ptrs._info_slots_per_entry;
+  uint32_t index_dest_off = index * write_ptrs._items_per_entry;
+
+  uint32_t *write_infos = &write_ptrs._infos[index_info_off];
+  void    **write_dests = &write_ptrs._dests[index_dest_off];
 
   limit = item->_limits;
 
@@ -256,21 +269,18 @@ void init_cwn_var(ntuple_item *item,
     (size_t) ((char*) item->_src._ptr_int - (char*) info.src_base);
 
   if (offset > IND_ITEM_MAX_OFFSET)
-    ERROR("Internal error, ntuple item (%s) offset too large (%zd > %d).",
+    ERROR("Internal error, "
+	  "ntuple item (%s) offset too large (%zd > %d).",
 	  var_name,offset,IND_ITEM_MAX_OFFSET);
 
-  write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-		    indices._slot_ind++] = write_info;
-  write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-		    indices._slot_ind++] = (uint32_t) offset;
+  write_infos[indices._slot_ind++] = write_info;
+  write_infos[indices._slot_ind++] = (uint32_t) offset;
 
   if (DEBUG_STAGING)
     INFO(0,"Storing:  %s [%d] %s @%d (%08x %08x) [p%p]",
 	 var_name,index,type,(int) offset,
-	 write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			   indices._slot_ind-2],
-	 write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-                           indices._slot_ind-1],
+	 write_infos[indices._slot_ind-2],
+	 write_infos[indices._slot_ind-1],
 	 ptr);
 
   if (item->_ctrl_mask._ptr) // bitmask
@@ -296,10 +306,12 @@ void init_cwn_var(ntuple_item *item,
 	ERROR("Bitmask (%s) has more than 1 overflow bit (%08x).",
 	      var_name,item->_ctrl_mask._overflow);
       else if (item->_ctrl_mask._overflow == 1)
-	ERROR("Bitmask (%s) has overflow bit in position 0, not supported.",
+	ERROR("Bitmask (%s) has overflow bit in position 0, "
+	      "not supported.",
 	      var_name); // clashes with the use of 31 as no-overflow-bit
       else if (!(write_info & IND_ITEM_TYPE_FLOAT))
-	ERROR("Bitmask (%s) has overflow bit for non-float value, not supported.",var_name);
+	ERROR("Bitmask (%s) has overflow bit for non-float value, "
+	      "not supported.",var_name);
       else
 	overflow_bit_shift = firstbit(item->_ctrl_mask._overflow) - 1;
 
@@ -309,32 +321,26 @@ void init_cwn_var(ntuple_item *item,
 	(size_t) ((char*) item->_ctrl_mask._ptr - (char*) info.src_base);
 
       if (mask_offset > IND_ITEM_MAX_MASK_OFFSET)
-	ERROR("Internal error, ntuple item (%s) mask offset too large (%zd > %d).",
+	ERROR("Internal error, ntuple item (%s) mask offset "
+	      "too large (%zd > %d).",
 	      var_name,mask_offset,IND_ITEM_MAX_MASK_OFFSET);
 
-      write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			indices._slot_ind-2] |= IND_ITEM_TYPE_IS_MASKED;
+      write_infos[indices._slot_ind-2] |= IND_ITEM_TYPE_IS_MASKED;
 
-      write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			indices._slot_ind++] = mask_info;
-      write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			indices._slot_ind++] = (uint32_t) mask_offset;
+      write_infos[indices._slot_ind++] = mask_info;
+      write_infos[indices._slot_ind++] = (uint32_t) mask_offset;
 
       if (DEBUG_STAGING)
 	INFO(0,"Bitmask:  %s [%d] v%d o%d @%d ([%08x] %08x %08x) [p%p]",
 	     var_name,index,
 	     valid_bit_shift,overflow_bit_shift,(int) mask_offset,
-	     write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			       indices._slot_ind-4],
-	     write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			       indices._slot_ind-2],
-	     write_ptrs._infos[index * write_ptrs._info_slots_per_entry +
-			       indices._slot_ind-1],
+	     write_infos[indices._slot_ind-4],
+	     write_infos[indices._slot_ind-2],
+	     write_infos[indices._slot_ind-1],
 	     ptr);
     }
 
-  write_ptrs._dests[index * write_ptrs._items_per_entry +
-		    indices._dest_ind++] = ptr;
+  write_dests[indices._dest_ind++] = ptr;
 
   ptr += sizeof(float);
 }
@@ -707,6 +713,8 @@ void stage_ntuple_indexed_var<Tsni_ind,Tsni_vect>::storage_size(indexed_item &wr
 
   ntuple_item *item = _items.first_item();
 
+  ::storage_size(item, write_ptrs, size, length_used.tot());
+  /*
   UNUSED(item);
 
   write_ptrs._items_per_entry++;
@@ -715,6 +723,7 @@ void stage_ntuple_indexed_var<Tsni_ind,Tsni_vect>::storage_size(indexed_item &wr
     write_ptrs._info_slots_per_entry += 2;
 
   size += length_used.tot() * sizeof(float);
+  */
 }
 
 template<typename Tsni_ind,typename Tsni_vect>

@@ -57,7 +57,7 @@ stages:
 ###
 # Preparation rules, these contain the 'before_script', and refer to build
 
-.prepare-debian: &debian
+.debian: &debian
   before_script:
     - JOB_NAME=( $CI_BUILD_NAME )
     - export CC=${JOB_NAME[2]}
@@ -71,7 +71,7 @@ stages:
     - fi
   <<: *build
 
-.prepare-old-debian: &old-debian
+.old-debian: &old-debian
   before_script:
     - JOB_NAME=( $CI_BUILD_NAME )
     - export CC=${JOB_NAME[2]}
@@ -85,7 +85,16 @@ stages:
     - fi
   <<: *build
 
-.prepare-cc7: &cc7
+.arch: &arch
+  <<: *docker
+  # also see drasi CI for more archlinux fixes
+  before_script:
+    # - pacman -Syu --noconfirm
+    # - pacman -S base-devel git flex bison ncurses clang --noconfirm --needed
+    # - pacman/arch broken, workaround: combine into one command
+    - pacman -Syu --noconfirm --needed base-devel git flex bison ncurses clang
+
+.cc7: &cc7
   before_script:
     # - rpm --rebuilddb && yum -y install yum-plugin-ovl # docker/overlay fix
     # - yum install -y git bison flex ncurses-devel make perl-Digest-MD5 gcc-c++
@@ -93,7 +102,7 @@ stages:
     - export YACC=bison
   <<: *build
 
-.prepare-slc6: &slc6
+.slc6: &slc6
   before_script:
     - source /opt/rh/devtoolset-4/enable
     - source /opt/rh/python27/enable
@@ -103,7 +112,7 @@ stages:
     - export YACC=bison
   <<: *build
 
-.prepare-ubuntu-gcc6-with-flex: &ubuntu-gcc6
+.ubuntu-gcc6-with-flex: &ubuntu-gcc6
   <<: *debian
   before_script:
     - JOB_NAME=( $CI_BUILD_NAME )
@@ -125,7 +134,7 @@ stages:
     - make install
     - cd ..
 
-.prepare-opensuse: &opensuse
+.opensuse: &opensuse
   before_script:
   # - zypper --non-interactive install git bison flex ncurses-devel
   #     make gcc gcc-c++ clang perl which > /dev/null
@@ -427,30 +436,19 @@ Ubuntu Disco clang clang++ all:
   <<: *docker
   <<: *build
 
-Arch minimal gcc g++ all:
-  stage: build
-  # also see drasi CI for more archlinux fixes
-  image: archlinux/archlinux:base
-  before_script:
-    # - pacman -Syu --noconfirm
-    # - pacman -S base-devel git flex bison ncurses --noconfirm --needed
-    # - pacman/arch broken, workaround: combine into one command
-    - pacman -Syu --noconfirm --needed base-devel git flex bison ncurses
-  <<: *docker
-  <<: *build
-
-Arch minimal clang clang++ all:
+Arch lastest gcc g++ all:
   stage: build
   image: archlinux/archlinux:base
-  before_script:
-    # - pacman -Syu --noconfirm
-    # - pacman -S base-devel git flex bison ncurses clang --noconfirm --needed
-    # - pacman/arch broken, workaround: combine into one command
-    - pacman -Syu --noconfirm --needed base-devel git flex bison ncurses clang
-  <<: *docker
+  <<: *arch
   <<: *build
 
-gcc-latest minimal gcc g++ all:
+Arch latest clang clang++ all:
+  stage: build
+  image: archlinux/archlinux:base
+  <<: *arch
+  <<: *build
+
+gcc-latest full gcc g++ all:
   stage: build
   image: gcc:latest
   <<: *docker
@@ -599,6 +597,14 @@ Ubuntu Xenial gcc g++ all root6:
   stage: build
   image: munken/root2:ubuntu-xenial
   <<: *docker
+  <<: *build
+
+# Also has geant4 (unused by ucesb).
+Ubuntu Bionic gcc g++ all root6:
+  stage: build
+  image: smflment/geant4:latest
+  <<: *docker
+  <<: *debian
   <<: *build
 
 ###

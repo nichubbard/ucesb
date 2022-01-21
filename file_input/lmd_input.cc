@@ -220,12 +220,28 @@ bool lmd_source::read_record(bool expect_fragment)
 	  "negative or very large, refusing.",
 	  _buffer_header.l_dlen);
 
+  bool varsize = false;
+
+  if ((_buffer_header.i_type    == LMD_BUF_HEADER_100_1_TYPE &&
+       _buffer_header.i_subtype == LMD_BUF_HEADER_100_1_SUBTYPE) ||
+      (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_VARSZ_TYPE &&
+       _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_VARSZ_SUBTYPE))
+    varsize = true;
+
   size_t buffer_size_dlen =
     BUFFER_SIZE_FROM_DLEN((size_t) _buffer_header.l_dlen);
 
+#if 0
+  if (varsize)
+    {
+      buffer_size_dlen += sizeof (s_bufhe_host) + 8;
+    }
+#endif
+
   // buffer length should be multiple of 1024 bytes
-  if (!buffer_size_dlen ||
-      buffer_size_dlen % 1024)
+  if (!varsize &&
+      (!buffer_size_dlen ||
+       buffer_size_dlen % 1024))
     {
       // The MBS eventapi creates broken file headers, with l_dlen
       // of original size/2, without taking itself out of account
@@ -379,11 +395,17 @@ bool lmd_source::read_record(bool expect_fragment)
   else if ((_buffer_header.i_type    == LMD_BUF_HEADER_10_1_TYPE &&
 	    _buffer_header.i_subtype == LMD_BUF_HEADER_10_1_SUBTYPE) ||
 	   (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
-	    _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE))
+	    _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE) ||
+	   (_buffer_header.i_type    == LMD_BUF_HEADER_100_1_TYPE &&
+	    _buffer_header.i_subtype == LMD_BUF_HEADER_100_1_SUBTYPE) ||
+	   (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_VARSZ_TYPE &&
+	    _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_VARSZ_SUBTYPE))
     {
-      // buffer header
-      if (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
-	  _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE)
+      // Buffer header.
+      if ((_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
+	   _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE) ||
+	  (_buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_VARSZ_TYPE &&
+	   _buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_VARSZ_SUBTYPE))
 	_first_buf_status = LMD_EVENT_FIRST_BUFFER_HAS_STICKY;
 
       if (_expect_file_header)
@@ -404,7 +426,8 @@ bool lmd_source::read_record(bool expect_fragment)
 
   size_t buf_used;
 
-  if (_buffer_header.l_dlen <= LMD_BUF_HEADER_MAX_IUSED_DLEN)
+  if (_buffer_header.l_dlen <= LMD_BUF_HEADER_MAX_IUSED_DLEN &&
+      !varsize)
     {
       // old style, used in i_used, l_free[2] either 0 or same
 
@@ -514,14 +537,17 @@ bool lmd_source::read_record(bool expect_fragment)
                 _buffer_header.l_buf);
     }
 
-  // Then, finally map the data We map the entire buffer, even if part
+  // Then, finally map the data.  We map the entire buffer, even if part
   // of it is not used (as according to how much is used in the
   // buffer), after we'll cut away at the end the used parts from the
-  // chunks
+  // chunks.
 
   _chunk_cur = _chunk_end = _chunks;
 
   size_t data_size = buffer_size_dlen - header_size;
+
+  if (varsize)
+    data_size = buf_used;
 
   if (((ssize_t) data_size) < 0)
     ERROR("Buffer has (%zd) < 0 bytes for data after header"
@@ -552,6 +578,9 @@ bool lmd_source::read_record(bool expect_fragment)
   // Now, cut away the data that is not used
 
   size_t unused = buffer_size_dlen - (header_size + buf_used);
+
+  if (varsize)
+    unused = 0;
 
   if (UNLIKELY(unused == data_size))
     {

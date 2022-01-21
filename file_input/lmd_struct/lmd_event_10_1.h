@@ -26,18 +26,18 @@
 /* See comment in lwroc_lmd_buf_header regarding signed/unsigned. */
 
 /********************************************************************/
-/* GSI VME event header */
+/* GOOSY VME event header. */
 
 typedef struct
 {
-  uint32_t  l_dlen;       /* Data length in words(16), excluding this header */
+  uint32_t  l_dlen;       /* Data length in words(16), excl. this header. */
   uint16_t  i_type;
   uint16_t  i_subtype;
 } lmd_event_header_little_endian;
 
 typedef struct
 {
-  uint32_t  l_dlen;       /* Data length in words(16), excluding this header */
+  uint32_t  l_dlen;       /* Data length in words(16), excl. this header. */
   uint16_t  i_subtype;
   uint16_t  i_type;
 } lmd_event_header_big_endian;

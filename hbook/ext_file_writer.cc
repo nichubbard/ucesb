@@ -1285,11 +1285,13 @@ struct str_var_type
 };
 
 str_var_type _str_var_type[] = {
-  { NULL,       NULL, NULL },
-  { "int32_t ", "I", "I" },
-  { "uint32_t", "I", "i" }, // hbook should be U
-  // for uint16_t root is s and uint8_t root is b
-  { "float   ", "R", "F" },
+  /* -        */ { NULL,       NULL, NULL },
+  /* INT32    */ { "int32_t ", "I", "I" },
+  /* UINT32   */ { "uint32_t", "I", "i" }, // hbook should be U
+  /**/        // for uint16_t root is s and uint8_t root is b
+  /* FLOAT32  */ { "float   ", "R", "F" },
+  /* UINT64HI */ { "uint32_t", "I", "i" }, // hbook should be U
+  /* UINT64LO */ { "uint32_t", "I", "i" }, // hbook should be U
 };
 
 void do_create_branch(global_struct *s,
@@ -1311,9 +1313,13 @@ void do_create_branch(global_struct *s,
 			 EXTERNAL_WRITER_FLAG_HAS_LIMIT))
     ERR_MSG("Invalid variable type (0x%x).",item._var_type);
 
+  str_var_type *var_type =
+    &_str_var_type[item._var_type &
+		   EXTERNAL_WRITER_FLAG_TYPE_MASK];
+
   void *ptr = s->_stage_array._ptr+offset;
 
-  size_t branch_size = strlen(item._var_name)+
+  size_t branch_size = strlen(item._var_name) +
     (item._var_ctrl_name ? strlen(item._var_ctrl_name) : 0)+
     2/*type*/+1/*trail 0*/+2/*length/ctrl bracket ()*/+3/*limit [ , ]*/+2*11;
   char *branch = (char *) malloc(branch_size);
@@ -1322,7 +1328,7 @@ void do_create_branch(global_struct *s,
     ERR_MSG("Failure allocating string.");
 
 #if USING_CERNLIB
-  strcpy (branch,item._var_name);
+  sprintf (branch,"%s",item._var_name);
   if (item._var_array_len != (uint32_t) -1)
     {
       if (item._var_ctrl_name)
@@ -1334,8 +1340,7 @@ void do_create_branch(global_struct *s,
     sprintf (branch+strlen(branch),
     "[%d,%d]",item._limit_min,item._limit_max);
   sprintf (branch+strlen(branch),":%s",
-	   _str_var_type[item._var_type &
-			 EXTERNAL_WRITER_FLAG_TYPE_MASK]._hbook);
+	   var_type->_hbook);
 
   assert(strlen(branch) < branch_size); // < to include the trail 0
 
@@ -1344,10 +1349,9 @@ void do_create_branch(global_struct *s,
   s->_cwn->hbname(item._block,ptr,branch/*hbname_vars*/);
 #endif
 #if USING_ROOT
-
   if (_config._outfile)
     {
-      strcpy (branch,item._var_name);
+      sprintf (branch,"%s",item._var_name);
       if (item._var_array_len != (uint32_t) -1)
 	{
 	  if (item._var_ctrl_name)
@@ -1361,8 +1365,7 @@ void do_create_branch(global_struct *s,
 	 "[%d,%d]",limit_min,limit_max);
       */
       sprintf (branch+strlen(branch),"/%s",
-	       _str_var_type[item._var_type &
-			     EXTERNAL_WRITER_FLAG_TYPE_MASK]._root);
+	       var_type->_root);
 
       assert(strlen(branch) < branch_size); // < to include the trail 0
 
@@ -1421,7 +1424,7 @@ void do_create_branch(global_struct *s,
 	}
       else if (!item._var_ctrl_name)
 	{
-	  /* We are a an static array. */
+	  /* We are an static array. */
 	  if (lfcount)
 	    ERR_MSG("Requested leaf (%s) variable in tree is counted, "
 		    "but request is static array.",item._var_name);
@@ -1433,7 +1436,7 @@ void do_create_branch(global_struct *s,
 	}
       else
 	{
-	  /* We are a an dynamic array. */
+	  /* We are an dynamic array. */
 	  if (!lfcount)
 	    ERR_MSG("Requested leaf (%s) variable in tree is not counted, "
 		    "but request is.",item._var_name);
@@ -1616,6 +1619,10 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
       stage_array_item &item = iter->second;
       uint32_t offset = iter->first;
 
+      str_var_type *var_type =
+	&_str_var_type[item._var_type &
+		       EXTERNAL_WRITER_FLAG_TYPE_MASK];
+
       if (strcmp(prev_block,item._block))
 	{
 	  fprintf (fid,"%*s/* %s */%s\n",
@@ -1649,8 +1656,7 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	  if (_config._debug_header)
 	    fprintf (fid,"/* %04x %04x */ ",offset,item._length);
 	  fprintf (fid,"%s %s",
-		   _str_var_type[item._var_type &
-				 EXTERNAL_WRITER_FLAG_TYPE_MASK]._Cname,
+		   var_type->_Cname,
 		   item._var_name);
 	  if (item._var_array_len != (uint32_t) -1)
 	    {
@@ -1670,9 +1676,11 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 
 	  switch (item._var_type & EXT_DATA_ITEM_TYPE_MASK)
 	    {
-	    case EXT_DATA_ITEM_TYPE_INT32:   item_type = "INT32";   break;
-	    case EXT_DATA_ITEM_TYPE_UINT32:  item_type = "UINT32";  break;
-	    case EXT_DATA_ITEM_TYPE_FLOAT32: item_type = "FLOAT32"; break;
+	    case EXT_DATA_ITEM_TYPE_INT32:    item_type = "INT32";   break;
+	    case EXT_DATA_ITEM_TYPE_UINT32:   item_type = "UINT32";  break;
+	    case EXT_DATA_ITEM_TYPE_FLOAT32:  item_type = "FLOAT32"; break;
+	    case EXT_DATA_ITEM_TYPE_UINT64HI: item_type = "UINT64HI"; break;
+	    case EXT_DATA_ITEM_TYPE_UINT64LO: item_type = "UINT64LO"; break;
 	    }
 
 	  fprintf (fid,"%*s",indent,"");
@@ -1759,11 +1767,15 @@ void generate_structure_item(FILE *fid,
 			     int first_array_len,
 			     int indent,set_strings &used_names)
 {
+  str_var_type *var_type =
+    &_str_var_type[item._var_type &
+		   EXTERNAL_WRITER_FLAG_TYPE_MASK];
+
   fprintf (fid,"%*s",indent,"");
   if (_config._debug_header)
     fprintf (fid,"/* %04x %04x */ ",offset,item._length);
   fprintf (fid,"%s ",
-	   _str_var_type[item._var_type & EXTERNAL_WRITER_FLAG_TYPE_MASK]._Cname);
+	   var_type->_Cname);
   char *var_name = new char[(base_name ? base_length : 0) +
 			    (*item._var_name ? strlen(item._var_name) : 0) +
 			    1 + 1 + // 1 for '\0', 1 for (possible) '_'
@@ -2523,6 +2535,16 @@ void dump_array_normal(global_struct *s)
 		       "%u",(unsigned int) *((uint32_t *) p)); // PRIu32
 	      break;
 	    }
+	    case EXTERNAL_WRITER_FLAG_TYPE_UINT64HI: {
+	      snprintf (tmp2, sizeof(tmp2),
+		       "%u",(unsigned int) *((uint32_t *) p)); // PRIu32
+	      break;
+	    }
+	    case EXTERNAL_WRITER_FLAG_TYPE_UINT64LO: {
+	      snprintf (tmp2, sizeof(tmp2),
+		       "%u",(unsigned int) *((uint32_t *) p)); // PRIu32
+	      break;
+	    }
 	    case EXTERNAL_WRITER_FLAG_TYPE_FLOAT32: {
 	      float f = *((float *) p);
 	      if (fabs(f) < 0.01 || fabs(f) > 1000000)
@@ -2616,6 +2638,14 @@ void dump_array_json(global_struct *s)
 	      break;
 	    }
 	    case EXTERNAL_WRITER_FLAG_TYPE_UINT32: {
+	      printf ("%u",(unsigned int) *((uint32_t *) p)); // PRIu32
+	      break;
+	    }
+	    case EXTERNAL_WRITER_FLAG_TYPE_UINT64HI: {
+	      printf ("%u",(unsigned int) *((uint32_t *) p)); // PRIu32
+	      break;
+	    }
+	    case EXTERNAL_WRITER_FLAG_TYPE_UINT64LO: {
 	      printf ("%u",(unsigned int) *((uint32_t *) p)); // PRIu32
 	      break;
 	    }

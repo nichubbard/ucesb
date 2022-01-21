@@ -184,6 +184,9 @@ public:
 #define IND_ITEM_TYPE_INT_UCHAR     0x0010
 #define IND_ITEM_TYPE_INT_INDEX_CUT 0x0020 // reuse IND_ITEM_OFFSET_SHIFT
 
+#define IND_ITEM_TYPE_64_LO         0x0040
+#define IND_ITEM_TYPE_64_HI         0x0080
+
 /* Timestamp info for time-stitching in struct_writer. */
 #define IND_ITEM_TYPE_TS_LO         0x0100
 #define IND_ITEM_TYPE_TS_HI         0x0200

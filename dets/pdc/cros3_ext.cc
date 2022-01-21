@@ -376,7 +376,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_CROS3::__unpack,uint16 ccb_id)
 	  s_src,s_dest);
   */
   cros3_rewrite_unpack_test.__clean();
-  __data_src<0,0> buffer_dest(_dest_buffer,dest);
+  __data_src<0,0,0/*account*/> buffer_dest(_dest_buffer,dest);
   cros3_rewrite_unpack_test.__unpack(buffer_dest,ccb_id);
   if (!buffer_dest.empty())
     ERROR("Did not read all rewritten data - pack error!");

@@ -292,6 +292,7 @@ void enumerate_member_paw_ntuple(const signal_id &id,
       item = new ntuple_item(name,(int*)    info._addr,ptr_offset);
       item->_flags |= NTUPLE_ITEM_IS_ARRAY_MASK;
       break;
+    case ENUM_TYPE_DATA64:
     case ENUM_TYPE_UINT64:
       item = new ntuple_item(name,(uint64*) info._addr,ptr_offset);
       break;

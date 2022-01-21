@@ -842,40 +842,87 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
   // reader (also in case it detects an error) would be able to
   // resyncronize.  If not, we're to take the blow here...
 
-  s_bufhe_host *buffer_header;
+  s_bufhe_host buffer_header;
 
-  buffer_header = (s_bufhe_host *) buf;
+  memcpy (&buffer_header, buf, sizeof (s_bufhe_host));
 
   // The only thing which has to be correct is the dlen.  If that is
   // ok, then resyncronisation will occur at the next buffer...
   // Well, before that, the swapping has to make sense...
 
-  uint32 l_dlen = (uint32) buffer_header->l_dlen;
-  uint32 l_evt = (uint32) buffer_header->l_evt;
+  /*
+  printf("%d %d %d %d %d %d\n",
+	 buffer_header.i_type,
+	 buffer_header.i_subtype,
+	 buffer_header.l_dlen,
+	 buffer_header.l_evt,
+	 buffer_header.l_free[0],
+	 buffer_header.l_free[2]);
+  */
 
-  switch(buffer_header->l_free[0])
+  switch(buffer_header.l_free[0])
     {
     case 0x00000001:
       break;
     case 0x01000000:
-      l_dlen = bswap_32(l_dlen);
-      l_evt = bswap_32(l_evt);
+      byteswap_32(buffer_header);
       break;
     default:
-      ERROR("Buffer header endian marker broken: %08x",_info.testbit);
+      ERROR("TCP buffer header endian marker broken: %08x",_info.testbit);
       break;
     }
 
-  size_t buffer_size_dlen = BUFFER_SIZE_FROM_DLEN(l_dlen);
+  bool varsize = false;
+
+  if ((buffer_header.i_type    == LMD_BUF_HEADER_10_1_TYPE &&
+       buffer_header.i_subtype == LMD_BUF_HEADER_10_1_SUBTYPE) ||
+      (buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_TYPE &&
+       buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_SUBTYPE))
+    ;
+  else if ((buffer_header.i_type    == LMD_BUF_HEADER_100_1_TYPE &&
+	    buffer_header.i_subtype == LMD_BUF_HEADER_100_1_SUBTYPE) ||
+	   (buffer_header.i_type    == LMD_BUF_HEADER_HAS_STICKY_VARSZ_TYPE &&
+	    buffer_header.i_subtype == LMD_BUF_HEADER_HAS_STICKY_VARSZ_SUBTYPE))
+    varsize = true;
+  else
+    {
+      ERROR("TCP buffer header unexpected. "
+            "Type/subtype error. (%d=0x%04x/%d=0x%04x)",
+            (uint16_t) buffer_header.i_type,
+	    (uint16_t) buffer_header.i_type,
+            (uint16_t) buffer_header.i_subtype,
+	    (uint16_t) buffer_header.i_subtype);
+     }
+
+  size_t buffer_size_dlen =
+    BUFFER_SIZE_FROM_DLEN((size_t) buffer_header.l_dlen);
 
   if (buffer_size_dlen > _info.bufsize)
     ERROR("Buffer size mismatch (buf:0x%x > info:0x%x).",
 	  (int) buffer_size_dlen,_info.bufsize);
 
+  size_t buffer_actual_size = buffer_size_dlen;
+
+  if (varsize)
+    {
+      size_t buf_used =
+	(size_t) BUFFER_USED_FROM_IUSED(buffer_header.l_free[2]);
+
+#if 0
+      buffer_actual_size = buf_used + sizeof (s_bufhe_host);
+
+      if (buffer_actual_size != buffer_size_dlen + sizeof (s_bufhe_host) + 8)
+	ERROR("Variable sizes buffer has mismatch in use vs. buffer length.");
+#endif
+
+      if (buffer_actual_size != buf_used + sizeof (s_bufhe_host))
+	ERROR("Variable sizes buffer has mismatch in use vs. buffer length.");
+    }
+
   // Read the remaining data.
 
   do_read(((char *) buf) + sizeof (s_bufhe_host),
-	  buffer_size_dlen - sizeof (s_bufhe_host));
+	  buffer_actual_size - sizeof (s_bufhe_host));
 
   // Check if it is the keep-alive buffer.  In that case, silently eat
   // it!  Careful: we have not been byte-swapped.  But the entries
@@ -890,18 +937,21 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
 
   *nbufs = 1;
 
-  if (((sint32*) buffer_header)[2] == 0 && // used, end, begin
-      l_evt == 0)
+  if (buffer_header.i_used == 0 &&
+      buffer_header.l_free[2] == 0 &&
+      buffer_header.h_end == 0 &&
+      buffer_header.h_begin  == 0 &&
+      buffer_header.l_evt == 0)
     {
       return 0;
     }
 
   // And again - be very careful to use the byteswapped value!
 
-  if (((sint32) l_evt) < 0)
+  if (((sint32) buffer_header.l_evt) < 0)
     *nbufs = -1;
 
-  return buffer_size_dlen;
+  return buffer_actual_size;
 }
 
 /////////////////////////////////////////////////////////////////////
