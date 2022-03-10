@@ -1975,6 +1975,10 @@ lmd_output_tcp *parse_open_lmd_server(const char *command)
   uint64 use_size =
     ((uint64) out_tcp->_state._buf_size) * out_tcp->_state._stream_bufs;
 
+  if (use_size > 0xffff0000)
+    ERROR("Too large buffer size (%zd kiB).  Use fewer streambufs (%d)?",
+	  (size_t) use_size >> 10, out_tcp->_state._stream_bufs);
+
   out_tcp->_state._max_streams = (int) (max_size / use_size);
 
   if (out_tcp->_state._max_streams <= 0)
