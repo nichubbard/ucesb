@@ -1933,7 +1933,7 @@ lmd_output_tcp *parse_open_lmd_server(const char *command)
 	  out_tcp->_state._buf_size =
 	    (uint32) parse_size_postfix(post,"kMG","BufSize",true);
 	  if (out_tcp->_state._buf_size % 1024)
-	    ERROR("Buffer size (%d) must be a multuple of 1024.",
+	    ERROR("Buffer size (%d) must be a multiple of 1024.",
 		  out_tcp->_state._buf_size);
 	}
       else if (MATCH_C_PREFIX("streambufs=",post))
@@ -1969,9 +1969,13 @@ lmd_output_tcp *parse_open_lmd_server(const char *command)
   if (nopmap && forcemap)
     ERROR("nopmap and forcemap options are mutually exclusive.");
 
-  out_tcp->_state._max_streams =
-    (int) (max_size /
-	   (out_tcp->_state._buf_size * out_tcp->_state._stream_bufs));
+  // printf ("%ld %ld\n",
+  //         (uint64_t) max_size, (uint64_t) out_tcp->_state._buf_size);
+
+  uint64 use_size =
+    ((uint64) out_tcp->_state._buf_size) * out_tcp->_state._stream_bufs;
+
+  out_tcp->_state._max_streams = (int) (max_size / use_size);
 
   if (out_tcp->_state._max_streams <= 0)
     out_tcp->_state._max_streams = 1;
