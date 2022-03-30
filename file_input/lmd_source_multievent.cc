@@ -31,6 +31,8 @@ aidaeb_watcher_stats* _AIDA_WATCHER_STATS = nullptr;
 #ifdef AIDA_CORRELATION_PULSER
 static constexpr uint32_t AIDA_CORRELATION_EVENT = 0x80000000 | ((AIDA_CORRELATION_PULSER - 1) << 24) | (8 << 20);
 #endif
+static constexpr uint32_t AIDA_SCALER_EVENT = 0x80800000;
+static constexpr uint32_t AIDA_SCALER_MASK = 0xC0F00000;
 
 #ifdef _ENABLE_TRACE
 // Don't define this function if we don't use it :)
@@ -429,6 +431,14 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           cur_aida->flags |= 2;
         }
 #endif
+        if ((word1 & AIDA_SCALER_MASK) == AIDA_SCALER_EVENT)
+        {
+          int feeID = 1 + ((word1 >> 24) & 0x3F);
+          if (_AIDA_WATCHER_STATS)
+          {
+            _AIDA_WATCHER_STATS->add_scaler(feeID);
+          }
+        }
 
         //_TRACE(" event time: %16" PRIx64 "\n", load_event_wr);
 

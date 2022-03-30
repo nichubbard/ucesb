@@ -37,16 +37,20 @@ public:
   {
       fee_dssd = new_map;
       int max_d = 0;
+      int max_fee = 0;
       for (auto& i : fee_dssd)
       {
         max_d = std::max(max_d, i.second);
+        max_fee = std::max(max_fee, i.first);
       }
       dssd_counts_i.resize(copies);
       dssd_counts_d.resize(copies);
+      scalers.resize(copies);
       for (size_t i = 0; i < copies; i++)
       {
         dssd_counts_i[i].resize(max_d);
         dssd_counts_d[i].resize(max_d);
+        scalers[i].resize(max_fee);
         clear(i);
       }
   }
@@ -55,6 +59,7 @@ public:
   {
       std::fill(dssd_counts_i[copy].begin(), dssd_counts_i[copy].end(), 0);
       std::fill(dssd_counts_d[copy].begin(), dssd_counts_d[copy].end(), 0);
+      std::fill(scalers[copy].begin(), scalers[copy].end(), 0);
   }
 
   inline std::vector<int64_t> const& implants(size_t copy = 0) const
@@ -71,6 +76,7 @@ private:
   std::map<int, int> fee_dssd;
   std::vector<std::vector<int64_t>> dssd_counts_i;
   std::vector<std::vector<int64_t>> dssd_counts_d;
+  std::vector<std::vector<int64_t>> scalers;
   size_t copies;
 
   inline void add_internal(std::vector<std::vector<int64_t>>& vec, int fee)
@@ -94,6 +100,14 @@ public:
   inline void add_d(int fee)
   {
       add_internal(dssd_counts_d, fee);
+  }
+
+  inline void add_scaler(int fee)
+  {
+    for (size_t i = 0; i < copies; i++)
+    {
+      scalers[i][fee - 1]++;
+    }
   }
 };
 
