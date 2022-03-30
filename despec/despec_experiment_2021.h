@@ -44,6 +44,7 @@ std::vector<int> scaler_order =
 };
 
 static constexpr size_t AIDA_DSSDS = 2;
+static constexpr size_t AIDA_FEES = 16;
 
 std::map<int, int> aida_dssd_map =
 {

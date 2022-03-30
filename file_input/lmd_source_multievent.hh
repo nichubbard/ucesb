@@ -72,6 +72,11 @@ public:
     return dssd_counts_d[copy];
   }
 
+  inline std::vector<int64_t> const& scaler(size_t copy = 0) const
+  {
+    return scalers[copy];
+  }
+
 private:
   std::map<int, int> fee_dssd;
   std::vector<std::vector<int64_t>> dssd_counts_i;

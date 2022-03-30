@@ -409,10 +409,23 @@ void despec_watcher_display(watcher_display_info& info)
     auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
     auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
     auto const& de_sp = _AIDA_WATCHER_STATS->decays(1);
+    auto const& sc_hz = _AIDA_WATCHER_STATS->scaler(0);
+    auto const& sc_sp = _AIDA_WATCHER_STATS->scaler(1);
 #ifdef ZEROMQ
     auto aida_report = report.add_scalers();
     aida_report->set_key("aida");
     aida_report->clear_scalers();
+
+    auto aida_scaler_report = report.add_scalers();
+    aida_scaler_report->set_key("aida_scalers");
+    aida_scaler_report->clear_scalers();
+    for (size_t j = 0; j < AIDA_FEES; j++)
+    {
+      auto entry = aida_scaler_report->add_scalers();
+      entry->set_index(j);
+      entry->set_rate((double)sc_hz[j] / dt);
+      entry->set_spill(sc_sp[j]);
+    }
 #endif
     for (size_t j = 0; j < AIDA_DSSDS; j++)
     {
