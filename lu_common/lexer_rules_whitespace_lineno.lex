@@ -29,25 +29,11 @@
 	      else
 		strcpy(file,"UNKNOWN");
 
-	      // fprintf(stderr,"Now at %s:%d (%d)\n",file,line,yylineno);
+	      LEXER_LINENO(yylineno, file, line);
 
-	      lineno_map *map = new lineno_map;
-
-	      map->_internal = yylineno;
-	      map->_line = line;
-	      map->_file = strdup(file);
-	      map->_prev = _last_lineno_map;
-#if LINENO_MAP_HAS_NEXT
-	      map->_next = NULL;
-
-	      if (!_first_lineno_map)
-		_first_lineno_map = map;
-	      else
-		_last_lineno_map->_next = map;
-#endif
-	      _last_lineno_map = map;
 #if SHOW_FILE_LINENO
-	      // INFO(0,"Now at %s:%d",file,line);
+	      /* fprintf(stderr,"Now at %s:%d (%d)\n",file,line,yylineno); */
+	      /* INFO(0,"Now at %s:%d",file,line); */
 #endif
 	    }
 

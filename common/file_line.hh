@@ -64,4 +64,6 @@ public:
 
 void generate_locations();
 
+void insert_lineno_map(int internal, const char* _file, int line);
+
 #endif//__FILE_LINE_H__

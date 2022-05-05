@@ -52,6 +52,9 @@ ssize_t lexer_read(char* buf,size_t max_size);
 #define LINENO_MAP_HAS_NEXT 1
 #define INF_NAN_ATOF        1
 
+#define LEXER_LINENO(yylineno, line, file) \
+  insert_lineno_map(yylineno, line, file)
+ 
 #define YY_INPUT(buf,result,max_size) \
 { \
   result = lexer_read(buf,max_size); \
@@ -140,7 +143,7 @@ ssize_t lexer_read(char* buf,size_t max_size);
 
  /******************************************************************/
  /* BEGIN_INCLUDE_FILE "../lu_common/lexer_rules_whitespace_lineno.lex" */
- /* MD5SUM_INCLUDE 06e1db2353eec1157e20fec02ad0ed49 */
+ /* MD5SUM_INCLUDE 719dedce9fab6f30cf722f053aa69ae7 */
  /* Lexer rules to eat and discard whitespace (space, tab, newline)
   * Complain at finding an unrecognized character
   * Handle line number information
@@ -172,25 +175,11 @@ ssize_t lexer_read(char* buf,size_t max_size);
 	      else
 		strcpy(file,"UNKNOWN");
 
-	      // fprintf(stderr,"Now at %s:%d (%d)\n",file,line,yylineno);
+	      LEXER_LINENO(yylineno, file, line);
 
-	      lineno_map *map = new lineno_map;
-
-	      map->_internal = yylineno;
-	      map->_line = line;
-	      map->_file = strdup(file);
-	      map->_prev = _last_lineno_map;
-#if LINENO_MAP_HAS_NEXT
-	      map->_next = NULL;
-
-	      if (!_first_lineno_map)
-		_first_lineno_map = map;
-	      else
-		_last_lineno_map->_next = map;
-#endif
-	      _last_lineno_map = map;
 #if SHOW_FILE_LINENO
-	      // INFO(0,"Now at %s:%d",file,line);
+	      /* fprintf(stderr,"Now at %s:%d (%d)\n",file,line,yylineno); */
+	      /* INFO(0,"Now at %s:%d",file,line); */
 #endif
 	    }
 
