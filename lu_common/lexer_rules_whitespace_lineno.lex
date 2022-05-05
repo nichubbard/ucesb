@@ -14,10 +14,11 @@
             }
 
 "# "[0-9]+" \"".+"\""[ 0-9]*\n {  /* Information about the source location. */
-              char file[1024] = "\0";
 	      int line = 0;
 	      char *endptr;
-	      char *endfile;
+	      const char *endfile;
+              const char *file = NULL;
+	      size_t sz_file = 0;
 
 	      /*yylloc.last_line++;*/
 
@@ -25,11 +26,12 @@
 
 	      endfile = strchr(endptr+2,'\"');
 	      if (endfile)
-		strncpy(file,endptr+2,(size_t) (endfile-(endptr+2)));
-	      else
-		strcpy(file,"UNKNOWN");
+		{
+		  file = endptr+2;
+		  sz_file = endfile - file;
+		}
 
-	      LEXER_LINENO(yylineno, file, line);
+	      LEXER_LINENO(yylineno, file, sz_file, line);
 
 #if SHOW_FILE_LINENO
 	      /* fprintf(stderr,"Now at %s:%d (%d)\n",file,line,yylineno); */

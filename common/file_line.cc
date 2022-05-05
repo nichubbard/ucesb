@@ -26,13 +26,14 @@
 lineno_map *_last_lineno_map  = NULL;
 lineno_map *_first_lineno_map = NULL;;
 
-void insert_lineno_map(int internal, const char* file, int line)
+void insert_lineno_map(int internal,
+		       const char* file, size_t sz_file, int line)
 {
   lineno_map *map = new lineno_map;
 
   map->_internal = internal;
   map->_line = line;
-  map->_file = strdup(file);
+  map->_file = (file != NULL ? strndup(file, sz_file) : "UNKNOWN");
   map->_prev = _last_lineno_map;
   map->_next = NULL;
 
