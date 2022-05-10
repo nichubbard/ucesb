@@ -31,10 +31,10 @@
 #include "tdcpm_defs.h"
 
 /* Unit with no units (dimensionless). */
-tdcpm_unit_index _tdcpm_unit_none = { 0 };
+tdcpm_unit_index _tdcpm_unit_none = 0;
 
 /* Has no allocated pointer, so will not be free'd. */
-tdcpm_unit_build _tdcpm_unit_build_none = { 0 };
+tdcpm_unit_build _tdcpm_unit_build_none = { 0, { { { 0, 0 }, { 0, 0 } } } };
 
 /* Since units will recur many times over, they are stored in a table
  * of units, essentially like the strings.  A unit simply references

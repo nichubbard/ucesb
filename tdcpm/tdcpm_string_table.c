@@ -54,7 +54,7 @@ typedef struct tdcpm_string_table_stats_t
   uint64_t _full_match;
 } tdcpm_string_table_stats;
 
-tdcpm_string_table_stats _tdcpm_string_table_stats = { 0 };
+tdcpm_string_table_stats _tdcpm_string_table_stats = { 0, 0, 0, 0 };
 
 void tdcpm_string_table_print_stats(tdcpm_string_table *table)
 {
