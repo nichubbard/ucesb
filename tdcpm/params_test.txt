@@ -1,0 +1,141 @@
+
+def: value_1_ns = 1 ns;
+def: value_2_ns = 2 ns;
+def: value_5_ns = 5 ns;
+def: value_10   = 10;
+def: value_20   = 20;
+def: value_3_fm_div_ns = 20 fm/ns;
+def: value_30_cm = 30 cm;
+def: value_20_cm = 20 cm;
+def: value_8    = 8;
+def: value_9    = 9;
+
+defunit: unit_ten_ps = 10 ps;
+
+r.a = 7;
+s[0].k = 1 ns/ch;
+s[0].m = 2 ns;
+r.d.k = 3 ns/ch;
+r.e[1].k = 4 MeV/ch;
+r.e[2].m = 5 MeV;
+s[1].m = 8 unit_ten_ps;
+
+TEST[1] = value_1_ns;
+TEST[2] = 2 unit_ten_ps;
+TEST[3] = 3 / unit_ten_ps;
+
+POS = 5 cm/ns;
+
+POS = 1 dm + 2 cm + 3 mm + 0.5 m;
+
+POS = 1 ns + 3 ps;
+POS = 4 ps + 2 ns;
+POS = 5 GeV + 2000 keV;
+POS = 2000 keV + 6 GeV;
+POS = (2 ns) * 3;
+POS = 42 cm/ns*ns;
+
+POS = 5 cm/ns + 9 cm/ns;
+POS = 1 cm/ns + 2 cm * 3 /ns + 41 cm/ns;
+POS = 1 cm + (2 cm) * 3 + 42 cm/ns*ns;
+POS = (1 cm + (2 cm) * 3) / ns + 43 cm/ns;
+POS = 1 ns^2 + (2 ns) * 3 ns + 44 ns/cm*ns*cm;
+POS = 1 cm/ns + 2 cm / 3 ns + 45 cm/ns;
+POS = 1 ns/cm + (2 ns) / 3 cm + 46 cm^-1/ns^-1;
+POS = 1 ns + (2 ns) / 3 + 47 cm/ns *ns*ns/cm;
+POS = 1 + (2 ns^0) / 3 + 48 cm/ns * ns/cm;
+POS = 1 cm/ns + 2 * 3 cm / 4 ns + 49 cm/ns;
+POS = 1 MeV/ch + 2 MeV / 3 ch * 4 + 50 MeV/ch;
+POS = 1 mrad + 2 rad / 3 / 4 + 51 rad/cm*cm;
+
+POS[1] = 7 cm/ns;
+
+POS[1][2] = 9 cm^3/ns^2;
+
+POS(1)(2) = 8 mm*cm/ns;
+
+POS(1)(2).k = 8 mm*cm/ns/kg;
+
+POS(1)(2).k = 8 mm*cm/ns*kg;
+POS(1)(2).k = 8 mm/cm/ns*kg;
+POS(1)(2).k = 8 mm/cm*ns/kg;
+POS(1)(2).k = 8 mm/cm/ns/kg;
+
+POS(2)(2).m = 8 mm*dm;
+
+POS(2)(2).q[3] = { 8 cm/ns, 9 m/s };
+
+POS(1)(2).q[6] = { 8 cm/ns };
+
+POS(2) =
+  [ k, m ]
+  ;
+
+POS(2) =
+  [ k, m ]
+  { 1 ns ns/ch^2 }
+  ;
+
+POS(3) =
+  [ k, m ]
+  { 3 ns/ch, 4 ns }
+;
+
+POS(4) =
+       [ k     , m,  x ]
+       [ ns/ch , ns, unit_ten_ps ]
+  [0]: { 5     , 7,  4 }
+  (2): { 6     , 8,  5 }
+  ;
+
+POS(5) =
+  [ k     , m ]
+  [ ns/ch , ns ]
+  { 9     , 10 }
+  ;
+
+POS(6) =
+  [ k     , m ]
+  [ ns/ch , ns ]
+  { 9     , 10 }
+  { 9     , 10 }
+  ;
+
+POS[1] = {
+  qqq[1][2] = 9 cm/ns;
+};
+
+POS[2] = {
+  .[1][2] = 9 cm/ns;
+};
+
+POS[3] = {
+  qqq[1][2] = 9 cm/ns;
+  qqq[1][2].q = 9 cm/ns;
+};
+
+a[3] = {
+  b = 3;
+  c[2] = 4;
+  d= {
+    g= {
+      h = 3;
+      i(2) = 4;
+    };
+    e = 3;
+    f[2] = 4;
+  };
+};
+
+b = {
+  c[3] = {
+    d =
+           [  f,  g,  h ]
+           [ cm, cm, ns ]
+           {  3,  4,  5 }
+      (2): {  3,  4,  5 }
+           {  3,  4,  5 }
+      [4]: {  3,  4,  5 }
+      ;
+  };
+};
