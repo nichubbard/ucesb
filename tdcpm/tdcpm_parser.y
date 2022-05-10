@@ -74,7 +74,6 @@ struct md_ident_fl
 #define CURR_FILE_LINE file_line(yylineno)
 
 %}
-%define parse.error verbose
 
 %union {
   /* What we get from the lexer: */
