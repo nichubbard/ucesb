@@ -60,9 +60,10 @@ include $(UCESB_BASE_DIR)/makefile_empty_file.inc
 include $(UCESB_BASE_DIR)/makefile_tdas_conv.inc
 include $(UCESB_BASE_DIR)/makefile_ext_file_writer.inc
 include $(UCESB_BASE_DIR)/makefile_ext_writer_test.inc
+include $(UCESB_BASE_DIR)/makefile_tdcpm.inc
 
 DEPENDENCIES=$(UCESBGEN) $(PSDC) $(EMPTY_FILE) $(EXT_WRITERS) \
-	$(EXT_WRITER_TEST)_tests
+	$(EXT_WRITER_TEST)_tests $(TDCPM)
 
 include $(UCESB_BASE_DIR)/makefile_hasrawapi.inc
 ifneq (,$(HAS_RAWAPI))
@@ -527,7 +528,7 @@ ridf: $(DEPENDENCIES)
 #########################################################
 
 clean: clean-dir-ucesbgen clean-dir-psdc clean-dir-file_input \
-	clean-dir-rfiocmd clean-dir-hbook \
+	clean-dir-rfiocmd clean-dir-hbook clean-dir-tdcpm \
 	$(UNPACKERS:%=clean-unp-%) $(UNPACKERS_EXT:%=clean-unp-%) \
 	$(UNPACKERS_is446:%=clean-unp-is446-%) \
 	$(UNPACKERS_xtst:%=clean-unp-xtst-%)
