@@ -442,8 +442,9 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
       else
 	*ts_align_index =
 	  _ts_align_hist->get_index(subevent_info,
-				    error_branch_id &
-				    TITRIS_STAMP_EBID_BRANCH_ID_MASK);
+				    (error_branch_id &
+				     TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
+				    TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
     }
 
   if (data + 4 > data_end)
@@ -577,8 +578,9 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
       else
 	*ts_align_index =
 	  _ts_align_hist->get_index(subevent_info,
-				    error_branch_id &
-				    WR_STAMP_EBID_BRANCH_ID_MASK);
+				    (error_branch_id &
+				     WR_STAMP_EBID_BRANCH_ID_MASK) >>
+				    WR_STAMP_EBID_BRANCH_ID_SHIFT);
     }
 
   if (data + 5 > data_end)

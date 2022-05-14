@@ -141,7 +141,7 @@ parse_time_stamp_hist_options_next:
 }
 
 ssize_t tstamp_alignment::get_index(const lmd_subevent *subevent_info,
-				   uint titris_branch_id)
+				    uint titris_branch_id)
 {
   titris_subevent_ident ident;
 
@@ -239,7 +239,7 @@ void tstamp_alignment::show()
 	{
 	  const titris_subevent_ident &ident_j = iter_j->first;
 
-	  printf ("%s0x%03x%s %s%5d%s/%s%5d%s %s%5d%s:%s%3d%s:%s%3d%s  ",
+	  printf ("%s0x%02x%s %s%5d%s/%s%5d%s %s%5d%s:%s%3d%s:%s%3d%s  ",
 		  CT_OUT(BOLD),ident_j._info._titris_id,CT_OUT(NORM),
 		  CT_OUT(BOLD),ident_j._info._subev._header.i_type,CT_OUT(NORM),
 		  CT_OUT(BOLD),ident_j._info._subev._header.i_subtype,CT_OUT(NORM),
