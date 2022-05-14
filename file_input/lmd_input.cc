@@ -1077,16 +1077,21 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
     {
       if (header->l_dlen > LMD_BUF_HEADER_MAX_IUSED_DLEN)
 	{
-	  printf("File header claim size%s%8zd%s\n",
-		 CT_OUT(BOLD),
-		 size,
-		 CT_OUT(NORM));
+	  size_t header_size = size;
 
 	  used = (size_t) header->i_used;
 
 	  used = BUFFER_USED_FROM_IUSED(used);
 
 	  size = used + sizeof (s_bufhe_host);
+
+	  printf("File header claim size%s%8zd%s (actual: %s%zd%s)\n",
+		 CT_OUT(BOLD),
+		 header_size,
+		 CT_OUT(NORM),
+		 CT_OUT(BOLD),
+		 size,
+		 CT_OUT(NORM));
 	}
     }
 
