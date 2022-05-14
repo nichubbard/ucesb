@@ -321,19 +321,19 @@ void tstamp_alignment::show()
 void tstamp_alignment::usage()
 {
   printf ("\n");
-  printf ("%s --tstamp-hist=[help],[props]\n", main_argv0);
+  printf ("%s --tstamp-hist=[options]\n", main_argv0);
   printf ("\n");
-  printf ("Fill histograms between every pair of timestamped systems.\n");
+  printf ("Fill histograms between every pair of timestamped systems, options:\n");
   printf ("\n");
-  printf (" [props] is a comma-separated combination of the following properties for the\n");
-  printf (" histograms:\n");
-  printf ("  wr|titris  - timestamp format.\n");
-  printf ("  log        - logarithmic time scale, ignores properties below.\n");
-  printf ("  lin        - linear time scale.\n");
-  printf ("  range=num  - maximum negative and positive extent, default=1e6.\n");
-  printf ("  bins=num   - number of bins on one side of 0, default=16 means 2x16+1 columns.\n");
+  printf ("wr|titris           Timestamp format.\n");
+  printf ("log                 Logarithmic time scale, ignores properties below.\n");
+  printf ("lin                 Linear time scale.\n");
+  printf ("range=num           Maximum negative and positive extent, default 1e6.\n");
+  printf ("bins=num            Number of bins on each side of 0, default 16.\n");
+  printf ("                    (Default gives 2x16+1 columns.)\n");
   printf ("\n");
   printf ("Examples:\n");
+  printf ("\n");
   printf (" --tstamp-hist=log,wr\n");
   printf (" --tstamp-hist=lin,wr,range=1e3,bins=40\n");
   printf ("\n");
