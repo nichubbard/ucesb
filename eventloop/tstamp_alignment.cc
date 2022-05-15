@@ -77,7 +77,7 @@ tstamp_alignment::tstamp_alignment(char const *a_command, int a_merge_style):
   _style(a_merge_style),
   _is_lin(0),
   _range(1000000),
-  _bin_num(32)
+  _bin_num(16)
 {
   const char *cmd = a_command;
   for (; NULL != cmd;)
