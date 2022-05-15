@@ -531,7 +531,7 @@ int get_wr_id(FILE_INPUT_EVENT *src_event)
 }
 
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
-		      uint64_t *timestamp,
+		      uint64_t *timestamp, uint32_t *sync_check,
 		      ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -609,20 +609,42 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 
   apply_timestamp_slope(subevent_info->_header, id, *timestamp);
 
+  *sync_check = 0;
+
+  /* The sync check value is optional, so only get it in case it is
+   * available.
+   */
+  if (data + 6 > data_end)
+    {
+      uint32_t sync_check_raw = SWAPPING_BSWAP_32(data[5]);
+
+      if ((sync_check_raw & SYNC_CHECK_MAGIC_MASK) ==
+	  SYNC_CHECK_MAGIC)
+	{
+	  *sync_check =
+	    sync_check_raw & (SYNC_CHECK_FLAGS_MASK |
+			      SYNC_CHECK_VALUE_MASK);
+	}
+    }
+
   return true;
 }
 
 bool get_timestamp(int timestamp_type,
 		   FILE_INPUT_EVENT *src_event,
 		   uint64_t *timestamp,
+		   uint32_t *sync_check,
 		   ssize_t *ts_align_index)
 {
   switch (timestamp_type)
     {
     case TIMESTAMP_TYPE_TITRIS:
-      return get_titris_timestamp(src_event, timestamp, ts_align_index);
+      *sync_check = 0;
+      return get_titris_timestamp(src_event,
+				  timestamp, ts_align_index);
     case TIMESTAMP_TYPE_WR:
-      return get_wr_timestamp(src_event, timestamp, ts_align_index);
+      return get_wr_timestamp(src_event,
+			      timestamp, sync_check, ts_align_index);
     }
   assert(false);
 }
@@ -645,12 +667,13 @@ void do_merge_prepare_event_info(source_event_base *x)
       {
 	FILE_INPUT_EVENT *src_event =
 	  (FILE_INPUT_EVENT *) x->_event->_file_event;
+	uint32_t sync_check;
 
 	x->_tstamp_align_index = -1;
 
 	bool good_stamp =
 	  get_timestamp(_conf._merge_event_mode,
-			src_event, &x->_timestamp,
+			src_event, &x->_timestamp, &sync_check,
 			&x->_tstamp_align_index);
 
 	if (!good_stamp)
@@ -1328,9 +1351,11 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 #endif
 
   uint64_t timestamp;
+  uint32_t sync_check;
 
   bool good_stamp =
-    get_timestamp(_conf._event_stitch_mode, src_event, &timestamp, NULL);
+    get_timestamp(_conf._event_stitch_mode, src_event,
+		  &timestamp, &sync_check, NULL);
 
   if (!good_stamp)
     {
@@ -1779,6 +1804,7 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
   if (_ts_align_hist)
     {
       uint64_t timestamp;
+      uint32_t sync_check;
       ssize_t ts_align_index;
 
 #if USE_THREADING || USE_MERGING
@@ -1789,7 +1815,7 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
 
       bool good_stamp =
 	get_timestamp(_ts_align_hist->get_style(), src_event,
-		      &timestamp, &ts_align_index);
+		      &timestamp, &sync_check, &ts_align_index);
 
       if (!good_stamp)
 	timestamp = 0;
