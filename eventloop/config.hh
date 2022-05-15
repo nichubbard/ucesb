@@ -80,6 +80,7 @@ struct config_opts
   int _show_calib;
 
   char const *_ts_align_hist_command;
+  char const *_ts_print_command;
 
   int64_t _max_events;
   int64_t _skip_events;

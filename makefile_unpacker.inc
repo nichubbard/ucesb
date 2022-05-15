@@ -150,7 +150,7 @@ GENERATED = $(GENDIR)/clean_structures.hh \
 OBJS    = unpacker.o event_loop.o \
 	correlation.o corr_plot_dense.o corr_plot_dense2.o\
 	convert_picture.o pretty_dump.o \
-	event_sizes.o tstamp_alignment.o accounting.o \
+	event_sizes.o tstamp_alignment.o tstamp_sync_check.o accounting.o \
 	mainfcn.o parse_util.o location.o \
 	common.o zero_suppress_map.o signal_id_map.o \
 	struct_fcns.o struct_mapping.o multi_chunk_fcn.o \

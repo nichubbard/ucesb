@@ -50,6 +50,7 @@
 #include "event_sizes.hh"
 #include "accounting.hh"
 #include "tstamp_alignment.hh"
+#include "tstamp_sync_check.hh"
 #include "select_event.hh"
 
 #include "../common/strndup.hh"
@@ -86,6 +87,7 @@ event_sizes _event_sizes;
 
 #ifdef USE_LMD_INPUT
 tstamp_alignment *_ts_align_hist = NULL;
+tstamp_sync_check *_ts_sync_check = NULL;
 #endif
 
 event_base _static_event;
@@ -397,7 +399,7 @@ void apply_timestamp_slope(lmd_subevent_10_1_host const &a_header,
 }
 
 bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
-			  uint64_t *timestamp,
+			  uint32_t *id, uint64_t *timestamp,
 			  ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -435,6 +437,10 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
   if (error_branch_id & TITRIS_STAMP_EBID_ERROR)
     return false;
 
+  *id = ((error_branch_id &
+	  TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
+	 TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
+
   if (ts_align_index)
     {
       if (!_ts_align_hist)
@@ -451,7 +457,7 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("First subevent does not have data enough for TITRIS time stamp "
 	"values.");
 
-  uint32_t id     = SWAPPING_BSWAP_32(data[0]);
+  uint32_t id_32  = SWAPPING_BSWAP_32(data[0]);
   uint32_t ts_l16 = SWAPPING_BSWAP_32(data[1]);
   uint32_t ts_m16 = SWAPPING_BSWAP_32(data[2]);
   uint32_t ts_h16 = SWAPPING_BSWAP_32(data[3]);
@@ -466,7 +472,7 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
       (             ts_l16 & TITRIS_STAMP_LMH_TIME_MASK)         |
       (            (ts_m16 & TITRIS_STAMP_LMH_TIME_MASK)  << 16) |
       (((uint64_t) (ts_h16 & TITRIS_STAMP_LMH_TIME_MASK)) << 32);
-  apply_timestamp_slope(subevent_info->_header, id, *timestamp);
+  apply_timestamp_slope(subevent_info->_header, id_32, *timestamp);
 
   return true;
 }
@@ -531,7 +537,7 @@ int get_wr_id(FILE_INPUT_EVENT *src_event)
 }
 
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
-		      uint64_t *timestamp, uint32_t *sync_check,
+		      uint32_t *id, uint64_t *timestamp, uint32_t *sync_check,
 		      ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -571,6 +577,10 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
     return false;
 */
 
+  *id = ((error_branch_id &
+	  WR_STAMP_EBID_BRANCH_ID_MASK) >>
+	 WR_STAMP_EBID_BRANCH_ID_SHIFT);
+
   if (ts_align_index)
     {
       if (!_ts_align_hist)
@@ -587,7 +597,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("First subevent does not have data enough "
 	  "for WR time stamp values.");
 
-  uint32_t id      = SWAPPING_BSWAP_32(data[0]);
+  uint32_t id_32   = SWAPPING_BSWAP_32(data[0]);
   uint32_t ts_0_16 = SWAPPING_BSWAP_32(data[1]);
   uint32_t ts_1_16 = SWAPPING_BSWAP_32(data[2]);
   uint32_t ts_2_16 = SWAPPING_BSWAP_32(data[3]);
@@ -607,14 +617,14 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
       (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
       (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
 
-  apply_timestamp_slope(subevent_info->_header, id, *timestamp);
+  apply_timestamp_slope(subevent_info->_header, id_32, *timestamp);
 
   *sync_check = 0;
 
   /* The sync check value is optional, so only get it in case it is
    * available.
    */
-  if (data + 6 > data_end)
+  if (data + 6 <= data_end)
     {
       uint32_t sync_check_raw = SWAPPING_BSWAP_32(data[5]);
 
@@ -632,6 +642,7 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 
 bool get_timestamp(int timestamp_type,
 		   FILE_INPUT_EVENT *src_event,
+		   uint32_t *id,
 		   uint64_t *timestamp,
 		   uint32_t *sync_check,
 		   ssize_t *ts_align_index)
@@ -641,10 +652,10 @@ bool get_timestamp(int timestamp_type,
     case TIMESTAMP_TYPE_TITRIS:
       *sync_check = 0;
       return get_titris_timestamp(src_event,
-				  timestamp, ts_align_index);
+				  id, timestamp, ts_align_index);
     case TIMESTAMP_TYPE_WR:
       return get_wr_timestamp(src_event,
-			      timestamp, sync_check, ts_align_index);
+			      id, timestamp, sync_check, ts_align_index);
     }
   assert(false);
 }
@@ -667,13 +678,13 @@ void do_merge_prepare_event_info(source_event_base *x)
       {
 	FILE_INPUT_EVENT *src_event =
 	  (FILE_INPUT_EVENT *) x->_event->_file_event;
-	uint32_t sync_check;
+	uint32_t id, sync_check;
 
 	x->_tstamp_align_index = -1;
 
 	bool good_stamp =
 	  get_timestamp(_conf._merge_event_mode,
-			src_event, &x->_timestamp, &sync_check,
+			src_event, &id, &x->_timestamp, &sync_check,
 			&x->_tstamp_align_index);
 
 	if (!good_stamp)
@@ -1351,11 +1362,11 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 #endif
 
   uint64_t timestamp;
-  uint32_t sync_check;
+  uint32_t id, sync_check;
 
   bool good_stamp =
     get_timestamp(_conf._event_stitch_mode, src_event,
-		  &timestamp, &sync_check, NULL);
+		  &id, &timestamp, &sync_check, NULL);
 
   if (!good_stamp)
     {
@@ -1801,8 +1812,9 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
   try {
 #ifndef USE_MERGING
 #ifdef USE_LMD_INPUT
-  if (_ts_align_hist)
+  if (_ts_align_hist || _ts_sync_check)
     {
+      uint32_t id;
       uint64_t timestamp;
       uint32_t sync_check;
       ssize_t ts_align_index;
@@ -1814,14 +1826,24 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
 #endif
 
       bool good_stamp =
-	get_timestamp(_ts_align_hist->get_style(), src_event,
-		      &timestamp, &sync_check, &ts_align_index);
+	get_timestamp(_ts_align_hist ? _ts_align_hist->get_style() :
+		      TIMESTAMP_TYPE_WR,
+		      src_event,
+		      &id, &timestamp, &sync_check,
+		      _ts_align_hist ? &ts_align_index : NULL);
 
       if (!good_stamp)
 	timestamp = 0;
 
-      // TODO: if (!good_stamp) { do we want to account 0 at all? }
-      _ts_align_hist->account(ts_align_index, timestamp);
+      if (_ts_align_hist)
+	{
+	  // TODO: if (!good_stamp) { do we want to account 0 at all? }
+	  _ts_align_hist->account(ts_align_index, timestamp);
+	}
+      if (_ts_sync_check)
+	{
+	  _ts_sync_check->account(id, timestamp, sync_check);
+	}
     }
 #endif
   for (int mev = 0; mev < multievents; mev++)

@@ -46,6 +46,7 @@
 #include "worker_thread.hh"
 #include "watcher.hh"
 #include "tstamp_alignment.hh"
+#include "tstamp_sync_check.hh"
 
 #include "event_base.hh"
 
@@ -110,6 +111,7 @@ void usage()
           "                    Transform timestamps before they are evaluated.\n");
   printf ("  --tstamp-hist=[help],[style],[props]\n");
   printf ("                    Histogram of time stamp diffs, style: wr, titris.\n");
+  printf ("  --tstamp-print    Print timestamps.\n");
 #endif
   printf ("  --calib=FILE      Extra input file with mapping/calibration parameters.\n");
 
@@ -278,6 +280,7 @@ void sigalarm_handler(int sig)
 /* Hack: should not be here - clean me up! */
 
 extern tstamp_alignment *_ts_align_hist;
+extern tstamp_sync_check *_ts_sync_check;
 #endif
 
 /********************************************************************/
@@ -642,6 +645,9 @@ int main(int argc, char **argv)
       }
       else if (MATCH_PREFIX("--tstamp-hist=",post)) {
         _conf._ts_align_hist_command = post;
+      }
+      else if (MATCH_ARG("--tstamp-print")) {
+        _conf._ts_print_command = "";
       }
 #endif//USE_LMD_INPUT
       else if (MATCH_PREFIX("--input-buffer=",post)) {
@@ -1073,6 +1079,13 @@ int main(int argc, char **argv)
           0
 # endif
           );
+#endif
+    }
+
+  if (_conf._ts_print_command)
+    {
+#ifdef USE_LMD_INPUT
+      _ts_sync_check = new tstamp_sync_check(_conf._ts_print_command);
 #endif
     }
 
