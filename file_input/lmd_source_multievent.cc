@@ -75,24 +75,23 @@ lmd_event *lmd_source_multievent::get_event()
   // Secondly start emitting other events if the queue is too large (in theory this could be 1, but you never know)
   if (trigger_event.size() > 10 && aida_events_merge.size() == 0)
   {
-    _TRACE("=> Return other event (dump) (%16lx)\n", trigger_event.front().timestamp);
-    if (trigger_event.front().timestamp >= emit_wr)
+    _TRACE("=> Return other event (dump) (%16lx)\n", trigger_event.front()->timestamp);
+    if (trigger_event.front()->timestamp >= emit_wr)
     {
       if (emit_skip)
         TIMEWARP("Recovered from timewarp but skipped %d event(s)", emit_skip);
       emit_skip = 0;
-      emit_wr = trigger_event.front().timestamp;
+      emit_wr = trigger_event.front()->timestamp;
       return emit_other();
     }
     else
     {
       if (!emit_skip)
-        TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", trigger_event.front().timestamp, emit_wr);
+        TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", trigger_event.front()->timestamp, emit_wr);
       emit_skip++;
-      triggerevent_entry& entry = trigger_event.front();
-      entry.event.release();
-      free(entry.event._defrag_event._buf);
-      free(entry.event._defrag_event_many._first);
+      triggerevent_entry* entry = trigger_event.front();
+      entry->reset();
+      trigger_events_pool.push_back(entry);
       trigger_event.pop_front();
       lmd_source::release_events();
       return get_event();
@@ -103,7 +102,7 @@ lmd_event *lmd_source_multievent::get_event()
   if (aida_events_merge.size() > 0 && trigger_event.size() > 0)
   {
       aidaevent_entry* entry = aida_events_merge.front();
-      if(entry->timestamp < trigger_event.front().timestamp)
+      if(entry->timestamp < trigger_event.front()->timestamp)
       {
           if (entry->fragment)
           {
@@ -139,24 +138,23 @@ lmd_event *lmd_source_multievent::get_event()
       }
       else
       {
-        if (trigger_event.front().timestamp >= emit_wr)
+        if (trigger_event.front()->timestamp >= emit_wr)
         {
           _TRACE("=> Return other event (merge %16lx)\n", trigger_event.front().timestamp);
           if (emit_skip)
             TIMEWARP("Recovered from timewarp but skipped %d event(s)", emit_skip);
           emit_skip = 0;
-          emit_wr = trigger_event.front().timestamp;
+          emit_wr = trigger_event.front()->timestamp;
           return emit_other();
         }
         else
         {
           if (!emit_skip)
-            TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", trigger_event.front().timestamp, emit_wr);
+            TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", trigger_event.front()->timestamp, emit_wr);
           emit_skip++;
-          triggerevent_entry& entry = trigger_event.front();
-          entry.event.release();
-          free(entry.event._defrag_event._buf);
-          free(entry.event._defrag_event_many._first);
+          triggerevent_entry* entry = trigger_event.front();
+          entry->reset();
+          trigger_events_pool.push_back(entry);
           trigger_event.pop_front();
           lmd_source::release_events();
           return get_event();
@@ -389,10 +387,50 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           cur_aida->implant_wr_e = load_event_wr;
           int channelID = (word1 >> 16) & 0xFFF;
           int feeID = 1 + ((channelID >> 6) & 0x3F);
+#ifdef AIDA_REAL_IMPLANTS
+          if (feeID == 1 || feeID == 3 || feeID == 9 || feeID == 10 || feeID == 11 || feeID == 12)
+          {
+            cur_aida->pside_imp[0] = true;
+          }
+          if (feeID == 2 || feeID == 4)
+          {
+            cur_aida->nside_imp[0] = true;
+          }
+
+          if (feeID == 5 || feeID == 7 || feeID == 13 || feeID == 14 || feeID == 15 || feeID == 16)
+          {
+            cur_aida->pside_imp[1] = true;
+          }
+          if (feeID == 6 || feeID == 8)
+          {
+            cur_aida->nside_imp[1] = true;
+          }
+
+          if (cur_aida->pside_imp[0] && cur_aida->nside_imp[0])
+          {
+            if (_AIDA_WATCHER_STATS)
+            {
+              _AIDA_WATCHER_STATS->add_i(1);
+            }
+            cur_aida->pside_imp[0] = false;
+            cur_aida->nside_imp[0] = false;
+          }
+          if (cur_aida->pside_imp[1] && cur_aida->nside_imp[1])
+          {
+            if (_AIDA_WATCHER_STATS)
+            {
+              _AIDA_WATCHER_STATS->add_i(5);
+            }
+            cur_aida->pside_imp[1] = false;
+            cur_aida->nside_imp[1] = false;
+          }
+#else
+
           if (_AIDA_WATCHER_STATS)
           {
             _AIDA_WATCHER_STATS->add_i(feeID);
           }
+#endif
           int asic = channelID / 16;
           auto& m = cur_aida->multiplexer(feeID, asic);
           if (load_event_wr - m.wr >= 1990 && load_event_wr - m.wr <= 2010) {
@@ -538,10 +576,15 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
 
   _TRACE("lmd_source_multievent::load_events(): identified an other block\n");
 
-  trigger_event.emplace_back();
-  triggerevent_entry& entry = trigger_event.back();
+  if (trigger_events_pool.size() == 0)
+  {
+    trigger_events_pool.push_back(new triggerevent_entry());
+  }
+  triggerevent_entry* entry = trigger_events_pool.front();
+  trigger_event.push_back(entry);
+  trigger_events_pool.pop_front();
 
-  entry.timestamp = load_event_wr;
+  entry->timestamp = load_event_wr;
 
 #if BPLAST_DELAY_FIX
   if (se->_header.i_procid == 80)
@@ -588,16 +631,15 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       memcpy(plastic_buffer.event._subevents[i]._data, _file_event._subevents[i]._data, nsubev);
     }
 
-    if (entry.event._nsubevents > 0)
+    if (entry->event._nsubevents > 0)
     {
       return other_event;
     }
     else
     {
       _TRACE("First plastic event is only buffered\n");
-      entry.event.release();
-      free(entry.event._defrag_event._buf);
-      free(entry.event._defrag_event_many._first);
+      entry->reset();
+      trigger_events_pool.push_back(entry);
       trigger_event.pop_back();
       return load_events();
     }
@@ -649,16 +691,15 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       memcpy(fatima_buffer.event._subevents[i]._data, _file_event._subevents[i]._data, nsubev);
     }
 
-    if (entry.event._nsubevents > 0)
+    if (entry->event._nsubevents > 0)
     {
       return other_event;
     }
     else
     {
       _TRACE("First fatima event is only buffered\n");
-      entry.event.release();
-      free(entry.event._defrag_event._buf);
-      free(entry.event._defrag_event_many._first);
+      entry->reset();
+      trigger_events_pool.push_back(entry);
       trigger_event.pop_back();
       return load_events();
     }
@@ -666,19 +707,19 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
 #endif
 
   // Copy the data over to ensure ownership of pointerss
-  entry.event._header = _file_event._header;
-  entry.event._status = LMD_EVENT_GET_10_1_INFO_ATTEMPT | LMD_EVENT_HAS_10_1_INFO | LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT;
-  entry.event._swapping = _file_event._swapping;
-  entry.event._nsubevents = _file_event._nsubevents;
+  entry->event._header = _file_event._header;
+  entry->event._status = LMD_EVENT_GET_10_1_INFO_ATTEMPT | LMD_EVENT_HAS_10_1_INFO | LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT;
+  entry->event._swapping = _file_event._swapping;
+  entry->event._nsubevents = _file_event._nsubevents;
   // allocate subevent array
-  entry.event._subevents = (lmd_subevent*)entry.event._defrag_event.allocate((size_t)entry.event._nsubevents * sizeof(lmd_subevent));
+  entry->event._subevents = (lmd_subevent*)entry->event._defrag_event.allocate((size_t)entry->event._nsubevents * sizeof(lmd_subevent));
   // copy subevents over
-  for (int i = 0; i < entry.event._nsubevents; i++)
+  for (int i = 0; i < entry->event._nsubevents; i++)
   {
     size_t nsubev = SUBEVENT_DATA_LENGTH_FROM_DLEN(_file_event._subevents[i]._header._header.l_dlen);
-    entry.event._subevents[i]._header = _file_event._subevents[i]._header;
-    entry.event._subevents[i]._data = (char*)entry.event._defrag_event_many.allocate(nsubev);
-    memcpy(entry.event._subevents[i]._data, _file_event._subevents[i]._data, nsubev);
+    entry->event._subevents[i]._header = _file_event._subevents[i]._header;
+    entry->event._subevents[i]._data = (char*)entry->event._defrag_event_many.allocate(nsubev);
+    memcpy(entry->event._subevents[i]._data, _file_event._subevents[i]._data, nsubev);
   }
 
   _TRACE("Other Buffer now contains: %lu events\n", trigger_event.size());
@@ -735,31 +776,30 @@ lmd_event *lmd_source_multievent::emit_other()
 {
     _file_event.release();
 
-    triggerevent_entry& entry = trigger_event.front();
+    triggerevent_entry* entry = trigger_event.front();
 
-    _file_event._header = entry.event._header;
+    _file_event._header = entry->event._header;
     _file_event._header._info.l_count = (uint32_t)++l_count;
 
-    _file_event._swapping = entry.event._swapping;
-    _file_event._nsubevents = entry.event._nsubevents;
+    _file_event._swapping = entry->event._swapping;
+    _file_event._nsubevents = entry->event._nsubevents;
     // allocate subevent array
     _file_event._subevents = (lmd_subevent*)_file_event._defrag_event.allocate((size_t)_file_event._nsubevents * sizeof(lmd_subevent));
     // copy subevents over
-    for (int i = 0; i < entry.event._nsubevents; i++)
+    for (int i = 0; i < entry->event._nsubevents; i++)
     {
-      size_t nsubev = SUBEVENT_DATA_LENGTH_FROM_DLEN(entry.event._subevents[i]._header._header.l_dlen);
-      _file_event._subevents[i]._header = entry.event._subevents[i]._header;
+      size_t nsubev = SUBEVENT_DATA_LENGTH_FROM_DLEN(entry->event._subevents[i]._header._header.l_dlen);
+      _file_event._subevents[i]._header = entry->event._subevents[i]._header;
       _file_event._subevents[i]._data = (char*)_file_event._defrag_event_many.allocate(nsubev);
-      memcpy(_file_event._subevents[i]._data, entry.event._subevents[i]._data, nsubev);
+      memcpy(_file_event._subevents[i]._data, entry->event._subevents[i]._data, nsubev);
     }
 
     _file_event._aida_extra = false;
     _file_event._aida_implant = false;
     _file_event._aida_length = 0;
 
-    entry.event.release();
-    free(entry.event._defrag_event._buf);
-    free(entry.event._defrag_event_many._first);
+    entry->reset();
+    trigger_events_pool.push_back(entry);
     trigger_event.pop_front();
 
     _file_event._status = LMD_EVENT_GET_10_1_INFO_ATTEMPT | LMD_EVENT_HAS_10_1_INFO | LMD_EVENT_LOCATE_SUBEVENTS_ATTEMPT;

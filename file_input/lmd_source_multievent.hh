@@ -19,6 +19,7 @@ struct lmd_event_multievent;
 
 //#define BPLAST_DELAY_FIX 1
 //#define FATIMA_DELAY_FIX 1
+#define AIDA_REAL_IMPLANTS
 
 #define _ENABLE_TRACE 0
 #define _AIDA_DUMP 0
@@ -123,13 +124,15 @@ class multiplexer_data
 public:
   struct multiplexer_entry
   {
-    uint64_t wr;
+    int64_t wr;
     int N;
   };
 
   multiplexer_data() {}
 
-  void clear() { multiplexer_wrs.clear(); }
+  void clear() {
+    std::fill(multiplexer_wrs.begin(), multiplexer_wrs.end(), multiplexer_entry{ 0, 0 });
+  }
 
   multiplexer_entry& operator()(size_t fee, size_t asic) {
     size_t indx = fee * 4 + asic;
@@ -152,6 +155,10 @@ struct aidaevent_entry
   int flags;
   // clean this up later if it works
   multiplexer_data multiplexer;
+#ifdef AIDA_REAL_IMPLANTS
+  bool pside_imp[2];
+  bool nside_imp[2];
+#endif
 
 	aidaevent_entry() : timestamp(0), data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); reset(); }
 	~aidaevent_entry(){}
@@ -163,6 +170,12 @@ struct aidaevent_entry
     implant_wr_s = 0;
     flags = 0;
     multiplexer.clear();
+#ifdef AIDA_REAL_IMPLANTS
+    pside_imp[0] = false;
+    nside_imp[0] = false;
+    pside_imp[1] = false;
+    nside_imp[1] = false;
+#endif
   }
 
   bool implant() const {
@@ -179,9 +192,14 @@ struct triggerevent_entry
 {
   lmd_event event;
   int64_t timestamp;
+
+  void reset() {
+    timestamp = 0;
+    event.release();
+  }
 };
 
-typedef std::deque< triggerevent_entry > triggerevent_queue;
+typedef std::deque< triggerevent_entry* > triggerevent_queue;
 
 struct lmd_source_multievent : public lmd_source
 {
@@ -198,6 +216,7 @@ protected:
   sint32 l_count;
 
   aidaevent_queue aida_events_pool;
+  triggerevent_queue trigger_events_pool;
 
   aidaevent_queue aida_events_merge;
   aidaevent_queue aida_events_dump;
