@@ -37,7 +37,7 @@ FRS_MAIN_SCALER()
   if (no == 0xbabababa)
   {
     UINT32 sc NOENCODE;
-    if ((sc & 0xFFFF0000) == 0x44800000)
+    if ((sc & 0xFFFF0000) == 0x0c800000)
     {
       list (0 <= index < 32)
       {
@@ -53,7 +53,7 @@ FRS_FRS_SCALER()
   MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
   UINT32 no NOENCODE;
 
-  if ((no & 0xFFFF0000) == 0x04800000)
+  if ((no & 0xFFFF0000) == 0x04400000)
   {
     list (0 <= index < 32)
     {
