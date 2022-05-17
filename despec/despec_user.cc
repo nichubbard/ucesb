@@ -353,7 +353,7 @@ void despec_watcher_display(watcher_display_info& info)
   info._line++;
   wmove(info._w, info._line, 0);
   whline(info._w, ACS_HLINE, 80);
-  mvwaddstr(info._w, info._line, 1, "VME Scalers");
+  mvwaddstr(info._w, info._line, 1, "DESPEC Scalers");
 
 #ifdef ZEROMQ
   auto fatvme_report = report.add_scalers();

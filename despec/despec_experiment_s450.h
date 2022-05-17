@@ -14,6 +14,7 @@ std::vector<std::string> scalers =
 {
   "bPlast Free",
   "bPlast Accepted",
+  "",
   "DEGAS Free",
   "DEGAS Accepted",
   "BGO",
@@ -25,21 +26,18 @@ std::vector<std::string> scalers =
   "SCI21 L",
   "SCI21 R",
   "Pulser",
-  "DTAS",
-  "DTAS"
 };
 
 std::vector<int> scaler_order =
 {
   0, 1,
-  2, 3,
-  4, -1,
-  5, 6,
-  7, -1,
-  8, 9,
-  10, 11,
-  12, -1,
-  13, 14
+  3, 4,
+  5, -1,
+  6, 7,
+  8, -1,
+  9, 10,
+  11, 12,
+  13, -1,
 };
 
 static constexpr size_t AIDA_DSSDS = 2;
