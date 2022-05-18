@@ -339,6 +339,15 @@ SOMETHING_ELSE() { }
 
 SUBEVENT(suba) { b = SOMETHING(N=2); c = SOMETHING_ELSE(); }
 
+#define SUBEVENT_MACRO(n)			\
+  SUBEVENT(det##n) {				\
+    b = SOMETHING(N=n);				\
+    c = SOMETHING_ELSE();			\
+  }
+
+SUBEVENT_MACRO(2)
+SUBEVENT_MACRO(3)   SUBEVENT_MACRO(4)
+
 EVENT
 {
   vme = XTST_VME(type=36,subtype=3100);
@@ -375,6 +384,9 @@ EVENT
   regressextra = XTST_REGRESSEXTRA(type=0x0de0,subtype=0x0ad0);
 
   a  = suba(type=70);
+
+  a2 = det2(type=72);  a3 = det3(type=73);  // same line test
+  a4 = det2(type=74);
 }
 
 SIGNAL(POS1_1_T,vme.tdc0.data[0],DATA12);
