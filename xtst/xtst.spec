@@ -333,6 +333,12 @@ SUBEVENT(XTST_REGRESSEXTRA)
   UINT32 junk;
 }
 
+SOMETHING(N) { }
+
+SOMETHING_ELSE() { }
+
+SUBEVENT(suba) { b = SOMETHING(N=2); c = SOMETHING_ELSE(); }
+
 EVENT
 {
   vme = XTST_VME(type=36,subtype=3100);
@@ -367,6 +373,8 @@ EVENT
   regress[15] = XTST_REGRESS(type=0x0cae,subtype=0x0cae,subcrate=15);
 
   regressextra = XTST_REGRESSEXTRA(type=0x0de0,subtype=0x0ad0);
+
+  a  = suba(type=70);
 }
 
 SIGNAL(POS1_1_T,vme.tdc0.data[0],DATA12);

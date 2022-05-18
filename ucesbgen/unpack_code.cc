@@ -501,13 +501,13 @@ void struct_unpack_code::gen(const file_line &loc,
 
 indexed_type_ind::indexed_type_ind(const char *type,
 				   int max_items,int max_items2,int opts,
-				   const file_line &loc)
+				   int order_index)
 {
-  _type       = type;
-  _max_items  = max_items;
-  _max_items2 = max_items2;
-  _opts       = opts;
-  _loc        = loc;
+  _type        = type;
+  _max_items   = max_items;
+  _max_items2  = max_items2;
+  _opts        = opts;
+  _order_index = order_index;
 }
 
 void insert_indexed_decl(indexed_decl_map &indexed_decl,
@@ -525,7 +525,7 @@ void insert_indexed_decl(indexed_decl_map &indexed_decl,
 					      vi->_index+1,
 					      vi->_index2+1,
 					      opts,
-					      decl->_loc);
+					      decl->_order_index);
 
   exist = indexed_decl.insert(indexed_decl_map::value_type(name,info));
 
