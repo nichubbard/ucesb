@@ -537,7 +537,7 @@ int get_wr_id(FILE_INPUT_EVENT *src_event)
 }
 
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
-		      uint32_t *id, uint64_t *timestamp, uint32_t *sync_check,
+		      uint32_t *id, tstamp_sync_info &sync_info,
 		      ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -611,15 +611,13 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  "(0x%08x 0x%08x 0x%08x 0x%08x)",
 	  ts_0_16, ts_1_16, ts_2_16, ts_3_16);
 
-  *timestamp =
+  sync_info._timestamp =
       (             ts_0_16 & WR_STAMP_DATA_TIME_MASK)         |
       ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
       (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
       (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
 
-  apply_timestamp_slope(subevent_info->_header, id_32, *timestamp);
-
-  *sync_check = 0;
+  apply_timestamp_slope(subevent_info->_header, id_32, sync_info._timestamp);
 
   /* The sync check value is optional, so only get it in case it is
    * available.
@@ -631,9 +629,10 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
       if ((sync_check_raw & SYNC_CHECK_MAGIC_MASK) ==
 	  SYNC_CHECK_MAGIC)
 	{
-	  *sync_check =
-	    sync_check_raw & (SYNC_CHECK_FLAGS_MASK |
-			      SYNC_CHECK_VALUE_MASK);
+	  sync_info._sync_check_flags =
+	    (sync_check_raw & SYNC_CHECK_FLAGS_MASK) >> SYNC_CHECK_FLAGS_SHIFT;
+	  sync_info._sync_check_value =
+	    (sync_check_raw & SYNC_CHECK_VALUE_MASK);
 	}
     }
 
@@ -643,19 +642,23 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 bool get_timestamp(int timestamp_type,
 		   FILE_INPUT_EVENT *src_event,
 		   uint32_t *id,
-		   uint64_t *timestamp,
-		   uint32_t *sync_check,
+		   tstamp_sync_info &ts_sync_info,
 		   ssize_t *ts_align_index)
 {
+  ts_sync_info._sync_check_flags = 0;
+  ts_sync_info._sync_check_value = 0;
+  ts_sync_info._timestamp        = 0;
+
   switch (timestamp_type)
     {
     case TIMESTAMP_TYPE_TITRIS:
-      *sync_check = 0;
       return get_titris_timestamp(src_event,
-				  id, timestamp, ts_align_index);
+				  id, &ts_sync_info._timestamp,
+				  ts_align_index);
     case TIMESTAMP_TYPE_WR:
       return get_wr_timestamp(src_event,
-			      id, timestamp, sync_check, ts_align_index);
+			      id, ts_sync_info,
+			      ts_align_index);
     }
   assert(false);
 }
@@ -678,13 +681,14 @@ void do_merge_prepare_event_info(source_event_base *x)
       {
 	FILE_INPUT_EVENT *src_event =
 	  (FILE_INPUT_EVENT *) x->_event->_file_event;
-	uint32_t id, sync_check;
+	uint32_t id;
+	tstamp_sync_info ts_sync_info;
 
 	x->_tstamp_align_index = -1;
 
 	bool good_stamp =
 	  get_timestamp(_conf._merge_event_mode,
-			src_event, &id, &x->_timestamp, &sync_check,
+			src_event, &id, ts_sync_info,
 			&x->_tstamp_align_index);
 
 	if (!good_stamp)
@@ -694,6 +698,8 @@ void do_merge_prepare_event_info(source_event_base *x)
 	    // compares less than anyone else, so immediate eject
 	    x->_timestamp = 0;
 	  }
+	else
+	  x->_timestamp = ts_sync_info._timestamp;
       }
     case MERGE_EVENTS_MODE_USER:
       // Nothing to prepare ???  (if so, where to store it?)
@@ -1361,12 +1367,12 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   FILE_INPUT_EVENT *src_event = &_file_event;
 #endif
 
-  uint64_t timestamp;
-  uint32_t id, sync_check;
+  uint32_t id;
+  tstamp_sync_info ts_sync_info;
 
   bool good_stamp =
     get_timestamp(_conf._event_stitch_mode, src_event,
-		  &id, &timestamp, &sync_check, NULL);
+		  &id, ts_sync_info, NULL);
 
   if (!good_stamp)
     {
@@ -1382,7 +1388,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 
   if (stitch->_has_stamp)
     {
-      if (timestamp < stitch->_last_stamp)
+      if (ts_sync_info._timestamp < stitch->_last_stamp)
 	{
 	  // Unordered, dump!
 	  // printf("unordered -> !bad !combine\n");
@@ -1396,7 +1402,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	}
       else
 	{
-	  if ((int64_t) (timestamp - stitch->_last_stamp) <
+	  if ((int64_t) (ts_sync_info._timestamp - stitch->_last_stamp) <
 	      _conf._event_stitch_value)
 	    {
 	      stitch->_combine = true;
@@ -1418,7 +1424,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 
   if (!stitch->_combine)
     {
-      stitch->_last_stamp = timestamp;
+      stitch->_last_stamp = ts_sync_info._timestamp;
       stitch->_has_stamp = true;
     }
   // printf("stitch->_last_stamp = timestamp\n");
@@ -1815,8 +1821,7 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
   if (_ts_align_hist || _ts_sync_check)
     {
       uint32_t id;
-      uint64_t timestamp;
-      uint32_t sync_check;
+      tstamp_sync_info ts_sync_info;
       ssize_t ts_align_index;
 
 #if USE_THREADING || USE_MERGING
@@ -1825,24 +1830,26 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
       FILE_INPUT_EVENT *src_event = &_file_event;
 #endif
 
+      ts_sync_info._event_no = eb._unpack.event_no;
+
       bool good_stamp =
 	get_timestamp(_ts_align_hist ? _ts_align_hist->get_style() :
 		      TIMESTAMP_TYPE_WR,
 		      src_event,
-		      &id, &timestamp, &sync_check,
+		      &id, ts_sync_info,
 		      _ts_align_hist ? &ts_align_index : NULL);
 
       if (!good_stamp)
-	timestamp = 0;
+	ts_sync_info._timestamp = 0;
 
       if (_ts_align_hist)
 	{
 	  // TODO: if (!good_stamp) { do we want to account 0 at all? }
-	  _ts_align_hist->account(ts_align_index, timestamp);
+	  _ts_align_hist->account(ts_align_index, ts_sync_info._timestamp);
 	}
       if (_ts_sync_check)
 	{
-	  _ts_sync_check->account(id, timestamp, sync_check);
+	  _ts_sync_check->account(id, ts_sync_info);
 	}
     }
 #endif

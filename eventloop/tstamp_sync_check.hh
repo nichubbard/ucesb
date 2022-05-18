@@ -23,6 +23,14 @@
 
 #include <stdint.h>
 
+struct tstamp_sync_info
+{
+  uint64_t _timestamp;
+  uint32_t _event_no;
+  uint16_t _sync_check_flags;
+  uint16_t _sync_check_value;
+};
+
 class tstamp_sync_check
 {
 
@@ -31,8 +39,7 @@ public:
 
 public:
   void account(uint32_t id,
-	       uint64_t timestamp,
-	       uint32_t sync_check);
+	       tstamp_sync_info &ts_sync_info);
 
 public:
   uint64_t _prev_timestamp;

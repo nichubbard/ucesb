@@ -30,39 +30,49 @@ tstamp_sync_check::tstamp_sync_check(char const *command)
 }
 
 void tstamp_sync_check::account(uint32_t id,
-				uint64_t timestamp,
-				uint32_t sync_check)
+				tstamp_sync_info &ts_sync_info)
 {
-  if (timestamp != 0 &&
-      timestamp - _prev_timestamp > 2000)
+  uint64_t ts;
+  
+  if (ts_sync_info._timestamp != 0 &&
+      ts_sync_info._timestamp - _prev_timestamp > 2000)
     {
       printf ("\n");
     }
 
-  printf ("%s%02x%s  ",
-	  CT_OUT(BOLD), id, CT_OUT(NORM));
+  printf ("%s%-12u%s %s%02x%s  ",
+	  CT_OUT(BOLD_BLUE),
+	  ts_sync_info._event_no,
+	  CT_OUT(NORM_DEF_COL),
+	  CT_OUT(BOLD),
+	  id,
+	  CT_OUT(NORM));
+
+  ts = ts_sync_info._timestamp;
 
   printf ("%s%04x%s:%s%04x%s:%s%04x%s:%s%04x%s",
-	  CT_OUT(BOLD_BLUE),(int)(timestamp >> 48)&0xffff,CT_OUT(NORM_DEF_COL),
-	  CT_OUT(BOLD_BLUE),(int)(timestamp >> 32)&0xffff,CT_OUT(NORM_DEF_COL),
-	  CT_OUT(BOLD_BLUE),(int)(timestamp >> 16)&0xffff,CT_OUT(NORM_DEF_COL),
-	  CT_OUT(BOLD_BLUE),(int)(timestamp      )&0xffff,CT_OUT(NORM_DEF_COL));
+	  CT_OUT(BOLD_BLUE), (int) (ts >> 48) & 0xffff, CT_OUT(NORM_DEF_COL),
+	  CT_OUT(BOLD_BLUE), (int) (ts >> 32) & 0xffff, CT_OUT(NORM_DEF_COL),
+	  CT_OUT(BOLD_BLUE), (int) (ts >> 16) & 0xffff, CT_OUT(NORM_DEF_COL),
+	  CT_OUT(BOLD_BLUE), (int) (ts      ) & 0xffff, CT_OUT(NORM_DEF_COL));
 
-  if (timestamp == 0)
+  if (ts_sync_info._timestamp == 0)
     printf ("  %s%10s%s",
 	    CT_OUT(BOLD_RED), "err", CT_OUT(NORM_DEF_COL));
   else
     printf ("  %s%10" PRIu64 "%s",
-	    CT_OUT(BOLD), timestamp - _prev_timestamp, CT_OUT(NORM));
+	    CT_OUT(BOLD), ts_sync_info._timestamp - _prev_timestamp,
+	    /* */                                       CT_OUT(NORM));
 
   printf ("  %s[%x]%s %s%5d%s ",
-	  CT_OUT(BOLD), (sync_check >> 16) & 0xf, CT_OUT(NORM),
-	  CT_OUT(BOLD_MAGENTA), (sync_check & 0xffff), CT_OUT(NORM_DEF_COL));
+	  CT_OUT(BOLD), ts_sync_info._sync_check_flags, CT_OUT(NORM),
+	  CT_OUT(BOLD_MAGENTA), ts_sync_info._sync_check_value,
+	  /*                                         */ CT_OUT(NORM_DEF_COL));
 
   printf ("\n");
 
-  if (timestamp != 0)
+  if (ts_sync_info._timestamp != 0)
     {
-      _prev_timestamp = timestamp;
+      _prev_timestamp = ts_sync_info._timestamp;
     }
 }

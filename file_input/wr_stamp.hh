@@ -39,6 +39,7 @@
 /* Extra marker for sync check value. */
 #define SYNC_CHECK_MAGIC_MASK  0xfff00000
 #define SYNC_CHECK_FLAGS_MASK  0x000f0000
+#define SYNC_CHECK_FLAGS_SHIFT 16
 #define SYNC_CHECK_VALUE_MASK  0x0000ffff
 #define SYNC_CHECK_MAGIC       0xf1a00000  /* High 4 bits for geom mism. */
 #define SYNC_CHECK_REF         0x00010000  /* Reference value (master). */
