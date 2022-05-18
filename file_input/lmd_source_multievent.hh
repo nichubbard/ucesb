@@ -119,6 +119,8 @@ public:
 
 extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
 
+/*
+ * Removed
 class multiplexer_data
 {
 public:
@@ -128,21 +130,29 @@ public:
     int N;
   };
 
-  multiplexer_data() {}
+  multiplexer_data() : dirty(false) {}
+
+  bool dirty;
 
   void clear() {
-    std::fill(multiplexer_wrs.begin(), multiplexer_wrs.end(), multiplexer_entry{ 0, 0 });
+ //   std::fill(multiplexer_wrs.begin(), multiplexer_wrs.end(), multiplexer_entry{ 0, 0 });
+//    std::fill(std::begin(multiplexer_wrs), std::end(multiplexer_wrs), multiplexer_entry{0, 0});
+    if (dirty) {
+      dirty = false;
+      memset(&multiplexer_wrs[0], 0, sizeof(multiplexer_entry) * 48 *4);
+    }
   }
 
   multiplexer_entry& operator()(size_t fee, size_t asic) {
     size_t indx = fee * 4 + asic;
-    if (multiplexer_wrs.size() < 1 + indx) multiplexer_wrs.resize(indx + 1);
+//if (multiplexer_wrs.size() < 1 + indx) multiplexer_wrs.resize(indx + 1);
     return multiplexer_wrs[indx];
   }
 
 private:
-  std::vector<multiplexer_entry> multiplexer_wrs;
+  multiplexer_entry multiplexer_wrs[48*4];
 };
+*/
 
 struct aidaevent_entry
 {
@@ -154,7 +164,7 @@ struct aidaevent_entry
   int64_t fragment_wr, implant_wr_s, implant_wr_e;
   int flags;
   // clean this up later if it works
-  multiplexer_data multiplexer;
+  //multiplexer_data multiplexer;
 #ifdef AIDA_REAL_IMPLANTS
   bool pside_imp[2];
   bool nside_imp[2];
@@ -169,7 +179,7 @@ struct aidaevent_entry
     fragment = true;
     implant_wr_s = 0;
     flags = 0;
-    multiplexer.clear();
+    //multiplexer.clear();
 #ifdef AIDA_REAL_IMPLANTS
     pside_imp[0] = false;
     nside_imp[0] = false;

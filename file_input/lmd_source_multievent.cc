@@ -387,6 +387,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
           cur_aida->implant_wr_e = load_event_wr;
           int channelID = (word1 >> 16) & 0xFFF;
           int feeID = 1 + ((channelID >> 6) & 0x3F);
+          channelID &= 0x3F;
 #ifdef AIDA_REAL_IMPLANTS
           if (feeID == 1 || feeID == 3 || feeID == 9 || feeID == 10 || feeID == 11 || feeID == 12)
           {
@@ -431,37 +432,57 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
             _AIDA_WATCHER_STATS->add_i(feeID);
           }
 #endif
-          int asic = channelID / 16;
-          auto& m = cur_aida->multiplexer(feeID, asic);
-          if (load_event_wr - m.wr >= 1990 && load_event_wr - m.wr <= 2010) {
-            m.N++;
-          }
-          else {
-            m.N = 0;
-          }
+          // Instead of tracking the multiplexer every event (mostly not used)
+          // Go back and retrack the multiplexer at the start of an implant
+          // Where it matters for aligning
           if (cur_aida->implant_wr_s == 0) {
-            cur_aida->implant_wr_s = load_event_wr - AIDA_TIME_SHIFT - (m.N * 2000);
+            int N = 0;
+            int64_t lWR = 0;
+            int64_t tWR = cur_aida->timestamp;
+            for (size_t j = 0; j < cur_aida->data.size(); j += 2)
+            {
+              uint32_t tdata = cur_aida->data[j];
+              tWR &= ~0x0fffffff;
+              tWR |= (cur_aida->data[j + 1] & 0x0fffffff);
+              if ((tdata & 0xC0F00000) == 0x80500000)
+              {
+                uint32_t middleTS_raw = cur_aida->data[j + 2];
+                uint32_t highTS = word1 & 0x000FFFFF;
+                uint32_t middleTS = middleTS_raw & 0x000FFFFF;
+                tWR = (int64_t)(((uint64_t)highTS << 48) | ((uint64_t)middleTS << 28) | cur_aida->data[j + 1]);
+                j += 2;
+                continue;
+              }
+              if ((tdata & 0xF0000000) == 0xC0000000)
+              {
+                int tchannelID = (tdata >> 16) & 0xFFF;
+                int tfeeID = 1 + ((tchannelID >> 6) & 0x3F);
+                tchannelID &= 0x3F;
+                if (tfeeID == feeID && tchannelID / 16 == channelID / 16)
+                {
+                  if (tWR - lWR < 2100) {
+                    N++;
+                  }
+                  else {
+                    N = 0;
+                  }
+                  lWR = tWR;
+                }
+              }
+            }
+            cur_aida->implant_wr_s = load_event_wr - AIDA_TIME_SHIFT - (N * 2000);
             _TRACE("correcting implant WR time by %d multiplexer cycles\n", m.N);
           }
-          m.wr = load_event_wr;
         }
         if ((word1 & 0xF0000000) == 0xC0000000)
         {
           int channelID = (word1 >> 16) & 0xFFF;
           int feeID = 1 + ((channelID >> 6) & 0x3F);
+          channelID &= 0x3F;
           if (_AIDA_WATCHER_STATS)
           {
             _AIDA_WATCHER_STATS->add_d(feeID);
           }
-          int asic = channelID / 16;
-          auto& m = cur_aida->multiplexer(feeID, asic);
-          if (load_event_wr - m.wr >= 1990 && load_event_wr - m.wr <= 2010) {
-            m.N++;
-          }
-          else {
-            m.N = 0;
-          }
-          m.wr = load_event_wr;
         }
 #ifdef AIDA_CORRELATION_PULSER
         if ((word1 & 0xFFF00000) == AIDA_CORRELATION_EVENT)
