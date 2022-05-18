@@ -399,7 +399,7 @@ void apply_timestamp_slope(lmd_subevent_10_1_host const &a_header,
 }
 
 bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
-			  uint32_t *id, uint64_t *timestamp,
+			  tstamp_sync_info &ts_sync_info,
 			  ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -437,9 +437,9 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
   if (error_branch_id & TITRIS_STAMP_EBID_ERROR)
     return false;
 
-  *id = ((error_branch_id &
-	  TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
-	 TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
+  ts_sync_info._id = ((error_branch_id &
+		       TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
+		      TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
 
   if (ts_align_index)
     {
@@ -468,11 +468,12 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("TITRIS time stamp word has wrong marker.  (0x%08x 0x%08x 0x%08x)",
 	  ts_l16, ts_m16, ts_h16);
 
-  *timestamp =
+  ts_sync_info._timestamp =
       (             ts_l16 & TITRIS_STAMP_LMH_TIME_MASK)         |
       (            (ts_m16 & TITRIS_STAMP_LMH_TIME_MASK)  << 16) |
       (((uint64_t) (ts_h16 & TITRIS_STAMP_LMH_TIME_MASK)) << 32);
-  apply_timestamp_slope(subevent_info->_header, id_32, *timestamp);
+  apply_timestamp_slope(subevent_info->_header, id_32,
+			ts_sync_info._timestamp);
 
   return true;
 }
@@ -537,7 +538,7 @@ int get_wr_id(FILE_INPUT_EVENT *src_event)
 }
 
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
-		      uint32_t *id, tstamp_sync_info &sync_info,
+		      tstamp_sync_info &ts_sync_info,
 		      ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -577,9 +578,9 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
     return false;
 */
 
-  *id = ((error_branch_id &
-	  WR_STAMP_EBID_BRANCH_ID_MASK) >>
-	 WR_STAMP_EBID_BRANCH_ID_SHIFT);
+  ts_sync_info._id = ((error_branch_id &
+		       WR_STAMP_EBID_BRANCH_ID_MASK) >>
+		      WR_STAMP_EBID_BRANCH_ID_SHIFT);
 
   if (ts_align_index)
     {
@@ -611,13 +612,14 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  "(0x%08x 0x%08x 0x%08x 0x%08x)",
 	  ts_0_16, ts_1_16, ts_2_16, ts_3_16);
 
-  sync_info._timestamp =
+  ts_sync_info._timestamp =
       (             ts_0_16 & WR_STAMP_DATA_TIME_MASK)         |
       ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
       (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
       (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
 
-  apply_timestamp_slope(subevent_info->_header, id_32, sync_info._timestamp);
+  apply_timestamp_slope(subevent_info->_header, id_32,
+			ts_sync_info._timestamp);
 
   /* The sync check value is optional, so only get it in case it is
    * available.
@@ -629,9 +631,9 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
       if ((sync_check_raw & SYNC_CHECK_MAGIC_MASK) ==
 	  SYNC_CHECK_MAGIC)
 	{
-	  sync_info._sync_check_flags =
+	  ts_sync_info._sync_check_flags =
 	    (sync_check_raw & SYNC_CHECK_FLAGS_MASK) >> SYNC_CHECK_FLAGS_SHIFT;
-	  sync_info._sync_check_value =
+	  ts_sync_info._sync_check_value =
 	    (sync_check_raw & SYNC_CHECK_VALUE_MASK);
 	}
     }
@@ -641,7 +643,6 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 
 bool get_timestamp(int timestamp_type,
 		   FILE_INPUT_EVENT *src_event,
-		   uint32_t *id,
 		   tstamp_sync_info &ts_sync_info,
 		   ssize_t *ts_align_index)
 {
@@ -653,11 +654,11 @@ bool get_timestamp(int timestamp_type,
     {
     case TIMESTAMP_TYPE_TITRIS:
       return get_titris_timestamp(src_event,
-				  id, &ts_sync_info._timestamp,
+				  ts_sync_info,
 				  ts_align_index);
     case TIMESTAMP_TYPE_WR:
       return get_wr_timestamp(src_event,
-			      id, ts_sync_info,
+			      ts_sync_info,
 			      ts_align_index);
     }
   assert(false);
@@ -681,14 +682,13 @@ void do_merge_prepare_event_info(source_event_base *x)
       {
 	FILE_INPUT_EVENT *src_event =
 	  (FILE_INPUT_EVENT *) x->_event->_file_event;
-	uint32_t id;
 	tstamp_sync_info ts_sync_info;
 
 	x->_tstamp_align_index = -1;
 
 	bool good_stamp =
 	  get_timestamp(_conf._merge_event_mode,
-			src_event, &id, ts_sync_info,
+			src_event, ts_sync_info,
 			&x->_tstamp_align_index);
 
 	if (!good_stamp)
@@ -1367,12 +1367,11 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   FILE_INPUT_EVENT *src_event = &_file_event;
 #endif
 
-  uint32_t id;
   tstamp_sync_info ts_sync_info;
 
   bool good_stamp =
     get_timestamp(_conf._event_stitch_mode, src_event,
-		  &id, ts_sync_info, NULL);
+		  ts_sync_info, NULL);
 
   if (!good_stamp)
     {
@@ -1820,7 +1819,6 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
 #ifdef USE_LMD_INPUT
   if (_ts_align_hist || _ts_sync_check)
     {
-      uint32_t id;
       tstamp_sync_info ts_sync_info;
       ssize_t ts_align_index;
 
@@ -1836,7 +1834,7 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
 	get_timestamp(_ts_align_hist ? _ts_align_hist->get_style() :
 		      TIMESTAMP_TYPE_WR,
 		      src_event,
-		      &id, ts_sync_info,
+		      ts_sync_info,
 		      _ts_align_hist ? &ts_align_index : NULL);
 
       if (!good_stamp)
@@ -1849,7 +1847,7 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
 	}
       if (_ts_sync_check)
 	{
-	  _ts_sync_check->account(id, ts_sync_info);
+	  _ts_sync_check->account(ts_sync_info);
 	}
     }
 #endif

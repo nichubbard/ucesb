@@ -25,8 +25,9 @@
 
 struct tstamp_sync_info
 {
-  uint64_t _timestamp;
+  uint16_t _id;
   uint32_t _event_no;
+  uint64_t _timestamp;
   uint16_t _sync_check_flags;
   uint16_t _sync_check_value;
 };
@@ -38,8 +39,7 @@ public:
   tstamp_sync_check(char const *command);
 
 public:
-  void account(uint32_t id,
-	       tstamp_sync_info &ts_sync_info);
+  void account(tstamp_sync_info &ts_sync_info);
 
 public:
   uint64_t _prev_timestamp;

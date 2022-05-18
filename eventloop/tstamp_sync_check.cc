@@ -29,8 +29,7 @@ tstamp_sync_check::tstamp_sync_check(char const *command)
   _prev_timestamp = 0;
 }
 
-void tstamp_sync_check::account(uint32_t id,
-				tstamp_sync_info &ts_sync_info)
+void tstamp_sync_check::account(tstamp_sync_info &ts_sync_info)
 {
   uint64_t ts;
   
@@ -45,7 +44,7 @@ void tstamp_sync_check::account(uint32_t id,
 	  ts_sync_info._event_no,
 	  CT_OUT(NORM_DEF_COL),
 	  CT_OUT(BOLD),
-	  id,
+	  ts_sync_info._id,
 	  CT_OUT(NORM));
 
   ts = ts_sync_info._timestamp;
