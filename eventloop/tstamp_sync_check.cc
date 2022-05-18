@@ -27,6 +27,8 @@
 
 tstamp_sync_check::tstamp_sync_check(char const *command)
 {
+  _ref_id = 0x10;
+
   _prev_timestamp = 0;
 
   _num_items = 0;
@@ -91,7 +93,55 @@ void tstamp_sync_check::analyse(bool to_end)
   size_t i;
 
   /* Figure out how far to analyse. */
-  analyse_end = _num_items;
+  if (to_end)
+    analyse_end = _num_items;
+  else
+    {
+      ssize_t last_i;
+      ssize_t prev_i;
+      uint64_t max_diff = 0;
+
+      /* Find the two last reference values. */
+      /* Find the largest timestamp difference between any items
+       * between these two values.
+       */
+
+      for (last_i = _num_items-1; last_i >= 0; last_i--)
+	if (_list[last_i]._id == _ref_id)
+	  break;
+
+      for (prev_i = last_i-1; prev_i >= 0; prev_i--)
+	if (_list[prev_i]._id == _ref_id)
+	  break;
+
+      if (prev_i < 0)
+	prev_i = 0;
+
+      analyse_end = 0;
+
+      for (i = prev_i ; (ssize_t) i < last_i; i++)
+	{
+	  uint64_t diff = 0;
+
+	  if (_list[i+1]._timestamp >= _list[i]._timestamp)
+	    diff = _list[i+1]._timestamp - _list[i]._timestamp;
+
+	  if (diff >= max_diff)
+	    {
+	      max_diff = diff;
+	      analyse_end = i+1;
+	    }
+	}
+
+      /*
+      printf ("%zd %zd %zd -----------------\n",
+	      prev_i, last_i, analyse_end);
+      */
+
+      /* This typically does not happen.  To ensure progress. */
+      if (analyse_end <= 0)
+	analyse_end = _num_items / 2;
+    }
 
 
 
@@ -105,7 +155,7 @@ void tstamp_sync_check::analyse(bool to_end)
     }
 
   /* Copy the unused items. */
-  for (i = 0; analyse_end < _num_items; i++)
+  for (i = 0; analyse_end < _num_items; i++, analyse_end++)
     _list[i] = _list[analyse_end];
 
   _num_items = i;

@@ -50,6 +50,9 @@ public:
   void show();
 
 public:
+  uint16_t _ref_id;
+
+public:
   uint64_t _prev_timestamp;
 
 protected:
