@@ -22,6 +22,7 @@
 #define __TSTAMP_SYNC_CHECK_HH__
 
 #include <stdint.h>
+#include <stdlib.h>
 
 struct tstamp_sync_info
 {
@@ -38,11 +39,23 @@ class tstamp_sync_check
 public:
   tstamp_sync_check(char const *command);
 
+protected:
+  void dump(tstamp_sync_info &ts_sync_info);
+
+  void analyse(bool to_end);
+
 public:
   void account(tstamp_sync_info &ts_sync_info);
 
+  void show();
+
 public:
   uint64_t _prev_timestamp;
+
+protected:
+  tstamp_sync_info *_list;
+  size_t            _num_items;
+  size_t            _num_alloc;
 };
 
 #endif/*__TSTAMP_SYNC_CHECK_HH__*/

@@ -253,6 +253,8 @@ void ucesb_event_loop::postprocess()
 #ifdef USE_LMD_INPUT
   if (_ts_align_hist)
     _ts_align_hist->show();
+  if (_ts_sync_check)
+    _ts_sync_check->show();
 #endif
 
   if (_conf._event_sizes)

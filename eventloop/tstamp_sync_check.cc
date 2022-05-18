@@ -20,6 +20,7 @@
 
 #include "tstamp_sync_check.hh"
 #include "colourtext.hh"
+#include "error.hh"
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -27,9 +28,17 @@
 tstamp_sync_check::tstamp_sync_check(char const *command)
 {
   _prev_timestamp = 0;
+
+  _num_items = 0;
+  _num_alloc = 4096;
+
+  _list = new tstamp_sync_info[_num_alloc];
+
+  if (!_list)
+    ERROR("Memory allocation failure!");
 }
 
-void tstamp_sync_check::account(tstamp_sync_info &ts_sync_info)
+void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
 {
   uint64_t ts;
   
@@ -74,4 +83,49 @@ void tstamp_sync_check::account(tstamp_sync_info &ts_sync_info)
     {
       _prev_timestamp = ts_sync_info._timestamp;
     }
+}
+
+void tstamp_sync_check::analyse(bool to_end)
+{
+  size_t analyse_end;
+  size_t i;
+
+  /* Figure out how far to analyse. */
+  analyse_end = _num_items;
+
+
+
+
+
+
+  /* Dump the items. */
+  for (i = 0; i < analyse_end; i++)
+    {
+      dump(_list[i]);
+    }
+
+  /* Copy the unused items. */
+  for (i = 0; analyse_end < _num_items; i++)
+    _list[i] = _list[analyse_end];
+
+  _num_items = i;
+}
+
+
+
+void tstamp_sync_check::account(tstamp_sync_info &ts_sync_info)
+{
+  if (_num_items >= _num_alloc)
+    analyse(false);
+
+  /* That should have free'd up some items. */
+  assert(_num_items < _num_alloc);
+
+  /* Store the most recent item. */
+  _list[_num_items++] = ts_sync_info;
+}
+
+void tstamp_sync_check::show()
+{
+  analyse(true);
 }
