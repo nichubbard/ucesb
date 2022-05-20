@@ -18,6 +18,9 @@ message UcesbSummary {
 
 	bool onspill = 7;
 	int32 lastspill = 8;
+	int32 spilltime = 9;
+	int32 extrtime = 10;
+	uint32 spill_ctr = 11;
 }
 
 message DaqInformation {

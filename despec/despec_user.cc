@@ -39,6 +39,9 @@ std::map<int, int> daq_sync;
 // spil data
 static bool _on_spill = false;
 static time_t _last_spill = 0;
+static time_t _spill_length = 0;
+static time_t _extraction_time = 0;
+static uint32_t _spill_counter = 0;
 
 #define AIDA_IMPLANT_MAGIC 0x701
 
@@ -109,14 +112,18 @@ void despec_watcher_event_info(watcher_event_info *info,
   // START EXTR Scaler triggered, so we reset the spill array and say on spill
   if (scalers_now[SCALER_START_EXTR] - scalers_old_spill[SCALER_START_EXTR] > 0) {
     _on_spill = true;
-    _last_spill = (uint)(_despec_now / (uint64_t)1e9);
+    time_t new_spill = (uint)(_despec_now / (uint64_t)1e9);
+    _spill_length = new_spill - _last_spill;
+    _last_spill = new_spill;
     scalers_old_spill = scalers_now;
     _AIDA_WATCHER_STATS->clear(1);
+    _spill_counter++;
   }
 
   // STOP EXTR Scaler triggered, spill off flag
   if (scalers_now[SCALER_STOP_EXTR] - scalers_old_spill[SCALER_STOP_EXTR] > 0) {
     _on_spill = false;
+    _extraction_time = (uint)(_despec_now / (uint64_t)1e9) - _last_spill;
   }
 
   for (uint i = 0; i < event->frs_main.scaler.scalers._num_items; i++)
@@ -196,6 +203,9 @@ void despec_watcher_event_info(watcher_event_info *info,
   report.mutable_summary()->set_server(_inputs[0]._name);
   report.mutable_summary()->set_onspill(_on_spill);
   report.mutable_summary()->set_lastspill(_last_spill);
+  report.mutable_summary()->set_spilltime(_spill_length);
+  report.mutable_summary()->set_extrtime(_extraction_time);
+  report.mutable_summary()->set_spill_ctr(_spill_counter);
 #endif
 
   _events++;
@@ -217,6 +227,8 @@ void despec_watcher_init()
   {
     events_total[i] = 0;
   }
+
+  _spill_counter = 0;
 
   INFO("DESPEC Initialised");
 
