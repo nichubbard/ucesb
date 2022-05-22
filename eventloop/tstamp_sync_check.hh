@@ -44,6 +44,8 @@ protected:
 
   void analyse(bool to_end);
 
+  void estimate_ref_sync_value_period(size_t end);
+
 public:
   void account(tstamp_sync_info &ts_sync_info);
 
