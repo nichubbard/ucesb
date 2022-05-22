@@ -756,11 +756,11 @@ int do_check_merge_event_after(const merge_event_order *prev,
       if (x->_event->_unpack.event_no == prev->event_no)
 	return MERGE_EVENTS_ERROR_ORDER_SAME;
 
-      /* We allow previous event to be within a large range,
+      /* We allow previous and new event to be within a large range,
        * in case the wrapping was preceeded by some skipping.
        */
-      if (x->_event->_unpack.event_no == 0 &&
-	  (prev->event_no & 0xff000000) == 0xff000000)
+      if ((x->_event->_unpack.event_no & 0xff000000) == 0x00000000 &&
+	  (prev->event_no              & 0xff000000) == 0xff000000)
 	return 0;
 
       return MERGE_EVENTS_ERROR_ORDER_BEFORE;
