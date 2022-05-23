@@ -180,14 +180,18 @@ void dct_one_period_find_phase(uint16_t *vals, int n,
   info._start_i = good_i;
 }
 
-void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
+void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
+						       int *peaks, int *npeaks)
 {
   uint16_t diffs[4096];
   uint16_t ref_vals[256];
   int n = 0;
 
-  int peaks[256]; /* Cannot be more then number of reference values. */
-  int npeaks = 0;
+  /* The number of reference values that are used is limited to 256.
+   * This is enough since we expect at most 32 or 64 different values
+   * (typically much less).  This still gives statistics for each
+   * value.
+   */
 
   memset(diffs, 0, sizeof (diffs));
 
@@ -204,6 +208,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
 	{
 	  ref_vals[n++] = _list[i]._sync_check_value;
 
+	  /* Do not use more values than known in the list. */
 	  if (n >= 256)
 	    break;
 	}
@@ -233,7 +238,20 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
    * Rough histogram (for difference 6):
    *
    * Diff:   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20..
-   * Counts: 90 10 0  0  0  5  80 5  0  0  0  10 60 10 0  0  0  15 40 15 0
+   * Counts: 40 10 0  0  0  5  80 5  0  0  0  10 60 10 0  0  0  15 40 15 0
+   *
+   * Assuming that we have n different values.  If all distances are
+   * roughly the same, we will then have n peaks (including the 0th
+   * peak).  With a total statistics of m counts (typically 256), we
+   * will then have m/n members of each peak in the raw data, call
+   * that N (=m/n).
+   *
+   * The 0th difference peak thus contain n*N*(N-1)/2 ~= n*N^2/2 values,
+   * i.e. all self-differences.
+   *
+   * The 1st difference peak would contain (n-1)*N^2 values.
+   *
+   * The 2nd difference peak would contain (n-2)*N^2 values.
    */
 
   for (int i = 0; i < n; i++)
@@ -376,6 +394,8 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
   double sum_prev = 1;
   int forward = 1;
 
+  *npeaks = 0;
+
   for ( ; ; )
     {
       dct_find_phase_info info;
@@ -396,7 +416,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
 
 	  forward = 0;
 
-	  if (!npeaks)
+	  if (!*npeaks)
 	    break; /* We had no start peak even. */
 
 	  start_x = peaks[0] - good_period * 2;
@@ -405,7 +425,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
 
       int peak_x = start_x + info._phase + good_period / 2;
 
-      peaks[npeaks++] = peak_x;
+      peaks[(*npeaks)++] = peak_x;
 
       printf ("good_phase: %d (-> %d)\n",
 	      info._phase, peak_x);
@@ -420,10 +440,10 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end)
 	start_x = peak_x - good_period * 2;
     }
 
-  std::sort(peaks, peaks + npeaks);
+  std::sort(peaks, peaks + *npeaks);
 
   printf ("peaks: ");
-  for (int i = 0; i < npeaks; i++)
+  for (int i = 0; i < *npeaks; i++)
     printf (" %d", peaks[i]);
   printf ("\n");
 
@@ -434,6 +454,9 @@ void tstamp_sync_check::analyse(bool to_end)
 {
   size_t analyse_end;
   size_t i;
+
+  int peaks[256]; /* Cannot need more than number of reference values. */
+  int npeaks;
 
   /* Figure out how far to analyse. */
   if (to_end)
@@ -486,7 +509,7 @@ void tstamp_sync_check::analyse(bool to_end)
 	analyse_end = _num_items / 2;
     }
 
-  estimate_ref_sync_value_period(analyse_end);
+  estimate_ref_sync_value_period(analyse_end, peaks, &npeaks);
 
 
 
