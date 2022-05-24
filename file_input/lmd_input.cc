@@ -1223,9 +1223,11 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	     (uint16) _header._info.i_trigger,
 	     CT_OUT(NORM_DEF_COL));
 
+#ifdef USE_INPUTFILTER
       if (this->_aida_extra) {
 	 printf("                    AIDA Implant %4s     Length  %8d\n", this->_aida_implant ? "Yes" : "No", this->_aida_length);
       }
+#endif
 
       // Subevents
 

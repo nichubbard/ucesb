@@ -1370,6 +1370,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   // (unordered may be due to other (previous) stamp being wrong).
   stitch->_badstamp = false;
 
+#ifdef USE_INPUTFILTER
   bool is_implant_aida = false;
   bool is_implant_frs = false;
   if (src_event->_aida_implant) is_implant_aida = true;
@@ -1377,6 +1378,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   if(src_event->_subevents[0]._data[1] == 0x1) {
     is_implant_frs = true;
   }
+#endif
 
 
   if (stitch->_has_stamp)
@@ -1398,6 +1400,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	  if ((int64_t) (timestamp - stitch->_last_stamp) <
 	      _conf._event_stitch_value)
 	    {
+#ifdef USE_INPUTFILTER
 	      if ((is_implant_aida && !stitch->_implant[0])
 		    || (is_implant_frs && !stitch->_implant[1]))
 	      {
@@ -1407,6 +1410,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 		stitch->_last_stamp = timestamp + _conf._event_stitch_value;
 	      }
 	      else if (!is_implant_aida && !is_implant_frs)
+#endif
 	      {
 		stitch->_combine = true;
 	      }
@@ -1441,13 +1445,17 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 #endif
 
   //if (timestamp > stitch->_last_stamp)
+#ifdef USE_INPUTFILTER 
   if (!stitch->_implant[0] && !stitch->_implant[1])
     stitch->_last_stamp = timestamp;
+#endif
   if (!stitch->_combine)
     {
       stitch->_has_stamp = true;
+#ifdef USE_INPUTFILTER 
       stitch->_implant[0] = is_implant_aida;
       stitch->_implant[1] = is_implant_frs;
+#endif
     }
   // printf("stitch->_last_stamp = timestamp\n");
 }
