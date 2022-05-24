@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 
 #include <algorithm>
 
@@ -42,6 +43,17 @@ tstamp_sync_check::tstamp_sync_check(char const *command)
 
   if (!_list)
     ERROR("Memory allocation failure!");
+
+  _corr = new tstamp_sync_corr[_num_alloc];
+
+  if (!_corr)
+    ERROR("Memory allocation failure!");
+}
+
+tstamp_sync_check::~tstamp_sync_check()
+{
+  delete[] _list;
+  delete[] _corr;
 }
 
 void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
@@ -83,7 +95,70 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
 	  CT_OUT(BOLD_MAGENTA), ts_sync_info._sync_check_value,
 	  /*                                         */ CT_OUT(NORM_DEF_COL));
 
+  if (ts_sync_info._id < 64 &&
+      _good_expect[ts_sync_info._id])
+    {
+      /* Find out which peak value this corresponds to. */
+      int peak;
+
+      /* In principle, should do binary search. */
+      for (peak = 0; peak < _num_sync_check_peaks; peak++)
+	{
+	  if (_expect[ts_sync_info._id][peak]._mean >
+	      ts_sync_info._sync_check_value)
+	    break;
+	}
+
+      /* peak now points to the peak number after the hit.
+       * i.e. [peak-1] and [peak] are boxing in the value.
+       *
+       * If at the edges, then shift the indices.
+       */
+
+      if (peak == 0)
+	peak++;
+      if (peak == _num_sync_check_peaks)
+	peak--;
+
+      double frac =
+	(ts_sync_info._sync_check_value -
+	 _expect[ts_sync_info._id][peak-1]._mean) /
+	(_expect[ts_sync_info._id][peak  ]._mean -
+	 _expect[ts_sync_info._id][peak-1]._mean);
+
+      /* If the fraction is < 0.5, then [peak-1] is closest. */
+      if (frac < 0.5 &&
+	  peak > 0)
+	{
+	  peak--;
+	  frac += 1;
+	}
+
+      double dist =
+	(ts_sync_info._sync_check_value -
+	 _expect[ts_sync_info._id][peak]._mean);
+
+      int within = dist < _expect[ts_sync_info._id][peak]._tolerance;
+
+      /*
+      printf ("  %.1f %.1f %.2f %.2f %d",
+	      _expect[ts_sync_info._id][peak-1]._mean,
+	      _expect[ts_sync_info._id][peak  ]._mean,
+	      frac, dist, within);
+      */
+
+      printf ("  %s%5.2f%s ",
+	      CT_OUT(BOLD_CYAN), peak + frac, CT_OUT(NORM_DEF_COL));
+
+      if (within == 0)
+	printf ("  %s%10s%s",
+		CT_OUT(WHITE_BG_RED), "mism", CT_OUT(NORM_DEF_COL));
+
+
+    }
+
   printf ("\n");
+  fflush(stdout);
 
   if (ts_sync_info._timestamp != 0)
     {
@@ -446,9 +521,295 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
   for (int i = 0; i < *npeaks; i++)
     printf (" %d", peaks[i]);
   printf ("\n");
-
-
 }
+
+bool tstamp_sync_corr::operator<(const tstamp_sync_corr &rhs) const
+{
+  if (_id < rhs._id)
+    return true;
+  if (_id > rhs._id)
+    return false;
+
+  if (_ref_peak_i < rhs._ref_peak_i)
+    return true;
+  if (_ref_peak_i > rhs._ref_peak_i)
+    return false;
+
+  if (_sync_check_value < rhs._sync_check_value)
+    return true;
+  return false;
+}
+
+
+void tstamp_sync_check::estimate_sync_values(size_t end,
+					     const int *peaks,
+					     const int *npeaks)
+{
+  /* For each ID (reference or not) we would like to associate
+   * it with the closest reference value (timestamp-wise), which
+   * then allows to determine which peak it belongs to.
+   *
+   * After that, except for spurious outliers, the values for each
+   * such group should be a sharp distribution, which we can determine
+   * the location and width of.
+   */
+
+  /* How to match a value with a reference value:
+   *
+   * Work in steps of the reference values.  This gives a previous
+   * and current reference timestamp and value.
+   *
+   * Within such a region, any other system can be associated with the
+   * closest reference value.  In case there are additional (spurious)
+   * timestamps, those are ignored, i.e. only the closest is taken.
+   *
+   * As an additional complication: if a system has a timestamp on both
+   * sides of the reference value, only the closest is taken.
+   */
+
+  size_t i_ref_prev;
+  size_t i_ref_cur;
+  size_t i_ref_next;
+
+  /* Find the first reference value. */
+  for (i_ref_prev = 0; i_ref_prev < end; i_ref_prev++)
+    if (_list[i_ref_prev]._id == _ref_id)
+      break;
+  for (i_ref_cur = i_ref_prev + 1; i_ref_cur < end; i_ref_cur++)
+    if (_list[i_ref_cur]._id == _ref_id)
+      break;
+
+  size_t i_check = i_ref_prev + 1;
+
+  size_t n_corr = 0;
+
+  for ( ; ; i_ref_prev = i_ref_cur, i_ref_cur = i_ref_next)
+    {
+      /* Find the next reference value. */
+      for (i_ref_next = i_ref_cur + 1; i_ref_next < end; i_ref_next++)
+	if (_list[i_ref_next]._id == _ref_id)
+	  goto found_cur_ref;
+
+      /* No further reference value found, give up. */
+      break;
+
+    found_cur_ref:
+      ;
+
+      uint64_t t_prev = _list[i_ref_prev]._timestamp;
+      uint64_t t_cur  = _list[i_ref_cur ]._timestamp;
+      uint64_t t_next = _list[i_ref_next]._timestamp;
+
+      if (t_cur < t_prev ||
+	  t_next < t_cur)
+	{
+	  /* The reference has unordered timestamps.  We cannot know
+	   * who is closer.  Ignore this interval.
+	   */
+	  i_check = i_ref_next + 1;
+	  continue;
+	}
+
+      uint16_t ref_peak_i;
+
+      uint16_t best_ref_peak_i = -1;
+      int      best_ref_dist = INT_MAX;
+
+      /* Which peak value is the current reference closest to? */
+
+      for (ref_peak_i = 0; ref_peak_i < *npeaks; ref_peak_i++)
+	{
+	  int dist = abs(((int) _list[i_ref_cur]._sync_check_value) -
+			 ((int) peaks[ref_peak_i]));
+
+	  if (dist < best_ref_dist)
+	    {
+	      best_ref_peak_i = ref_peak_i;
+	      best_ref_dist = dist;
+	    }
+	}
+
+      /*
+      printf ("%d %d  E:%d\n",
+	      best_ref_peak_i, best_ref_dist,
+	      _list[i_ref_cur]._event_no);
+      */
+
+      if (best_ref_peak_i == (uint16_t) -1)
+	continue;
+
+      ref_peak_i = best_ref_peak_i;
+
+      /* Cannot take direct average, since sum can be too large. */
+      uint64_t t_until = t_cur + ((t_next - t_cur) / 2);
+
+      for ( ; i_check < i_ref_next; i_check++)
+	{
+	  uint64_t t_check = _list[i_check]._timestamp;
+
+	  if (t_check > t_until)
+	    break;
+
+	  /* Note: we also check for the reference value itself. */
+
+	  if (i_check < i_ref_cur)
+	    {
+	      /* Should not be out of order, and closer to cur than prev. */
+	      if (t_check < t_prev ||
+		  t_check > t_cur ||
+		  t_check - t_prev < t_cur - t_check)
+		continue;
+	    }
+	  else
+	    {
+	      /* Should not be out of order, and closer to cur than next. */
+	      if (t_check < t_cur ||
+		  t_check > t_next ||
+		  t_next - t_check < t_check - t_cur)
+		continue;
+	    }
+
+	  /* So the value should be checked. */
+	  /*
+	  printf ("id: %02x  value: %5d  ref_value: %5d (%2d) E:%d\n",
+		  _list[i_check]._id,
+		  _list[i_check]._sync_check_value,
+		  _list[i_ref_cur]._sync_check_value, ref_peak_i,
+		  _list[i_check]._event_no);
+	  fflush(stdout);
+	  */
+
+	  /* We add the value to list of values. */
+
+	  _corr[n_corr]._id         = _list[i_check]._id;
+	  _corr[n_corr]._ref_peak_i = ref_peak_i;
+	  _corr[n_corr]._sync_check_value = _list[i_check]._sync_check_value;
+
+	  n_corr++;
+
+	  /* TODO TODO TODO: only add if closer to this
+	   * reference than a previous.
+	   *
+	   * Replace previous if closer to this reference.
+	   */
+	}
+    }
+
+  std::sort(_corr, _corr + n_corr);
+
+  for (int id = 0; id < 64; id++)
+    for (int peak = 0; peak < 64; peak++)
+      _expect[id][peak]._flags = 0;
+
+  for (size_t i = 0; i < n_corr; )
+    {
+      size_t j;
+
+      for (j = i+1; j < n_corr; j++)
+	{
+	  if (_corr[j]._id != _corr[i]._id ||
+	      _corr[j]._ref_peak_i != _corr[i]._ref_peak_i)
+	    break;
+	}
+
+      /* Assume data from 25% to 75% of statistics is what we want. */
+
+      int val_low  = _corr[(3*i+j)/4]._sync_check_value;
+      int val_high = _corr[(i+3*j)/4]._sync_check_value;
+
+      int cut_low  = val_low  - (val_high - val_low) - 2;
+      int cut_high = val_high + (val_high - val_low) + 2;
+
+      double sum    = 0.;
+      double sum_x  = 0.;
+      double sum_x2 = 0.;
+
+      for (size_t k = i; k < j; k++)
+	{
+	  uint16_t value = _corr[k]._sync_check_value;
+
+	  if (value >= cut_low &&
+	      value <= cut_high)
+	    {
+	      sum++;
+	      sum_x  += value;
+	      sum_x2 += value * value;
+	    }
+	}
+
+      if (sum >= 2)
+	{
+	  double mean;
+	  double var;
+
+	  mean = sum_x / sum;
+	  var  = (sum_x2 - sum_x*sum_x / sum)/(sum-1);
+
+	  printf ("%02x %3d %5d   %6.1f %6.1f\n",
+		  _corr[i]._id,
+		  _corr[i]._ref_peak_i,
+		  _corr[i]._sync_check_value,
+		  mean, sqrt(var));
+	  fflush(stdout);
+
+	  if (_corr[i]._id < 64 &&
+	      _corr[i]._ref_peak_i < 64)
+	    {
+	      tstamp_sync_expect *expect =
+		&_expect[_corr[i]._id][_corr[i]._ref_peak_i];
+
+	      expect->_flags     = 1;
+	      expect->_mean      = mean;
+	      expect->_tolerance = sqrt(5*5 * var + 1*1);
+	    }
+	}
+
+      i = j;
+    }
+
+  /* For us to like the expected values, they have to be in order.
+   *
+   * We do not care if they are close, but if not in order, we may
+   * have a static shift (in case the values are always delivered
+   * in sequence).
+   *
+   * We also require all peaks to have associated values (else cannot
+   * check order).
+   *
+   * If values are too close, that will be reported as being ambiguous.
+   */
+
+  for (int id = 0; id < 64; id++)
+    {
+      _good_expect[id] = 0;
+
+      for (int peak = 0; peak < *npeaks; peak++)
+	{
+	  tstamp_sync_expect *expect = &_expect[id][peak];
+
+	  if (!(expect->_flags & 1))
+	    goto bad_peaks;
+
+	  if (peak > 0 &&
+	      expect->_mean <= (expect-1)->_mean)
+	    goto bad_peaks;
+	}
+
+      printf ("Accept expect! %02x\n", id);
+
+      if (*npeaks >= 2)
+	_good_expect[id] = 1;
+
+    bad_peaks:
+      ;
+    }
+
+  _num_sync_check_peaks = *npeaks;
+}
+
+
+
+
 
 void tstamp_sync_check::analyse(bool to_end)
 {
@@ -511,7 +872,7 @@ void tstamp_sync_check::analyse(bool to_end)
 
   estimate_ref_sync_value_period(analyse_end, peaks, &npeaks);
 
-
+  estimate_sync_values(analyse_end, peaks, &npeaks);
 
 
 

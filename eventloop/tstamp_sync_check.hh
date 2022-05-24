@@ -33,11 +33,30 @@ struct tstamp_sync_info
   uint16_t _sync_check_value;
 };
 
+struct tstamp_sync_corr
+{
+  uint16_t _id;
+  uint16_t _ref_peak_i;
+  uint16_t _sync_check_value;
+
+public:
+  bool operator<(const tstamp_sync_corr &rhs) const;
+};
+
+/* For a certain ID and peak number. */
+struct tstamp_sync_expect
+{
+  int    _flags;
+  double _mean;
+  double _tolerance;
+};
+
 class tstamp_sync_check
 {
 
 public:
   tstamp_sync_check(char const *command);
+  ~tstamp_sync_check();
 
 protected:
   void dump(tstamp_sync_info &ts_sync_info);
@@ -46,6 +65,9 @@ protected:
 
   void estimate_ref_sync_value_period(size_t end,
 				      int *peaks, int *npeaks);
+
+  void estimate_sync_values(size_t end,
+			    const int *peaks, const int *npeaks);
 
 public:
   void account(tstamp_sync_info &ts_sync_info);
@@ -62,6 +84,13 @@ protected:
   tstamp_sync_info *_list;
   size_t            _num_items;
   size_t            _num_alloc;
+
+  tstamp_sync_corr *_corr;
+
+  int                _num_sync_check_peaks;
+
+  tstamp_sync_expect _expect[64][64];
+  int                _good_expect[64];
 };
 
 #endif/*__TSTAMP_SYNC_CHECK_HH__*/
