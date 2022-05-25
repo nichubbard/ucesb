@@ -31,6 +31,8 @@
 
 #include <algorithm>
 
+#define DEBUG_TSTAMP_SYNC_CHECK  0
+
 tstamp_sync_check::tstamp_sync_check(char const *command)
 {
   _ref_id = 0x10;
@@ -558,7 +560,9 @@ int dct_try_period(uint16_t *vals, int n,
       sum += cos_value * vals[i];
     }
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("%2d: %.1f\n", try_period, sum);
+#endif
 
   if (sum < *good_sum)
     return 0;
@@ -585,8 +589,10 @@ void dct_one_period_find_phase(uint16_t *vals, int n,
   double good_sum = 0.;
   int good_i = start_i;
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("find_phase: %d..%d..%d\n",
 	  start_x, start_x + good_period, start_x + 2 * good_period);
+#endif
 
   for (int phase = 0; phase <= good_period; phase++)
     {
@@ -616,7 +622,9 @@ void dct_one_period_find_phase(uint16_t *vals, int n,
 	  sum += cos_value;
 	}
 
+#if DEBUG_TSTAMP_SYNC_CHECK
       printf ("%2d: %.1f\n", phase, sum);
+#endif
 
       if (sum > good_sum)
 	{
@@ -669,10 +677,12 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 
   std::sort(ref_vals, ref_vals+n);
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("refs: ");
   for (int i = 0; i < n; i++)
     printf (" %d", ref_vals[i]);
   printf ("\n");
+#endif
 
   /* Calculated the distances between _all pairs_ of values.
    *
@@ -716,10 +726,12 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 	  diffs[diff]++;
       }
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("diffs: ");
   for (int i = 0; i < 4096; i++)
     printf (" %d", diffs[i]);
   printf ("\n");
+#endif
 
   /* To find the period, we try successively larger periods, and
    * count the number of values in the difference histogram in
@@ -777,12 +789,14 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 
       double quality = be_high / be_low;
 
+#if DEBUG_TSTAMP_SYNC_CHECK
       printf ("%2d: %5d %5d %5d %5d %5d %5d  %.1f\n",
 	      try_period,
 	      counts[0], counts[1],
 	      counts[2], counts[3],
 	      counts[4], counts[5],
 	      quality);
+#endif
 
       if (counts[1] < counts[0] / 10 &&
 	  counts[2] > counts[0]      &&
@@ -801,7 +815,9 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 	break;
     }
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("good_period_1: %d\n", good_period_1);
+#endif
 
   /* To further optimise the period, a cosine function with varying
    * period is convoluted with the data, up to 2.5 periods.  The
@@ -823,7 +839,9 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
     if (!dct_try_period(diffs, n, try_period, &good_sum, &good_period))
       break;
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("good_period: %d\n", good_period);
+#endif
 
   /* Find the location of the peaks in the original data.
    *
@@ -878,8 +896,10 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 
       peaks[(*npeaks)++] = peak_x;
 
+#if DEBUG_TSTAMP_SYNC_CHECK
       printf ("good_phase: %d (-> %d)\n",
 	      info._phase, peak_x);
+#endif
 
       sum_prev = info._sum;
       start_x = peak_x;
@@ -893,10 +913,12 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 
   std::sort(peaks, peaks + *npeaks);
 
+#if DEBUG_TSTAMP_SYNC_CHECK
   printf ("peaks: ");
   for (int i = 0; i < *npeaks; i++)
     printf (" %d", peaks[i]);
   printf ("\n");
+#endif
 }
 
 bool tstamp_sync_corr::operator<(const tstamp_sync_corr &rhs) const
@@ -1121,12 +1143,14 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 	  mean = sum_x / sum;
 	  var  = (sum_x2 - sum_x*sum_x / sum)/(sum-1);
 
+#if DEBUG_TSTAMP_SYNC_CHECK
 	  printf ("%02x %3d %5d   %6.1f %6.1f\n",
 		  _corr[i]._id,
 		  _corr[i]._ref_peak_i,
 		  _corr[i]._sync_check_value,
 		  mean, sqrt(var));
 	  fflush(stdout);
+#endif
 
 	  if (_corr[i]._id < 64 &&
 	      _corr[i]._ref_peak_i < 64)
@@ -1171,7 +1195,9 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 	    goto bad_peaks;
 	}
 
+#if DEBUG_TSTAMP_SYNC_CHECK
       printf ("Accept expect! %02x\n", id);
+#endif
 
       if (*npeaks >= 2)
 	_good_expect[id] = 1;
