@@ -21,6 +21,7 @@
 #include "tstamp_sync_check.hh"
 #include "colourtext.hh"
 #include "error.hh"
+#include "wr_stamp.hh"
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -48,6 +49,12 @@ tstamp_sync_check::tstamp_sync_check(char const *command)
 
   if (!_corr)
     ERROR("Memory allocation failure!");
+
+  _i_check_next = 0;
+  _i_dump_next = 0;
+
+  memset(_account,      0, sizeof (_account));
+  memset(_account_prev, 0, sizeof (_account_prev));
 }
 
 tstamp_sync_check::~tstamp_sync_check()
@@ -95,67 +102,63 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
 	  CT_OUT(BOLD_MAGENTA), ts_sync_info._sync_check_value,
 	  /*                                         */ CT_OUT(NORM_DEF_COL));
 
-  if (ts_sync_info._id < 64 &&
-      _good_expect[ts_sync_info._id])
+  if (ts_sync_info._peak >= 0)
     {
-      /* Find out which peak value this corresponds to. */
-      int peak;
-
-      /* In principle, should do binary search. */
-      for (peak = 0; peak < _num_sync_check_peaks; peak++)
-	{
-	  if (_expect[ts_sync_info._id][peak]._mean >
-	      ts_sync_info._sync_check_value)
-	    break;
-	}
-
-      /* peak now points to the peak number after the hit.
-       * i.e. [peak-1] and [peak] are boxing in the value.
-       *
-       * If at the edges, then shift the indices.
-       */
-
-      if (peak == 0)
-	peak++;
-      if (peak == _num_sync_check_peaks)
-	peak--;
-
-      double frac =
-	(ts_sync_info._sync_check_value -
-	 _expect[ts_sync_info._id][peak-1]._mean) /
-	(_expect[ts_sync_info._id][peak  ]._mean -
-	 _expect[ts_sync_info._id][peak-1]._mean);
-
-      /* If the fraction is < 0.5, then [peak-1] is closest. */
-      if (frac < 0.5 &&
-	  peak > 0)
-	{
-	  peak--;
-	  frac += 1;
-	}
-
-      double dist =
-	(ts_sync_info._sync_check_value -
-	 _expect[ts_sync_info._id][peak]._mean);
-
-      int within = dist < _expect[ts_sync_info._id][peak]._tolerance;
-
-      /*
-      printf ("  %.1f %.1f %.2f %.2f %d",
-	      _expect[ts_sync_info._id][peak-1]._mean,
-	      _expect[ts_sync_info._id][peak  ]._mean,
-	      frac, dist, within);
-      */
-
       printf ("  %s%5.2f%s ",
-	      CT_OUT(BOLD_CYAN), peak + frac, CT_OUT(NORM_DEF_COL));
-
-      if (within == 0)
-	printf ("  %s%10s%s",
-		CT_OUT(WHITE_BG_RED), "mism", CT_OUT(NORM_DEF_COL));
-
-
+	      CT_OUT(BOLD_CYAN),
+	      ts_sync_info._peak + ts_sync_info._frac,
+	      CT_OUT(NORM_DEF_COL));
     }
+  else
+    printf ("        ");
+
+  const char *flag_str = NULL;
+  short flag_color = 0;
+
+  if (ts_sync_info._flags & TSTAMP_SYNC_INFO_OUT_OF_ORDER_TS) {
+    flag_str = "out-of-order-ts";
+    flag_color = CTR_WHITE_BG_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_OUT_OF_ORDER_REFS_TS) {
+    flag_str = "out-of-order-refs-ts";
+    flag_color = CTR_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_ENCLOSING_REFS) {
+    flag_str = "no-adjacent-refs";
+    flag_color = CTR_BLUE;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_LOCAL_TRIGGER) {
+    flag_str = "local";
+    flag_color = CTR_GREEN;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_SPURIOUS) {
+    flag_str = "spurious";
+    flag_color = CTR_MAGENTA;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_EXTRA) {
+    flag_str = "extra";
+    flag_color = CTR_MAGENTA;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_VALUE) {
+    flag_str = "no-sc-value";
+    flag_color = CTR_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_PEAK_FIT) {
+    flag_str = "no-peak-fit";
+    flag_color = CTR_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_OUTSIDE_PEAK) {
+    flag_str = "outside";
+    flag_color = CTR_WHITE_BG_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_AMBIGUOUS_PEAK) {
+    flag_str = "ambiguous";
+    flag_color = CTR_YELLOW_BG_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_REF_PEAK) {
+    flag_str = "no-ref-peak";
+    flag_color = CTR_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_PEAK_MISMATCH) {
+    flag_str = "mismatch";
+    flag_color = CTR_WHITE_BG_RED;
+  } else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_PEAK_MATCH) {
+    flag_str = "match";
+    flag_color = CTR_GREEN;
+  }
+
+  if (flag_str)
+    printf ("  %s%s%s",
+	    COLOURTEXT_GET(0,flag_color), flag_str, CT_OUT(NORM_DEF_COL));
 
   printf ("\n");
   fflush(stdout);
@@ -164,6 +167,379 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
     {
       _prev_timestamp = ts_sync_info._timestamp;
     }
+}
+
+void tstamp_sync_check::find_peak(tstamp_sync_info &ts_sync_info)
+{
+  ts_sync_info._flags = 0;
+  ts_sync_info._peak = -1;
+
+  if (!(ts_sync_info._sync_check_flags &
+	((SYNC_CHECK_REF |
+	  SYNC_CHECK_RECV) >> SYNC_CHECK_FLAGS_SHIFT)))
+    {
+      ts_sync_info._flags |= TSTAMP_SYNC_INFO_NO_VALUE;
+      return;
+    }
+
+  if (ts_sync_info._id >= 64)
+    {
+      ts_sync_info._flags |= TSTAMP_SYNC_INFO_NO_PEAK_FIT;
+      return;
+    }
+
+  if (!_good_expect[ts_sync_info._id])
+    {
+      ts_sync_info._flags |= TSTAMP_SYNC_INFO_NO_PEAK_FIT;
+      return;
+    }
+
+  {
+    /* Find out which peak value this corresponds to. */
+    int peak;
+
+    /* In principle, should do binary search. */
+    for (peak = 0; peak < _num_sync_check_peaks; peak++)
+      {
+	if (_expect[ts_sync_info._id][peak]._mean >
+	    ts_sync_info._sync_check_value)
+	  break;
+      }
+
+    /* peak now points to the peak number after the hit.
+     * i.e. [peak-1] and [peak] are boxing in the value.
+     *
+     * If at the edges, then shift the indices.
+     */
+
+    if (peak == 0)
+      peak++;
+    if (peak == _num_sync_check_peaks)
+      peak--;
+
+    double frac =
+      (ts_sync_info._sync_check_value -
+       _expect[ts_sync_info._id][peak-1]._mean) /
+      (_expect[ts_sync_info._id][peak  ]._mean -
+       _expect[ts_sync_info._id][peak-1]._mean);
+
+    /* If the fraction is < 0.5, then [peak-1] is closest. */
+    if (frac < 0.5 &&
+	peak > 0)
+      {
+	peak--;
+	frac += 1;
+      }
+
+    ts_sync_info._peak = (int16_t) peak;
+    ts_sync_info._frac = (float) frac;
+
+    double dist =
+      fabs(ts_sync_info._sync_check_value -
+	   _expect[ts_sync_info._id][peak]._mean);
+
+    int within = dist < _expect[ts_sync_info._id][peak]._tolerance;
+
+    if (!within)
+      ts_sync_info._flags |= TSTAMP_SYNC_INFO_OUTSIDE_PEAK;
+    else
+      {
+	if (peak > 0)
+	  {
+	    double dist2 =
+	      fabs(ts_sync_info._sync_check_value -
+		   _expect[ts_sync_info._id][peak-1]._mean);
+
+	    int within2 = dist2 < _expect[ts_sync_info._id][peak]._tolerance;
+
+	    if (within2)
+	      ts_sync_info._flags |= TSTAMP_SYNC_INFO_AMBIGUOUS_PEAK;
+	  }
+	if (peak < _num_sync_check_peaks - 1)
+	  {
+	    double dist2 =
+	      fabs(ts_sync_info._sync_check_value -
+		   _expect[ts_sync_info._id][peak+1]._mean);
+
+	    int within2 = dist2 < _expect[ts_sync_info._id][peak]._tolerance;
+
+	    if (within2)
+	      ts_sync_info._flags |= TSTAMP_SYNC_INFO_AMBIGUOUS_PEAK;
+	  }
+      }
+
+    if (ts_sync_info._flags)
+      ts_sync_info._peak  = -1;
+  }
+}
+
+void tstamp_sc_dump_value(uint64_t value, short color)
+{
+  if (value == 0)
+    printf ("     -");
+  else
+    {
+      printf (" %s%5" PRIu64 "%s",
+	      COLOURTEXT_GET(0,color), value, CT_OUT(NORM_DEF_COL));
+    }
+}
+
+void tstamp_sync_check::show_account(int id, tstamp_sync_account *account)
+{
+  printf ("%s%02x%s ",
+	  CT_OUT(BOLD),
+	  id,
+	  CT_OUT(NORM));
+
+  tstamp_sc_dump_value(account->_out_of_order_ts,     CTR_WHITE_BG_RED);
+  tstamp_sc_dump_value(account->_out_of_order_refs_ts,CTR_RED);
+  tstamp_sc_dump_value(account->_no_adjacent_refs,    CTR_BLUE);
+  tstamp_sc_dump_value(account->_local,		      CTR_GREEN);
+  tstamp_sc_dump_value(account->_spurious,	      CTR_MAGENTA);
+  tstamp_sc_dump_value(account->_extra,		      CTR_MAGENTA);
+  tstamp_sc_dump_value(account->_no_sc_value,	      CTR_RED);
+  tstamp_sc_dump_value(account->_no_peak_fit,	      CTR_RED);
+  tstamp_sc_dump_value(account->_outside,	      CTR_WHITE_BG_RED);
+  tstamp_sc_dump_value(account->_ambiguous,	      CTR_YELLOW_BG_RED);
+  tstamp_sc_dump_value(account->_no_ref_peak,	      CTR_RED);
+  tstamp_sc_dump_value(account->_mismatch,	      CTR_WHITE_BG_RED);
+  tstamp_sc_dump_value(account->_match,		      CTR_GREEN);
+
+  printf ("\n");
+}
+
+void tstamp_sync_check::show_accounts(tstamp_sync_account *accounts)
+{
+  printf ("\n");
+  printf ("         %soooref%s       %slocal%s       %sextra%s       %snofit%s       %sambig%s        %smism%s\n",
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM));
+  printf ("%sID%s   %sooo%s       %snoaref%s        %sspur%s       %snoval%s      %soutfit%s       %snoref%s       %smatch%s\n",
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM),
+	  CT_OUT(UL),CT_OUT(NORM));
+
+  for (int id = 0; id < 64; id++)
+    {
+      tstamp_sync_account *account = &accounts[id];
+
+      uint64_t *p = (uint64_t *) account;
+      int non_zero = 0;
+
+      for (size_t i = 0;
+	   i < sizeof (tstamp_sync_account) / sizeof (uint64_t); i++, p++)
+	if (*p)
+	  non_zero = 1;
+
+      if (non_zero)
+	show_account(id, account);
+    }
+}
+
+void tstamp_sync_check::analyse_values(size_t end, size_t at_least)
+{
+  size_t i_ref_prev;
+  size_t i_ref_cur;
+  size_t i_ref_next;
+
+  /* Plan: work with triples of reference values.
+   *
+   * The previous and next reference value just give the timestamp
+   * range to consider, by giving the halfpoint values between those
+   * and the current value.
+   *
+   * Then investigate all values between those halfpoint values,
+   * assuming that they (should) belong to the middle reference value.
+   * If an id has more than one value, then the extra ones are
+   * spurious.
+   */
+
+  /* Find the first reference value. */
+  for (i_ref_prev = 0; i_ref_prev < end; i_ref_prev++)
+    if (_list[i_ref_prev]._id == _ref_id)
+      break;
+  for (i_ref_cur = i_ref_prev + 1; i_ref_cur < end; i_ref_cur++)
+    if (_list[i_ref_cur]._id == _ref_id)
+      break;
+
+  size_t i_check = _i_check_next;
+
+  for ( ; ; i_ref_prev = i_ref_cur, i_ref_cur = i_ref_next)
+    {
+      /* Find the next reference value. */
+      for (i_ref_next = i_ref_cur + 1; i_ref_next < end; i_ref_next++)
+	if (_list[i_ref_next]._id == _ref_id)
+	  goto found_cur_ref;
+
+      /* No further reference value found, give up. */
+      break;
+
+    found_cur_ref:
+      ;
+
+      uint64_t t_prev = _list[i_ref_prev]._timestamp;
+      uint64_t t_cur  = _list[i_ref_cur ]._timestamp;
+      uint64_t t_next = _list[i_ref_next]._timestamp;
+
+      if (t_cur < t_prev ||
+	  t_next < t_cur)
+	{
+	  /* The reference has unordered timestamps.  We cannot know
+	   * who is closer.  Ignore this interval.
+	   */
+	  for ( ; i_check < i_ref_next; i_check++)
+	    {
+	      find_peak(_list[i_check]);
+	      _list[i_check]._flags |= TSTAMP_SYNC_INFO_OUT_OF_ORDER_REFS_TS;
+	    }
+	  continue;
+	}
+
+      /* We need to know the peak of the reference. */
+      find_peak(_list[i_ref_cur]);
+
+      uint64_t t_from = t_prev + ((t_cur - t_prev) / 2);
+
+      for ( ; i_check < i_ref_next; i_check++)
+	{
+	  uint64_t t_check = _list[i_check]._timestamp;
+
+	  if (t_check >= t_from)
+	    break;
+
+	  find_peak(_list[i_check]);
+
+	  _list[i_check]._flags |= TSTAMP_SYNC_INFO_NO_ENCLOSING_REFS;
+	}
+
+      /* Cannot take direct average, since sum can be too large. */
+      uint64_t t_until = t_cur + ((t_next - t_cur) / 2);
+
+      for ( ; i_check < i_ref_next; i_check++)
+	{
+	  uint64_t t_check = _list[i_check]._timestamp;
+
+	  if (t_check > t_until)
+	    break;
+
+	  find_peak(_list[i_check]);
+
+	  /* Check timestamp ordering first. */
+
+	  if (i_check < i_ref_cur)
+	    {
+	      /* Should not be out of order, and closer to cur than prev. */
+	      if (t_check < t_prev ||
+		  t_check > t_cur ||
+		  t_check - t_prev < t_cur - t_check)
+		{
+		  _list[i_check]._flags |= TSTAMP_SYNC_INFO_OUT_OF_ORDER_TS;
+		  continue;
+		}
+	    }
+	  else
+	    {
+	      /* Should not be out of order, and closer to cur than next. */
+	      if (t_check < t_cur ||
+		  t_check > t_next ||
+		  t_next - t_check < t_check - t_cur)
+		{
+		  _list[i_check]._flags |= TSTAMP_SYNC_INFO_OUT_OF_ORDER_TS;
+		  continue;
+		}
+	    }
+
+	  /* After ordering, check for local trigger. */
+
+	  if (_list[i_check]._sync_check_flags &
+	      (SYNC_CHECK_LOCAL >> SYNC_CHECK_FLAGS_SHIFT))
+	    {
+	      _list[i_check]._flags |= TSTAMP_SYNC_INFO_LOCAL_TRIGGER;
+	      continue;
+	    }
+
+	  /* Is reference a local trigger. */
+
+	  if (_list[i_ref_cur]._sync_check_flags &
+	      (SYNC_CHECK_LOCAL >> SYNC_CHECK_FLAGS_SHIFT))
+	    {
+	      _list[i_check]._flags |= TSTAMP_SYNC_INFO_SPURIOUS;
+	      continue;
+	    }
+
+	  /* Now, do we match with the current reference? */
+
+	  /* Us having no identified peak is worse than reference
+	   * having no assigned peak, so check first.
+	   */
+	  if      (_list[i_check]._peak == -1)
+	    {
+	      assert(_list[i_check]._flags);
+	    }
+	  else if (_list[i_ref_cur]._peak == -1)
+	    _list[i_check]._flags |= TSTAMP_SYNC_INFO_NO_REF_PEAK;
+	  else if (_list[i_check]._peak == _list[i_ref_cur]._peak)
+	    _list[i_check]._flags |= TSTAMP_SYNC_INFO_PEAK_MATCH;
+	  else
+	    _list[i_check]._flags |= TSTAMP_SYNC_INFO_PEAK_MISMATCH;
+	}
+    }
+
+  for ( ; i_check < at_least; i_check++)
+    {
+      find_peak(_list[i_check]);
+
+      _list[i_check]._flags |= TSTAMP_SYNC_INFO_NO_ENCLOSING_REFS;
+    }
+
+  /* Account the kinds of issues found. */
+  for (size_t i = _i_check_next; i < i_check; i++)
+    {
+      tstamp_sync_info &ts_sync_info = _list[i];
+
+      if (ts_sync_info._id < 64)
+	{
+	  tstamp_sync_account *account = &_account[ts_sync_info._id];
+
+	  if (ts_sync_info._flags & TSTAMP_SYNC_INFO_OUT_OF_ORDER_TS)
+	    account->_out_of_order_ts++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_OUT_OF_ORDER_REFS_TS)
+	    account->_out_of_order_refs_ts++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_ENCLOSING_REFS)
+	    account->_no_adjacent_refs++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_LOCAL_TRIGGER)
+	    account->_local++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_SPURIOUS)
+	    account->_spurious++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_EXTRA)
+	    account->_extra++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_VALUE)
+	    account->_no_sc_value++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_PEAK_FIT)
+	    account->_no_peak_fit++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_OUTSIDE_PEAK)
+	    account->_outside++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_AMBIGUOUS_PEAK)
+	    account->_ambiguous++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_NO_REF_PEAK)
+	    account->_no_ref_peak++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_PEAK_MISMATCH)
+	    account->_mismatch++;
+	  else if (ts_sync_info._flags & TSTAMP_SYNC_INFO_PEAK_MATCH)
+	    account->_match++;
+	}
+    }
+
+  _i_check_next = i_check;
 }
 
 int dct_try_period(uint16_t *vals, int n,
@@ -813,6 +1189,7 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 
 void tstamp_sync_check::analyse(bool to_end)
 {
+  size_t mid;
   size_t analyse_end;
   size_t i;
 
@@ -821,73 +1198,85 @@ void tstamp_sync_check::analyse(bool to_end)
 
   /* Figure out how far to analyse. */
   if (to_end)
-    analyse_end = _num_items;
+    {
+      analyse_end = _num_items;
+      mid = analyse_end;
+    }
   else
     {
       ssize_t last_i;
+      ssize_t mid_i;
       ssize_t prev_i;
-      uint64_t max_diff = 0;
 
-      /* Find the two last reference values. */
-      /* Find the largest timestamp difference between any items
-       * between these two values.
+      /* Find the three last reference values (prev, mid, last).
+       *
+       * Analysis will the run to the midpoint (timestamp-wise)
+       * between mid and last.
+       *
+       * We then retain values from mid for next round.
        */
 
       for (last_i = _num_items-1; last_i >= 0; last_i--)
 	if (_list[last_i]._id == _ref_id)
 	  break;
 
-      for (prev_i = last_i-1; prev_i >= 0; prev_i--)
+      for (mid_i = last_i-1; mid_i >= 0; mid_i--)
+	if (_list[mid_i]._id == _ref_id)
+	  break;
+
+      for (prev_i = mid_i-1; prev_i >= 0; prev_i--)
 	if (_list[prev_i]._id == _ref_id)
 	  break;
+
+      if (mid_i < 0)
+	mid_i = 0;
 
       if (prev_i < 0)
 	prev_i = 0;
 
-      analyse_end = 0;
+      analyse_end = last_i + 1;
 
-      for (i = prev_i ; (ssize_t) i < last_i; i++)
-	{
-	  uint64_t diff = 0;
+      mid = mid_i;
 
-	  if (_list[i+1]._timestamp >= _list[i]._timestamp)
-	    diff = _list[i+1]._timestamp - _list[i]._timestamp;
-
-	  if (diff >= max_diff)
-	    {
-	      max_diff = diff;
-	      analyse_end = i+1;
-	    }
-	}
-
-      /*
-      printf ("%zd %zd %zd -----------------\n",
-	      prev_i, last_i, analyse_end);
-      */
-
-      /* This typically does not happen.  To ensure progress. */
+      /* That no reference values are present does typically not
+       * happen.  Nevertheless, if this is the case, use half
+       * the values.  (Any reason to not use all?)
+       */
       if (analyse_end <= 0)
-	analyse_end = _num_items / 2;
+	{
+	  analyse_end = _num_items / 2;
+	  mid = analyse_end;
+	}
     }
 
   estimate_ref_sync_value_period(analyse_end, peaks, &npeaks);
 
   estimate_sync_values(analyse_end, peaks, &npeaks);
 
+  analyse_values(analyse_end, mid);
 
 
 
   /* Dump the items. */
-  for (i = 0; i < analyse_end; i++)
+  for (i = _i_dump_next; i < _i_check_next; i++)
     {
       dump(_list[i]);
     }
 
+  _i_dump_next = _i_check_next;
+
+  /* Copy from the mid and forward. */
+  size_t j = mid;
+
   /* Copy the unused items. */
-  for (i = 0; analyse_end < _num_items; i++, analyse_end++)
-    _list[i] = _list[analyse_end];
+  for (i = 0; j < _num_items; i++, j++)
+    _list[i] = _list[j];
 
   _num_items = i;
+
+  /* These many events were removed. */
+  _i_check_next -= mid;
+  _i_dump_next  -= mid;
 }
 
 
@@ -907,4 +1296,6 @@ void tstamp_sync_check::account(tstamp_sync_info &ts_sync_info)
 void tstamp_sync_check::show()
 {
   analyse(true);
+
+  show_accounts(_account);
 }
