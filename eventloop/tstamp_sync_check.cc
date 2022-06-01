@@ -1077,6 +1077,11 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 	  fflush(stdout);
 	  */
 
+	  /* Do not add values which are marked as local trigger. */
+	  if (_list[i_check]._sync_check_flags &
+	      (SYNC_CHECK_LOCAL >> SYNC_CHECK_FLAGS_SHIFT))
+	    continue;
+
 	  /* We add the value to list of values. */
 
 	  _corr[n_corr]._id         = _list[i_check]._id;
