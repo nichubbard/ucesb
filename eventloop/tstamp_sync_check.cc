@@ -1138,7 +1138,23 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 	      sum_x  += value;
 	      sum_x2 += value * value;
 	    }
+
+#if DEBUG_TSTAMP_SYNC_CHECK
+	  printf ("%d ", value);
+#endif
 	}
+#if DEBUG_TSTAMP_SYNC_CHECK
+      printf ("\n");
+#endif
+
+#if DEBUG_TSTAMP_SYNC_CHECK
+      printf ("%02x %3d %5d   %5d %5d",
+	      _corr[i]._id,
+	      _corr[i]._ref_peak_i,
+	      _corr[i]._sync_check_value,
+	      cut_low, cut_high);
+      fflush(stdout);
+#endif
 
       if (sum >= 2)
 	{
@@ -1149,10 +1165,7 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 	  var  = (sum_x2 - sum_x*sum_x / sum)/(sum-1);
 
 #if DEBUG_TSTAMP_SYNC_CHECK
-	  printf ("%02x %3d %5d   %6.1f %6.1f\n",
-		  _corr[i]._id,
-		  _corr[i]._ref_peak_i,
-		  _corr[i]._sync_check_value,
+	  printf ("  %6.1f %6.1f\n",
 		  mean, sqrt(var));
 	  fflush(stdout);
 #endif
@@ -1167,6 +1180,13 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 	      expect->_mean      = mean;
 	      expect->_tolerance = sqrt(5*5 * var + 1*1);
 	    }
+	}
+      else
+	{
+#if DEBUG_TSTAMP_SYNC_CHECK
+	  printf ("  -\n");
+	  fflush(stdout);
+#endif
 	}
 
       i = j;
