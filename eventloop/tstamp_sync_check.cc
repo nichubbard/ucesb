@@ -1117,11 +1117,32 @@ void tstamp_sync_check::estimate_sync_values(size_t end,
 
       /* Assume data from 25% to 75% of statistics is what we want. */
 
-      int val_low  = _corr[(3*i+j)/4]._sync_check_value;
-      int val_high = _corr[(i+3*j)/4]._sync_check_value;
+      /* Find the range of 50 % of values which give the smallest
+       * difference.
+       */
 
-      int cut_low  = val_low  - (val_high - val_low) - 2;
-      int cut_high = val_high + (val_high - val_low) + 2;
+      int min_diff = INT_MAX;
+      int cut_low = 0, cut_high = 0;
+
+      for (size_t k = 0; k <= 16; k++)
+	{
+	  size_t low_i  = i + ((j - i) *  k      ) / 32;
+	  size_t high_i = i + ((j - i) * (k + 16)) / 32;
+
+	  if (high_i > low_i)
+	    {
+	      int val_low  = _corr[low_i     ]._sync_check_value;
+	      int val_high = _corr[high_i - 1]._sync_check_value;
+
+	      if (val_high - val_low < min_diff)
+		{
+		  min_diff = val_high - val_low;
+
+		  cut_low  = val_low  - (val_high - val_low) - 2;
+		  cut_high = val_high + (val_high - val_low) + 2;
+		}
+	    }
+	}
 
       double sum    = 0.;
       double sum_x  = 0.;
