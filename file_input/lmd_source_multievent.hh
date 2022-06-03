@@ -5,6 +5,7 @@
 #include <deque>
 #include <list>
 #include <map>
+#include <queue>
 
 #include <stdint.h>
 
@@ -154,11 +155,73 @@ private:
 };
 */
 
-struct aidaevent_entry
+// Pool managers
+
+template <typename T>
+T* pool_new(std::deque<T*>& queue)
+{
+  if (queue.empty())
+  {
+    T* set = new T;
+    set->pool = &queue;
+    return set;
+  }
+  else
+  {
+    T* cur = queue.front();
+    queue.pop_front();
+    return cur;
+  }
+}
+
+template<typename T>
+void pool_delete(std::deque<T*>& queue, T* entry)
+{
+  entry->reset();
+  queue.push_back(entry);
+}
+
+
+// Generic event entry to go into the priorirty queue
+// Emitted in order of lowest timestamp first
+struct event_entry
+{
+public:
+  int64_t timestamp;
+  int64_t event_no;
+  void* pool;
+  virtual ~event_entry() {}
+  virtual void reset() = 0;
+  virtual lmd_event* emit() = 0;
+
+  event_entry() : timestamp(0) {}
+
+  friend bool operator>(event_entry const& lhs, event_entry const& rhs)
+  {
+    // If equal in timestamp sort by event_no, this only happens for trigger_events
+    if (lhs.timestamp == rhs.timestamp) return lhs.event_no > rhs.event_no;
+    return lhs.timestamp > rhs.timestamp;
+  }
+
+  virtual void return_to_pool() = 0;
+};
+
+// Special comparator to compare the two event_entry pointers by their values (not addresses)
+struct compare_entry
+{
+  bool operator()(event_entry const* lhs, event_entry const* rhs)
+  {
+    return *lhs > *rhs;
+  }
+};
+
+struct aidaevent_entry;
+typedef std::deque< aidaevent_entry* > aidaevent_queue;
+
+struct aidaevent_entry : public event_entry
 {
   //keep_buffer_wrapper *data_alloc;
   lmd_subevent_10_1_host _header;
-  int64_t timestamp;
   std::vector<uint32_t> data;
   bool fragment;
   int64_t fragment_wr, implant_wr_s, implant_wr_e;
@@ -170,10 +233,10 @@ struct aidaevent_entry
   bool nside_imp[2];
 #endif
 
-	aidaevent_entry() : timestamp(0), data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); reset(); }
+	aidaevent_entry() : data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); reset(); }
 	~aidaevent_entry(){}
 
-  void reset() {
+  virtual void reset() {
     timestamp = 0;
     data.clear();
     fragment = true;
@@ -192,45 +255,90 @@ struct aidaevent_entry
     return (flags & 0x1) == 0x1;
   }
 
+  virtual lmd_event* emit();
+
+  virtual void return_to_pool() {
+    aidaevent_queue* q = reinterpret_cast<aidaevent_queue*>(this->pool);
+    pool_delete(*q, this);
+  }
+
   //void* operator new(size_t bytes, keep_buffer_wrapper &alloc);
   //void operator delete(void *ptr);
 };
 
-typedef std::deque< aidaevent_entry* > aidaevent_queue;
+struct triggerevent_entry;
+typedef std::deque< triggerevent_entry* > triggerevent_queue;
 
-struct triggerevent_entry
+struct triggerevent_entry : public event_entry
 {
   lmd_event event;
-  int64_t timestamp;
 
-  void reset() {
+  virtual void reset() {
     timestamp = 0;
     event.release();
   }
+
+  virtual lmd_event* emit();
+
+  virtual void return_to_pool() {
+    triggerevent_queue* q = reinterpret_cast<triggerevent_queue*>(this->pool);
+    pool_delete(*q, this);
+  }
 };
 
-typedef std::deque< triggerevent_entry* > triggerevent_queue;
+struct dtasevent_entry;
+typedef std::deque< dtasevent_entry* > dtasevent_queue;
+
+struct dtasevent_entry : public event_entry
+{
+  lmd_subevent_10_1_host _header;
+  std::vector<uint32_t> data;
+  bool fragment;
+  int64_t fragment_wr;
+  bool pulser;
+
+  dtasevent_entry() : data() { data.reserve(10000); reset(); }
+
+  virtual void reset() {
+    timestamp = 0;
+    pulser = false;
+    data.clear();
+  }
+
+  virtual lmd_event* emit();
+
+  virtual void return_to_pool() {
+    dtasevent_queue* q = reinterpret_cast<dtasevent_queue*>(this->pool);
+    pool_delete(*q, this);
+  }
+};
 
 struct lmd_source_multievent : public lmd_source
 {
 protected:
-  enum file_status_t { aida_event, other_event, eof, unknown_event };
+  enum file_status_t { aida_event, other_event, eof, unknown_event, dtas_event };
 
   int64_t load_event_wr;
   int64_t emit_wr;
+  int64_t last_mbs_wr;
   int emit_skip;
   int aida_skip;
+  int dtas_skip;
 
   lmd_event_hint event_hint;
-  lmd_event_10_1_host input_event_header;
-  sint32 l_count;
 
   aidaevent_queue aida_events_pool;
   triggerevent_queue trigger_events_pool;
+  dtasevent_queue dtas_events_pool;
 
-  aidaevent_queue aida_events_merge;
-  aidaevent_queue aida_events_dump;
-  triggerevent_queue trigger_event;
+  aidaevent_entry* cur_aida;
+  dtasevent_entry* cur_dtas;
+
+  //aidaevent_queue aida_events_merge;
+  //aidaevent_queue aida_events_dump;
+  //triggerevent_queue trigger_event;
+  //dtasevent_queue dtas_events;
+  std::priority_queue<event_entry*, std::vector<event_entry*>, compare_entry> events;
 #if BPLAST_DELAY_FIX
   triggerevent_entry plastic_buffer;
 #endif
@@ -239,6 +347,10 @@ protected:
 #endif
 
   file_status_t load_events();
+
+  void load_aida(lmd_subevent *se, char* pb_start, char* pb_end, int64_t mbs_wr);
+  void load_dtas(lmd_subevent *se, char* pb_start, char* pb_end, int64_t mbs_wr);
+  void load_other();
 
   lmd_event *emit_aida(aidaevent_entry* event);
   lmd_event *emit_other();
@@ -256,8 +368,8 @@ struct wrts_header
   uint32_t midupper16;
   uint32_t upper16;
 public:
-  wrts_header(uint64_t ts):
-    system_id(_conf._eventbuilder_wrid),
+  wrts_header(uint32_t id, uint64_t ts):
+    system_id(id),
     lower16(   0x03e10000 | (0xffff & (uint32_t)(ts    ))),
     midlower16(0x04e10000 | (0xffff & (uint32_t)(ts>>16))),
     midupper16(0x05e10000 | (0xffff & (uint32_t)(ts>>32))),

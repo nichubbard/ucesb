@@ -16,7 +16,7 @@ USE_LMD_INPUT=1
 OBJS += despec_user.o
 
 CXXFLAGS += -DCONTROL_INCLUDE -Wno-conversion -Wno-float-conversion
-CXXFLAGS += -DDESPEC_EXPERIMENT_H="\"despec_experiment_s450.h\""
+CXXFLAGS += -DDESPEC_EXPERIMENT_H="\"despec_experiment_s505.h\""
 
 ifeq ($(BPLAST_FIX),y)
 CXXFLAGS += -DBPLAST_DELAY_FIX=1
