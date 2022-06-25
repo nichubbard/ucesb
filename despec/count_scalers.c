@@ -55,20 +55,20 @@ static const std::string fatima_scalers_names[16] =
 {
   "bPlast Free",
   "bPlast Accepted",
-  "FATIMA TAMEX Free",
-  "FATIMA TAMEX Accepted",
-  "FATIMA VME Free",
-  "FATIMA VME Accepted",
-  "Ge Free",
-  "Ge Accepted",
+  "",
+  "LOAX Free",
+  "LOAX Accepted",
+  "",
   "bPlast Up",
   "bPlast Down",
-  "bPlast AND",
+  "bPlast Up AND Down",
   "SCI41 L",
   "SCI41 R",
-  "SCI42 L",
-  "SCI42 R",
-  "Pulser",
+  "SCI21 L",
+  "SCI21 R",
+  "10Hz",
+  "DTAS Anodes",
+  "",
 };
 
 static const std::string frs_frs_names[32] =
@@ -346,7 +346,7 @@ int main(int argc,char *argv[])
 	    {
 	      fatima_scalers_init = true;
 	      for(int i = 0; i < 16; i++) fatima_scalers_last[i] = event.fatima_scaler_scalarsv[i] ;
-	      printf("\x1B[KFatima Scalers initialised\n");
+	      printf("\x1B[KDESPEC Scalers initialised\n");
 	    }
 
 	    for (int i = 0; i < 16; i++)
@@ -372,7 +372,7 @@ int main(int argc,char *argv[])
 
 	    for (int i = 0; i < 32; i++)
 	    {
-	      int64_t delta = event.frs_frs_scaler_scalersv[i] - frs_scalers_last[i];
+	      int64_t delta = (int64_t)event.frs_frs_scaler_scalersv[i] - (int64_t)frs_scalers_last[i];
 	      if (delta < 0) {
 		delta += std::numeric_limits<uint32_t>::max();
 	      }
@@ -382,9 +382,11 @@ int main(int argc,char *argv[])
 
 	    for (int i = 0; i < 32; i++)
 	    {
-	      int64_t delta = event.frs_main_scaler_scalersv[i] - frs_scalers_last[32 + i];
-	      if (delta < 0) {
-		delta += std::numeric_limits<uint32_t>::max();
+	      int64_t delta = (int64_t)event.frs_main_scaler_scalersv[i] - (int64_t)frs_scalers_last[32 + i];
+	      if (event.frs_main_scaler_scalersv[i] < frs_scalers_last[32 + i]) {
+		/*printf("Overflow: delta = %lld\n", delta);*/
+		/*printf("-> Now = %u, Last = %u\n", event.frs_main_scaler_scalersv[i], frs_scalers_last[32 + i]);*/
+		/*delta += std::numeric_limits<uint32_t>::max();*/
 	      }
 	      frs_scalers[32 + i] += delta;
 	      frs_scalers_last[32 + i] = event.frs_main_scaler_scalersv[i];
