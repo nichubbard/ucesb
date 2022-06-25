@@ -132,26 +132,28 @@ void watcher_window::init()
 
   //wmove(wtop,0,0);
   //waddstr(wtop,"*** Watcher ***");
-  wrefresh(wtop);
+  wnoutrefresh(wtop);
 
   wcolor_set(wscroll,COL_NORMAL,NULL);
   wbkgd(wscroll,COLOR_PAIR(COL_DATA_BKGND));
   mvwaddstr(wscroll, 2, 10, "Waiting for events...");
-  wrefresh(wscroll);
+  wnoutrefresh(wscroll);
 
   wcolor_set(werrortop, COL_TEXT_ERROR, NULL);
   wbkgd(werrortop,COLOR_PAIR(COL_TEXT_NORMAL));
   wmove(werrortop, 0, 0);
   whline(werrortop, ACS_HLINE, 80);
   mvwaddstr(werrortop, 0, 1, "ucesb Log");
-  wrefresh(werrortop);  
+  wnoutrefresh(werrortop);  
   
   wcolor_set(werror,COL_TEXT_NORMAL,NULL);
   wbkgd(werror,COLOR_PAIR(COL_TEXT_NORMAL));
   
   
   wmove(werror, 0, 0);
-  wrefresh(werror);  
+  wnoutrefresh(werror);  
+
+  doupdate();
 
   _init = true;
   _time = 0;
@@ -263,7 +265,7 @@ void watcher_window::event(watcher_event_info &info)
 	  waddstr(wtop,buf);
 	}
 
-      wrefresh(wtop);
+      wnoutrefresh(wtop);
 
       watcher_display_info display_info;
 
@@ -294,8 +296,9 @@ void watcher_window::event(watcher_event_info &info)
       USER_WATCHER_DISPLAY(display_info);
 #endif
 
-      wrefresh(wscroll);
-      wrefresh(werror);  
+      wnoutrefresh(wscroll);
+      wnoutrefresh(werror);  
+      doupdate();
 
       _counter = 0;
       memset(_type_count,0,sizeof(_type_count));

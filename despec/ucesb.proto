@@ -37,6 +37,8 @@ message DaqInformation {
 	}
 
 	CorrelationStatus correlation = 6;
+
+	bool active = 7;
 }
 
 message DaqStatus {
@@ -47,6 +49,7 @@ message ScalerEntry {
 	int32 index = 1;
 	int32 rate = 2;
 	int32 spill = 3;
+	int32 last_spill = 4;
 }
 
 message ScalerGroup {

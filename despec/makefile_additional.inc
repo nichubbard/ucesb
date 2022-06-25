@@ -17,6 +17,7 @@ OBJS += despec_user.o
 
 CXXFLAGS += -DCONTROL_INCLUDE -Wno-conversion -Wno-float-conversion
 CXXFLAGS += -DDESPEC_EXPERIMENT_H="\"despec_experiment_s505.h\""
+#CXXFLAGS = -DZMQ_PORT="\"5000\""
 
 ifeq ($(BPLAST_FIX),y)
 CXXFLAGS += -DBPLAST_DELAY_FIX=1

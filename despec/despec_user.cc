@@ -1,8 +1,9 @@
-
 #include "structures.hh"
 
 #include "user.hh"
 
+#include <algorithm>
+#include <ctime>
 #include <curses.h> // needed for the COLOR_ below
 
 #include "../watcher/watcher_channel.hh"
@@ -13,12 +14,18 @@
 
 #include "../file_input/lmd_source_multievent.hh"
 #include <atomic>
+#include <sys/select.h>
+#include <time.h>
 
 #ifdef ZEROMQ
 #include "ucesb.pb.h"
 #include <zmqpp/zmqpp.hpp>
 #undef OK
 #include <google/protobuf/util/json_util.h>
+
+#ifndef ZMQ_PORT
+#define ZMQ_PORT "4242"
+#endif
 
 static despec::UcesbReport report;
 static zmqpp::context zmq_context;
@@ -30,6 +37,7 @@ static int _events = 0;
 std::map<int, long> events;
 std::map<int, long> pulses;
 std::map<int, long> events_total;
+std::map<int, uint64_t> last_event;
 int64_t _despec_last = 0;
 int64_t _despec_now = 0;
 std::map<int, int64_t> pulsers;
@@ -38,9 +46,9 @@ std::map<std::pair<int, int>, int> sync_bad;
 std::map<int, int> daq_sync;
 // spil data
 static bool _on_spill = false;
-static time_t _last_spill = 0;
-static time_t _spill_length = 0;
-static time_t _extraction_time = 0;
+static uint64_t _last_spill = 0;
+static uint64_t _spill_length = 0;
+static uint64_t _extraction_time = 0;
 static uint32_t _spill_counter = 0;
 
 #define AIDA_IMPLANT_MAGIC 0x701
@@ -50,12 +58,27 @@ static uint32_t _spill_counter = 0;
 std::vector<uint32_t> scalers_now(SCALER_COUNT);
 std::vector<uint32_t> scalers_old(SCALER_COUNT);
 std::vector<uint32_t> scalers_old_spill(SCALER_COUNT);
+std::vector<uint32_t> scalers_last_spill(SCALER_COUNT);
+std::vector<uint32_t> aida_last_spill(AIDA_DSSDS);
 
 watcher_type_info despec_watch_types[NUM_WATCH_TYPES] =
 {
   { COLOR_GREEN,   "Physics" },
   { COLOR_YELLOW,  "Pulser" },
 };
+
+static constexpr uint64_t fast_scaler_refresh = 1E8; // nanoseconds 
+static uint64_t last_fast_refresh = 0;
+void zmq_calculate_scalers();
+// Calculate the realtime in nanoseconds since 1970 (like WR but in UTC and much less precise)
+static uint64_t realtime_ns()
+{
+  timespec v;
+  clock_gettime(CLOCK_REALTIME, &v);
+  uint64_t ts = static_cast<uint64_t>(v.tv_sec) * 1E9;
+  ts += v.tv_nsec;
+  return ts;
+}
 
 void despec_watcher_event_info(watcher_event_info *info,
     unpack_event *event)
@@ -109,32 +132,41 @@ void despec_watcher_event_info(watcher_event_info *info,
     scalers_now[SCALER_FATIMA_COUNT + i] = event->frs_frs.scaler.scalers[i];
   }
 
+  for (uint i = 0; i < event->frs_main.scaler.scalers._num_items; i++)
+  {
+    scalers_now[SCALER_FATIMA_COUNT + SCALER_FRS_FRS_COUNT + i] =
+      event->frs_main.scaler.scalers[i];
+  }  
+
   // START EXTR Scaler triggered, so we reset the spill array and say on spill
   if (scalers_now[SCALER_START_EXTR] - scalers_old_spill[SCALER_START_EXTR] > 0) {
     _on_spill = true;
-    time_t new_spill = (uint)(_despec_now / (uint64_t)1e9);
-    _spill_length = new_spill - _last_spill;
-    _last_spill = new_spill;
+    //time_t new_spill = (uint)(_despec_now / (uint64_t)1e9);
+    _spill_length = _despec_now - _last_spill;
+    _last_spill = _despec_now;
+    for (size_t i = 0; i < scalers_now.size(); i++)
+    {
+      scalers_last_spill[i] = scalers_now[i] - scalers_old_spill[i];
+    }
     scalers_old_spill = scalers_now;
+    auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
+    std::copy(im_sp.begin(), im_sp.end(), aida_last_spill.begin());
     _AIDA_WATCHER_STATS->clear(1);
     _spill_counter++;
   }
 
   // STOP EXTR Scaler triggered, spill off flag
-  if (scalers_now[SCALER_STOP_EXTR] - scalers_old_spill[SCALER_STOP_EXTR] > 0) {
+  if (_on_spill && scalers_now[SCALER_STOP_EXTR] - scalers_old_spill[SCALER_STOP_EXTR] > 0) {
     _on_spill = false;
-    _extraction_time = (uint)(_despec_now / (uint64_t)1e9) - _last_spill;
-  }
-
-  for (uint i = 0; i < event->frs_main.scaler.scalers._num_items; i++)
-  {
-    scalers_now[SCALER_FATIMA_COUNT + SCALER_FRS_FRS_COUNT + i] =
-      event->frs_main.scaler.scalers[i];
+    _extraction_time = _despec_now - _last_spill;
   }
 
   for (uint i = 0; i < event->wr.size(); i++)
   {
     if (event->wr[i].first == 0x200) continue;
+
+    last_event[event->wr[i].first] = _despec_now;
+
     if (pulse)
     {
       int id = event->wr[i].first;
@@ -202,13 +234,98 @@ void despec_watcher_event_info(watcher_event_info *info,
   //_inputs
   report.mutable_summary()->set_server(_inputs[0]._name);
   report.mutable_summary()->set_onspill(_on_spill);
-  report.mutable_summary()->set_lastspill(_last_spill);
-  report.mutable_summary()->set_spilltime(_spill_length);
-  report.mutable_summary()->set_extrtime(_extraction_time);
+  report.mutable_summary()->set_lastspill(_last_spill / 1e9);
+  report.mutable_summary()->set_spilltime(_spill_length / 1e6);
+  report.mutable_summary()->set_extrtime(_extraction_time / 1e6);
   report.mutable_summary()->set_spill_ctr(_spill_counter);
 #endif
 
   _events++;
+
+#ifdef ZEROMQ
+  uint64_t rt_now = realtime_ns();
+  if (rt_now - last_fast_refresh > fast_scaler_refresh)
+  {
+    // Transmit scaler data again
+    zmq_calculate_scalers();
+    zmqpp::message message;
+    std::string proto;
+    report.SerializeToString(&proto);
+    message << "stat" << proto;
+    zmq_pubber.send(message);
+    last_fast_refresh = rt_now;
+  }
+#endif  
+}
+
+void zmq_calculate_scalers()
+{
+  double dt = (_despec_now - _despec_last) / (double)1e9;
+
+  report.clear_scalers();
+
+  auto fatvme_report = report.add_scalers();
+  fatvme_report->set_key("fatima");
+  fatvme_report->clear_scalers();
+  for (size_t i = 0; i < SCALER_FATIMA_COUNT; i++)
+  {
+    auto entry = fatvme_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(scalers_now[i] - scalers_old[i]) / dt);
+    entry->set_spill(scalers_now[i] - scalers_old_spill[i]);
+    entry->set_last_spill(scalers_last_spill[i]);
+  }
+
+  auto frs_report = report.add_scalers();
+  frs_report->set_key("frs");
+  frs_report->clear_scalers();
+  for (size_t i = 0; i < SCALER_FRS_FRS_COUNT + SCALER_FRS_MAIN_COUNT; i++)
+  {
+    auto entry = frs_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(scalers_now[i + SCALER_FATIMA_COUNT] -
+          scalers_old[i + SCALER_FATIMA_COUNT]) / dt);
+    entry->set_spill(scalers_now[i + SCALER_FATIMA_COUNT] -
+        scalers_old_spill[i + SCALER_FATIMA_COUNT]);
+    entry->set_last_spill(scalers_last_spill[i + SCALER_FATIMA_COUNT]);
+  }
+
+  if (_conf._enable_eventbuilder)
+  {
+    auto aida_report = report.add_scalers();
+    aida_report->set_key("aida");
+    aida_report->clear_scalers();
+
+    auto aida_scaler_report = report.add_scalers();
+    aida_scaler_report->set_key("aida_scalers");
+    aida_scaler_report->clear_scalers();
+
+    auto const& im_hz = _AIDA_WATCHER_STATS->implants(0);
+    auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
+    auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
+    auto const& de_sp = _AIDA_WATCHER_STATS->decays(1);
+    auto const& sc_hz = _AIDA_WATCHER_STATS->scaler(0);
+    auto const& sc_sp = _AIDA_WATCHER_STATS->scaler(1);
+    for (size_t j = 0; j < AIDA_DSSDS; j++)
+    {
+      auto entry = aida_report->add_scalers();
+      entry->set_index(2 * j);
+      entry->set_rate((double)im_hz[j] / dt);
+      entry->set_spill(im_sp[j]);
+      entry->set_last_spill(aida_last_spill[j]);
+      entry = aida_report->add_scalers();
+      entry->set_index(2 * j + 1);
+      entry->set_rate((double)de_hz[j] / dt);
+      entry->set_spill(de_sp[j]);
+    }
+    for (size_t j = 0; j < AIDA_FEES; j++)
+    {
+      auto entry = aida_scaler_report->add_scalers();
+      entry->set_index(j);
+      entry->set_rate((double)sc_hz[j] / dt);
+      entry->set_spill(sc_sp[j]);
+    }
+  }
 }
 
 void despec_watcher_init()
@@ -230,13 +347,14 @@ void despec_watcher_init()
 
   _spill_counter = 0;
 
-  INFO("DESPEC Initialised");
+  INFO("DESPEC Watcher Initialised");
+  INFO("Using mappings, etc for experiment '%s'", EXPERIMENT_NAME);
 
 #ifdef ZEROMQ
   GOOGLE_PROTOBUF_VERIFY_VERSION;
   INFO("Google Protobuf Version Verified OK");
-  zmq_pubber.bind("tcp://*:4242");
-  INFO("ZeroMQ PUB socket running on tcp://*:4242");
+  zmq_pubber.bind("tcp://*:" ZMQ_PORT);
+  INFO("ZeroMQ PUB socket running on '%s'", "tcp://*:" ZMQ_PORT);
 
   std::atexit([]() {
       zmqpp::message message;
@@ -310,7 +428,11 @@ void despec_watcher_display(watcher_display_info& info)
 #endif
   for(auto& i: events_total)
   {
-
+    bool active = true;
+    if (last_event[i.first] + 120e9 < _despec_now)
+    {
+      active = false;
+    }
     format_long_int(buf, events_total[i.first]);
     if (i.first == AIDA_IMPLANT_MAGIC)
     {
@@ -326,8 +448,16 @@ void despec_watcher_display(watcher_display_info& info)
       report_daq->set_subsystem(names[i.first]);
       report_daq->set_rate(events[i.first] / dt);
       report_daq->set_pulser(pulses[i.first] / dt);
+      report_daq->set_active(active);
 #endif
-      mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+      if (!active)
+      {
+        mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %18s          ", names[i.first].c_str(), i.first, buf, "NO DATA");
+      }
+      else
+      {
+        mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+      }
       if (daq_sync[i.first] == 1)
       {
         wcolor_set(info._w, 3, NULL);
@@ -359,53 +489,31 @@ void despec_watcher_display(watcher_display_info& info)
   wrefresh(info._w);
 
 #ifdef ZEROMQ
-  report.clear_scalers();
+  zmq_calculate_scalers();
 #endif
 
-  info._line++;
-  wmove(info._w, info._line, 0);
-  whline(info._w, ACS_HLINE, 80);
-  mvwaddstr(info._w, info._line, 1, "DESPEC Scalers");
-
-#ifdef ZEROMQ
-  auto fatvme_report = report.add_scalers();
-  fatvme_report->set_key("fatima");
-  fatvme_report->clear_scalers();
-  for (size_t i = 0; i < SCALER_FATIMA_COUNT; i++)
+  if (events_total.find(0x1500) != events_total.end())
   {
-    auto entry = fatvme_report->add_scalers();
-    entry->set_index(i);
-    entry->set_rate((double)(scalers_now[i] - scalers_old[i]) / dt);
-    entry->set_spill(scalers_now[i] - scalers_old_spill[i]);
-  }
+    info._line++;
+    wmove(info._w, info._line, 0);
+    whline(info._w, ACS_HLINE, 80);
+    mvwaddstr(info._w, info._line, 1, "DESPEC Scalers");
 
-  auto frs_report = report.add_scalers();
-  frs_report->set_key("frs");
-  frs_report->clear_scalers();
-  for (size_t i = 0; i < SCALER_FRS_FRS_COUNT + SCALER_FRS_MAIN_COUNT; i++)
-  {
-    auto entry = frs_report->add_scalers();
-    entry->set_index(i);
-    entry->set_rate((double)(scalers_now[i + SCALER_FATIMA_COUNT] -
-          scalers_old[i + SCALER_FATIMA_COUNT]) / dt);
-    entry->set_spill(scalers_now[i + SCALER_FATIMA_COUNT] -
-        scalers_old_spill[i + SCALER_FATIMA_COUNT]);
-  }
-#endif
 
-  for (size_t j = 0; j < scaler_order.size(); j++)
-  {
-    int i = scaler_order[j];
-    int col =0 ;
-    if (j % 2 == 1) col = 40;
-    else info._line++;
-    if (i == -1) continue;
-    mvwprintw(info._w, info._line, col, "%21s = %8.0f Hz",
-        scalers[i].c_str(),
-        (double)(scalers_now[i] - scalers_old[i]) / dt
-        );
+    for (size_t j = 0; j < scaler_order.size(); j++)
+    {
+      int i = scaler_order[j];
+      int col =0 ;
+      if (j % 2 == 1) col = 40;
+      else info._line++;
+      if (i == -1) continue;
+      mvwprintw(info._w, info._line, col, "%21s = %8.0f Hz",
+          scalers[i].c_str(),
+          (double)(scalers_now[i] - scalers_old[i]) / dt
+          );
+    }
+    wrefresh(info._w);
   }
-  wrefresh(info._w);
 
   if(_conf._enable_eventbuilder)
   {
@@ -419,38 +527,8 @@ void despec_watcher_display(watcher_display_info& info)
     mvwprintw(info._w, info._line, 40, "Decays", "");
     auto const& im_hz = _AIDA_WATCHER_STATS->implants(0);
     auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
-    auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
-    auto const& de_sp = _AIDA_WATCHER_STATS->decays(1);
-    auto const& sc_hz = _AIDA_WATCHER_STATS->scaler(0);
-    auto const& sc_sp = _AIDA_WATCHER_STATS->scaler(1);
-#ifdef ZEROMQ
-    auto aida_report = report.add_scalers();
-    aida_report->set_key("aida");
-    aida_report->clear_scalers();
-
-    auto aida_scaler_report = report.add_scalers();
-    aida_scaler_report->set_key("aida_scalers");
-    aida_scaler_report->clear_scalers();
-    for (size_t j = 0; j < AIDA_FEES; j++)
-    {
-      auto entry = aida_scaler_report->add_scalers();
-      entry->set_index(j);
-      entry->set_rate((double)sc_hz[j] / dt);
-      entry->set_spill(sc_sp[j]);
-    }
-#endif
     for (size_t j = 0; j < AIDA_DSSDS; j++)
     {
-#ifdef ZEROMQ
-      auto entry = aida_report->add_scalers();
-      entry->set_index(2 * j);
-      entry->set_rate((double)im_hz[j] / dt);
-      entry->set_spill(im_sp[j]);
-      entry = aida_report->add_scalers();
-      entry->set_index(2 * j + 1);
-      entry->set_rate((double)de_hz[j] / dt);
-      entry->set_spill(de_sp[j]);
-#endif
       info._line++;
       mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
           "DSSD",
@@ -465,8 +543,6 @@ void despec_watcher_display(watcher_display_info& info)
   else
   {
     info._line++;
-    info._line++;
-    mvwaddstr(info._w, info._line, 1, "AIDA Event Bulder is not enabled");
   }
 
   extern watcher_window _watcher;

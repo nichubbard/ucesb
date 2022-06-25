@@ -2161,6 +2161,10 @@ get_next_event:
       return 1;
     }
 
+#ifdef USE_CURSES
+    endwin();
+#endif
+
     INFO("Events: "
 	 ERR_GREEN "%" PRIu64 ERR_ENDCOL "   "
 	 ERR_BLUE "%" PRIu64 ERR_ENDCOL "             ("
