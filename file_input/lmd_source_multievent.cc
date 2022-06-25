@@ -13,8 +13,8 @@
 #define AIDA_CORRELATION_PULSER 1
 
 // Allow timewarp messages to be an error or warning
-#define TIMEWARP ERROR
-//#define TIMEWARP WARNING
+//#define TIMEWARP ERROR
+#define TIMEWARP WARNING
 
 // "Optimise" AIDA output by discarding unnecessary SYNC items
 //  and discarding tiny (useless) AIDA events
@@ -24,9 +24,12 @@
 
 aidaeb_watcher_stats* _AIDA_WATCHER_STATS = nullptr;
 
-#define WRTS_SIZE (uint32_t)sizeof(wrts_header)
 // someone thought it a good idea to use uint32 where xe ought to have used size_t.
+#define WRTS_SIZE (uint32_t)sizeof(wrts_header)
 //
+// Debugging
+#define MEMORY_REPORT 0
+
 // This is the value of an AIDA correlation word for the pulser
 #ifdef AIDA_CORRELATION_PULSER
 static constexpr uint32_t AIDA_CORRELATION_EVENT = 0x80000000 | ((AIDA_CORRELATION_PULSER - 1) << 24) | (8 << 20);
@@ -51,6 +54,12 @@ get_event_retry:
 
   if(!_conf._enable_eventbuilder)
     return lmd_source::get_event();
+
+  _TRACE("the events queue has %lu entries\n", events.size());
+
+  if (events.size() > 1000000) {
+    ERROR("ucesb had over 1 million events in the backlog");
+  }
 
   if (events.size() > 0)
   {
@@ -111,7 +120,7 @@ get_event_retry:
     }
     else
     {
-      _TRACE("Not emitting event until we have had more MBS events\n");
+      _TRACE("Not emitting event until we have had more MBS events (waiting for %16lx < %16lx)\n", first->timestamp, last_mbs_wr - AIDA_TIME_SHIFT);
     }
   }
 
@@ -155,6 +164,9 @@ get_event_retry:
     // Now empty the events quque
     if (events.size() > 0)
     {
+#if MEMORY_REPORT
+      INFO(0, "At EOF the event queue was %zu long", events.size());
+#endif
       last_mbs_wr = 0x7fffffffffffffffL;
       goto get_event_retry;
     }
@@ -195,6 +207,7 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
 
   #if _ENABLE_TRACE
   //_file_event.print_event(0, NULL);
+  _TRACE(" Event: Number: %d, Trigger :%d\n", _file_event._header._info.l_count, _file_event._header._info.i_trigger);
   #endif
 
   if(_file_event._nsubevents == 0)
@@ -702,6 +715,7 @@ void lmd_source_multievent::load_dtas(lmd_subevent *se, char* pb_start, char* pb
   if (cur_dtas != nullptr && cur_dtas->fragment)
   {
     _TRACE(" found a DTAS fragment to continue with: %16lx\n", cur_dtas->fragment_wr);
+    assert(false);
   }
   else
   {
@@ -727,11 +741,11 @@ void lmd_source_multievent::load_dtas(lmd_subevent *se, char* pb_start, char* pb
   // Synchronisation pulser
   if (wr34 == 0x12345678)
   {
-    _TRACE("Deleting empty event because of pulser\n");
     if (cur_dtas->data.size() == 0)
     {
-        pool_delete(dtas_events_pool, cur_dtas);
-        cur_dtas = nullptr;
+      _TRACE("Deleting empty event because of pulser\n");
+      pool_delete(dtas_events_pool, cur_dtas);
+      cur_dtas = nullptr;
     }
     _TRACE("Making special DTAS pulser event\n");    
     dtasevent_entry* pulser = pool_new(dtas_events_pool);
@@ -749,6 +763,9 @@ void lmd_source_multievent::load_dtas(lmd_subevent *se, char* pb_start, char* pb
     ERROR("DTAS WR header did not match MBS WR header %16lx %08x", (mbs_wr >> 32), wr34);
   }
 
+  load_event_wr &= 0xFFFFFFFFULL;
+  load_event_wr |= ((int64_t)wr34 << 32);
+
   while (pl_data < pl_end)
   {
     uint32_t dtas_block[4];
@@ -757,19 +774,27 @@ void lmd_source_multievent::load_dtas(lmd_subevent *se, char* pb_start, char* pb
     dtas_block[2] = *pl_data++; // Fine Time
     dtas_block[3] = *pl_data++; // Energy
 
+#if _DTAS_DUMP
+        _TRACE(" dtas event %08x %08x %08x %08x\n", dtas_block[0], dtas_block[1], dtas_block[2], dtas_block[3]);
+#endif
+
     // Check the data is being interpreted properly
     if ((dtas_block[0] & 0xFF00FF00) != 0xBA00C000)
     {
-      ERROR("Not a valid DTAS Block. Expected 0xBAxxC0xx got %08lx", dtas_block[0]);
+      ERROR("Not a valid DTAS Block. Expected 0xBAxxC0xx got %08x", dtas_block[0]);
     }
 
     // Update the timestamp for the event
     load_event_wr &= ~0xFFFFFFFFULL;
     load_event_wr |= dtas_block[1];
-    // Rollover correction
-    if (load_event_wr < old_ts)
+    // Rollover correction (but don't try to increase if it's the first MBS event)
+    if (load_event_wr < old_ts && load_event_wr != mbs_wr)
     {
       load_event_wr += 0x100000000ULL;
+      // Don't increase the WR if it's more than 200 ms increase
+      //if (load_event_wr - old_ts > 200000000LL) {
+        //load_event_wr -= 0x100000000ULL;
+      //}
     }
 
     // Timewarp detection
@@ -790,10 +815,19 @@ void lmd_source_multievent::load_dtas(lmd_subevent *se, char* pb_start, char* pb
     // If the event occurred after a gap, the old event is completed
     if (load_event_wr - old_ts > _conf._eventbuilder_window)
     {
-      cur_dtas->fragment = false;
-      cur_dtas->fragment_wr = old_ts;
-      events.push(cur_dtas);
-      cur_dtas = pool_new(dtas_events_pool);
+      if (cur_dtas->data.size() > 0)
+      {
+        cur_dtas->fragment = false;
+        cur_dtas->fragment_wr = old_ts;
+        _TRACE(" completed DTAS event %16lx (%lu entries) moved to event queue\n", cur_dtas->timestamp, cur_dtas->data.size());
+        events.push(cur_dtas);
+        cur_dtas = pool_new(dtas_events_pool);
+      }
+      else
+      {
+        _TRACE(" resetting DTAS event because it was empty\n");
+        cur_dtas->reset();
+      }
       cur_dtas->_header = se->_header;
       cur_dtas->timestamp = load_event_wr;
       _TRACE(" new DTAS event %16lx\n", load_event_wr);
@@ -810,12 +844,16 @@ void lmd_source_multievent::load_dtas(lmd_subevent *se, char* pb_start, char* pb
 
   if (cur_dtas->data.size() > 0)
   {
-    _TRACE ("saving fragment %16lx\n", cur_dtas->fragment_wr);
-    cur_dtas->fragment = true;
+    //_TRACE ("saving fragment %16lx\n", cur_dtas->fragment_wr);
+    //cur_dtas->fragment = true;
+
+    cur_dtas->fragment = false;
+    events.push(cur_dtas);
+    cur_dtas = nullptr;
   }
   else
   {
-    assert(false);
+    //assert(false);
     // Logically this never happens?
     pool_delete(dtas_events_pool, cur_dtas);
     cur_dtas = nullptr;
@@ -950,6 +988,38 @@ lmd_source_multievent::lmd_source_multievent() : load_event_wr(0), emit_wr(0), l
   WARNING("FATIMA TAMEX WR Correction is ACTIVE");
   fatima_buffer.event._nsubevents = 0;
 #endif
+}
+
+// free everything for a valgrind check
+lmd_source_multievent::~lmd_source_multievent()
+{
+#if MEMORY_REPORT
+  INFO(0, "Memory Report for Multievent Builder");
+  INFO(0, "cur_aida size = %zu", cur_aida ? cur_aida->data.size() : 0);
+  INFO(0, "cur_dtas size = %zu", cur_dtas ? cur_dtas->data.size() : 0);
+  INFO(0, "event buffer size = %zu", events.size());
+  INFO(0, "aida pool size = %zu", aida_events_pool.size());
+  size_t recurse = 0;
+  for (auto i : aida_events_pool) recurse += i->data.capacity();
+  INFO(0, "aida pool recursive size = %zu", recurse);
+  INFO(0, "trigger pool size = %zu", trigger_events_pool.size());
+  recurse = 0;
+  for (auto i : trigger_events_pool) recurse += i->event._defrag_event_many._allocated;
+  INFO(0, "trigger pool recursive size = %zu", recurse);
+  INFO(0, "dtas pool size = %zu", dtas_events_pool.size());
+  recurse = 0;
+  for (auto i : dtas_events_pool) recurse += i->data.capacity();
+  INFO(0, "dtas pool recursive size = %zu", recurse);
+#endif
+  delete cur_aida;
+  delete cur_dtas;
+  for (; !events.empty(); events.pop()) delete events.top();
+  for (auto i : aida_events_pool) delete i;
+  for (auto i : trigger_events_pool) delete i;
+  for (auto i : dtas_events_pool) delete i;
+  aida_events_pool.clear();
+  trigger_events_pool.clear();
+  dtas_events_pool.clear();
 }
 
 #ifdef _ENABLE_TRACE

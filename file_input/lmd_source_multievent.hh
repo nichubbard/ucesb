@@ -24,11 +24,14 @@ struct lmd_event_multievent;
 
 #define _ENABLE_TRACE 0
 #define _AIDA_DUMP 0
+#define _DTAS_DUMP 1
 #if _ENABLE_TRACE
 #define _TRACE(...) fprintf(stderr, __VA_ARGS__)
 #else
 #define _TRACE(...)
 #endif
+
+#define MAX_POOL_SIZE 10000
 
 class aidaeb_watcher_stats
 {
@@ -164,12 +167,14 @@ T* pool_new(std::deque<T*>& queue)
   {
     T* set = new T;
     set->pool = &queue;
+    _TRACE("Creating new entry as queue is empty addr=%p\n", set);
     return set;
   }
   else
   {
     T* cur = queue.front();
     queue.pop_front();
+    _TRACE("Returning entry from pool addr=%p\n", cur);
     return cur;
   }
 }
@@ -177,6 +182,15 @@ T* pool_new(std::deque<T*>& queue)
 template<typename T>
 void pool_delete(std::deque<T*>& queue, T* entry)
 {
+#ifdef MAX_POOL_SIZE
+  if (queue.size() > MAX_POOL_SIZE)
+  {
+    _TRACE("Deleting entry %p because the pool is too big\n", entry);    
+    delete entry;
+    return;
+  }
+#endif
+  _TRACE("Returned entry %p to the pool\n", entry);
   entry->reset();
   queue.push_back(entry);
 }
@@ -194,7 +208,7 @@ public:
   virtual void reset() = 0;
   virtual lmd_event* emit() = 0;
 
-  event_entry() : timestamp(0) {}
+  event_entry() : timestamp(0), event_no(0), pool(nullptr) {}
 
   friend bool operator>(event_entry const& lhs, event_entry const& rhs)
   {
@@ -234,7 +248,7 @@ struct aidaevent_entry : public event_entry
 #endif
 
 	aidaevent_entry() : data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); reset(); }
-	~aidaevent_entry(){}
+	virtual ~aidaevent_entry(){}
 
   virtual void reset() {
     timestamp = 0;
@@ -278,6 +292,8 @@ struct triggerevent_entry : public event_entry
     event.release();
   }
 
+  virtual ~triggerevent_entry() {}
+
   virtual lmd_event* emit();
 
   virtual void return_to_pool() {
@@ -297,10 +313,16 @@ struct dtasevent_entry : public event_entry
   int64_t fragment_wr;
   bool pulser;
 
-  dtasevent_entry() : data() { data.reserve(10000); reset(); }
+  dtasevent_entry() : event_entry(), data()  { data.reserve(100); reset(); }
+
+  virtual ~dtasevent_entry() {
+  
+  }
 
   virtual void reset() {
     timestamp = 0;
+    fragment = true;
+    fragment_wr = 0;
     pulser = false;
     data.clear();
   }
@@ -338,7 +360,7 @@ protected:
   //aidaevent_queue aida_events_dump;
   //triggerevent_queue trigger_event;
   //dtasevent_queue dtas_events;
-  std::priority_queue<event_entry*, std::vector<event_entry*>, compare_entry> events;
+  std::priority_queue<event_entry*, std::deque<event_entry*>, compare_entry> events;
 #if BPLAST_DELAY_FIX
   triggerevent_entry plastic_buffer;
 #endif
@@ -357,7 +379,10 @@ protected:
 
 public:
   lmd_source_multievent();
+
   virtual lmd_event *get_event();
+
+  ~lmd_source_multievent();
 };
 
 struct wrts_header
