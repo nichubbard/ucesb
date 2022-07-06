@@ -163,6 +163,9 @@ public:
 
   const var_external *gen_external_header(const variable *v,dumper &d,uint32 type);
 
+  bool has_params(const param_list *params,
+		  bool dump_member_args);
+
   void gen_params(const param_list *params,
 		  dumper &d,
 		  uint32 type,

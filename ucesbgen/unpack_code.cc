@@ -383,7 +383,8 @@ void struct_unpack_code::gen(const struct_definition *str,
 
   if (type & (UCT_UNPACK | UCT_MATCH | UCT_PACKER))
     {
-      bool args = named_header && !named_header->_params->empty();
+      bool args = named_header &&
+	has_params(named_header->_params,!!(type & UCT_UNPACK));
 
       d.text_fmt("FORCE_IMPL_DATA_SRC_FCN%s(%s,%s::%s",
 		 args ? "_ARG" : "",
@@ -1878,6 +1879,30 @@ void struct_unpack_code::gen(const event_definition *evt,
       //d.text("::__unpack_subevent(subevent_header *__header,__data_src_t &__buffer");
       //d.text(");\n");
     }
+}
+
+bool struct_unpack_code::has_params(const param_list *params,
+				    bool dump_member_args)
+{
+  /* Figure out if gen_params() will dump something. */
+
+  param_list::const_iterator pl;
+
+  for (pl = params->begin(); pl != params->end(); ++pl)
+    {
+      param *p = *pl;
+
+      if (p->_member)
+	{
+	  if (dump_member_args)
+	    return true;
+	}
+      else
+	{
+	  return true;
+	}
+    }
+  return false;
 }
 
 void struct_unpack_code::gen_params(const param_list *params,
