@@ -67,6 +67,7 @@ my $inputfile = ();
 my $depfile = ();
 
 my $silentupdateinputfile = 0;
+my $remove_parse_error = 0;
 
 foreach my $arg (@ARGV)
 {
@@ -81,6 +82,10 @@ foreach my $arg (@ARGV)
     elsif ($arg =~ /^--silentupdateinputfile$/)
     {
 	$silentupdateinputfile = 1;
+    }
+    elsif ($arg =~ /^--remove-parse-error$/)
+    {
+	$remove_parse_error = 1;
     }
     else
     {
@@ -250,6 +255,11 @@ while (@textin)
     {
 	# We found something we would not expect, complain
 	die "Unexpected include directive: $line";
+    }
+    elsif ($line =~ /^%define.*parse.error.*/ &&
+	   $remove_parse_error)
+    {
+	push @textout,"/* $line */";
     }
     else
     {
