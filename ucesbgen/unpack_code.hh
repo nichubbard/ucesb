@@ -180,6 +180,7 @@ public:
 
 protected:
   void gen_match_decl_quick(const std::vector<match_info> &infos,
+			    bool force_full_match,
 			    dumper &d,int size,
 			    const char *abort_spurious_label);
 

@@ -206,9 +206,11 @@ bool struct_unpack_code::get_match_bits(const struct_data *data,dumper &d,const 
 
 
 
-void struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &infos,
-					      dumper &d,int size,
-					      const char *abort_spurious_label)
+void
+struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &infos,
+					 bool force_full_match,
+					 dumper &d,int size,
+					 const char *abort_spurious_label)
 {
   // First try to find a bit which is in use by all items, and then
   // among those (if they are several), find the one which partitions
@@ -277,6 +279,9 @@ void struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &inf
 	// it must do some partition! (or better: some discarding)
 	// guaranteed by the >, and init of select_bit_min_discard to 0
 
+	// d.text_fmt("// min_discard: %d, total_discard: %d\n",
+	//	   min_discard, total_discard);
+
 	if (min_discard > select_bit_min_discard ||
 	    (min_discard == select_bit_min_discard &&
 	     total_discard > select_bit_total_discard))
@@ -287,10 +292,15 @@ void struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &inf
 	  }
       }
 
-  if (select_bit != -1 && infos.size() > 3)
+  /* If the parent had the same number of items, we are not getting
+   * reduced by this bit separation.  Then force full matching.
+   */  
+  if (!force_full_match &&
+      select_bit != -1 && infos.size() > 3)
     {
-      d.text_fmt("// select on bit %d, partition: 1:%d(d%d) 0:%d(d%d)\n",
-		 select_bit,
+      d.text_fmt("// select between %d items on bit %d, "
+		 "partition: 1:%d(d%d) 0:%d(d%d)\n",
+		 (int)infos.size(),select_bit,
 		 (int)infos.size()-not_one_bit[select_bit][1],
 		 not_one_bit[select_bit][1],
 		 (int)infos.size()-not_one_bit[select_bit][0],
@@ -311,12 +321,16 @@ void struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &inf
       d.text_fmt("if (__match_peek & 0x%0*x) {\n",size/4,1 << select_bit);
       {
 	dumper sd(d,2);
-	gen_match_decl_quick(sel_infos[1],sd,size,abort_spurious_label);
+	gen_match_decl_quick(sel_infos[1],
+			     sel_infos[1].size() >= infos.size(),
+			     sd,size,abort_spurious_label);
       }
       d.text("} else {\n");
       {
 	dumper sd(d,2);
-	gen_match_decl_quick(sel_infos[0],sd,size,abort_spurious_label);
+	gen_match_decl_quick(sel_infos[0],
+			     sel_infos[0].size() >= infos.size(),
+			     sd,size,abort_spurious_label);
       }
       d.text("}\n");
     }
@@ -663,7 +677,7 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
     }
   else
     {
-      gen_match_decl_quick(infos,d,size,abort_spurious_label);
+      gen_match_decl_quick(infos,false,d,size,abort_spurious_label);
 
     }
 
