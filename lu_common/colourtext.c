@@ -73,9 +73,7 @@ size_t colourtext_init()
   ret = setupterm(NULL, 1, &errret);
 
   if (ret == ERR)
-    {
-      return colourtext_prepare();
-    }
+    goto call_colourtext_prepare;
 
   /* printf ("%d %d %d\n",ret,ERR,errret); */
 
@@ -93,24 +91,30 @@ size_t colourtext_init()
 #define NCURSES_CONST
 #endif
 
-  NCURSES_CONST char *setaf = tigetstr_wrap("setaf");
+  {
+    NCURSES_CONST char *setaf = tigetstr_wrap("setaf");
 
-  /* printf ("%p %p\n",_escape_bold,setaf); */
+    /* printf ("%p %p\n",_escape_bold,setaf); */
 
-  fflush(stdout);
+    fflush(stdout);
 
-  for (i = 0; i < 8; i++)
-    if (setaf)
-      _colourtext_escape_part[CTR_PART_FGCOL(i)] = strdup(tparm(setaf,i));
+    for (i = 0; i < 8; i++)
+      if (setaf)
+	_colourtext_escape_part[CTR_PART_FGCOL(i)] = strdup(tparm(setaf,i));
 
-  NCURSES_CONST char *setab = tigetstr_wrap("setab");
+    NCURSES_CONST char *setab = tigetstr_wrap("setab");
 
-  for (i = 0; i < 8; i++)
-    if (setab)
-      _colourtext_escape_part[CTR_PART_BGCOL(i)] = strdup(tparm(setab,i));
+    for (i = 0; i < 8; i++)
+      if (setab)
+	_colourtext_escape_part[CTR_PART_BGCOL(i)] = strdup(tparm(setab,i));
+  }
 
   /* printf ("%p %p\n",_escape_col[0],_escape_col[1]); */
 
+ call_colourtext_prepare:
+  /* Before calling colourtext_prepare(), make sure 
+   * _colourtext_escape_part[] is not NULL.
+   */
   for (i = 0; i < CTR_MAX_PART; i++)
     if (_colourtext_escape_part[i] == NULL)
       _colourtext_escape_part[i] = "";
