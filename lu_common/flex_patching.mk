@@ -29,6 +29,8 @@ FLEX_PATCH_PIPELINE=\
 	  -e "s/\([[:space:]]*\)\(.*\) offset = \(.*\);/\\1\\2 offset = (\\2) (\\3);/" \
 	  -e "s/return (int) \(.*\);/return \\1;/" \
 	  -e "s/find_rule:/goto find_rule; find_rule:/" \
+	  -e "s/(int) fread/(yy_size_t) fread/" \
+	  -e "s/\(static.*_realloc\)/__attribute__ (( unused )) \\1/" \
 # intentionally empty
 
 # Previous (non-TRLO II)
