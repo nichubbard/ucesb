@@ -1188,7 +1188,7 @@ void unpack_subevent(event_base_t &eb,
   {
     uint64 wr = 0;
     __data_src_t wr_reader = src;
-    uint32 bits0, bits1, bits2, bits3, bits4;
+    uint32 bits0 = 0, bits1 = 0, bits2 = 0, bits3 = 0, bits4 = 0;
     wr_reader.get_uint32(&bits0); // useless
     wr_reader.get_uint32(&bits1);
     wr_reader.get_uint32(&bits2);
