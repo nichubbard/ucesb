@@ -71,7 +71,7 @@ get_event_retry:
     {
       _TRACE(" loading more events to complete the AIDA fragment %16lx\n", cur_aida->timestamp);
       file_status_t s;
-      while ((s = load_events()) != aida_event && load_event_wr - cur_aida->timestamp < _conf._eventbuilder_window);
+      while ((s = load_events()) != aida_event && s != eof && load_event_wr - cur_aida->timestamp < _conf._eventbuilder_window);
       if (cur_aida && cur_aida->fragment) {
         // Unfragment the event, store it and continue
         cur_aida->fragment = false;
@@ -84,7 +84,7 @@ get_event_retry:
     {
        _TRACE(" loading more events to complete the DTAS fragment %16lx\n", cur_dtas->timestamp);
       file_status_t s;
-      while ((s = load_events()) != dtas_event && load_event_wr - cur_dtas->timestamp < _conf._eventbuilder_window);
+      while ((s = load_events()) != dtas_event && s != eof && load_event_wr - cur_dtas->timestamp < _conf._eventbuilder_window);
       if (cur_dtas && cur_dtas->fragment) {
         // Unfragment the event, store it and continue
         cur_dtas->fragment = false;
