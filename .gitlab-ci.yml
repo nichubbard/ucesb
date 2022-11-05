@@ -408,16 +408,17 @@ Ubuntu Xenial clang clang++ all:
   <<: *docker
   <<: *build  
 
+# Problems with North and East dues to flex wget in before_script.
 Xenial root6 gcc g++ all flex 2.6.1:
   stage: build
   image: munken/root2:ubuntu-xenial
-  <<: *docker
+  <<: *docker-no-virt
   <<: *ubuntu-gcc6
 
 Xenial root6 gcc g++ all flex 2.6.2:
   stage: build
   image: munken/root2:ubuntu-xenial
-  <<: *docker
+  <<: *docker-no-virt
   <<: *ubuntu-gcc6
 
 Ubuntu Bionic gcc g++ all:
