@@ -564,6 +564,12 @@ Debian Wheezy gcc g++ all:
   <<: *docker-no-virt
   <<: *build
 
+Debian Wheezy gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-wheezy-clang
+  <<: *docker-no-virt
+  <<: *build
+
 Debian Etch gcc g++ all:
   stage: build
   image: munken/build-essential:debian-etch-gcc
