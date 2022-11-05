@@ -15,6 +15,14 @@ stages:
     - docker
   # retry: 1
 
+# The North and East virtual machines have troubles with DNS/IP 'lookup'
+# sometimes for older images.
+.docker-no-virt: &docker-no-virt
+  tags:
+    - docker
+    - no-virt
+  # retry: 1
+
 # User-mode emulation, requires binfmt_misc to be set up
 .qemu: &qemu
   tags:
@@ -361,13 +369,13 @@ qemu ppc clang clang++ xtst:
 SLC latest gcc g++ all:
   stage: build
   image: munken/build-essential:slc6-latest-gcc
-  <<: *docker
+  <<: *docker-no-virt
   <<: *slc6
 
 CC7 latest gcc g++ all:
   stage: build
   image: munken/build-essential:cc7-latest-gcc
-  <<: *docker
+  <<: *docker-no-virt
   <<: *cc7
 
 Ubuntu Trusty gcc g++ all:
@@ -451,7 +459,7 @@ Arch latest clang clang++ all:
 gcc-latest full gcc g++ all:
   stage: build
   image: gcc:latest
-  <<: *docker
+  <<: *docker-no-virt
   <<: *debian
 
 Debian buster gcc g++ all:
@@ -553,13 +561,13 @@ debian jessie clang-8 clang++-8 all:
 Debian Wheezy gcc g++ all:
   stage: build
   image: munken/build-essential:debian-wheezy-gcc
-  <<: *docker
+  <<: *docker-no-virt
   <<: *build
 
 Debian Etch gcc g++ all:
   stage: build
   image: munken/build-essential:debian-etch-gcc
-  <<: *docker
+  <<: *docker-no-virt
   <<: *build
 
 Opensuse latest gcc g++ all:
@@ -613,7 +621,7 @@ Ubuntu Bionic gcc g++ all root6:
 gcc-latest minimal gcc g++ empty merging:
   stage: build
   image: gcc:latest
-  <<: *docker
+  <<: *docker-no-virt
   <<: *debian
   variables:
     EXTRA_MAKE_FLAGS: "USE_MERGING=1"
@@ -621,7 +629,7 @@ gcc-latest minimal gcc g++ empty merging:
 gcc-latest minimal gcc g++ xtst merging:
   stage: build
   image: gcc:latest
-  <<: *docker
+  <<: *docker-no-virt
   <<: *debian
   variables:
     EXTRA_MAKE_FLAGS: "USE_MERGING=1"
