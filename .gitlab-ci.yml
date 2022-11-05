@@ -263,22 +263,22 @@ freebsd 10 gcc g++ empty:
 
 qemusys arm . . tdas_conv:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-arm
 
 qemusys arm . . ext_writer_test:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-arm
 
 qemusys ppc . . tdas_conv:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-ppc
 
 qemusys ppc . . ext_writer_test:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-ppc
 
 ###
