@@ -13,14 +13,14 @@ stages:
 .docker: &docker
   tags:
     - docker
-  retry: 1
+  # retry: 1
 
 # User-mode emulation, requires binfmt_misc to be set up
 .qemu: &qemu
   tags:
     - docker
     - binfmt
-  retry: 1
+  # retry: 1
 
 ###
 # Build rules, these contain the 'script'
