@@ -198,9 +198,9 @@ void bits_spec::dump(dumper &d) const
   char buf[64];
 
   if (_min == _max)
-    sprintf (buf,"   %2d: ",_min);
+    snprintf (buf, sizeof(buf), "   %2d: ", _min);
   else
-    sprintf (buf,"%2d_%02d: ",_min,_max);
+    snprintf (buf, sizeof(buf), "%2d_%02d: ", _min, _max);
   d.text(buf);
 
   if (_name)

@@ -9,7 +9,7 @@
 
 .           {
 	      char str[64];
-	      sprintf (str,"Unknown character: '%s'.",yytext);
+	      snprintf (str, sizeof(str), "Unknown character: '%s'.", yytext);
 	      yyerror(str);
             }
 

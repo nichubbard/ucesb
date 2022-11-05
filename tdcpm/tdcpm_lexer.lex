@@ -148,7 +148,7 @@ ssize_t lexer_read(char* buf,size_t max_size);
 
  /******************************************************************/
  /* BEGIN_INCLUDE_FILE "../lu_common/lexer_rules_whitespace_lineno.lex" */
- /* MD5SUM_INCLUDE 56d3bf4fb5abcc1df62e16574e8fc0b9 */
+ /* MD5SUM_INCLUDE 4ead390c1ed21ec1efecbe3cb5d19a36 */
  /* Lexer rules to eat and discard whitespace (space, tab, newline)
   * Complain at finding an unrecognized character
   * Handle line number information
@@ -160,7 +160,7 @@ ssize_t lexer_read(char* buf,size_t max_size);
 
 .           {
 	      char str[64];
-	      sprintf (str,"Unknown character: '%s'.",yytext);
+	      snprintf (str, sizeof(str), "Unknown character: '%s'.", yytext);
 	      yyerror(str);
             }
 
