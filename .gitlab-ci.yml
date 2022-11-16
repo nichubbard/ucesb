@@ -10,17 +10,17 @@ stages:
 ###
 # Common tags:
 
+# See next blob.  These are ok with North and East virtual machines.
 .docker: &docker
   tags:
-    - docker
+    - docker-virt-ok
   # retry: 1
 
 # The North and East virtual machines have troubles with DNS/IP 'lookup'
-# sometimes for older images.
+# sometimes for older images, require plain 'docker' tag.
 .docker-no-virt: &docker-no-virt
   tags:
     - docker
-    - no-virt
   # retry: 1
 
 # User-mode emulation, requires binfmt_misc to be set up
