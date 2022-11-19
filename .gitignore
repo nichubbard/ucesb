@@ -16,6 +16,9 @@ generated/
 ext_test/
 *.pcm
 
+# Stamps
+tdcpm/test.stamp
+
 # Dicts
 hbook/*_dict.cc
 hbook/*_dict.h
@@ -56,3 +59,4 @@ hbook/struct_writer
 hbook/example/ext_writer_test
 psdc/psdc
 ucesbgen/ucesbgen
+tdcpm/tdcpm_test
