@@ -190,12 +190,11 @@ tdcpm_test.dep: $(AUTO_DEPS)
 
 tdcpm_test.base.dep: tdcpm_test.dep
 	@echo " BASEDEP $@"
-	@echo '$$(UCESB_BASE_DIR)/tdcpm/$(MAKECMDGOALS): \' > $@
+	@echo '$$(UCESB_BASE_DIR)/tdcpm/$(MAKECMDGOALS): \\' > $@
 	$(QUIET)cat $< | grep -v ' \\' | sed -e 's,  /, /,' | \
 	  sed -e 's,  ,  $$\(UCESB_BASE_DIR\)/tdcpm/,g' | sort -u >> $@
 
-#
-# Link
+# Test
 
 tdcpm_test: $(ALL_OBJS) tdcpm_test.dep tdcpm_test.base.dep
 	@echo "  LINK   $@"
