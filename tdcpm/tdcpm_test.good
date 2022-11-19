@@ -1,0 +1,148 @@
+struct calt
+{
+  /*      0      8 */ double  k;
+  /*      8      8 */ double  m;
+  /*     16 */
+};
+struct cale
+{
+  /*      0      8 */ double  k;
+  /*      8      8 */ double  m;
+  /*     16 */
+};
+struct cal2
+{
+  /*      0      8 */ double  a;
+  /*      8     56 */ double  b[7];
+  /*     64    240 */ double  c[5][6];
+  /*    304     16 */ calt    d;
+  /*    320     64 */ cale    e[4];
+  /*    384     96 */ cale    f[2][3];
+  /*    480 */
+};
+struct .global
+{
+  /*     -1    480 */ cal2    r;
+  /*     -1    112 */ calt    s[7];
+  /*     -1  20160 */ cal2    t[7][6];
+  /*     -1 */
+};
+===
+9:1
+10:1
+11:1
+12:31
+13:1
+14:32
+15:1
+r.a = 7;
+s(1).k = 1 ns/ch;
+s(1).m = 2 ns;
+r.d.k = 3 ns/ch;
+r.e(2).k = 4 MeV/ch;
+r.e(3).m = 5 MeV;
+s(2).m = 80 ps;
+TEST(2) = 1 ns;
+TEST(3) = 20 ps;
+TEST(4) = 0.3 /ps;
+POS = 5 cm/ns;
+POS = 6.23 dm;
+POS = 1.003 ns;
+POS = 2004 ps;
+POS = 5.002 GeV;
+POS = 6.002e+06 keV;
+POS = 6 ns;
+POS = 42 cm/ns*ns;
+POS = 14 cm/ns;
+POS = 48 cm/ns;
+POS = 49 cm;
+POS = 50 cm/ns;
+POS = 51 ns^2;
+POS = 46.67 cm/ns;
+POS = 47.67 ns/cm;
+POS = 48.67 ns;
+POS = 49.67;
+POS = 51.5 cm/ns;
+POS = 53.67 MeV/ch;
+POS = 5.117e+04 mrad;
+POS(2) = 7 cm/ns;
+POS(2)(3) = 9 cm^3/ns^2;
+POS(1)(2) = 8 mm*cm/ns;
+POS(1)(2).k = 8 mm*cm/ns/kg;
+POS(1)(2).k = 8 mm*cm/ns*kg;
+POS(1)(2).k = 8 mm/cm/ns*kg;
+POS(1)(2).k = 8 mm/cm*ns/kg;
+POS(1)(2).k = 8 mm/cm/ns/kg;
+POS(2)(2).m = 8 mm*dm;
+POS(2)(2).q(4) = { 8 cm/ns, 9 m/s };
+POS(1)(2).q(7) = 8 cm/ns;
+POS(2) = 
+  [ k, m ]
+
+POS(2) = 
+  [ k, m ]
+  { 1 ns*ns/ch^2 }
+
+POS(3) = 
+  [ k, m ]
+  { 3 ns/ch, 4 ns }
+
+POS(4) = 
+  [ k, m, x ]
+  [ ns/ch, ns, 10 ps ]
+  (1): { 5, 7, 4 }
+  (2): { 6, 8, 5 }
+
+POS(5) = 
+  [ k, m ]
+  [ ns/ch, ns ]
+  { 9, 10 }
+
+POS(6) = 
+  [ k, m ]
+  [ ns/ch, ns ]
+  { 9, 10 }
+  { 9, 10 }
+
+POS(2) = {
+  qqq(2)(3) = 9 cm/ns;
+}
+POS(3) = {
+  .(2)(3) = 9 cm/ns;
+}
+POS(4) = {
+  qqq(2)(3) = 9 cm/ns;
+  qqq(2)(3).q = 9 cm/ns;
+}
+a(4) = {
+  b = 3;
+  c(3) = 4;
+  d = {
+    g = {
+      h = 3;
+      i(2) = 4;
+    }
+    e = 3;
+    f(3) = 4;
+  }
+}
+b = {
+  c(4) = {
+    d = 
+      [ f, g, h ]
+      [ cm, cm, ns ]
+      { 3, 4, 5 }
+      (2): { 3, 4, 5 }
+      { 3, 4, 5 }
+      (5): { 3, 4, 5 }
+
+  }
+}
+===
+.r.a = 7.0000
+.r.d.k = 3.0000 ns/ch
+.r.e[1].k = 0.4000 * 10 MeV/ch
+.r.e[2].m = 0.5000 * 10 MeV
+.s[0].k = 1.0000 ns/ch
+.s[0].m = 2.0000 ns
+.s[1].m = 0.0800 ns

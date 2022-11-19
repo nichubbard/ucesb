@@ -209,5 +209,11 @@ test: test.stamp
 
 test.stamp: tdcpm_test params_test.txt
 	@echo "  TEST   $< [params_test.txt]"
-	$(QUIET)cpp params_test.txt | ./tdcpm_test > /dev/null
+	$(QUIET)cpp params_test.txt | ./tdcpm_test \
+	  > $@.out 2> $@.err || echo "fail..."> /dev/null
+	@diff -u tdcpm_test.good $@.out || \
+	  ( echo "Failure while running: cpp params_test.txt | ./tdcpm_test:";\
+	    echo "--- stdout ($@.out): ---" ; cat $@.out ; \
+	    echo "--- stderr ($@.err): ---" ; cat $@.err ; \
+	    echo "---------------" ; false)
 	$(QUIET)touch $@

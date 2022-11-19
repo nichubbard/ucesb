@@ -17,7 +17,7 @@ ext_test/
 *.pcm
 
 # Stamps
-tdcpm/test.stamp
+tdcpm/test.stamp*
 
 # Dicts
 hbook/*_dict.cc
