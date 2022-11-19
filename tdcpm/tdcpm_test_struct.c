@@ -47,7 +47,7 @@ cal2 _cal_det_r;
 calt _cal_det_s[7];
 cal2 _cal_det_t[7][6];
 
-void tdcpm_struct_test()
+void tdcpm_test_struct()
 {
   tdcpm_struct_info      *li_calt;
   tdcpm_struct_info_item *li_calt_k;

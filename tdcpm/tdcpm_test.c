@@ -29,7 +29,7 @@
 
 extern int lexer_read_fd;
 
-void tdcpm_struct_test(void);
+void tdcpm_test_struct(void);
 
 int main()
 {
@@ -40,7 +40,7 @@ int main()
 
   tdcpm_struct_init();
 
-  tdcpm_struct_test();
+  tdcpm_test_struct();
 
   tdcpm_struct_dump_all();
 

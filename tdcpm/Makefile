@@ -24,7 +24,7 @@ endif
 GENDIR = generated
 
 GENOBJS = $(GENDIR)/tdcpm_parser.o $(GENDIR)/tdcpm_lexer.o
-OBJS    = tdcpm_test.o tdcpm_struct_test.o \
+OBJS    = tdcpm_test.o tdcpm_test_struct.o \
         tdcpm_hash_table.o tdcpm_string_table.o tdcpm_malloc.o \
         tdcpm_var_name.o tdcpm_units.o \
         tdcpm_defs.o tdcpm_defs_dump.o \
