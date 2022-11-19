@@ -88,7 +88,7 @@ void tdcpm_struct_dump_struct(int indent, tdcpm_struct_info *info,
 
       printf ("%*s/* %6zd %6zd */ %-7s %s",
 	      indent + 2, "",
-	      item->_offset,
+	      info->_size == (size_t) -1 ? (size_t) -1 : item->_offset,
 	      item->_size,
 	      typename,
 	      tdcpm_string_table_get(_tdcpm_parse_string_idents,

@@ -163,7 +163,7 @@ void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
     {
       double factor;
       
-      printf ("%p %.4f\n", p, item->_item._value);
+      fprintf (stderr, "%p %.4f\n", p, item->_item._value);
 
       /* Can the units be reconciled? */
       if (!tdcpm_unit_factor(item->_item._unit_idx, dbl_unit->_unit_idx,

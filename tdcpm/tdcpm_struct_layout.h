@@ -67,7 +67,7 @@ struct tdcpm_struct_info_t
   /* What kind of item is this. */
   int    _kind;
 
-  /* How large is this structure. */
+  /* How large is this structure.  (-1 for global list item.)  */
   size_t _size;
   
 };
