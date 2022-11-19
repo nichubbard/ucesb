@@ -52,6 +52,8 @@ int main()
 
   tdcpm_dump_all_nodes();
 
+  printf ("===\n");
+
   tdcpm_assign_all_nodes();
 
   tdcpm_struct_value_dump_all();
