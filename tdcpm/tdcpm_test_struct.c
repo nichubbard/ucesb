@@ -20,7 +20,8 @@
 
 #include "tdcpm_struct_info.h"
 
-typedef struct calt_t  TDCPM_STRUCT_DEF
+TDCPM_STRUCT_DEF
+typedef struct calt_t
 {
   double _k;
   double _m;
