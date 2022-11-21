@@ -57,7 +57,7 @@ void tdcpm_struct_value_dump_all(void);
 
 /* Dummy macro for structure parser .pl to find structure. */
 #define TDCPM_STRUCT_DEF
-#define TDCPM_STRUCT_INST
+#define TDCPM_STRUCT_INST(name)
 
 /* Macro for unit to parser .pl. */
 #define TDCPM_UNIT(unit_str)

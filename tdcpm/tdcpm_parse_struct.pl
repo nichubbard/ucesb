@@ -152,9 +152,10 @@ exit 0;
 
 ########################################################################
 
-sub parse_structure_item($)
+sub parse_structure_item($$)
 {
     my $item = shift;
+    my $username = shift;
 
     if ($item =~ /^\s*$/) { }
     elsif ($item =~ /^\s*LWROC_MSG_HEADER\(\(\s*$/) {
@@ -181,6 +182,10 @@ sub parse_structure_item($)
 	my $name = $5;
 	my $arraylen_str = $7;
 	my $unit = $9;
+
+	if (!defined($username)) {
+	    $username = $name;
+	}
 
 	if ($plain_type) {
 	    # TODO: Needed?
@@ -234,12 +239,13 @@ sub parse_structure_item($)
 	    }
 
 	    my $rec = {
-		TYPE  => $type,
-		TYPEM => $typem,
+		TYPE        => $type,
+		TYPEM       => $typem,
 		TYPE_STRUCT => $type_struct,
-		NAME  => $name,
-		ARRAYLENS => \@arraylens,
-		UNIT  => $unit,
+		NAME        => $name,
+		USERNAME    => $username,
+		ARRAYLENS   => \@arraylens,
+		UNIT        => $unit,
 	    };
 
 	    return $rec;
@@ -273,7 +279,7 @@ sub find_structure_items()
 
 	foreach my $item (@content)
 	{
-	    my $rec = parse_structure_item($item);
+	    my $rec = parse_structure_item($item,());
 
 	    if (defined($rec)) {
 		push @items,$rec;
@@ -284,11 +290,12 @@ sub find_structure_items()
 	push @structs, $struct;
     }
 
-    while ($fullinput =~ s/(\s|^)TDCPM_STRUCT_INST\s+([^;.]+);//)
+    while ($fullinput =~ s/(\s|^)TDCPM_STRUCT_INST\s*\(([_A-Za-z][_A-Za-z0-9]*?)\)\s+([^;.]+);//)
     {
-	my $instance = $2;
+	my $name     = $2;
+	my $instance = $3;
 
-	my $rec = parse_structure_item($instance);
+	my $rec = parse_structure_item($instance,$name);
 
 	if (defined($rec)) {
 	    push @globals,$rec;
@@ -354,7 +361,7 @@ sub create_struct_items($$)
 
 	my $li_item = "${li_struct}_$item->{NAME}";
 
-	my $strname = $item->{NAME};
+	my $strname = $item->{USERNAME};
 	my $unit = $item->{UNIT};
 
 	$strname =~ s/^_//;
