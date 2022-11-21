@@ -48,9 +48,9 @@ typedef struct cal2_t
   cale   _f[2][3];
 } cal2;
 
-cal2 _cal_det_r;
-calt _cal_det_s[7];
-cal2 _cal_det_t[7][6];
+TDCPM_STRUCT_INST cal2 _cal_det_r;
+TDCPM_STRUCT_INST calt _cal_det_s[7];
+TDCPM_STRUCT_INST cal2 _cal_det_t[7][6];
 
 void tdcpm_test_struct()
 {
