@@ -80,6 +80,8 @@ $fullinput =~ s,\n, ,sg;
 my %structs = ();
 my @structs = ();
 
+my @globals = ();
+
 find_structure_items();
 
 ########################################################################
@@ -260,7 +262,7 @@ sub find_structure_items()
 
 	my @items = ();
 
-	# print "Found struct $struct:\n";
+	# print "Found struct: $struct\n";
 
 	if ($structs{$struct}) {
 	    die "Multiple definitions of structure '$struct'."; }
@@ -276,6 +278,19 @@ sub find_structure_items()
 
 	$structs{$struct} = \@items;
 	push @structs, $struct;
+    }
+
+    while ($fullinput =~ s/(\s|^)TDCPM_STRUCT_INST\s+([^;.]+);//)
+    {
+	my $instance = $2;
+
+	my $rec = parse_structure_item($instance);
+
+	if (defined($rec)) {
+	    push @globals,$rec;
+	}
+
+	# print "Found instance: $instance\n";
     }
 }
 
