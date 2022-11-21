@@ -78,6 +78,7 @@ $fullinput =~ s,\n, ,sg;
 # Find all structures.
 
 my %structs = ();
+my @structs = ();
 
 find_structure_items();
 
@@ -122,7 +123,7 @@ EndOfText
 
 ########################################################################
 
-foreach $struct (keys %structs)
+foreach $struct (@structs)
 {
     create_struct_items_decl($struct, $structs{$struct});
     create_struct_items($struct, $structs{$struct});
@@ -173,51 +174,82 @@ sub find_structure_items()
 	    }
 	    elsif ($item =~ /
     ^\s*                                                   # beginning of line
-    ((uint32_t|
-      double)                                              # item type
+    (((uint32_t|
+       double)|
+      ([_A-Za-z][_A-Za-z0-9]*))                            # item type
      \s+
     )
     ([_A-Za-z][_A-Za-z0-9]*)                               # item name
-    (\s*\[\s*([0-9]+|[_A-Za-z][_A-Za-z0-9]*)
-     \]
+    (\s*\[\s*([_A-Za-z0-9\]\[\s]*?)
+     \s*\]
     )?                                                     # array len
     \s*(TDCPM_UNIT\s*\(\s*\"([^\".]*)\"\s*\)\s*)?
     \s*$                                                   # end of line
     /x)
             {
-	        my $type = $1;
-	        my $name = $3;
-	        my $arraylen = $5;
-	        my $unit = $7;
+	        my $plain_type = $3;
+	        my $struct_type = $4;
+	        my $name = $5;
+	        my $arraylen_str = $7;
+	        my $unit = $9;
 
-		$type =~ s/const\s*//g;
-		$type =~ s/\s//g;
+		if ($plain_type) {
+		    # TODO: Needed?
+		    $plain_type =~ s/const\s*//g;
+		    $plain_type =~ s/\s//g;
+		}
 
-		if (!defined($arraylen)) { $arraylen = 0; }
+		my @arraylens = ();
 
-		# These are leftovers.  We keep the regex in case they
-                # become needed.
-		if ($arraylen && ($type ne "char" && $type ne "uint32_t")) {
-		    die "Non-char arrays not supported: '$item'."; }
+		if ($arraylen_str)
+		{
+		    my @raw_arraylens = split /\s*\]\[\s*/, $arraylen_str;
 
-		if ($arraylen && $type eq "char" &&
-		    $arraylen % 4 != 0) {
-		    die "char arrays must have length multiple of 4."; }
+		    foreach my $arraylen (@raw_arraylens)
+		    {
+			# print "[$arraylen]\n";
 
-		if ($type eq "lwroc_msg_header") {
-		    print "/* TODO: remove lwroc_msg_header items... */\n";
+			if (!($arraylen =~ /
+    ^                                                      # beginning of line
+    ([0-9]+|                                               # number
+     [_A-Za-z][_A-Za-z0-9]*                                # some macro name
+    )
+    $                                                      # end of line
+    /x)) {
+			    die "Malformed array length '$arraylen' for ".
+				"member '$name' in '$struct'.";
+			}
+
+			push @arraylens, $arraylen;
+		    }
+		}
+
+		if (defined($plain_type) && $plain_type eq "unhandled_item") {
+		    print "/* TODO: remove unhandled_item items... */\n";
 		} else {
-		    my $typem = $type;
-		    $typem =~ s/\*/_ptr/; # mangled name
-		    if ($arraylen) {
-			$typem .= "_array";
+		    my $type, my $typem;
+		    my $type_struct;
+
+		    if ($plain_type)
+		    {
+			$typem = $type = $plain_type; # mangled name
+			$type_struct = $type;
+		    }
+		    if ($struct_type)
+		    {
+			$typem = $type = $struct_type;
+			if ($typem =~ s/struct\s+(.)_t/$1/) {
+			    print "xx\n";
+			}
+			$type_struct = "struct";
 		    }
 
 		    my $rec = {
 			TYPE  => $type,
 			TYPEM => $typem,
+			TYPE_STRUCT => $type_struct,
 			NAME  => $name,
-			ARRAYLEN => $arraylen,
+			ARRAYLENS => \@arraylens,
 			UNIT  => $unit,
 		    };
 
@@ -228,6 +260,7 @@ sub find_structure_items()
 	}
 
 	$structs{$struct} = \@items;
+	push @structs, $struct;
     }
 }
 
@@ -266,7 +299,11 @@ sub create_struct_items($$)
 
     foreach my $item (@$items_ref)
     {
-	my $uctypem = uc($item->{TYPEM});
+	my $uctypem = uc($item->{TYPE_STRUCT});
+
+	if ($item->{TYPE_STRUCT} eq "struct") {
+
+	}
 
 	my $li_item = "li_${struct}_$item->{NAME}";
 
@@ -276,7 +313,16 @@ sub create_struct_items($$)
 	$strname =~ s/^_//;
 	if (!defined($unit)) { $unit = ""; }
 
-	print "  $li_item = TDCPM_STRUCT_ITEM_$uctypem($li_struct, $struct, $item->{NAME}, \"$strname\", \"$unit\");\n";
+	print "  $li_item = TDCPM_STRUCT_ITEM_$uctypem".
+	    "($li_struct, $struct, $item->{NAME}, \"$strname\"";
+	if ($item->{TYPE_STRUCT} eq "struct") {
+	    my $li_subitem = "li_$item->{TYPEM}";
+
+	    print ", $li_subitem";
+	} else {
+	    print ", \"$unit\"";
+	}
+	print ");\n";
     }
     print "\n";
 }
