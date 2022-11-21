@@ -23,14 +23,15 @@
 TDCPM_STRUCT_DEF
 typedef struct calt_t
 {
-  double _k;
-  double _m;
+  double _k TDCPM_UNIT("ns/ch");
+  double _m TDCPM_UNIT("ns");
 } calt;
 
+TDCPM_STRUCT_DEF
 typedef struct cale_t
 {
-  double _k;
-  double _m;
+  double _k TDCPM_UNIT("10 MeV/ch");
+  double _m TDCPM_UNIT("10 MeV");
 } cale;
 
 typedef struct cal2_t
@@ -150,3 +151,5 @@ void tdcpm_test_struct()
   */
 
 }
+
+#include "generated/tdcpm_test_struct_decl.c"

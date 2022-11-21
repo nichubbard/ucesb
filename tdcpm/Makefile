@@ -196,6 +196,13 @@ tdcpm_test.base.dep: tdcpm_test.dep
 
 # Test
 
+STRUCT_PARSE_PL = ./tdcpm_parse_struct.pl
+
+generated/tdcpm_test_struct_decl.c: tdcpm_test_struct.c $(STRUCT_PARSE_PL)
+	@echo "STRUCT_P $@ [$<]"
+	@$(STRUCT_PARSE_PL) < $< > $@.tmp
+	@mv $@.tmp $@
+
 tdcpm_test: $(ALL_OBJS) tdcpm_test.dep tdcpm_test.base.dep
 	@echo "  LINK   $@"
 	$(QUIET)$(CCLINK) $(CCLINKFLAGS) $(ALL_OBJS) $(CCLIBS) -o $@
