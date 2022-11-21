@@ -31,6 +31,7 @@
 extern int lexer_read_fd;
 
 void tdcpm_test_struct(void);
+void tdcpm_declare_struct(void);
 
 int main(int argc, char *argv[])
 {
