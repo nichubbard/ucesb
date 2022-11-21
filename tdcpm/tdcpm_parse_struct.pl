@@ -323,6 +323,19 @@ sub create_struct_items($$)
 	    print ", \"$unit\"";
 	}
 	print ");\n";
+
+	my $arraylens_ref = $item->{ARRAYLENS};
+	my $subarray = "";
+
+	foreach my $arraylen (@$arraylens_ref)
+	{
+	    my $spacer = $li_item;
+	    $spacer =~ s/./ /g;
+	    $spacer =~ s/  //;
+	    print "  /*$spacer*/ TDCPM_STRUCT_ITEM_ARRAY".
+		"($li_item, $struct, $item->{NAME}$subarray);\n";
+	    $subarray .= "[0]";
+	}
     }
     print "\n";
 }
