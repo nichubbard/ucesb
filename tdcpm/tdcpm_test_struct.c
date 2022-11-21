@@ -129,13 +129,13 @@ void tdcpm_test_struct()
   (void) li_cal2_f_i;
   (void) li_cal2_f_i2;
   
-  gi_cal_det_r = TDCPM_STRUCT_INSTANCE(cal, _cal_det_r, "r", li_cal2);
-  gi_cal_det_s = TDCPM_STRUCT_INSTANCE(cal, _cal_det_s, "s", li_calt);
-  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_s, calt, _cal_det_s);
+  gi_cal_det_r = TDCPM_STRUCT_INSTANCE(/*cal2,*/ _cal_det_r, "r", li_cal2);
+  gi_cal_det_s = TDCPM_STRUCT_INSTANCE(/*calt,*/ _cal_det_s, "s", li_calt);
+  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_s, /*calt,*/ _cal_det_s);
 
-  gi_cal_det_t = TDCPM_STRUCT_INSTANCE(cal2, _cal_det_t, "t", li_cal2);
-  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_t, cal2, _cal_det_t);
-  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_t, cal2, _cal_det_t[0]);
+  gi_cal_det_t = TDCPM_STRUCT_INSTANCE(/*cal2,*/ _cal_det_t, "t", li_cal2);
+  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_t, /*cal2,*/ _cal_det_t);
+  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_t, /*cal2,*/ _cal_det_t[0]);
 
   (void) gi_cal_det_r;
   (void) gi_cal_det_s;

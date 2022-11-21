@@ -95,7 +95,7 @@ void tdcpm_struct_value_dump_all(void);
 			  sub_struct)
 
 /* Specify one instance of a (top-level / global) structure. */
-#define TDCPM_STRUCT_INSTANCE(typename_struct, item, name, sub_struct)	\
+#define TDCPM_STRUCT_INSTANCE(/*typename_struct, */item, name, sub_struct) \
   tdcpm_struct_sub_struct(tdcpm_struct_item(_tdcpm_li_global,		\
 					    sizeof (item),		\
 					    ((void *) &(item)) - (void *) 0, \
@@ -103,7 +103,7 @@ void tdcpm_struct_value_dump_all(void);
 			  sub_struct)
 
 /* Specify that a top-level / global structure is an array. */
-#define TDCPM_STRUCT_INSTANCE_ARRAY(item, typename_struct, array_item)	\
+#define TDCPM_STRUCT_INSTANCE_ARRAY(item, /*typename_struct, */array_item) \
   tdcpm_struct_item_array(item,						\
 			  sizeof (array_item[0]),			\
 			  sizeof (array_item))
