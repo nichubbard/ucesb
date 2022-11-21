@@ -2,7 +2,7 @@
 
 # This file is part of TDCPM - time dependent calibration parameters.
 #
-# Copyright (C) 2017  Haakan T. Johansson  <f96hajo@chalmers.se>
+# Copyright (C) 2022  Haakan T. Johansson  <f96hajo@chalmers.se>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
