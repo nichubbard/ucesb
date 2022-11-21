@@ -148,31 +148,16 @@ exit 0;
 
 ########################################################################
 
-sub find_structure_items()
+sub parse_structure_item($)
 {
-    # TODO: Extract until the ending matched brace, such that
-    # (anonymous) substructures can be supported.
-    
-    while ($fullinput =~ s/(\s|^)TDCPM_STRUCT_DEF(\s+typedef)?\s+struct\s+([_A-Za-z][_A-Za-z0-9]*?)(_t)?\s+{(.*?)}//) {
-	my $struct  = $3;
-	my $content = $5;
-	my @content = split /;|\)\)/,$content;
+    my $item = shift;
 
-	my @items = ();
-
-	# print "Found struct $struct:\n";
-	
-	if ($structs{$struct}) {
-	    die "Multiple definitions of structure '$struct'."; }
-
-	foreach my $item (@content)
-	{
-	    if ($item =~ /^\s*$/) { }
-	    elsif ($item =~ /^\s*LWROC_MSG_HEADER\(\(\s*$/) {
-	    }
-	    elsif ($item =~ /^\s*LWROC_MSG_FOOTER\(\(\s*$/) {
-	    }
-	    elsif ($item =~ /
+    if ($item =~ /^\s*$/) { }
+    elsif ($item =~ /^\s*LWROC_MSG_HEADER\(\(\s*$/) {
+    }
+    elsif ($item =~ /^\s*LWROC_MSG_FOOTER\(\(\s*$/) {
+    }
+    elsif ($item =~ /
     ^\s*                                                   # beginning of line
     (((uint32_t|
        double)|
@@ -186,77 +171,107 @@ sub find_structure_items()
     \s*(TDCPM_UNIT\s*\(\s*\"([^\".]*)\"\s*\)\s*)?
     \s*$                                                   # end of line
     /x)
-            {
-	        my $plain_type = $3;
-	        my $struct_type = $4;
-	        my $name = $5;
-	        my $arraylen_str = $7;
-	        my $unit = $9;
+    {
+	my $plain_type = $3;
+	my $struct_type = $4;
+	my $name = $5;
+	my $arraylen_str = $7;
+	my $unit = $9;
 
-		if ($plain_type) {
-		    # TODO: Needed?
-		    $plain_type =~ s/const\s*//g;
-		    $plain_type =~ s/\s//g;
-		}
+	if ($plain_type) {
+	    # TODO: Needed?
+	    $plain_type =~ s/const\s*//g;
+	    $plain_type =~ s/\s//g;
+	}
 
-		my @arraylens = ();
+	my @arraylens = ();
 
-		if ($arraylen_str)
-		{
-		    my @raw_arraylens = split /\s*\]\[\s*/, $arraylen_str;
+	if ($arraylen_str)
+	{
+	    my @raw_arraylens = split /\s*\]\[\s*/, $arraylen_str;
 
-		    foreach my $arraylen (@raw_arraylens)
-		    {
-			# print "[$arraylen]\n";
+	    foreach my $arraylen (@raw_arraylens)
+	    {
+		# print "[$arraylen]\n";
 
-			if (!($arraylen =~ /
+		if (!($arraylen =~ /
     ^                                                      # beginning of line
     ([0-9]+|                                               # number
      [_A-Za-z][_A-Za-z0-9]*                                # some macro name
     )
     $                                                      # end of line
     /x)) {
-			    die "Malformed array length '$arraylen' for ".
-				"member '$name' in '$struct'.";
-			}
-
-			push @arraylens, $arraylen;
-		    }
+		    die "Malformed array length '$arraylen' for ".
+			"member '$name' in '$struct'.";
 		}
 
-		if (defined($plain_type) && $plain_type eq "unhandled_item") {
-		    print "/* TODO: remove unhandled_item items... */\n";
-		} else {
-		    my $type, my $typem;
-		    my $type_struct;
-
-		    if ($plain_type)
-		    {
-			$typem = $type = $plain_type; # mangled name
-			$type_struct = $type;
-		    }
-		    if ($struct_type)
-		    {
-			$typem = $type = $struct_type;
-			if ($typem =~ s/struct\s+(.)_t/$1/) {
-			    print "xx\n";
-			}
-			$type_struct = "struct";
-		    }
-
-		    my $rec = {
-			TYPE  => $type,
-			TYPEM => $typem,
-			TYPE_STRUCT => $type_struct,
-			NAME  => $name,
-			ARRAYLENS => \@arraylens,
-			UNIT  => $unit,
-		    };
-
-		    push @items,$rec;
-		}
+		push @arraylens, $arraylen;
 	    }
-	    else { die "Malformed item: '$item'."; }
+	}
+
+	if (defined($plain_type) && $plain_type eq "unhandled_item") {
+	    print "/* TODO: remove unhandled_item items... */\n";
+	} else {
+	    my $type, my $typem;
+	    my $type_struct;
+
+	    if ($plain_type)
+	    {
+		$typem = $type = $plain_type; # mangled name
+		$type_struct = $type;
+	    }
+	    if ($struct_type)
+	    {
+		$typem = $type = $struct_type;
+		if ($typem =~ s/struct\s+(.)_t/$1/) {
+		    print "xx\n";
+		}
+		$type_struct = "struct";
+	    }
+
+	    my $rec = {
+		TYPE  => $type,
+		TYPEM => $typem,
+		TYPE_STRUCT => $type_struct,
+		NAME  => $name,
+		ARRAYLENS => \@arraylens,
+		UNIT  => $unit,
+	    };
+
+	    return $rec;
+	}
+    }
+    else { die "Malformed item: '$item'."; }
+
+    return ();
+}
+
+########################################################################
+
+sub find_structure_items()
+{
+    # TODO: Extract until the ending matched brace, such that
+    # (anonymous) substructures can be supported.
+
+    while ($fullinput =~ s/(\s|^)TDCPM_STRUCT_DEF(\s+typedef)?\s+struct\s+([_A-Za-z][_A-Za-z0-9]*?)(_t)?\s+{(.*?)}//) {
+	my $struct  = $3;
+	my $content = $5;
+	my @content = split /;|\)\)/,$content;
+
+	my @items = ();
+
+	# print "Found struct $struct:\n";
+
+	if ($structs{$struct}) {
+	    die "Multiple definitions of structure '$struct'."; }
+
+	foreach my $item (@content)
+	{
+	    my $rec = parse_structure_item($item);
+
+	    if (defined($rec)) {
+		push @items,$rec;
+	    }
 	}
 
 	$structs{$struct} = \@items;
