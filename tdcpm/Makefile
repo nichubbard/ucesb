@@ -216,7 +216,7 @@ test: test.stamp
 
 test.stamp: tdcpm_test params_test.txt
 	@echo "  TEST   $< [params_test.txt]"
-	$(QUIET)cpp params_test.txt | ./tdcpm_test \
+	$(QUIET)cpp params_test.txt | ./tdcpm_test --manual \
 	  > $@.out 2> $@.err || echo "fail..."> /dev/null
 	@diff -u tdcpm_test.good $@.out || \
 	  ( echo "Failure while running: cpp params_test.txt | ./tdcpm_test:";\

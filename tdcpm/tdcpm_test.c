@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "tdcpm_file_line.h"
 #include "tdcpm_defs.h"
@@ -31,7 +32,7 @@ extern int lexer_read_fd;
 
 void tdcpm_test_struct(void);
 
-int main()
+int main(int argc, char *argv[])
 {
   tdcpm_file_line_table_init();
   
@@ -40,7 +41,10 @@ int main()
 
   tdcpm_struct_init();
 
-  tdcpm_test_struct();
+  if (argc >= 2 && strcmp(argv[1],"--manual") == 0)
+    tdcpm_test_struct();
+  if (argc >= 2 && strcmp(argv[1],"--parsed") == 0)
+    tdcpm_declare_struct();
 
   tdcpm_struct_dump_all();
 
