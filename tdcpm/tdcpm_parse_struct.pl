@@ -80,8 +80,6 @@ $fullinput =~ s,\n, ,sg;
 my %structs = ();
 my @structs = ();
 
-my @globals = ();
-
 find_structure_items();
 
 ########################################################################
@@ -128,6 +126,10 @@ EndOfText
 foreach $struct (@structs)
 {
     create_struct_items_decl($struct, $structs{$struct});
+}
+
+foreach $struct (@structs)
+{
     create_struct_items($struct, $structs{$struct});
     create_struct_items_void($struct, $structs{$struct});
 }
@@ -252,6 +254,8 @@ sub parse_structure_item($)
 
 sub find_structure_items()
 {
+    my @globals = ();
+
     # TODO: Extract until the ending matched brace, such that
     # (anonymous) substructures can be supported.
 
@@ -292,6 +296,11 @@ sub find_structure_items()
 
 	# print "Found instance: $instance\n";
     }
+
+    my $struct = ".global";
+
+    $structs{$struct} = \@globals;
+    push @structs, $struct;
 }
 
 ########################################################################
@@ -305,11 +314,15 @@ sub create_struct_items_decl($$)
 
     my $li_struct = "li_$struct";
 
-    print "  tdcpm_struct_info *$li_struct;\n";
+    if ($struct eq ".global") {
+	$li_struct = "gi";
+    } else {
+	print "  tdcpm_struct_info *$li_struct;\n";
+    }
 
     foreach my $item (@$items_ref)
     {
-	my $li_item = "li_${struct}_$item->{NAME}";
+	my $li_item = "${li_struct}_$item->{NAME}";
 
 	print "  tdcpm_struct_info_item *$li_item;\n";
     }
@@ -325,7 +338,11 @@ sub create_struct_items($$)
 
     my $li_struct = "li_$struct";
 
-    print "  $li_struct = TDCPM_STRUCT($struct, \"$struct\");\n\n";
+    if ($struct eq ".global") {
+	$li_struct = "gi";
+    } else {
+	print "  $li_struct = TDCPM_STRUCT($struct, \"$struct\");\n\n";
+    }
 
     foreach my $item (@$items_ref)
     {
@@ -335,7 +352,7 @@ sub create_struct_items($$)
 
 	}
 
-	my $li_item = "li_${struct}_$item->{NAME}";
+	my $li_item = "${li_struct}_$item->{NAME}";
 
 	my $strname = $item->{NAME};
 	my $unit = $item->{UNIT};
@@ -343,11 +360,16 @@ sub create_struct_items($$)
 	$strname =~ s/^_//;
 	if (!defined($unit)) { $unit = ""; }
 
-	print "  $li_item = TDCPM_STRUCT_ITEM_$uctypem".
-	    "($li_struct, $struct, $item->{NAME}, \"$strname\"";
+	if ($struct eq ".global") {
+	    print "  $li_item = TDCPM_STRUCT_INSTANCE(";
+	    # print "$item->{TYPEM}, ";
+	} else {
+	    print "  $li_item = TDCPM_STRUCT_ITEM_$uctypem(";
+	    print "$li_struct, $struct, ";
+	}
+	print "$item->{NAME}, \"$strname\"";
 	if ($item->{TYPE_STRUCT} eq "struct") {
 	    my $li_subitem = "li_$item->{TYPEM}";
-
 	    print ", $li_subitem";
 	} else {
 	    print ", \"$unit\"";
@@ -362,8 +384,13 @@ sub create_struct_items($$)
 	    my $spacer = $li_item;
 	    $spacer =~ s/./ /g;
 	    $spacer =~ s/  //;
-	    print "  /*$spacer*/ TDCPM_STRUCT_ITEM_ARRAY".
-		"($li_item, $struct, $item->{NAME}$subarray);\n";
+	    if ($struct eq ".global") {
+		print "  /*$spacer*/ TDCPM_STRUCT_INSTANCE_ARRAY".
+		    "($li_item, $item->{NAME}$subarray);\n";
+	    } else {
+		print "  /*$spacer*/ TDCPM_STRUCT_ITEM_ARRAY".
+		    "($li_item, $struct, $item->{NAME}$subarray);\n";
+	    }
 	    $subarray .= "[0]";
 	}
     }
@@ -379,11 +406,15 @@ sub create_struct_items_void($$)
 
     my $li_struct = "li_$struct";
 
-    print "  (void) $li_struct;\n";
+    if ($struct eq ".global") {
+	$li_struct = "gi";
+    } else {
+	print "  (void) $li_struct;\n";
+    }
 
     foreach my $item (@$items_ref)
     {
-	my $li_item = "li_${struct}_$item->{NAME}";
+	my $li_item = "${li_struct}_$item->{NAME}";
 
 	print "  (void) $li_item;\n";
     }
