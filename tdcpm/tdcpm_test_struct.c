@@ -77,9 +77,9 @@ void tdcpm_test_struct()
   tdcpm_struct_info      *li_cal2_f_i;
   tdcpm_struct_info      *li_cal2_f_i2;
 
-  tdcpm_struct_info_item *li_cal_det_r;
-  tdcpm_struct_info_item *li_cal_det_s;
-  tdcpm_struct_info_item *li_cal_det_t;
+  tdcpm_struct_info_item *gi_cal_det_r;
+  tdcpm_struct_info_item *gi_cal_det_s;
+  tdcpm_struct_info_item *gi_cal_det_t;
   
   /* li_cal_det_a = TDCPM_LAYOUT_LEVEL_0(_cal_det_a, "A"); */
 
@@ -129,16 +129,17 @@ void tdcpm_test_struct()
   (void) li_cal2_f_i;
   (void) li_cal2_f_i2;
   
-  li_cal_det_r = TDCPM_STRUCT_INSTANCE(cal, _cal_det_r, "r", li_cal2);
-  li_cal_det_s = TDCPM_STRUCT_INSTANCE(cal, _cal_det_s, "s", li_calt);
-  TDCPM_STRUCT_INSTANCE_ARRAY(li_cal_det_s, calt, _cal_det_s);
+  gi_cal_det_r = TDCPM_STRUCT_INSTANCE(cal, _cal_det_r, "r", li_cal2);
+  gi_cal_det_s = TDCPM_STRUCT_INSTANCE(cal, _cal_det_s, "s", li_calt);
+  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_s, calt, _cal_det_s);
 
-  li_cal_det_t = TDCPM_STRUCT_INSTANCE(cal2, _cal_det_t, "t", li_cal2);
-  TDCPM_STRUCT_INSTANCE_ARRAY(li_cal_det_t, cal2, _cal_det_t);
-  TDCPM_STRUCT_INSTANCE_ARRAY(li_cal_det_t, cal2, _cal_det_t[0]);
+  gi_cal_det_t = TDCPM_STRUCT_INSTANCE(cal2, _cal_det_t, "t", li_cal2);
+  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_t, cal2, _cal_det_t);
+  TDCPM_STRUCT_INSTANCE_ARRAY(gi_cal_det_t, cal2, _cal_det_t[0]);
 
-  (void) li_cal_det_r;
-  (void) li_cal_det_s;
+  (void) gi_cal_det_r;
+  (void) gi_cal_det_s;
+  (void) gi_cal_det_t;
   
   /*
   TDCPM_LAYOUT_BASE(_cal_det_t, "t");
