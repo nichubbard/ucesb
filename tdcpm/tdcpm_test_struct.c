@@ -34,11 +34,14 @@ typedef struct cale_t
   double _m TDCPM_UNIT("10 MeV");
 } cale;
 
+#define SEVEN 7
+
+TDCPM_STRUCT_DEF
 typedef struct cal2_t
 {
   double _a;
-  double _b[7];
-  double _c[5][6];
+  double _b[SEVEN];
+  double _c [ 5 ][ 6 ] ;  /* Intentional spaces for parser test. */
 
   calt   _d;
   cale   _e[4];
