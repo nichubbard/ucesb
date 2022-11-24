@@ -44,8 +44,13 @@ int main(int argc, char *argv[])
 
   if (argc >= 2 && strcmp(argv[1],"--manual") == 0)
     tdcpm_test_struct();
-  if (argc >= 2 && strcmp(argv[1],"--parsed") == 0)
+  else if (argc >= 2 && strcmp(argv[1],"--parsed") == 0)
     tdcpm_declare_struct();
+  else
+    {
+      fprintf (stderr, "--manual or --parsed missing.\n");
+      exit(1);
+    }
 
   tdcpm_struct_dump_all();
 
