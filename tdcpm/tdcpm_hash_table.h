@@ -43,6 +43,20 @@ typedef  struct tdcpm_hash_table_t
 
 } tdcpm_hash_table;
 
+#define TDCPM_HASH_ROUND(x, contrib) do { \
+    x ^= (contrib);			  \
+    x ^= x >> 12;			  \
+    x ^= x << 25;			  \
+    x ^= x >> 27;			  \
+  } while (0)
+
+#define TDCPM_HASH_MUL(x) do {		\
+    x = x * 0x2545F4914F6CDD1DULL;	\
+  } while (0)
+
+#define TDCPM_HASH_RET32(x) ((uint32_t) ((x >> 32) ^ x))
+
+
 void tdcpm_hash_table_init(tdcpm_hash_table *table);
 
 void tdcpm_hash_table_realloc(tdcpm_hash_table *table, size_t entries);

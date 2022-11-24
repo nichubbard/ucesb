@@ -106,20 +106,16 @@ uint32_t tdcpm_string_table_hash_calc(const char *str, size_t len)
 
       /* printf ("%016" PRIx64 " %016" PRIx64 "\n", x, pun._u64); */
 
-      x ^= pun._u64;
-
-      x ^= x >> 12;
-      x ^= x << 25;
-      x ^= x >> 27;
+      TDCPM_HASH_ROUND(x, pun._u64);
     }
 
   /* printf ("%016" PRIx64 "\n", x); */
 
-  x = x * 0x2545F4914F6CDD1DULL;
+  TDCPM_HASH_MUL(x);
 
   /* printf ("%016" PRIx64 "\n", x); */
 
-  return (uint32_t) ((x >> 32) ^ x);
+  return TDCPM_HASH_RET32(x);
 }
 
 typedef struct tdcpm_str_len_t

@@ -114,16 +114,12 @@ uint32_t tdcpm_unit_table_hash_calc(tdcpm_unit_build *unit)
 	(((uint64_t) parts[i]._str_idx) << 32) |
 	( (uint64_t) parts[i]._exponent);
 
-      x ^= contrib;
-
-      x ^= x >> 12;
-      x ^= x << 25;
-      x ^= x >> 27;
+      TDCPM_HASH_ROUND(x, contrib);
     }
 
-  x = x * 0x2545F4914F6CDD1DULL;
+  TDCPM_HASH_MUL(x);
 
-  return (uint32_t) ((x >> 32) ^ x);
+  return TDCPM_HASH_RET32(x);
 }
 
 #if 0
