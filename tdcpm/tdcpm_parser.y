@@ -18,7 +18,7 @@
  * MA  02110-1301  USA
  */
 
-/* This file contains the grammar for a cabling documentation file file.
+/* This file contains the grammar for time-dependent calibration parameters.
  *
  * With the help of bison(yacc), a C parser is produced.
  *
