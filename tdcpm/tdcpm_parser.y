@@ -133,6 +133,8 @@ struct md_ident_fl
 
 /* The statements (nodes) */
 
+%type <vect_node>  pgm_stmt
+%type <vect_node>  pgm_stmt_list
 %type <vect_node>  stmt
 %type <vect_node>  stmt_list
 
@@ -197,8 +199,23 @@ struct md_ident_fl
 
 /* This specifies an entire file */
 program:
-          stmt_list             { tdcpm_vect_nodes_all($1); }
+          pgm_stmt_list         { tdcpm_vect_nodes_all($1); }
         | /* NULL */
+        ;
+
+pgm_stmt_list:
+          pgm_stmt               { $$ = $1; }
+        | pgm_stmt_list pgm_stmt { $$ = tdcpm_vect_node_join($1,$2); }
+        ;
+
+/* The program (outer level) statements are separate, since
+ * definitions (aliases) are not allowed inside sub-units.
+ * (They short-cut into the lexer, so scope is not easily handled.)
+ */
+pgm_stmt:
+          stmt                  { $$ = $1; }
+        | var_def               { $$ = NULL; }
+        | unit_def              { $$ = NULL; }
         ;
 
 stmt_list:
@@ -212,8 +229,6 @@ stmt_list:
 stmt:
           ';'                   { $$ = NULL; }
         | calib_param           { $$ = $1; }
-        | var_def               { $$ = NULL; }
-        | unit_def              { $$ = NULL; }
         ;
 
 /* The empty semicolon above in stmt handles the case of optional
