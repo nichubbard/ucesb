@@ -151,6 +151,11 @@ void tdcpm_dump_table(int indent, tdcpm_table *table)
       first = 0;
 
       tdcpm_dump_var_name(vn->_item, 0);
+      if (vn->_tspec_idx != 0)
+	{
+	  printf (" @ ");
+	  tdcpm_dump_tspec(vn->_tspec_idx);
+	}
     }
   printf (" ]\n");
 

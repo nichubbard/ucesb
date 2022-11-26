@@ -213,13 +213,15 @@ void tdcpm_init_defs(void)
 
 /**************************************************************************/
 
-tdcpm_vect_var_names *tdcpm_vect_var_names_new(tdcpm_var_name *var_name)
+tdcpm_vect_var_names *tdcpm_vect_var_names_new(tdcpm_var_name *var_name,
+					       tdcpm_tspec_index tspec_idx)
 {
   tdcpm_vect_var_names *vn;
 
   vn = (tdcpm_vect_var_names *) TDCPM_MALLOC(tdcpm_vect_var_names);
 
-  vn->_item = var_name;
+  vn->_item      = var_name;
+  vn->_tspec_idx = tspec_idx;
 
   PD_LL_INIT(&(vn->_items));
 

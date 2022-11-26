@@ -54,7 +54,8 @@ int parse_definitions();
 
 typedef struct tdcpm_vect_var_names_t tdcpm_vect_var_names;
 
-tdcpm_vect_var_names *tdcpm_vect_var_names_new(tdcpm_var_name *var_name);
+tdcpm_vect_var_names *tdcpm_vect_var_names_new(tdcpm_var_name *var_name,
+					       tdcpm_tspec_index tspec_idx);
 
 tdcpm_vect_var_names *tdcpm_vect_var_names_join(tdcpm_vect_var_names *vect,
 						tdcpm_vect_var_names *add);

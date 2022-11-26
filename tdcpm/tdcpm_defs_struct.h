@@ -27,7 +27,8 @@
 
 struct tdcpm_vect_var_names_t
 {
-  tdcpm_var_name *_item;
+  tdcpm_var_name    *_item;
+  tdcpm_tspec_index  _tspec_idx;
 
   pd_ll_item _items;
 };

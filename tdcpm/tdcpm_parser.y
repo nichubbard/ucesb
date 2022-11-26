@@ -378,7 +378,10 @@ header_idents_list:
 	;
 
 header_ident:
-          var_or_name                  { $$ = tdcpm_vect_var_names_new($1); }
+          var_or_name
+	  { $$ = tdcpm_vect_var_names_new($1, TDCPM_TSPEC_TYPE_NONE); }
+        | var_or_name '@' tspec
+	  { $$ = tdcpm_vect_var_names_new($1, $3); }
         ;
 
 /*******************************************************/
@@ -442,9 +445,9 @@ value_vector_np:
 
 value_vector_np_single:
           value_unit
-	  { $$ = tdcpm_vect_dbl_units_new($1,
-					  TDCPM_TSPEC_TYPE_NONE); }
-        | value_unit '@' tspec    { $$ = tdcpm_vect_dbl_units_new($1, $3);}
+	  { $$ = tdcpm_vect_dbl_units_new($1, TDCPM_TSPEC_TYPE_NONE); }
+        | value_unit '@' tspec
+	  { $$ = tdcpm_vect_dbl_units_new($1, $3);}
 	;
 
 value_unit:
