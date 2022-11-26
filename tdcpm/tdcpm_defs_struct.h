@@ -45,7 +45,7 @@ struct tdcpm_vect_units_t
 
 struct tdcpm_vect_dbl_units_t
 {
-  tdcpm_dbl_unit _item;
+  tdcpm_dbl_unit_tspec _item;
 
   pd_ll_item _items;
 };

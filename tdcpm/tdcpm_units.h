@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include "tdcpm_string_table.h"
+#include "tdcpm_tspec_table.h"
 
 /**************************************************************************/
 
@@ -74,6 +75,12 @@ typedef struct tdcpm_dbl_unit_t
   double           _value;
   tdcpm_unit_index _unit_idx;
 } tdcpm_dbl_unit;
+
+typedef struct tdcpm_dbl_unit_tspec_t
+{
+  tdcpm_dbl_unit        _dbl_unit;
+  tdcpm_tspec_index _tspec_idx;
+} tdcpm_dbl_unit_tspec;
 
 typedef struct tdcpm_dbl_unit_build_t
 {

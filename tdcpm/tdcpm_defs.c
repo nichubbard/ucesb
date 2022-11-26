@@ -272,11 +272,18 @@ tdcpm_vect_dbl_units *tdcpm_vect_dbl_units_new(tdcpm_dbl_unit dbl_unit)
 
   vdu = (tdcpm_vect_dbl_units *) TDCPM_MALLOC(tdcpm_vect_dbl_units);
 
-  vdu->_item = dbl_unit;
+  vdu->_item._dbl_unit = dbl_unit;
+  vdu->_item._tspec_idx = TDCPM_TSPEC_TYPE_NONE;
 
   PD_LL_INIT(&(vdu->_items));
 
   return vdu; 
+}
+
+void tdcpm_vect_dbl_units_set_tspec(tdcpm_vect_dbl_units *vect,
+					tdcpm_tspec_index tspecidx)
+{
+  vect->_item._tspec_idx = tspecidx;
 }
 
 tdcpm_vect_dbl_units *tdcpm_vect_dbl_units_join(tdcpm_vect_dbl_units *vect,

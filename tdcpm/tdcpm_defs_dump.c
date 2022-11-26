@@ -76,6 +76,23 @@ void tdcpm_dump_unit(tdcpm_unit_index unit_idx)
   printf ("%s", str);
 }
 
+void tdcpm_dump_tspec(tdcpm_tspec_index tspec_idx)
+{
+  char str[128];
+  size_t n;
+
+  n = tdcpm_tspec_to_string(str, sizeof (str), tspec_idx);
+
+  if (n >= sizeof (str))
+    {
+      /* This could be fixed, but - really? */
+      fprintf (stderr, "Time specifier too long for string.");
+      exit(1);
+    }
+
+  printf ("%s", str);
+}
+
 void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
 {
   pd_ll_item *iter;
@@ -97,12 +114,17 @@ void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
 	printf (", ");
       first = 0;
 	    
-      printf ("%.4g", item->_item._value);
+      printf ("%.4g", item->_item._dbl_unit._value);
 
-      if (item->_item._unit_idx != 0)
+      if (item->_item._dbl_unit._unit_idx != 0)
 	{
 	  printf (" ");
-	  tdcpm_dump_unit(item->_item._unit_idx);
+	  tdcpm_dump_unit(item->_item._dbl_unit._unit_idx);
+	}
+      if (item->_item._tspec_idx != 0)
+	{
+	  printf (" @ %d ", item->_item._tspec_idx);
+	  tdcpm_dump_tspec(item->_item._tspec_idx);
 	}
     }
 	
@@ -146,10 +168,10 @@ void tdcpm_dump_table(int indent, tdcpm_table *table)
 	    printf (", ");
 	  first = 0;
 
-	  if (unit->_item._value != 1)
-	    printf ("%.4g ", unit->_item._value);
+	  if (unit->_item._dbl_unit._value != 1)
+	    printf ("%.4g ", unit->_item._dbl_unit._value);
 
-	  tdcpm_dump_unit(unit->_item._unit_idx);
+	  tdcpm_dump_unit(unit->_item._dbl_unit._unit_idx);
 	}
       printf (" ]\n");
     }

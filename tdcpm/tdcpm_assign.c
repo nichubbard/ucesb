@@ -163,17 +163,19 @@ void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
     {
       double factor;
       
-      fprintf (stderr, "%p %.4f\n", p, item->_item._value);
+      fprintf (stderr, "%p %.4f\n", p, item->_item._dbl_unit._value);
 
       /* Can the units be reconciled? */
-      if (!tdcpm_unit_factor(item->_item._unit_idx, dbl_unit->_unit_idx,
+      if (!tdcpm_unit_factor(item->_item._dbl_unit._unit_idx,
+			     dbl_unit->_unit_idx,
 			     &factor))
 	{
 	  fprintf(stderr, "Unit mismatch, cannot assign.\n");
 	  exit(1);
 	}
       
-      *((double *) p) = item->_item._value / factor / dbl_unit->_value;
+      *((double *) p) =
+	item->_item._dbl_unit._value / factor / dbl_unit->_value;
     }
 }
 
