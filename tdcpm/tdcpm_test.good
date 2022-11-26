@@ -140,6 +140,16 @@ b = {
 
   }
 }
+valid( WR 7, none)
+{
+  c(5).d(5) = 6 ns;
+}
+b = {
+  valid( WR 5, none)
+  {
+    c(7).d(7) = 8 ns;
+  }
+}
 ===
 .r.a = 7.0000
 .r.d.k = 3.0000 ns/ch
