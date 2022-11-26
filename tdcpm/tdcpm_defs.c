@@ -373,8 +373,8 @@ tdcpm_vect_node *tdcpm_node_new_vect(tdcpm_var_name       *var_name,
 
   node = tdcpm_node_new();
 
-  node->_node._type     = TDCPM_NODE_TYPE_VECT;
-  node->_node._var_name = var_name;
+  node->_node._type       = TDCPM_NODE_TYPE_VECT;
+  node->_node.n._var_name = var_name;
 
   PD_LL_INIT(&(node->_node.u._vect));
 
@@ -391,9 +391,9 @@ tdcpm_vect_node *tdcpm_node_new_table(tdcpm_var_name *var_name,
 
   node = tdcpm_node_new();
 
-  node->_node._type     = TDCPM_NODE_TYPE_TABLE;
-  node->_node._var_name = var_name;
-  node->_node.u._table  = table;
+  node->_node._type       = TDCPM_NODE_TYPE_TABLE;
+  node->_node.n._var_name = var_name;
+  node->_node.u._table    = table;
 
   return node;
 }
@@ -405,13 +405,33 @@ tdcpm_vect_node *tdcpm_node_new_sub_node(tdcpm_var_name  *var_name,
 
   node = tdcpm_node_new();
 
-  node->_node._type       = TDCPM_NODE_TYPE_SUB_NODE;
-  node->_node._var_name   = var_name;
+  node->_node._type         = TDCPM_NODE_TYPE_SUB_NODE;
+  node->_node.n._var_name   = var_name;
 
   PD_LL_INIT(&(node->_node.u._sub_nodes));
 
   if (sub_node)
     PD_LL_JOIN(&(node->_node.u._sub_nodes), &(sub_node->_nodes));
+
+  return node;
+}
+
+tdcpm_vect_node *tdcpm_node_new_valid_range(tdcpm_tspec_index tspec_idx_from,
+					    tdcpm_tspec_index tspec_idx_to,
+					    tdcpm_vect_node *nodes)
+{
+  tdcpm_vect_node *node;
+
+  node = tdcpm_node_new();
+
+  node->_node._type         = TDCPM_NODE_TYPE_VALID;
+  node->_node.n._tspec_idx._from = tspec_idx_from;
+  node->_node.n._tspec_idx._from = tspec_idx_to;
+
+  PD_LL_INIT(&(node->_node.u._sub_nodes));
+
+  if (nodes)
+    PD_LL_JOIN(&(node->_node.u._sub_nodes), &(nodes->_nodes));
 
   return node;
 }

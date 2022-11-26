@@ -81,12 +81,21 @@ struct tdcpm_table_t
 #define TDCPM_NODE_TYPE_VECT      1
 #define TDCPM_NODE_TYPE_TABLE     2
 #define TDCPM_NODE_TYPE_SUB_NODE  3
+#define TDCPM_NODE_TYPE_VALID     4
 
 struct tdcpm_node_t
 {
   int _type;
 
-  tdcpm_var_name *_var_name;
+  union
+  {
+    tdcpm_var_name *_var_name;
+    struct
+    {
+      tdcpm_tspec_index _from;
+      tdcpm_tspec_index _to;
+    } _tspec_idx;
+  } n;
 
   union
   {

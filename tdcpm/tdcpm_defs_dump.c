@@ -204,11 +204,12 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
 {
   printf ("%*s", indent, "");
 
-  (void) node;
+  if (node->_node._type != TDCPM_NODE_TYPE_VALID)
+    {
+      tdcpm_dump_var_name(node->_node.n._var_name, 0);
 
-  tdcpm_dump_var_name(node->_node._var_name, 0);
-
-  printf (" = ");
+      printf (" = ");
+    }
 
   switch (node->_node._type)
     {
@@ -237,6 +238,25 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
 	sentinel = &(node->_node.u._sub_nodes);
 
 	printf ("{\n");
+
+	tdcpm_dump_nodes(indent + 2, sentinel);
+
+	printf ("%*s}\n", indent, "");
+      }
+      break;
+    case TDCPM_NODE_TYPE_VALID:
+      {
+	pd_ll_item *sentinel;
+
+	printf ("valid( ");
+	tdcpm_dump_tspec(node->_node.n._tspec_idx._from);
+	printf (", ");
+	tdcpm_dump_tspec(node->_node.n._tspec_idx._to);
+	printf (")\n");
+
+	sentinel = &(node->_node.u._sub_nodes);
+
+	printf ("%*s{\n", indent, "");
 
 	tdcpm_dump_nodes(indent + 2, sentinel);
 

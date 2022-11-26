@@ -103,6 +103,9 @@ tdcpm_vect_node *tdcpm_node_new_table(tdcpm_var_name *var_name,
 				      tdcpm_table    *table);
 tdcpm_vect_node *tdcpm_node_new_sub_node(tdcpm_var_name  *var_name,
 					 tdcpm_vect_node *sub_node);
+tdcpm_vect_node *tdcpm_node_new_valid_range(tdcpm_tspec_index tspec_idx_from,
+					    tdcpm_tspec_index tspec_idx_to,
+					    tdcpm_vect_node *nodes);
 
 tdcpm_vect_node *tdcpm_vect_node_join(tdcpm_vect_node *vect,
 				      tdcpm_vect_node *add);

@@ -212,8 +212,11 @@ void tdcpm_assign_vect(tdcpm_var_name_tmp *var_name_tmp,
 void tdcpm_assign_node(tdcpm_var_name_tmp *var_name_tmp,
 		       tdcpm_vect_node *node)
 {
-  tdcpm_var_name_tmp_join(var_name_tmp,
-			  node->_node._var_name);
+  if (node->_node._type != TDCPM_NODE_TYPE_VALID)
+    {
+      tdcpm_var_name_tmp_join(var_name_tmp,
+			      node->_node.n._var_name);
+    }
 
   switch (node->_node._type)
     {
@@ -224,7 +227,7 @@ void tdcpm_assign_node(tdcpm_var_name_tmp *var_name_tmp,
 	sentinel = &(node->_node.u._vect);
 
 	tdcpm_assign_vect(var_name_tmp, sentinel, 0);
-      }      
+      }
       break;
     }
 }
