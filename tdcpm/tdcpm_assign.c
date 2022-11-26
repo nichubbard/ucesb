@@ -64,7 +64,7 @@ void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 	}
 
       name_idx =
-            var_name_tmp->_parts[part_i] & (~TDCPM_VAR_NAME_PART_FLAG_NAME);
+	var_name_tmp->_parts[part_i] & (~TDCPM_VAR_NAME_PART_FLAG_NAME);
 
       PD_LL_FOREACH(cur_struct->_items, iter)
 	{
