@@ -78,7 +78,7 @@ typedef struct tdcpm_dbl_unit_t
 
 typedef struct tdcpm_dbl_unit_tspec_t
 {
-  tdcpm_dbl_unit        _dbl_unit;
+  tdcpm_dbl_unit    _dbl_unit;
   tdcpm_tspec_index _tspec_idx;
 } tdcpm_dbl_unit_tspec;
 
