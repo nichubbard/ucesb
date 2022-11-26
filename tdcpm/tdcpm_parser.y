@@ -76,6 +76,7 @@ struct md_ident_fl
 
 %}
 
+
 %union {
   /* What we get from the lexer: */
 
@@ -121,6 +122,7 @@ struct md_ident_fl
 
 %token KW_DEF
 %token KW_DEF_UNIT
+%token KW_VALID
 %token KW_START
 %token KW_END
 %token KW_WR
@@ -141,6 +143,7 @@ struct md_ident_fl
 /* Compounds(?) */
 
 %type <vect_node>  calib_param
+%type <vect_node>  valid_range
 
 %type <var>        var_or_name
 
@@ -229,6 +232,7 @@ stmt_list:
 stmt:
           ';'                   { $$ = NULL; }
         | calib_param           { $$ = $1; }
+        | valid_range           { $$ = $1; }
         ;
 
 /* The empty semicolon above in stmt handles the case of optional
@@ -252,6 +256,13 @@ calib_param:
 	    $$ = tdcpm_node_new_sub_node($1, $4);
 	  }
         ;
+
+valid_range:
+          KW_VALID '(' tspec ',' tspec ')' '{' stmt_list '}'
+	  {
+	    $$ = tdcpm_node_new_valid_range($3, $5, $8);
+	  }
+	;
 
 /*******************************************************/
 

@@ -85,6 +85,7 @@ ssize_t lexer_read(char* buf,size_t max_size);
 
 "def:"      { return KW_DEF; }
 "defunit:"  { return KW_DEF_UNIT; }
+"valid"     { return KW_VALID; }
 "START"     { return KW_START; }
 "END"       { return KW_END; }
 "WR"        { return KW_WR; }
