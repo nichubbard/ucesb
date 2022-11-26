@@ -224,11 +224,6 @@ calib_param:
           {
 	    $$ = tdcpm_node_new_vect($1, $3/*, TDCPM_TSPEC_TYPE_NONE*/);
           }
-        | var_or_name '=' value_vector_np_single '@' tspec ';'
-          {
-	    tdcpm_vect_dbl_units_set_tspec($3, $5);
-	    $$ = tdcpm_node_new_vect($1, $3/*, $5*/);
-          }
         | var_or_name '=' '{' value_vector_np '}'
           {
 	    $$ = tdcpm_node_new_vect($1, $4/*, TDCPM_TSPEC_TYPE_NONE*/);
@@ -407,7 +402,7 @@ header_units_list:
 
 header_unit:
           unit
-	  { $$ = tdcpm_vect_dbl_units_new($1); }
+	  { $$ = tdcpm_vect_dbl_units_new($1, TDCPM_TSPEC_TYPE_NONE); }
         ;
 
 /*******************************************************/
@@ -441,18 +436,15 @@ value_vector_list:
 /* A vector of floating point values (with units). */
 value_vector_np:
 	  value_vector_np_single  { $$ = $1; }
-	| value_vector_np_single '@' tspec
-	  { tdcpm_vect_dbl_units_set_tspec($1, $3);
-	    $$ = $1; }
 	| value_vector_np ',' value_vector_np_single
 	  { $$ = tdcpm_vect_dbl_units_join($1, $3); }
-	| value_vector_np ',' value_vector_np_single '@' tspec
-	  { tdcpm_vect_dbl_units_set_tspec($3, $5);
-	    $$ = tdcpm_vect_dbl_units_join($1, $3); }
         ;
 
 value_vector_np_single:
-          value_unit              { $$ = tdcpm_vect_dbl_units_new($1); }
+          value_unit
+	  { $$ = tdcpm_vect_dbl_units_new($1,
+					  TDCPM_TSPEC_TYPE_NONE); }
+        | value_unit '@' tspec    { $$ = tdcpm_vect_dbl_units_new($1, $3);}
 	;
 
 value_unit:

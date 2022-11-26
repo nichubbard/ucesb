@@ -70,10 +70,8 @@ tdcpm_vect_units *tdcpm_vect_units_join(tdcpm_vect_units *vect,
 
 typedef struct tdcpm_vect_dbl_units_t tdcpm_vect_dbl_units;
 
-tdcpm_vect_dbl_units *tdcpm_vect_dbl_units_new(tdcpm_dbl_unit dbl_unit);
-
-void tdcpm_vect_dbl_units_set_tspec(tdcpm_vect_dbl_units *vect,
-				    tdcpm_tspec_index tspecidx);
+tdcpm_vect_dbl_units *tdcpm_vect_dbl_units_new(tdcpm_dbl_unit dbl_unit,
+					       tdcpm_tspec_index tspecidx);
 
 tdcpm_vect_dbl_units *tdcpm_vect_dbl_units_join(tdcpm_vect_dbl_units *vect,
 						tdcpm_vect_dbl_units *add);
