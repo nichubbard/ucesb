@@ -90,7 +90,8 @@ void tdcpm_lineno_get(int internal, const char **file, int *line)
   size_t first = 0;                /* First possible item. */
   size_t last = table->_num_items; /* Beyond last possible item. */
 
-  if (internal < table->_items[0]._internal)
+  if (!table->_num_items ||
+      internal < table->_items[0]._internal)
     {
       *file = "BEFORE_FIRST_LINE";
       *line = -1;
