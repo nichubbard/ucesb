@@ -85,6 +85,9 @@ ssize_t lexer_read(char* buf,size_t max_size);
 
 "def:"      { return KW_DEF; }
 "defunit:"  { return KW_DEF_UNIT; }
+"START"     { return KW_START; }
+"END"       { return KW_END; }
+"WR"        { return KW_WR; }
 
  /******************************************************************/
  /* BEGIN_INCLUDE_FILE "../lu_common/lexer_rules_double.lex" */
@@ -137,7 +140,7 @@ ssize_t lexer_read(char* buf,size_t max_size);
 		  return IDENTIFIER;
             }
 
-[-+*/;(){},:\|\[\]<>=\.^] {
+[-+*/;(){},:\|\[\]<>=\.^@] {
                 return *yytext;
             }
 

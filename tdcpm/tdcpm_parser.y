@@ -42,6 +42,7 @@
 #include "../tdcpm_string_table.h"
 #include "../tdcpm_var_name.h"
 #include "../tdcpm_units.h"
+#include "../tdcpm_tspec_table.h"
 #include "../tdcpm_file_line.h"
 
 /* #include "parse_error.hh" */
@@ -105,6 +106,8 @@ struct md_ident_fl
   tdcpm_vect_table_lines *vect_table_line;
 
   tdcpm_table            *table;
+
+  tdcpm_tspec_index    tspec;
 };
 
 /* Things we get from the lexer */
@@ -118,6 +121,9 @@ struct md_ident_fl
 
 %token KW_DEF
 %token KW_DEF_UNIT
+%token KW_START
+%token KW_END
+%token KW_WR
 
 /* Operands for simple calculations */
 
@@ -164,7 +170,11 @@ struct md_ident_fl
 %type <vect_table_line>  value_vector_line_comma
 %type <vect_table_line>  value_vector_line
 
-/* A vector of doubles */
+/* Time specifier. */
+
+%type <tspec>  tspec
+
+/* A vector of doubles. */
 
 %type <dbl_unit_build> value
 %type <dbl_unit_build> value_raw_unit
@@ -212,11 +222,16 @@ stmt:
 calib_param:
           var_or_name '=' value_vector_np_single ';'
           {
-	    $$ = tdcpm_node_new_vect($1, $3);
+	    $$ = tdcpm_node_new_vect($1, $3/*, TDCPM_TSPEC_TYPE_NONE*/);
+          }
+        | var_or_name '=' value_vector_np_single '@' tspec ';'
+          {
+	    tdcpm_vect_dbl_units_set_tspec($3, $5);
+	    $$ = tdcpm_node_new_vect($1, $3/*, $5*/);
           }
         | var_or_name '=' '{' value_vector_np '}'
           {
-	    $$ = tdcpm_node_new_vect($1, $4);
+	    $$ = tdcpm_node_new_vect($1, $4/*, TDCPM_TSPEC_TYPE_NONE*/);
           }
         | var_or_name '=' value_table
           {
@@ -255,6 +270,14 @@ unit_def:
 	    else	    
 	      tdcpm_insert_def_var($2, &dbl_unit, TDCPM_DEF_VAR_KIND_UNIT);
 	  }
+        ;
+
+/*******************************************************/
+
+tspec:
+          KW_START  { $$ = tdcpm_tspec_fixed(TDCPM_TSPEC_TYPE_START); }
+        | KW_END    { $$ = tdcpm_tspec_fixed(TDCPM_TSPEC_TYPE_END);   }
+        | KW_WR INTEGER  { $$ = tdcpm_tspec_wr($2); }
         ;
 
 /*******************************************************/
@@ -418,8 +441,14 @@ value_vector_list:
 /* A vector of floating point values (with units). */
 value_vector_np:
 	  value_vector_np_single  { $$ = $1; }
+	| value_vector_np_single '@' tspec
+	  { tdcpm_vect_dbl_units_set_tspec($1, $3);
+	    $$ = $1; }
 	| value_vector_np ',' value_vector_np_single
 	  { $$ = tdcpm_vect_dbl_units_join($1, $3); }
+	| value_vector_np ',' value_vector_np_single '@' tspec
+	  { tdcpm_vect_dbl_units_set_tspec($3, $5);
+	    $$ = tdcpm_vect_dbl_units_join($1, $3); }
         ;
 
 value_vector_np_single:
