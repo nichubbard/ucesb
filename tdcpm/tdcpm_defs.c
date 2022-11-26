@@ -27,6 +27,7 @@
 
 #include "tdcpm_var_name.h"
 #include "tdcpm_string_table.h"
+#include "tdcpm_tspec_table.h"
 #include "tdcpm_hash_table.h"
 #include "tdcpm_malloc.h"
 
@@ -206,6 +207,8 @@ void tdcpm_init_defs(void)
   tdcpm_unit_table_init();
 
   tdcpm_def_var_table_init();
+
+  tdcpm_tspec_table_init();
 }
 
 /**************************************************************************/
