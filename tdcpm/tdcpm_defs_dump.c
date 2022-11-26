@@ -123,7 +123,7 @@ void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
 	}
       if (item->_item._tspec_idx != 0)
 	{
-	  printf (" @ %d ", item->_item._tspec_idx);
+	  printf (" @ ");
 	  tdcpm_dump_tspec(item->_item._tspec_idx);
 	}
     }

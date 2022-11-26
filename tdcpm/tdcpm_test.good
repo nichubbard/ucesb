@@ -67,10 +67,10 @@ POS(1)(2).k = 8 mm/cm/ns*kg;
 POS(1)(2).k = 8 mm/cm*ns/kg;
 POS(1)(2).k = 8 mm/cm/ns/kg;
 POS(2)(2).m = 8 mm*dm;
-POS(2)(2).m = 8 mm*dm @ 3 WR 234;
-POS(2)(2).m = 8 mm*dm @ 1 START;
+POS(2)(2).m = 8 mm*dm @ WR 234;
+POS(2)(2).m = 8 mm*dm @ START;
 POS(2)(2).q(4) = { 8 cm/ns, 9 m/s };
-POS(2)(2).q(4) = { 8 cm/ns @ 1 START, 9 m/s @ 2 END };
+POS(2)(2).q(4) = { 8 cm/ns @ START, 9 m/s @ END };
 POS(1)(2).q(7) = 8 cm/ns;
 POS(2) = 
   [ k, m ]
