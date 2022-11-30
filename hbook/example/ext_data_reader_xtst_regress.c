@@ -136,11 +136,13 @@ int main(int argc,char *argv[])
       exit(1);
     }
 
+  /* Just debug info since this we test the system. */
+  /* fprintf (stdout, "Structure setup, size %zd.\n", sizeof(event)); */
+
   if (struct_map_success & ~EXT_DATA_ITEM_MAP_OK)
     {
       /* It would generally make sense to print these errors to
-       * stderr, but since we want to verify them, we dump to
-       * stdout.
+       * stderr, but since we want to verify them, we dump to stdout.
        *
        * The sticky handling further down uses stderr, and expects
        * a good match, so would be the typical recommended handling.
@@ -149,6 +151,9 @@ int main(int argc,char *argv[])
       fprintf (stdout,"Structure was not completely mapped (0x%04x).\n",
 	       struct_map_success);
 
+      /* Here only missing items are reported; to report all give 0 as
+       * last flag.
+       */
       ext_data_struct_info_print_map_success(struct_info,
 					     stdout,
 					     EXT_DATA_ITEM_MAP_OK);

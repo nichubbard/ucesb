@@ -196,7 +196,10 @@ int main(int argc,char *argv[])
     {
       fprintf (stderr, "Structure was not completely mapped (0x%04x).\n",
 	       struct_map_success);
-      /* Print user-friendly report of mapping issues. */
+      /* Print user-friendly report of mapping issues.
+       * Here only missing items are reported; to report all give 0 as
+       * last flag.
+       */
       ext_data_struct_info_print_map_success(struct_info,
 					     stderr,
 					     EXT_DATA_ITEM_MAP_OK);
