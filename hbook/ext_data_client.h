@@ -193,13 +193,18 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
 /* This mask identifies mappings which loose no data. */
 #define EXT_DATA_ITEM_MAP_OK            (EXT_DATA_ITEM_MAP_MATCH | \
 					 EXT_DATA_ITEM_MAP_ARRAY_MORE)
+/* This mask identifies mappings which may drop data from server,
+ * but all client items had sources.
+ */
+#define EXT_DATA_ITEM_MAP_OK_NO_DEST    (EXT_DATA_ITEM_MAP_OK | \
+					 EXT_DATA_ITEM_MAP_NO_DEST)
 
 /* Return information on how the structure members were mapped from
  * the data structure given by the server after ext_data_setup().  The
  * result is given in the return arguments.  @map_success is one of
  * the constants EXT_DATA_ITEM_MAP_... above.
  *
- * First call theis function with @restart = 1, and as long as it
+ * First call this function with @restart = 1, and as long as it
  * returns success, with @restart = 0.
  *
  * Note that information is also reported about items in the server
@@ -368,6 +373,8 @@ struct ext_data_client *ext_data_open_out();
  *                      In order to not have silent data loss, it is
  *                      suggested to only continue if
  *                      (struct_map_success & ~EXT_DATA_ITEM_MAP_OK).
+ *                      Or with EXT_DATA_ITEM_MAP_OK_NO_DEST to just
+ *                      ensure that all destination items got data.
  *                      ext_data_struct_info_print_map_success() can be
  *                      used to print a report of mapping issues.
  *                      Can be NULL (no mapping possible).
