@@ -227,6 +227,8 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  * Possible errors:
  *
  * EFAULT           @struct_info is NULL.
+ * EINVAL           Structure has not been mapped, i.e. was not used
+ *                  with ext_data_setup().
  */
 
 int
@@ -238,7 +240,8 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
 
 /*************************************************************************/
 
-/* Print a table of members and their mapping success.
+/* Print a table of members and their mapping success, after call to
+ * ext_data_setup().
  *
  * Do not call this function after the ext_data_client connection has
  * been closed.
@@ -256,6 +259,8 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
  * Possible errors:
  *
  * EFAULT           @struct_info is NULL.
+ * EINVAL           Structure has not been mapped, i.e. was not used
+ *                  with ext_data_setup().
  */
 
 int

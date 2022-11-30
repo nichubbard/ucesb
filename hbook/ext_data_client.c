@@ -279,6 +279,13 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
       return -1;
     }
 
+  if (struct_info->_server_struct_info == NULL)
+    {
+      /* struct_info->_last_error = "Struct_info server context NULL."; */
+      errno = EINVAL;
+      return -1;
+    }
+
   if (restart == 1)
     {
       struct_info->_ret_item = struct_info->_items;
