@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
 	{
 	  dump_struct   = 0;
 	  dump_assigned = 0;
+	  dump_stats    = 0;
 	}
       else
 	{
