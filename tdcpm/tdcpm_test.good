@@ -91,7 +91,7 @@ POS(4) =
 
 POS(5) = 
   [ k, m ]
-  [ ns/ch, ns ]
+  [ ns/ch, 5 ns ]
   { 9, 10 }
 
 POS(6) = 

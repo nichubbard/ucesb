@@ -448,6 +448,8 @@ header_units_list:
 header_unit:
           unit
 	  { $$ = tdcpm_vect_dbl_units_new($1, TDCPM_TSPEC_TYPE_NONE); }
+        | value_unit
+	  { $$ = tdcpm_vect_dbl_units_new($1, TDCPM_TSPEC_TYPE_NONE); }
         ;
 
 /*******************************************************/
