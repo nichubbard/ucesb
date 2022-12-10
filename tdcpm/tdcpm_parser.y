@@ -288,7 +288,19 @@ unit_def:
 
 	    if (_tdcpm_parse_catch_unitdef)
 	      *_tdcpm_parse_catch_unitdef = dbl_unit;
-	    else	    
+	    else
+	      tdcpm_insert_def_var($2, &dbl_unit, TDCPM_DEF_VAR_KIND_UNIT);
+	  }
+        | KW_DEF_UNIT IDENTIFIER '=' unit ';'
+	  {
+	    tdcpm_dbl_unit_build dbl_unit;
+
+	    dbl_unit._value = $4._value;
+	    dbl_unit._unit_bld = *tdcpm_unit_table_get($4._unit_idx);
+
+	    if (_tdcpm_parse_catch_unitdef)
+	      *_tdcpm_parse_catch_unitdef = dbl_unit;
+	    else
 	      tdcpm_insert_def_var($2, &dbl_unit, TDCPM_DEF_VAR_KIND_UNIT);
 	  }
         ;

@@ -11,6 +11,7 @@ def: value_8    = 8;
 def: value_9    = 9;
 
 defunit: unit_ten_ps = 10 ps;
+defunit: unit_ps = ps;
 
 r.a = 7;
 s[0].k = 1 ns/ch;
@@ -28,7 +29,7 @@ POS = 5 cm/ns;
 
 POS = 1 dm + 2 cm + 3 mm + 0.5 m;
 
-POS = 1 ns + 3 ps;
+POS = 1 ns + 3 unit_ps;
 POS = 4 ps + 2 ns;
 POS = 5 GeV + 2000 keV;
 POS = 2000 keV + 6 GeV;
