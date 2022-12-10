@@ -85,24 +85,24 @@ POS(3) =
 
 POS(4) = 
   [ k, m, x ]
-  [ ns/ch, ns, 10 ps ]
+  [[ ns/ch, ns, 10 ps ]]
   (1): { 5, 7, 4 }
   (2): { 6, 8, 5 }
 
 POS(5) = 
   [ k, m ]
-  [ ns/ch, 5 ns ]
+  [[ ns/ch, 5 ns ]]
   { 9, 10 }
 
 POS(6) = 
   [ k, m ]
-  [ ns/ch, ns ]
+  [[ ns/ch, ns ]]
   { 9, 10 }
   { 9, 10 }
 
 POS(7) = 
   [ k @ START, k @ END ]
-  [ ns/ch, ns/ch ]
+  [[ ns/ch, ns/ch ]]
   { 11, 12 }
   { 11, 12 }
 
@@ -132,7 +132,7 @@ b = {
   c(4) = {
     d = 
       [ f, g, h ]
-      [ cm, cm, ns ]
+      [[ cm, cm, ns ]]
       { 3, 4, 5 }
       (2): { 3, 4, 5 }
       { 3, 4, 5 }

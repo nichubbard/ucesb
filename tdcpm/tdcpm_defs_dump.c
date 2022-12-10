@@ -161,7 +161,7 @@ void tdcpm_dump_table(int indent, tdcpm_table *table)
 
   if (!PD_LL_IS_EMPTY(&(table->_units)))
     {
-      printf ("%*s[ ", indent, "");
+      printf ("%*s[[ ", indent, "");
       first = 1;
       PD_LL_FOREACH(table->_units, iter)
 	{
@@ -178,7 +178,7 @@ void tdcpm_dump_table(int indent, tdcpm_table *table)
 
 	  tdcpm_dump_unit(unit->_item._dbl_unit._unit_idx);
 	}
-      printf (" ]\n");
+      printf (" ]]\n");
     }
   
   PD_LL_FOREACH(table->_lines, iter)
