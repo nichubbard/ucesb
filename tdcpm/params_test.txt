@@ -33,7 +33,7 @@ POS = 4 ps + 2 ns;
 POS = 5 GeV + 2000 keV;
 POS = 2000 keV + 6 GeV;
 POS = (2 ns) * 3;
-POS = 42 cm/ns*ns;
+TEST= 42 cm/ns*ns;
 
 POS = 5 cm/ns + 9 cm/ns;
 POS = 1 cm/ns + 2 cm * 3 /ns + 41 cm/ns;
@@ -41,7 +41,7 @@ POS = 1 cm + (2 cm) * 3 + 42 cm/ns*ns;
 POS = (1 cm + (2 cm) * 3) / ns + 43 cm/ns;
 POS = 1 ns^2 + (2 ns) * 3 ns + 44 ns/cm*ns*cm;
 POS = 1 cm/ns + 2 cm / 3 ns + 45 cm/ns;
-POS = 1 ns/cm + (2 ns) / 3 cm + 46 cm^-1/ns^-1;
+TEST= 1 ns/cm + (2 ns) / 3 cm + 46 cm^-1/ns^-1;
 POS = 1 ns + (2 ns) / 3 + 47 cm/ns *ns*ns/cm;
 POS = 1 + (2 ns^0) / 3 + 48 cm/ns * ns/cm;
 POS = 1 cm/ns + 2 * 3 cm / 4 ns + 49 cm/ns;
