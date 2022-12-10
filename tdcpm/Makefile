@@ -223,4 +223,15 @@ test.%.stamp: tdcpm_test params_test.txt
 	    echo "--- stdout ($@.out): ---" ; cat $@.out ; \
 	    echo "--- stderr ($@.err): ---" ; cat $@.err ; \
 	    echo "---------------" ; false)
+	$(QUIET)cpp params_test.txt | ./tdcpm_test --$* --input-only \
+	  > $@.in.out 2> $@.in.err || echo "fail..."> /dev/null
+	$(QUIET)cpp $@.in.out | ./tdcpm_test --$* \
+	  > $@.re.out 2> $@.re.err || echo "fail..."> /dev/null
+	@diff -u tdcpm_test.good $@.re.out || \
+	  ( echo "Failure while running: cpp re-parsed | ./tdcpm_test:";\
+	    echo "--- stdout ($@.in.out): ---" ; cat $@.in.out ; \
+	    echo "--- stderr ($@.in.err): ---" ; cat $@.in.err ; \
+	    echo "--- stdout ($@.re.out): ---" ; cat $@.re.out ; \
+	    echo "--- stderr ($@.re.err): ---" ; cat $@.re.err ; \
+	    echo "---------------" ; false)
 	$(QUIET)touch $@
