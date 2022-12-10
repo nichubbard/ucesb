@@ -45,6 +45,8 @@ int main(int argc, char *argv[])
   int struct_parsed = 0;
   int struct_none = 0;
 
+  int i;
+
   tdcpm_file_line_table_init();
   
   tdcpm_init_defs();
@@ -52,7 +54,7 @@ int main(int argc, char *argv[])
 
   tdcpm_struct_init();
 
-  for (int i = 1; i < argc; i++)
+  for (i = 1; i < argc; i++)
     {
       if (     strcmp(argv[i], "--manual") == 0)
 	struct_manual = 1;
