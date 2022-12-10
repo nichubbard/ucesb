@@ -35,6 +35,16 @@ void tdcpm_declare_struct(void);
 
 int main(int argc, char *argv[])
 {
+  int dump_struct   = 1;
+  int dump_input    = 1;
+  int dump_assigned = 1;
+  int dump_stats    = 1;
+  int dumped = 0;
+
+  int struct_manual = 0;
+  int struct_parsed = 0;
+  int struct_none = 0;
+
   tdcpm_file_line_table_init();
   
   tdcpm_init_defs();
@@ -42,35 +52,72 @@ int main(int argc, char *argv[])
 
   tdcpm_struct_init();
 
-  if (argc >= 2 && strcmp(argv[1],"--manual") == 0)
-    tdcpm_test_struct();
-  else if (argc >= 2 && strcmp(argv[1],"--parsed") == 0)
-    tdcpm_declare_struct();
-  else if (argc >= 2 && strcmp(argv[1],"--none") == 0)
-    ;
-  else
+  for (int i = 1; i < argc; i++)
+    {
+      if (     strcmp(argv[i], "--manual") == 0)
+	struct_manual = 1;
+      else if (strcmp(argv[i], "--parsed") == 0)
+	struct_parsed = 1;
+      else if (strcmp(argv[i], "--none") == 0)
+	struct_none = 1;
+      else if (strcmp(argv[i], "--input-only") == 0)
+	{
+	  dump_struct   = 0;
+	  dump_assigned = 0;
+	}
+      else
+	{
+	  fprintf (stderr, "Unknown option: %s\n", argv[i]);
+	  exit(1);
+	}
+    }
+
+  if (!struct_manual && !struct_parsed && !struct_none)
     {
       fprintf (stderr, "--manual, --parsed or --none missing.\n");
       exit(1);
     }
 
-  tdcpm_struct_dump_all();
+  if (struct_manual)
+    tdcpm_test_struct();
+  if (struct_parsed)
+    tdcpm_declare_struct();
 
-  printf ("===\n");
+  if (dump_struct)
+    {
+      tdcpm_struct_dump_all();
+      dumped = 1;
+    }
 
   lexer_read_fd = STDIN_FILENO;
   
   parse_definitions();
 
-  tdcpm_dump_all_nodes();
-
-  printf ("===\n");
+  if (dump_input)
+    {
+      if (dumped)
+	printf ("===\n");
+      tdcpm_dump_all_nodes();
+      dumped = 1;
+    }
 
   tdcpm_assign_all_nodes();
 
-  tdcpm_struct_value_dump_all();
+  if (dump_assigned)
+    {
+      if (dumped)
+	printf ("===\n");
+      tdcpm_struct_value_dump_all();
+      dumped = 1;
+    }
 
-  tdcpm_string_table_print_stats(_tdcpm_parse_string_idents);
+  if (dump_stats)
+    {
+      if (dumped)
+	printf ("===\n");
+      tdcpm_string_table_print_stats(_tdcpm_parse_string_idents);
+      dumped = 1;
+    }
 
   return 0;
 }
