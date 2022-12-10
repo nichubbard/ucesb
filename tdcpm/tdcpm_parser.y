@@ -424,8 +424,12 @@ header_ident:
 
 /*******************************************************/
 
+/* Double '[[' since we otherwise are ambiguous with an index [i]:
+ * before a value line, if we are to allow units preceeded by values.
+ * (Reduce-reduce conflict.)
+ */
 header_units:
-          '[' header_units_list_null ']'   { $$ = $2; }
+          '[' '[' header_units_list_null ']' ']'   { $$ = $3; }
         ;
 
 header_units_list_null:
