@@ -424,9 +424,9 @@ tdcpm_vect_node *tdcpm_node_new_valid_range(tdcpm_tspec_index tspec_idx_from,
 
   node = tdcpm_node_new();
 
-  node->_node._type         = TDCPM_NODE_TYPE_VALID;
+  node->_node._type              = TDCPM_NODE_TYPE_VALID;
   node->_node.n._tspec_idx._from = tspec_idx_from;
-  node->_node.n._tspec_idx._from = tspec_idx_to;
+  node->_node.n._tspec_idx._to   = tspec_idx_to;
 
   PD_LL_INIT(&(node->_node.u._sub_nodes));
 
