@@ -76,6 +76,7 @@ struct md_ident_fl
 
 %}
 
+/* %define parse.error verbose */
 
 %union {
   /* What we get from the lexer: */
