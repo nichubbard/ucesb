@@ -147,7 +147,9 @@ valid( WR 5, WR 7)
 b = {
   valid( WR 3, WR 5)
   {
-    c(7).d(7) = 8 ns;
+    c(7).d(7) = 8 ns @ START;
+    c(7).d(7) = 8 ns @ WR 4;
+    c(7).d(7) = 8 ns @ END;
   }
 }
 ===
