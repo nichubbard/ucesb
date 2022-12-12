@@ -25,6 +25,7 @@
 
 /**************************************************************************/
 
+/* Used for table header. */
 struct tdcpm_vect_var_names_t
 {
   tdcpm_var_name    *_item;
@@ -44,6 +45,7 @@ struct tdcpm_vect_units_t
 
 /**************************************************************************/
 
+/* Used for table header. */
 struct tdcpm_vect_dbl_units_t
 {
   tdcpm_dbl_unit_tspec _item;
@@ -78,10 +80,10 @@ struct tdcpm_table_t
 
 /**************************************************************************/
 
-#define TDCPM_NODE_TYPE_VECT      1
+#define TDCPM_NODE_TYPE_VECT      1  /* Also for just a single value. */
 #define TDCPM_NODE_TYPE_TABLE     2
 #define TDCPM_NODE_TYPE_SUB_NODE  3
-#define TDCPM_NODE_TYPE_VALID     4
+#define TDCPM_NODE_TYPE_VALID     4  /* Validity range. */
 
 struct tdcpm_node_t
 {
