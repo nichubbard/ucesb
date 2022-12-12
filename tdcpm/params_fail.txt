@@ -1,0 +1,19 @@
+/* ### */
+
+/* All tests in this file should fail.
+ * The tests are separated by the triple-# marks.
+ * There cannot be separators at the beginning or end of the file.
+ */
+
+/* Fail due to mismatching units. */
+POS = 4 ps + 2 cm;
+
+/* ### */
+
+/* Fail due to mismatching units. */
+POS = 4 ps * 1 ns + 2 kg;
+
+/* ### */
+
+/* Fail due to '+ *' sequence. */
+POS = 1 ns + * 2 ns;
