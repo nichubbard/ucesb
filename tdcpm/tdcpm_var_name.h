@@ -40,14 +40,14 @@ typedef struct tdcpm_var_name_tmp_t tdcpm_var_name_tmp;
 
 struct tdcpm_var_name_t
 {
-  int      _num_parts;
+  uint32_t _num_parts;
   uint32_t _parts[1];  /* Must be last, several items allocated. */
 };
 
 struct tdcpm_var_name_tmp_t
 {
-  int       _num_parts;
-  int       _num_alloc;
+  uint32_t  _num_parts;
+  uint32_t  _num_alloc;
   uint32_t *_parts;
 };
 

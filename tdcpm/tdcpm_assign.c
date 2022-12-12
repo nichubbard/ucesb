@@ -34,7 +34,7 @@
 void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 				       tdcpm_dbl_unit **dbl_unit)
 {
-  int part_i = 0;
+  uint32_t part_i = 0;
 
   tdcpm_struct_info *cur_struct = _tdcpm_li_global;
 

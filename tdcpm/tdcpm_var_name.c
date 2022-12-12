@@ -88,7 +88,7 @@ tdcpm_var_name *tdcpm_var_name_name(tdcpm_var_name *base,
 
 tdcpm_var_name *tdcpm_var_name_off(tdcpm_var_name *base, int offset)
 {
-  int i;
+  uint32_t i;
   
   for (i = 0; i < base->_num_parts; i++)
     {
@@ -140,7 +140,7 @@ tdcpm_var_name *tdcpm_var_name_join(tdcpm_var_name *base,
 void tdcpm_var_name_tmp_join(tdcpm_var_name_tmp *base,
                              tdcpm_var_name *add)
 {
-  int num_parts = base->_num_parts + add->_num_parts;
+  uint32_t num_parts = base->_num_parts + add->_num_parts;
     
   if (num_parts > base->_num_alloc)
     {

@@ -27,7 +27,7 @@ void tdcpm_dump_nodes(int indent, pd_ll_item *nodes);
 
 void tdcpm_dump_var_name(tdcpm_var_name *v, int no_index_dot)
 {
-  int i;
+  uint32_t i;
 
   /* printf ("[ {%p} ]\n", v); */
 
