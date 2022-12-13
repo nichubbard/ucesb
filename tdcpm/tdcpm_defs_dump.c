@@ -22,6 +22,7 @@
 
 #include "tdcpm_defs.h"
 #include "tdcpm_defs_struct.h"
+#include "tdcpm_error.h"
 
 void tdcpm_dump_nodes(int indent, pd_ll_item *nodes);
 
@@ -69,8 +70,7 @@ void tdcpm_dump_unit(tdcpm_unit_index unit_idx)
   if (n >= sizeof (str))
     {
       /* This could be fixed, but - really? */
-      fprintf (stderr, "Unit too long for string.");
-      exit(1);
+      TDCPM_ERROR("Unit too long for string.");
     }
 
   printf ("%s", str);
@@ -86,8 +86,7 @@ void tdcpm_dump_tspec(tdcpm_tspec_index tspec_idx)
   if (n >= sizeof (str))
     {
       /* This could be fixed, but - really? */
-      fprintf (stderr, "Time specifier too long for string.");
-      exit(1);
+      TDCPM_ERROR("Time specifier too long for string.");
     }
 
   printf ("%s", str);
@@ -264,9 +263,8 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
       }
       break;
     default:
-      fprintf (stderr, "Unknown node type (%d).\n",
-	       node->_node._type);
-      exit(1);
+      TDCPM_ERROR("Unknown node type (%d).\n",
+		  node->_node._type);
       break;
     }
 }

@@ -26,7 +26,7 @@
 #include "tdcpm_struct_info.h"
 #include "tdcpm_struct_layout.h"
 #include "tdcpm_malloc.h"
-
+#include "tdcpm_error.h"
 
 typedef struct tdcpm_struct_dump_seen_t
 {
@@ -68,9 +68,9 @@ void tdcpm_struct_dump_struct(int indent, tdcpm_struct_info *info,
 		typename = "double";
 		break;
 	      default:
-		fprintf (stderr, "Unknown struct leaf type (%d).\n",
-			 item->_leaf._item->_kind);
-		exit(1);
+		TDCPM_ERROR("Unknown struct leaf type (%d).\n",
+			    item->_leaf._item->_kind);
+		break;
 	      }
 	    break;
 	  }	  
@@ -80,9 +80,8 @@ void tdcpm_struct_dump_struct(int indent, tdcpm_struct_info *info,
 				   item->_sub_struct._def->_type_name_idx);
 	  break;
 	default:
-	  fprintf (stderr, "Unknown struct item type (%d).\n",
-		   item->_kind);
-	  exit(1);
+	  TDCPM_ERROR("Unknown struct item type (%d).\n",
+		      item->_kind);
 	  break;	  
 	}
 
@@ -206,8 +205,7 @@ void tdcpm_struct_value_dump_struct_item(size_t offset, const char *name,
 		  if (n >= sizeof (unit_str))
 		    {
 		      /* This could be fixed, but - really? */
-		      fprintf (stderr, "Unit too long for string.");
-		      exit(1);
+		      TDCPM_ERROR("Unit too long for string.");
 		    }
 
 		  unit_val[0] = '\0';
@@ -226,9 +224,9 @@ void tdcpm_struct_value_dump_struct_item(size_t offset, const char *name,
 	      break;
 	    }
 	  default:
-	    fprintf (stderr, "Unknown struct leaf type (%d).\n",
-		     item->_leaf._item->_kind);
-	    exit(1);
+	    TDCPM_ERROR("Unknown struct leaf type (%d).\n",
+			item->_leaf._item->_kind);
+	    break;
 	  }
 	break;
       }	  
@@ -236,9 +234,8 @@ void tdcpm_struct_value_dump_struct_item(size_t offset, const char *name,
       tdcpm_struct_value_dump_struct(offset, name, item->_sub_struct._def);
       break;
     default:
-      fprintf (stderr, "Unknown struct item type (%d).\n",
-	       item->_kind);
-      exit(1);
+      TDCPM_ERROR("Unknown struct item type (%d).\n",
+		  item->_kind);
       break;	  
     }
 }

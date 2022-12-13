@@ -27,6 +27,7 @@
 #include "tdcpm_struct_info.h"
 #include "tdcpm_struct_layout.h"
 #include "tdcpm_malloc.h"
+#include "tdcpm_error.h"
 
 tdcpm_struct_info *_tdcpm_li_global = NULL;
 
@@ -102,10 +103,9 @@ void tdcpm_struct_item_check_size(tdcpm_struct_info_item *item,
 
   if (size > enclosing_size)
     {
-      fprintf (stderr,
-               "Item actual size (%zd) > enclosing item (array) size (%zd).\n",
-	       size, enclosing_size);
-      exit(1);
+      TDCPM_ERROR("Item actual size (%zd) > "
+		  "enclosing item (array) size (%zd).\n",
+		  size, enclosing_size);
     }
 }
 
@@ -117,12 +117,6 @@ tdcpm_struct_info_item *tdcpm_struct_item_array(tdcpm_struct_info_item *item,
 
   level = (tdcpm_struct_info_array_level *)
     TDCPM_MALLOC(tdcpm_struct_info_array_level);
-  if (!level)
-    {
-      fprintf (stderr,
-	       "Memory allocation error (tdcpm_struct_info_array_level).\n");
-      exit (1);
-    }
 
 #if 0
   if (item->_kind)
@@ -153,12 +147,6 @@ tdcpm_struct_info_item *tdcpm_struct_leaf_double(tdcpm_struct_info_item *item,
 
   leaf = (tdcpm_struct_info_leaf *)
     TDCPM_MALLOC(tdcpm_struct_info_leaf);
-  if (!leaf)
-    {
-      fprintf (stderr,
-               "Memory allocation error (tdcpm_struct_info_leaf).\n");
-      exit (1);
-    }
 
   tdcpm_struct_item_check_size(item, sizeof (double));
 
@@ -173,9 +161,7 @@ tdcpm_struct_info_item *tdcpm_struct_leaf_double(tdcpm_struct_info_item *item,
 
   if (item->_kind)
     {
-      fprintf (stderr,
-               "Item already has leaf/substructure assigned.\n");
-      exit (1);
+      TDCPM_ERROR("Item already has leaf/substructure assigned.\n");
     }
 
   item->_kind = STRUCT_INFO_ITEM_KIND_LEAF;
@@ -189,9 +175,7 @@ tdcpm_struct_info_item *tdcpm_struct_sub_struct(tdcpm_struct_info_item *item,
 {
   if (item->_kind)
     {
-      fprintf (stderr,
-               "Item already has leaf/substructure assigned.\n");
-      exit (1);
+      TDCPM_ERROR("Item already has leaf/substructure assigned.\n");
     }
 
   tdcpm_struct_item_check_size(item, sub_struct->_size);
