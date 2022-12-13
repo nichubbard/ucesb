@@ -44,6 +44,7 @@
 #include "../tdcpm_units.h"
 #include "../tdcpm_tspec_table.h"
 #include "../tdcpm_file_line.h"
+#include "../tdcpm_error.h"
 
 /* #include "parse_error.hh" */
 /* #include "file_line.hh" */
@@ -682,11 +683,7 @@ unit_part_block:
 
 void yyerror(const char *s)
 {
-  const char *file;
-  int line;
-  
-  tdcpm_lineno_get(yylineno, &file, &line);
-  fprintf(stderr,"%s:%d: %s\n", file, line, s);
+  TDCPM_ERROR_LOC(yylineno, "%s", s);
 /*
   Current.first_line   = Rhs[1].first_line;
   Current.first_column = Rhs[1].first_column;
@@ -694,7 +691,6 @@ void yyerror(const char *s)
   Current.last_column  = Rhs[N].last_column;
 */
   /*throw error();*/
-  exit(1);
 }
 
 int parse_definitions()

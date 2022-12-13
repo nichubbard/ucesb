@@ -19,6 +19,7 @@
  */
 
 #include "tdcpm_malloc.h"
+#include "tdcpm_error.h"
 
 #include <stdio.h>
 
@@ -33,9 +34,8 @@ void *tdcpm_realloc(void *p, size_t size, const char *name)
 
   if (p == NULL)
     {
-      fprintf (stderr, "Memory allocation failure (%zd bytes) (for '%s').\n",
-	       size, name);
-      exit (1);
+      TDCPM_ERROR("Memory allocation failure (%zd bytes) (for '%s').\n",
+		  size, name);
     }
 
   return p;

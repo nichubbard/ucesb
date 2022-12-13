@@ -119,3 +119,12 @@ void tdcpm_lineno_get(int internal, const char **file, int *line)
 	first = i;
     }  
 }
+
+void tdcpm_lineno_format(FILE *stream, int internal)
+{
+  const char *file;
+  int line;
+
+  tdcpm_lineno_get(internal, &file, &line);
+  fprintf(stream, "%s:%d:", file, line);
+}

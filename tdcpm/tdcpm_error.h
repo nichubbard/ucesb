@@ -18,20 +18,37 @@
  * MA  02110-1301  USA
  */
 
-#ifndef __TDCPM_FILE_LINE_H__
-#define __TDCPM_FILE_LINE_H__
+#ifndef __TDCPM_ERROR_H__
+#define __TDCPM_ERROR_H__
 
 #include <stdio.h>
-#include <stdlib.h>
 
-void tdcpm_file_line_table_init(void);
+#define TDCPM_ERROR(...) do {				\
+    fprintf(stderr,"%s:%d: ",__FILE__,__LINE__);	\
+    fprintf(stderr,__VA_ARGS__);			\
+    fputc('\n',stderr);					\
+    exit(1);						\
+  } while (0)
 
-void tdcpm_file_line_insert(int internal,
-			    const char *file, size_t sz_file,
-			    int line);
+#define TDCPM_WARNING(...) do {				\
+    fprintf(stderr,"%s:%d: ",__FILE__,__LINE__);	\
+    fprintf(stderr,__VA_ARGS__);			\
+    fputc('\n',stderr);					\
+  } while (0)
 
-void tdcpm_lineno_get(int internal, const char **file, int *line);
+#define TDCPM_ERROR_LOC(loc, ...) do {		\
+    tdcpm_lineno_format(stderr, loc);		\
+    fputc(' ',stderr);				\
+    fprintf(stderr,__VA_ARGS__);		\
+    fputc('\n',stderr);				\
+    exit(1);					\
+  } while (0)
 
-void tdcpm_lineno_format(FILE *stream, int internal);
+#define TDCPM_WARNING_LOC(loc, ...) do {	\
+    tdcpm_lineno_format(stderr, loc);		\
+    fputc(' ',stderr);				\
+    fprintf(stderr,__VA_ARGS__);		\
+    fputc('\n',stderr);				\
+  } while (0)
 
-#endif/*__TDCPM_FILE_LINE_H__*/
+#endif/*__TDCPM_ERROR_H__*/

@@ -27,6 +27,7 @@
 #include "tdcpm_string_table.h"
 #include "tdcpm_struct_info.h"
 #include "tdcpm_assign.h"
+#include "tdcpm_error.h"
 
 extern int lexer_read_fd;
 
@@ -70,15 +71,13 @@ int main(int argc, char *argv[])
 	}
       else
 	{
-	  fprintf (stderr, "Unknown option: %s\n", argv[i]);
-	  exit(1);
+	  TDCPM_ERROR("Unknown option: %s\n", argv[i]);
 	}
     }
 
   if (!struct_manual && !struct_parsed && !struct_none)
     {
-      fprintf (stderr, "--manual, --parsed or --none missing.\n");
-      exit(1);
+      TDCPM_ERROR("--manual, --parsed or --none missing.\n");
     }
 
   if (struct_manual)
