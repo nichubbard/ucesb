@@ -17,3 +17,21 @@ POS = 4 ps * 1 ns + 2 kg;
 
 /* Fail due to '+ *' sequence. */
 POS = 1 ns + * 2 ns;
+
+/* ### */
+
+/* Fail due to wrong #items in units. */
+POS(5) =
+  [ k     , m ]
+  [[ns/ch ]]
+  { 9     , 10 }
+  ;
+
+/* ### */
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  [ k     , m ]
+  [[ns/ch , 5 ns ]]
+  { 9     }
+  ;

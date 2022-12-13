@@ -332,6 +332,9 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
 			     tdcpm_vect_table_lines *lines)
 {
   tdcpm_table *table;
+  pd_ll_item *iter, *iter2;
+  size_t n_header = 0, n_units = 0;
+  size_t n_items;
 
   table = (tdcpm_table *) TDCPM_MALLOC(tdcpm_table);
 
@@ -345,6 +348,60 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
     PD_LL_JOIN(&(table->_units), &(units->_items));
   if (lines)
     PD_LL_JOIN(&(table->_lines), &(lines->_items));
+
+  /* Do the consistency checks after adding to the table.
+   * That way we have sentinels for all items, so PD_LL_FOREACH
+   * macros work as expected.  In particular, the loop over lines.
+   */
+
+  PD_LL_FOREACH(table->_header, iter)
+    n_header++;
+
+  n_items = n_header;
+
+  if (units)
+    {
+      /* units is not a sentinel, so need to be counted too! */
+      PD_LL_FOREACH(table->_units, iter)
+	n_units++;
+
+      if (n_items && n_units != n_items)
+	{
+	  fprintf (stderr,
+		   "Table header (%zd) and units (%zd) "
+		   "have different lengths.\n", n_items, n_units);
+	  exit(1);
+	}
+      else
+	n_items = n_units;
+    }
+
+  /* printf ("h: %zd u: %zd\n", n_header, n_units); */
+  /* printf ("%p %p %p\n", header, units, lines); */
+
+  PD_LL_FOREACH(table->_lines, iter)
+    {
+      tdcpm_vect_table_lines *line;
+      size_t n_line_items = 0;
+
+      line = PD_LL_ITEM(iter, tdcpm_vect_table_lines, _items);
+
+      PD_LL_FOREACH(line->_item._line_items, iter2)
+	n_line_items++;
+
+      /* printf ("l: %zd\n", n_line_items); */
+
+      if (n_items && n_line_items != n_items)
+	{
+	  fprintf (stderr,
+		   "Table header (or first line) (%zd) "
+		   "and line (%zd) have different lengths.\n",
+		   n_items, n_line_items);
+	  exit(1);
+	}
+      else
+	n_items = n_line_items;
+    }
 
   return table;
 }

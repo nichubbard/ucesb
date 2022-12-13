@@ -258,7 +258,7 @@ fail_tests: $(FAILSTAMPS)
 
 fail/%.stamp: fail/% tdcpm_test
 	@echo " TEST-F  $@"
-	$(QUIET)cpp $< | ( ! ./tdcpm_test --parsed \
+	$(QUIET)cpp $< | ( ! ./tdcpm_test --parsed --input-only \
 	  > $@.out 2> $@.err ) || \
 	  ( echo "Success when expecting failure: cpp $< | ./tdcpm_test:";\
 	    echo "--- input ($<): ---" ; cat $< ; \
