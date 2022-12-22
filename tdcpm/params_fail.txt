@@ -35,3 +35,26 @@ POS(5) =
   [[ns/ch , 5 ns ]]
   { 9     }
   ;
+
+/* ### */
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  [ k     , m ]
+  { 9     }
+  ;
+
+/* ### */
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  { 8     }
+  { 9, 10 }
+  ;
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  { 9, 10 }
+  { 9, 12 }
+  { 11    }
+  ;

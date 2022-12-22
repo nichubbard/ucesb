@@ -86,6 +86,8 @@ POS(2) =
 POS(3) =
   [ k, m ]
   { 3 ns/ch, 4 ns }
+  { 5 ns/ch, 6 ns }
+  { 7 ns/ch, 8 ns }
 ;
 
 POS(4) =
