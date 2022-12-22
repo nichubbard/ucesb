@@ -77,7 +77,7 @@ POS(2) =
 
 POS(2) = 
   [ k, m ]
-  { 1 ns*ns/ch^2 }
+  { 1 ns*ns/ch^2, 1 m }
 
 POS(3) = 
   [ k, m ]
