@@ -256,5 +256,8 @@ void tdcpm_assign_all_nodes(void)
   tdcpm_var_name_tmp var_name_tmp = { 0, 0, NULL };
 
   tdcpm_assign_nodes(&var_name_tmp, &_tdcpm_all_nodes);
+
+  if (var_name_tmp._parts)
+    free(var_name_tmp._parts);
 }
 

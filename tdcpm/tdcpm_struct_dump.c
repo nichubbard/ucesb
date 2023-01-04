@@ -160,6 +160,9 @@ void tdcpm_struct_dump_all(void)
   tdcpm_struct_dump_seen seen = { 0, 0, NULL };
 
   tdcpm_struct_dump_struct(0, _tdcpm_li_global, &seen);
+
+  if (seen._seen)
+    free(seen._seen);
 }
 
 
