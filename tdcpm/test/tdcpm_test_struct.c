@@ -156,4 +156,4 @@ void tdcpm_test_struct()
 
 }
 
-#include "generated/tdcpm_test_struct_decl.c"
+#include "test/generated/tdcpm_test_struct_decl.c"

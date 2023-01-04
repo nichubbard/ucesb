@@ -24,5 +24,5 @@ TDCPM=$(UCESB_BASE_DIR)/tdcpm/tdcpm_test # should be tdcpm/tdcpm
 -include $(UCESB_BASE_DIR)/tdcpm/tdcpm_test.base.dep
 
 $(TDCPM):
-	$(MAKE) -C $(UCESB_BASE_DIR)/tdcpm tdcpm_test test
+	$(MAKE) -C $(UCESB_BASE_DIR)/tdcpm test/tdcpm_test test
 
