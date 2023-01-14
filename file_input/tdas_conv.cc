@@ -621,7 +621,7 @@ int main(int argc,char *argv[])
 	      for (int i = 0; i < sizeof(name); i++)
 		name[i] = tolower(name[i]);
 
-	      sprintf (filename,"%s%s",outprefix,name);
+	      snprintf(filename,sizeof(filename),"%s%s",outprefix,name);
 
 	      printf ("Output file name: %s\n",filename);
 

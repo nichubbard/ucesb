@@ -116,7 +116,7 @@ int wadd_mag_str(WINDOW *win,
   // we have characters to use (such that floating point values
   // also can get decimals if needed)
 
-  sprintf (buf,"%.*f",fp ? chars : 1,value);
+  snprintf(buf,sizeof(buf),"%.*f",fp ? chars : 1,value);
 
   // Then, figure out where the decimal point ended up.
 

@@ -1243,7 +1243,7 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	      LMD_SUBEVENT_STICKY_DLEN_REVOKE)
 	    strcpy(data_len,"revoke");
 	  else
-	    sprintf (data_len,"%d",
+	    snprintf(data_len,sizeof(data_len),"%d",
 		     SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen));
 	  
 	  printf(" %sSubEv ProcID%s%s%6d%s Type/Subtype%s%5d%5d%s "

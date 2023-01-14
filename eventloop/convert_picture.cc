@@ -37,7 +37,7 @@ void convert_picture(const char *filename,
 
   writer.fork(argv[0],argv,NULL,&fd);
 
-  sprintf (header,
+  snprintf(header,sizeof(header),
 	   "P5\n"
 	   "%d %d\n"
 	   "255\n",

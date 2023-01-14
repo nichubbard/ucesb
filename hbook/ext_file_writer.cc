@@ -831,15 +831,15 @@ void close_output()
       char msg_index[64] = "";
       char msg_hists[64] = "";
       if (_config._timeslice)
-	sprintf (msg_total,", %lld total",
+	snprintf(msg_total,sizeof(msg_total),", %lld total",
 		 (long long int) _g._num_events_total);
       if (num_trees > 1)
-	sprintf (msg_trees," in %d trees",(int) num_trees);
+	snprintf(msg_trees,sizeof(msg_trees)," in %d trees",(int) num_trees);
       if (num_index_entries)
-	sprintf (msg_index,", %lld index-entries",
+	snprintf(msg_index,sizeof(msg_index),", %lld index-entries",
 		 (long long int) num_index_entries);
       if (_g._num_hists)
-	sprintf (msg_hists,", %d histograms",_g._num_hists);
+	snprintf(msg_hists,sizeof(msg_hists),", %d histograms",_g._num_hists);
       MSG("Closed file (%lld events%s%s%s%s).",
 	  (long long int) _g._num_events,
 	  msg_total,msg_trees,msg_index,msg_hists);

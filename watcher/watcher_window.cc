@@ -189,7 +189,7 @@ void watcher_window::event(watcher_event_info &info)
       for (int type = 0; type < NUM_WATCH_TYPES; type++)
 	{
 	  wcolor_set(wtop,(short) (COL_TYPE_BASE+type),NULL);
-	  sprintf (buf,"%9s:%6d ",
+	  snprintf(buf,sizeof(buf),"%9s:%6d ",
 		   WATCH_TYPE_NAMES[type]._name,
 		   _type_count[type]);
 	  wmove(wtop,1+type,80-18);
