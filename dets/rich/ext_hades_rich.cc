@@ -46,7 +46,7 @@ void EXT_HADES_RICH::__clean()
 void rich_rawdata_word::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  sprintf(buf,"(%d,%d,%d,%d,%2d:%3d)",sector,controller,port,module,channel,value);
+  snprintf(buf,sizeof(buf),"(%d,%d,%d,%d,%2d:%3d)",sector,controller,port,module,channel,value);
   pretty_dump(id,buf,pdi);
 }
 

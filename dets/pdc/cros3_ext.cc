@@ -77,7 +77,7 @@ void EXT_CROS3::__clean()
 void wire_hit::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  sprintf(buf,"(%d,%d,%d)",wire,start,stop);
+  snprintf(buf,sizeof(buf),"(%d,%d,%d)",wire,start,stop);
   pretty_dump(id,buf,pdi);
 }
 

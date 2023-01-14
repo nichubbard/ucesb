@@ -354,7 +354,7 @@ dumper *c_struct_item::function_call_array_loop_open(std::stack<dumper *> &dumpe
 	ld->text_fmt("FCNCALL_SUBINDEX(__i%d);\n",
 		     (int) i+array_i_offset);
 	char sub_index[32];
-	sprintf(sub_index,"[__i%d]",(int) i+array_i_offset);
+	snprintf(sub_index,sizeof(sub_index),"[__i%d]",(int) i+array_i_offset);
 	append_string(sub_array_index,sub_index);
     }
   return ld;

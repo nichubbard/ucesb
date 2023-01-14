@@ -1008,7 +1008,7 @@ void exit_function()
     {
       char filename[256];
 
-      sprintf (filename,"dam_m%d.pgm",i);
+      snprintf(filename,sizeof(filename),"dam_m%d.pgm",i);
 
       dam_corr_m[i].picture(filename);
     }

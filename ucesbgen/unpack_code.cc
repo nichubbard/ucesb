@@ -174,28 +174,28 @@ void generate_unpack_code(struct_definition *structure)
 
   char comment[512];
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker associated structures for %s.",
            structure->_header->_name);
   print_header("STRUCTURES",comment);
   code->_headers.fwrite(stdout);
   print_footer("STRUCTURES");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker for %s.",
            structure->_header->_name);
   print_header("UNPACKER",comment);
   code->_code_unpack.fwrite(stdout);
   print_footer("UNPACKER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event matcher for %s.",
            structure->_header->_name);
   print_header("MATCHER",comment);
   code->_code_match.fwrite(stdout);
   print_footer("MATCHER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event packer for %s.",
            structure->_header->_name);
   print_header("PACKER",comment);
@@ -234,31 +234,31 @@ void generate_unpack_code(event_definition *event)
 
   char comment[512];
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker associated structures for EVENT.");
   print_header("STRUCTURES",comment);
   code->_headers.fwrite(stdout);
   print_footer("STRUCTURES");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker for EVENT.");
   print_header("UNPACKER",comment);
   code->_code_unpack.fwrite(stdout);
   print_footer("UNPACKER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event packer for EVENT.");
   print_header("PACKER",comment);
   code->_code_packer.fwrite(stdout);
   print_footer("PACKER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event revoker for EVENT.");
   print_header("REVOKE",comment);
   code->_code_revoke.fwrite(stdout);
   print_footer("REVOKE");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Mappings of names for [incl|excl] name lookup.");
   print_header("SUBEVENT_NAMES",comment);
   dumper_dest_file d_dest(stdout);
@@ -820,7 +820,7 @@ void struct_unpack_code::gen(const struct_header *header,
 	      // we do not fit...
 
 	      char label[128];
-	      sprintf (label,"data_done_%d",data_done_counter++);
+	      snprintf(label,sizeof(label),"data_done_%d",data_done_counter++);
 	      data_done_label = strdup(label);
 
 	      d.text_fmt("if (__buffer.empty()) goto %s;\n",data_done_label);
@@ -952,7 +952,7 @@ void struct_unpack_code::gen(const struct_header *header,
       if (data->_flags & (SD_FLAGS_OPTIONAL | SD_FLAGS_SEVERAL))
 	{
 	  char label[128];
-	  sprintf (label,"data_done_%d",data_done_counter++);
+	  snprintf(label,sizeof(label),"data_done_%d",data_done_counter++);
 	  data_done_label = strdup(label);
 	  d.text_fmt("if (__buffer.empty()) goto %s;\n",data_done_label);
 
@@ -1007,9 +1007,9 @@ void struct_unpack_code::gen(const struct_header *header,
 		char name[512];
 
 		if (b->_name)
-		  sprintf(name,"%s%s.%s",prefix,data->_ident,b->_name);
+		  snprintf(name,sizeof(name),"%s%s.%s",prefix,data->_ident,b->_name);
 		else
-		  sprintf(name,"%s%s.unnamed_%d_%d",prefix,data->_ident,b->_min,b->_max);
+		  snprintf(name,sizeof(name),"%s%s.unnamed_%d_%d",prefix,data->_ident,b->_min,b->_max);
 
 		b->_cond->check(d,check_prefix,name,check_data_done_label);
 	      }
@@ -1047,7 +1047,7 @@ void struct_unpack_code::gen(const struct_header *header,
 	  {
 	    char name_prefix_str[512];
 
-	    sprintf(name_prefix_str,"%s.",data->_ident);
+	    snprintf(name_prefix_str,sizeof(name_prefix_str),"%s.",data->_ident);
 
 	    prefix_ident name_prefix;
 
@@ -1413,7 +1413,7 @@ void struct_unpack_code::gen_match(const file_line &loc,
 	      char label[128];
 	      static int spurious_label_counter = 0;
 
-	      sprintf (label,"spurious_match_abort_loop_%d",
+	      snprintf(label,sizeof(label),"spurious_match_abort_loop_%d",
 		       spurious_label_counter++);
 	      abort_spurious_label = strdup(label);
 	    }

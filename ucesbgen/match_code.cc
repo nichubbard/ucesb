@@ -159,9 +159,9 @@ bool struct_unpack_code::get_match_bits(const struct_data *data,dumper &d,const 
 	  char name[512];
 
 	  if (b->_name)
-	    sprintf(name,"%s%s.%s",prefix,data->_ident,b->_name);
+	    snprintf(name,sizeof(name),"%s%s.%s",prefix,data->_ident,b->_name);
 	  else
-	    sprintf(name,"%s%s.unnamed_%d_%d",prefix,data->_ident,b->_min,b->_max);
+	    snprintf(name,sizeof(name),"%s%s.unnamed_%d_%d",prefix,data->_ident,b->_min,b->_max);
 
 	  b->_cond->check(d,check_prefix,name);
 	  */

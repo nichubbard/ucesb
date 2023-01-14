@@ -181,7 +181,7 @@ void watcher_window::event(watcher_event_info &info)
 
       char buf[256];
 
-      sprintf (buf,"Event: %d",_event_no);
+      snprintf(buf,sizeof(buf),"Event: %d",_event_no);
 
       wmove(wtop,2,0);
       waddstr(wtop,buf);

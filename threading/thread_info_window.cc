@@ -240,7 +240,7 @@ void thread_info_window::display()
     time_t now = time(NULL);
     char buf[128];
 
-    sprintf (buf,"%d",(int) now);
+    snprintf(buf,sizeof(buf),"%d",(int) now);
 
     wmove(winput,0,60);
     waddstr(winput,buf);

@@ -62,7 +62,7 @@ bool ext_data_clnt::connect(const char *server)
 bool ext_data_clnt::connect(const char *server,int port)
 {
   char tmp[1024];
-  sprintf(tmp,"%s:%d",server,port);
+  snprintf(tmp,sizeof(tmp),"%s:%d",server,port);
   _client = ext_data_connect(tmp);
   return _client != NULL;
 }
@@ -143,7 +143,7 @@ bool ext_data_clnt_stderr::connect(const char *server)
 bool ext_data_clnt_stderr::connect(const char *server,int port)
 {
   char tmp[1024];
-  sprintf(tmp,"%s:%d",server,port);
+  snprintf(tmp,sizeof(tmp),"%s:%d",server,port);
   _client = ext_data_connect_stderr(tmp);
   return _client != NULL;
 }

@@ -1043,7 +1043,7 @@ int main(int argc, char **argv)
     {
       char buf[32];
 
-      sprintf(buf,"Work%d",i);
+      snprintf(buf,sizeof(buf),"Work%d",i);
       _ti_info.set_thread(i+1,buf,&_event_processor_threads[i]);
     }
   _ti_info.set_thread(threads+1,"Final",&_open_retire_thread);
