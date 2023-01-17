@@ -5604,7 +5604,7 @@ int main(int argc,char *argv[])
 	      // waste the space at the end
 	      shmc->_ctrl->_done += lin_left;
 	      shmc->_cur = shmc->_begin;
-	      continue;
+              goto check_producer_wakeup;
 	    }
 
 	  if (lin_left < sizeof(external_writer_buf_header))
@@ -5612,7 +5612,7 @@ int main(int argc,char *argv[])
 		    request);
 
 	  // MSG("CONSUME: %08x %08x (%x) [%08x].",_ctrl->_done,_cur-(char*)_ctrl,header->_length,header->_request);
-
+          {
 	  uint32_t length  = ntohl(header->_length);
 
 	  if (length & 3)
@@ -5656,6 +5656,7 @@ int main(int argc,char *argv[])
 	  // Did we by chance clean up enough of the buffer, that we
 	  // should wake the consumer up?
 
+	check_producer_wakeup:
 	  if (shmc->_ctrl->_need_producer_wakeup &&
 	      (((ssize_t) shmc->_ctrl->_done) -
 	       ((ssize_t) shmc->_ctrl->_wakeup_done)) >= 0)
