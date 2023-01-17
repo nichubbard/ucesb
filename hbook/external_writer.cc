@@ -600,7 +600,7 @@ void ext_writer_shm_buf::commit_buf_space(size_t space)
   // if the consumer wanted to be woken up...
 
   if (_ctrl->_need_consumer_wakeup &&
-      (((int) _ctrl->_avail) - ((int) _ctrl->_wakeup_avail)) >= 0)
+      (((ssize_t) _ctrl->_avail) - ((ssize_t) _ctrl->_wakeup_avail)) >= 0)
     {
       _ctrl->_need_consumer_wakeup = 0;
       SFENCE;
@@ -1231,7 +1231,7 @@ void ext_writer_shm_buf::message_body_done(uint32_t *end)
   _cur = (char*) end;
 
   if (_ctrl->_need_producer_wakeup &&
-      (((int) _ctrl->_done) - ((int) _ctrl->_wakeup_done)) >= 0)
+      (((ssize_t) _ctrl->_done) - ((ssize_t) _ctrl->_wakeup_done)) >= 0)
     {
       _ctrl->_need_producer_wakeup = 0;
       SFENCE;

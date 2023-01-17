@@ -5657,8 +5657,8 @@ int main(int argc,char *argv[])
 	  // should wake the consumer up?
 
 	  if (shmc->_ctrl->_need_producer_wakeup &&
-	      (((int) shmc->_ctrl->_done) -
-	       ((int) shmc->_ctrl->_wakeup_done)) >= 0)
+	      (((ssize_t) shmc->_ctrl->_done) -
+	       ((ssize_t) shmc->_ctrl->_wakeup_done)) >= 0)
 	    {
 	      shmc->_ctrl->_need_producer_wakeup = 0;
 	      MFENCE;
@@ -5781,8 +5781,8 @@ int main(int argc,char *argv[])
 	    goto read_done;
 
 	  if (shmc->_ctrl->_need_consumer_wakeup &&
-	      (((int) shmc->_ctrl->_avail) -
-	       ((int) shmc->_ctrl->_wakeup_avail)) >= 0)
+	      (((ssize_t) shmc->_ctrl->_avail) -
+	       ((ssize_t) shmc->_ctrl->_wakeup_avail)) >= 0)
 	    {
 	      shmc->_ctrl->_need_consumer_wakeup = 0;
 	      SFENCE;
