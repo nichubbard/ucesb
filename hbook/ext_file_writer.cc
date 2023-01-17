@@ -5604,6 +5604,7 @@ int main(int argc,char *argv[])
 	      // waste the space at the end
 	      shmc->_ctrl->_done += lin_left;
 	      shmc->_cur = shmc->_begin;
+              MFENCE;
               goto check_producer_wakeup;
 	    }
 
@@ -5652,6 +5653,8 @@ int main(int argc,char *argv[])
 	  MFENCE; // we cannot write that we're done until we wont use
 		  // the data any longer
 	  shmc->_ctrl->_done += length;
+          MFENCE;
+          }
 
 	  // Did we by chance clean up enough of the buffer, that we
 	  // should wake the consumer up?

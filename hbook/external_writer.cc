@@ -597,6 +597,7 @@ void ext_writer_shm_buf::commit_buf_space(size_t space)
     _cur = _begin; // start over from beginning
   assert(_cur + sizeof (uint32_t) <= _end);
 
+  MFENCE;
   // if the consumer wanted to be woken up...
 
   if (_ctrl->_need_consumer_wakeup &&
