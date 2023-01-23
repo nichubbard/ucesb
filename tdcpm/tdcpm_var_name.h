@@ -33,8 +33,8 @@ typedef struct tdcpm_var_name_tmp_t tdcpm_var_name_tmp;
 
 #define TDCPM_VAR_NAME_PART_FLAG_NAME  0x80000000
 
-/* The _parts array contain the indices or names,
- * then name, it has the flag value set, and the value
+/* The _parts array contain the indices or names.
+ * When name, it has the flag value set, and the value
  * is an index into the name string set.
  */
 
