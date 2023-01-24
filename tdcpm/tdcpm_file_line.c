@@ -81,7 +81,7 @@ void tdcpm_file_line_insert(int internal,
   item->_file_idx = tdcpm_string_table_insert(_tdcpm_parse_string_idents,
 					      file, sz_file);
 
-  fprintf (stderr, "%d:%d\n", internal, line);
+  /* fprintf (stderr, "%d:%d\n", internal, line); */
 }
 
 void tdcpm_lineno_get(int internal, const char **file, int *line)
