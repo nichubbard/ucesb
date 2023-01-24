@@ -38,7 +38,7 @@ void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 
   tdcpm_struct_info *cur_struct = _tdcpm_li_global;
 
-  size_t offset = 0;
+  uintptr_t offset = 0;
 
   for ( ; ; )
     {
@@ -144,7 +144,7 @@ void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 
 	*dbl_unit = &leaf->_dbl_unit;
 
-	return ((void *) 0) + offset;
+	return ((void *) offset);
       }
     }
 }

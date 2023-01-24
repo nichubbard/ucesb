@@ -177,17 +177,19 @@ void tdcpm_struct_dump_all(void)
 
 
 
-void tdcpm_struct_value_dump_struct(size_t offset, const char *name,
+void tdcpm_struct_value_dump_struct(uintptr_t offset,
+				    const char *name,
 				    tdcpm_struct_info *info);
 
-void tdcpm_struct_value_dump_struct_item(size_t offset, const char *name,
+void tdcpm_struct_value_dump_struct_item(uintptr_t offset,
+					 const char *name,
 					 tdcpm_struct_info_item *item)
 {
   switch (item->_kind)
     {
     case STRUCT_INFO_ITEM_KIND_LEAF:
       {
-	void *p = ((void *) 0) + offset;
+	void *p = ((void *) offset);
 
 	switch (item->_leaf._item->_kind)
 	  {
@@ -243,14 +245,15 @@ void tdcpm_struct_value_dump_struct_item(size_t offset, const char *name,
     }
 }
 
-void tdcpm_struct_value_dump_struct_item_array(size_t offset, const char *name,
+void tdcpm_struct_value_dump_struct_item_array(uintptr_t offset,
+					       const char *name,
 					       tdcpm_struct_info_item *item,
 					       pd_ll_item *level_iter)
 {
   tdcpm_struct_info_array_level *level;
   size_t i;
   char *arrayname = NULL;
-  size_t arrayoffset;      
+  uintptr_t arrayoffset;
   char *arrayindex;
   
   level = PD_LL_ITEM(level_iter, tdcpm_struct_info_array_level, _levels);
@@ -282,7 +285,7 @@ void tdcpm_struct_value_dump_struct_item_array(size_t offset, const char *name,
   free (arrayname);  
 }
 
-void tdcpm_struct_value_dump_struct(size_t offset,
+void tdcpm_struct_value_dump_struct(uintptr_t offset,
 				    const char *name,
 				    tdcpm_struct_info *info)
 {
@@ -292,7 +295,7 @@ void tdcpm_struct_value_dump_struct(size_t offset,
     {
       tdcpm_struct_info_item *item;
       char *itemname = NULL;
-      size_t itemoffset;
+      uintptr_t itemoffset;
       const char *itemname_this;
 
       item = PD_LL_ITEM(iter, tdcpm_struct_info_item, _items);

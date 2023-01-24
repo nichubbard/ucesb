@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct tdcpm_struct_info_t tdcpm_struct_info;
 
@@ -98,7 +99,7 @@ void tdcpm_struct_value_dump_all(void);
 #define TDCPM_STRUCT_INSTANCE(/*typename_struct, */item, name, sub_struct) \
   tdcpm_struct_sub_struct(tdcpm_struct_item(_tdcpm_li_global,		\
 					    sizeof (item),		\
-					    ((void *) &(item)) - (void *) 0, \
+					    (uintptr_t) ((void *) &(item)), \
 					    name),			\
 			  sub_struct)
 
