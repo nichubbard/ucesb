@@ -261,8 +261,11 @@ $(FAILSTAMPS): test/params_fail.txt
 	  tr '\n' ' ' >> $@
 
 .PHONY: fail_tests
-fail_tests: $(FAILSTAMPS)
+fail_tests: $(FAILSTAMPS) test/fail/xx1.stamp.err.check
 
+# A problem with the rule below is that failure to start the program
+# also leads the expected result.  We therefore have an explicit check
+# below on the first test.
 test/fail/%.stamp: test/fail/% test/tdcpm_test
 	@echo " TEST-F  $@"
 	$(QUIET)cpp $< | ( ! test/tdcpm_test --parsed --input-only \
@@ -273,3 +276,9 @@ test/fail/%.stamp: test/fail/% test/tdcpm_test
 	    echo "--- stderr ($@.err): ---" ; cat $@.err ; \
 	    echo "---------------" ; false)
 	$(QUIET)touch $@
+
+test/fail/xx1.stamp.err.check: test/fail/xx1.stamp
+	@echo "TEST-F-C $@"
+	@diff -u test/params_fail.expect1 test/fail/xx1.stamp.err || \
+          ( echo "Failure while running first fail test."; false)
+	@touch $@
