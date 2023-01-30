@@ -516,3 +516,65 @@ void tdcpm_vect_nodes_all(tdcpm_vect_node *vect)
 }
 
 /**************************************************************************/
+
+/*
+  Storage overview:
+
+  program:                         <vect_node>
+    stmt_list:                     <vect_node>
+      stmt:                        <vect_node>
+        calib_param:               <vect_node>
+        valid_range:               <vect_node> + <tspec>
+          stmt_list:               <vect_node>
+
+  calib_param:                     <vect_node>
+    var = value_vector_np_single   node:<vect_dbl_unit> (1)
+    var = value_vector_np          node:<vect_dbl_unit>
+    var = value_table              node:<table>
+    var = stmt_list                node:<vect_node>
+
+ */
+
+/*
+
+  tdcpm_dump_nodes(vect:tdcpm_vect_node)
+    tdcpm_dump_node(tdcpm_vect_node)
+      name: tdcpm_var_name
+      switch
+        TYPE_VECT:
+          tdcpm_dump_vect(vect:tdcpm_vect_dbl_units)
+            <value> <unit> [@ <tspec>]
+        TYPE_TABLE:
+          tdcpm_dump_table(tdcpm_table)
+            header: vect:tdcpm_vect_var_names
+              <name> [@ <tspec>]
+            units: vect:tdcpm_vect_dbl_units
+              <value> <unit>
+            lines: vect:tdcpm_vect_table_lines
+              [name :] tdcpm_dump_vect(vect:tdcpm_vect_dbl_units)
+        TYPE_SUB_NODE:
+          tdcpm_dump_nodes() [recursion]
+        TYPE_VALID_RANGE:
+          tdcpm_dump_nodes() [recursion]
+
+
+
+
+  tdcpm_vect_node = tdcpm_node : type [VECT/TABLE/SUB_NODE/VALID_RANGE]
+                                 union { name / { to, from } }
+                                 union { vect / table / sub_nodes}
+
+  tdcpm_table : header (sentinel)
+                units (sentinel)
+                lines (sentinel)
+
+  tdcpm_vect_table_lines = tdcpm_table_line : name
+                                              line_items (sentinel)
+
+  tdcpm_vect_dbl_units = tdcpm_dbl_unit_tspec : dbl_unit : value
+                                                           unit_idx
+                                                tspec_idx
+
+  tdcpm_vect_var_names : item [tdcpm_var_name]
+                         tspec_idx
+ */
