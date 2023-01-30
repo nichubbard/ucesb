@@ -220,8 +220,8 @@ tdcpm_vect_var_names *tdcpm_vect_var_names_new(tdcpm_var_name *var_name,
 
   vn = (tdcpm_vect_var_names *) TDCPM_MALLOC(tdcpm_vect_var_names);
 
-  vn->_item      = var_name;
-  vn->_tspec_idx = tspec_idx;
+  vn->_item._item      = var_name;
+  vn->_item._tspec_idx = tspec_idx;
 
   PD_LL_INIT(&(vn->_items));
 
