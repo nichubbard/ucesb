@@ -271,10 +271,17 @@ ifdef USE_MERGING # disabled for the time being (to be fixed...)
 NO_USE_EXT_WRITER=1
 endif
 
+#$(warning TARGET:   $(UCESB_BASE_DIR)/hbook/)
+#$(warning CURDIR:   $(CURDIR))
+## realpath --relative-to <curdir> <destination>
+## realpath not always available, sometimes --relative-to not available
+#TARGET_FROM_CURDIR:=$(shell perl -MFile::Spec -e 'print File::Spec->abs2rel(shift, shift)' $(UCESB_BASE_DIR)/hbook/ $(CURDIR))
+#$(warning CUR_DEST: $(TARGET_FROM_CURDIR))
+
 ifndef NO_USE_EXT_WRITER
 CXXFLAGS     += -DUSE_EXT_WRITER=$(USE_EXT_WRITER) \
 	-DUSING_EXT_WRITER=$(USE_EXT_WRITER) \
-	-DEXT_WRITER_PREFIX="\"$(UCESB_BASE_DIR)/hbook/\""
+	-DEXT_WRITER_PREFIX="\"$(shell perl -MFile::Spec -e 'print File::Spec->abs2rel(shift, shift)' $(UCESB_BASE_DIR)/hbook/ $(CURDIR))/\""
 NTUPLE_CREATION=1
 
 OBJS         += external_writer.o
