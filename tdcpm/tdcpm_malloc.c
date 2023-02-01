@@ -32,6 +32,8 @@ void *tdcpm_realloc(void *p, size_t size, const char *name)
 {
   p = realloc (p, size);
 
+  /* fprintf (stderr, "%zd %s\n", size, name); */
+
   if (p == NULL)
     {
       TDCPM_ERROR("Memory allocation failure (%zd bytes) (for '%s').\n",
