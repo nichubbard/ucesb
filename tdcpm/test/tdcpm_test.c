@@ -103,6 +103,8 @@ int main(int argc, char *argv[])
       dumped = 1;
     }
 
+  tdcpm_serialize_all_nodes();
+
   tdcpm_assign_all_nodes();
 
   if (dump_assigned)

@@ -27,7 +27,8 @@ GENOBJS = $(GENDIR)/tdcpm_parser.o $(GENDIR)/tdcpm_lexer.o
 OBJS    = \
         tdcpm_hash_table.o tdcpm_string_table.o tdcpm_malloc.o \
         tdcpm_var_name.o tdcpm_units.o tdcpm_tspec_table.o \
-        tdcpm_defs.o tdcpm_defs_dump.o \
+        tdcpm_defs.o tdcpm_defs_dump.o tdcpm_defs_serialize.o \
+        tdcpm_serialize_util.o \
         tdcpm_struct_layout.o tdcpm_struct_dump.o \
         tdcpm_assign.o tdcpm_file_line.o
 
