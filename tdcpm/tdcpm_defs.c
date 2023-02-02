@@ -30,6 +30,7 @@
 #include "tdcpm_tspec_table.h"
 #include "tdcpm_hash_table.h"
 #include "tdcpm_malloc.h"
+#include "tdcpm_serialize_util.h"
 
 /**************************************************************************/
 
@@ -409,6 +410,11 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
 /**************************************************************************/
 
 PD_LL_SENTINEL(_tdcpm_all_nodes);
+
+tdcpm_serialize_info _tdcpm_all_nodes_serialized =
+  {
+    NULL, 0, 0, 0
+  };
 
 tdcpm_vect_node *tdcpm_node_new()
 {

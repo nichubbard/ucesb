@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
   
   parse_definitions();
 
+  tdcpm_serialize_all_nodes();
+
   if (dump_input)
     {
       if (dumped)
@@ -102,8 +104,6 @@ int main(int argc, char *argv[])
       tdcpm_dump_all_nodes();
       dumped = 1;
     }
-
-  tdcpm_serialize_all_nodes();
 
   tdcpm_assign_all_nodes();
 

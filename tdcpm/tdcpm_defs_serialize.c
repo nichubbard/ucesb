@@ -305,14 +305,14 @@ void tdcpm_serialize_nodes(pd_ll_item *nodes,
 
 void tdcpm_serialize_all_nodes(void)
 {
-  tdcpm_serialize_info ser = { NULL, 0, 0, 0 };
   /* ptrdiff_t i; */
   
-  tdcpm_serialize_nodes(&_tdcpm_all_nodes, &ser);
+  tdcpm_serialize_nodes(&_tdcpm_all_nodes, &_tdcpm_all_nodes_serialized);
 
   /*
-  for (i = 0; i < ser._offset; i++)
-    printf ("  %08x%s", ser._buf[i], i % 8 == 7 ? "\n" : "");
+  for (i = 0; i < _tdcpm_all_nodes_serialized._offset; i++)
+    printf ("  %08x%s",
+            _tdcpm_all_nodes_serialized._buf[i], i % 8 == 7 ? "\n" : "");
   printf ("\n");
   */
 }

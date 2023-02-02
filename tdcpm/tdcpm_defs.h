@@ -117,6 +117,8 @@ extern PD_LL_SENTINEL_ITEM(_tdcpm_all_nodes);
 
 void tdcpm_dump_all_nodes(void);
 
+extern struct tdcpm_serialize_info_t _tdcpm_all_nodes_serialized;
+
 void tdcpm_serialize_all_nodes(void);
 
 #endif/*__TDCPM_DEFS_H__*/
