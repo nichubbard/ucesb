@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 {
   int dump_struct   = 1;
   int dump_input    = 1;
+  int dump_serialized = 0;
   int dump_assigned = 1;
   int dump_stats    = 1;
   int dumped = 0;
@@ -68,6 +69,11 @@ int main(int argc, char *argv[])
 	  dump_struct   = 0;
 	  dump_assigned = 0;
 	  dump_stats    = 0;
+	}
+      else if (strcmp(argv[i], "--dump-serialized") == 0)
+	{
+	  dump_serialized = 1;
+	  struct_parsed = 1; /* Just to allow single-argument Makefile test. */
 	}
       else
 	{
@@ -101,7 +107,10 @@ int main(int argc, char *argv[])
     {
       if (dumped)
 	printf ("===\n");
-      tdcpm_dump_all_nodes();
+      if (dump_serialized)
+	tdcpm_dump_ser_all_nodes();
+      else
+	tdcpm_dump_all_nodes();
       dumped = 1;
     }
 
