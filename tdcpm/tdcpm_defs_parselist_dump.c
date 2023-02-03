@@ -60,37 +60,15 @@ void tdcpm_dump_parselist_var_name(tdcpm_var_name *v, int no_index_dot)
     }
 }
 
-void tdcpm_dump_parselist_unit(tdcpm_unit_index unit_idx)
-{
-  char str[128];
-  size_t n;
+/* Does not depend directly depend on the parse structure data,
+ * so use function for serialized data.
+ */
 
-  n = tdcpm_unit_to_string(str, sizeof (str), unit_idx);
+void tdcpm_dump_unit(tdcpm_unit_index unit_idx);
+void tdcpm_dump_tspec(tdcpm_tspec_index tspec_idx);
 
-  if (n >= sizeof (str))
-    {
-      /* This could be fixed, but - really? */
-      TDCPM_ERROR("Unit too long for string.");
-    }
-
-  printf ("%s", str);
-}
-
-void tdcpm_dump_parselist_tspec(tdcpm_tspec_index tspec_idx)
-{
-  char str[128];
-  size_t n;
-
-  n = tdcpm_tspec_to_string(str, sizeof (str), tspec_idx);
-
-  if (n >= sizeof (str))
-    {
-      /* This could be fixed, but - really? */
-      TDCPM_ERROR("Time specifier too long for string.");
-    }
-
-  printf ("%s", str);
-}
+#define tdcpm_dump_parselist_unit tdcpm_dump_unit
+#define tdcpm_dump_parselist_tspec tdcpm_dump_tspec
 
 void tdcpm_dump_parselist_vect(pd_ll_item *sentinel, int several)
 {
