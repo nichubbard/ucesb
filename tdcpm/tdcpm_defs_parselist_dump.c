@@ -24,9 +24,9 @@
 #include "tdcpm_defs_struct.h"
 #include "tdcpm_error.h"
 
-void tdcpm_dump_nodes(pd_ll_item *nodes, int indent);
+void tdcpm_dump_parselist_nodes(pd_ll_item *nodes, int indent);
 
-void tdcpm_dump_var_name(tdcpm_var_name *v, int no_index_dot)
+void tdcpm_dump_parselist_var_name(tdcpm_var_name *v, int no_index_dot)
 {
   uint32_t i;
 
@@ -60,7 +60,7 @@ void tdcpm_dump_var_name(tdcpm_var_name *v, int no_index_dot)
     }
 }
 
-void tdcpm_dump_unit(tdcpm_unit_index unit_idx)
+void tdcpm_dump_parselist_unit(tdcpm_unit_index unit_idx)
 {
   char str[128];
   size_t n;
@@ -76,7 +76,7 @@ void tdcpm_dump_unit(tdcpm_unit_index unit_idx)
   printf ("%s", str);
 }
 
-void tdcpm_dump_tspec(tdcpm_tspec_index tspec_idx)
+void tdcpm_dump_parselist_tspec(tdcpm_tspec_index tspec_idx)
 {
   char str[128];
   size_t n;
@@ -92,7 +92,7 @@ void tdcpm_dump_tspec(tdcpm_tspec_index tspec_idx)
   printf ("%s", str);
 }
 
-void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
+void tdcpm_dump_parselist_vect(pd_ll_item *sentinel, int several)
 {
   pd_ll_item *iter;
   int first = 1;
@@ -118,12 +118,12 @@ void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
       if (item->_item._dbl_unit._unit_idx != 0)
 	{
 	  printf (" ");
-	  tdcpm_dump_unit(item->_item._dbl_unit._unit_idx);
+	  tdcpm_dump_parselist_unit(item->_item._dbl_unit._unit_idx);
 	}
       if (item->_item._tspec_idx != 0)
 	{
 	  printf (" @ ");
-	  tdcpm_dump_tspec(item->_item._tspec_idx);
+	  tdcpm_dump_parselist_tspec(item->_item._tspec_idx);
 	}
     }
 	
@@ -132,7 +132,7 @@ void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
 }
 
 
-void tdcpm_dump_table(tdcpm_table *table, int indent)
+void tdcpm_dump_parselist_table(tdcpm_table *table, int indent)
 {
   pd_ll_item *iter;
   int first;
@@ -149,11 +149,11 @@ void tdcpm_dump_table(tdcpm_table *table, int indent)
 	printf (", ");
       first = 0;
 
-      tdcpm_dump_var_name(vn->_item._item, 0);
+      tdcpm_dump_parselist_var_name(vn->_item._item, 0);
       if (vn->_item._tspec_idx != 0)
 	{
 	  printf (" @ ");
-	  tdcpm_dump_tspec(vn->_item._tspec_idx);
+	  tdcpm_dump_parselist_tspec(vn->_item._tspec_idx);
 	}
     }
   printf (" ]\n");
@@ -175,7 +175,7 @@ void tdcpm_dump_table(tdcpm_table *table, int indent)
 	  if (unit->_item._dbl_unit._value != 1)
 	    printf ("%.4g ", unit->_item._dbl_unit._value);
 
-	  tdcpm_dump_unit(unit->_item._dbl_unit._unit_idx);
+	  tdcpm_dump_parselist_unit(unit->_item._dbl_unit._unit_idx);
 	}
       printf (" ]]\n");
     }
@@ -189,23 +189,24 @@ void tdcpm_dump_table(tdcpm_table *table, int indent)
       printf ("%*s", indent, "");
       if (line->_item._var_name)
 	{
-	  tdcpm_dump_var_name(line->_item._var_name, 1);
+	  tdcpm_dump_parselist_var_name(line->_item._var_name, 1);
 	  printf (": ");
 	}
       
-      tdcpm_dump_vect(&(line->_item._line_items), 1 /* several = print { } */);
+      tdcpm_dump_parselist_vect(&(line->_item._line_items),
+			   1 /* several = print { } */);
       
       printf ("\n");
     }
 }
 
-void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
+void tdcpm_dump_parselist_node(tdcpm_vect_node *node, int indent)
 {
   printf ("%*s", indent, "");
 
   if (node->_node._type != TDCPM_NODE_TYPE_VALID)
     {
-      tdcpm_dump_var_name(node->_node.n._var_name, 0);
+      tdcpm_dump_parselist_var_name(node->_node.n._var_name, 0);
 
       printf (" = ");
     }
@@ -218,7 +219,7 @@ void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
 
 	sentinel = &(node->_node.u._vect);
 
-	tdcpm_dump_vect(sentinel, 0);
+	tdcpm_dump_parselist_vect(sentinel, 0);
 
 	printf (";\n");
       }      
@@ -226,7 +227,7 @@ void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
     case TDCPM_NODE_TYPE_TABLE:
       {
 	printf ("\n");
-	tdcpm_dump_table(node->_node.u._table, indent + 2);
+	tdcpm_dump_parselist_table(node->_node.u._table, indent + 2);
 	printf ("\n");
       }
       break;
@@ -238,7 +239,7 @@ void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
 
 	printf ("{\n");
 
-	tdcpm_dump_nodes(sentinel, indent + 2);
+	tdcpm_dump_parselist_nodes(sentinel, indent + 2);
 
 	printf ("%*s}\n", indent, "");
       }
@@ -248,16 +249,16 @@ void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
 	pd_ll_item *sentinel;
 
 	printf ("valid( ");
-	tdcpm_dump_tspec(node->_node.n._tspec_idx._from);
+	tdcpm_dump_parselist_tspec(node->_node.n._tspec_idx._from);
 	printf (", ");
-	tdcpm_dump_tspec(node->_node.n._tspec_idx._to);
+	tdcpm_dump_parselist_tspec(node->_node.n._tspec_idx._to);
 	printf (")\n");
 
 	sentinel = &(node->_node.u._sub_nodes);
 
 	printf ("%*s{\n", indent, "");
 
-	tdcpm_dump_nodes(sentinel, indent + 2);
+	tdcpm_dump_parselist_nodes(sentinel, indent + 2);
 
 	printf ("%*s}\n", indent, "");
       }
@@ -270,7 +271,7 @@ void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
 }
 
 
-void tdcpm_dump_nodes(pd_ll_item *nodes, int indent)
+void tdcpm_dump_parselist_nodes(pd_ll_item *nodes, int indent)
 {
   pd_ll_item *iter;
 
@@ -280,11 +281,11 @@ void tdcpm_dump_nodes(pd_ll_item *nodes, int indent)
 
       node = PD_LL_ITEM(iter, tdcpm_vect_node, _nodes);
 
-      tdcpm_dump_node(node, indent);
+      tdcpm_dump_parselist_node(node, indent);
     }
 }
 
-void tdcpm_dump_all_nodes(void)
+void tdcpm_dump_parselist_all_nodes(void)
 {
-  tdcpm_dump_nodes(&_tdcpm_all_nodes, 0);
+  tdcpm_dump_parselist_nodes(&_tdcpm_all_nodes, 0);
 }
