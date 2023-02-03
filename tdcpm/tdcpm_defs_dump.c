@@ -24,7 +24,7 @@
 #include "tdcpm_defs_struct.h"
 #include "tdcpm_error.h"
 
-void tdcpm_dump_nodes(int indent, pd_ll_item *nodes);
+void tdcpm_dump_nodes(pd_ll_item *nodes, int indent);
 
 void tdcpm_dump_var_name(tdcpm_var_name *v, int no_index_dot)
 {
@@ -132,7 +132,7 @@ void tdcpm_dump_vect(pd_ll_item *sentinel, int several)
 }
 
 
-void tdcpm_dump_table(int indent, tdcpm_table *table)
+void tdcpm_dump_table(tdcpm_table *table, int indent)
 {
   pd_ll_item *iter;
   int first;
@@ -199,7 +199,7 @@ void tdcpm_dump_table(int indent, tdcpm_table *table)
     }
 }
 
-void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
+void tdcpm_dump_node(tdcpm_vect_node *node, int indent)
 {
   printf ("%*s", indent, "");
 
@@ -226,7 +226,7 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
     case TDCPM_NODE_TYPE_TABLE:
       {
 	printf ("\n");
-	tdcpm_dump_table(indent + 2, node->_node.u._table);
+	tdcpm_dump_table(node->_node.u._table, indent + 2);
 	printf ("\n");
       }
       break;
@@ -238,7 +238,7 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
 
 	printf ("{\n");
 
-	tdcpm_dump_nodes(indent + 2, sentinel);
+	tdcpm_dump_nodes(sentinel, indent + 2);
 
 	printf ("%*s}\n", indent, "");
       }
@@ -257,7 +257,7 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
 
 	printf ("%*s{\n", indent, "");
 
-	tdcpm_dump_nodes(indent + 2, sentinel);
+	tdcpm_dump_nodes(sentinel, indent + 2);
 
 	printf ("%*s}\n", indent, "");
       }
@@ -270,7 +270,7 @@ void tdcpm_dump_node(int indent, tdcpm_vect_node *node)
 }
 
 
-void tdcpm_dump_nodes(int indent, pd_ll_item *nodes)
+void tdcpm_dump_nodes(pd_ll_item *nodes, int indent)
 {
   pd_ll_item *iter;
 
@@ -280,11 +280,11 @@ void tdcpm_dump_nodes(int indent, pd_ll_item *nodes)
 
       node = PD_LL_ITEM(iter, tdcpm_vect_node, _nodes);
 
-      tdcpm_dump_node(indent, node); 
+      tdcpm_dump_node(node, indent);
     }
 }
 
 void tdcpm_dump_all_nodes(void)
 {
-  tdcpm_dump_nodes(0, &_tdcpm_all_nodes);
+  tdcpm_dump_nodes(&_tdcpm_all_nodes, 0);
 }
