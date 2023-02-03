@@ -28,9 +28,6 @@
 #include "tdcpm_assign.h"
 
 
-
-
-
 void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 				       tdcpm_dbl_unit **dbl_unit)
 {

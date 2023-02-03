@@ -24,6 +24,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**************************************************************************/
+
 typedef struct tdcpm_serialize_info_t
 {
   uint32_t  *_buf;
@@ -61,5 +63,29 @@ typedef union tdcpm_pun_double_uint64_t
 
 #define TDCPM_SERIALIZE_OFF_PTR(ser, offset) \
   ((ser)->_buf + offset)
+
+/**************************************************************************/
+
+typedef struct tdcpm_deserialize_info_t
+{
+  uint32_t  *_cur;
+  uint32_t  *_end;
+} tdcpm_deserialize_info;
+
+#define TDCPM_DESER_UINT32(deser) (*((deser)->_cur++))
+
+#define TDCPM_DESERIALIZE_UINT64(deser, value) do { \
+    uint32_t __hi = TDCPM_DESER_UINT32(deser);	    \
+    uint32_t __lo = TDCPM_DESER_UINT32(deser);	    \
+    value = (((uint64_t) __hi) << 32) | __lo;	    \
+  } while (0)
+
+#define TDCPM_DESERIALIZE_DOUBLE(deser, value) do { \
+    tdcpm_pun_double_uint64 pun;		    \
+    TDCPM_DESERIALIZE_UINT64(deser, pun._u64);	    \
+    value = pun._dbl;				    \
+  } while (0)
+
+/**************************************************************************/
 
 #endif/*__TDCPM_SERIALIZE_UTIL_H__*/
