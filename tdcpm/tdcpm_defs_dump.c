@@ -193,7 +193,7 @@ void tdcpm_dump_table(tdcpm_table *table, int indent)
 	  printf (": ");
 	}
       
-      tdcpm_dump_vect(&(line->_item._line_items), 1);
+      tdcpm_dump_vect(&(line->_item._line_items), 1 /* several = print { } */);
       
       printf ("\n");
     }
