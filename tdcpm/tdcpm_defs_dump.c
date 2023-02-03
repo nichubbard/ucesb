@@ -145,8 +145,8 @@ void tdcpm_dump_vect_loop(tdcpm_deserialize_info *deser,
     printf (" }");
 }
 
-void tdcpm_dump_vect(int several,
-		     tdcpm_deserialize_info *deser)
+void tdcpm_dump_vect(tdcpm_deserialize_info *deser,
+		     int several)
 {
   uint32_t num;
 
@@ -251,7 +251,7 @@ void tdcpm_dump_node(tdcpm_deserialize_info *deser, int indent)
     {
     case TDCPM_NODE_TYPE_VECT:
       {
-	tdcpm_dump_vect(0, deser);
+	tdcpm_dump_vect(deser, 0);
 
 	printf (";\n");
       }      
