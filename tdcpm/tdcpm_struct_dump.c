@@ -255,15 +255,18 @@ void tdcpm_struct_value_dump_struct_item_array(uintptr_t offset,
   char *arrayname = NULL;
   uintptr_t arrayoffset;
   char *arrayindex;
+  size_t name_len, arrayname_len, arrayindex_len;
   
   level = PD_LL_ITEM(level_iter, tdcpm_struct_info_array_level, _levels);
 
-  arrayname = tdcpm_malloc(strlen(name) + 2 + 16 + 1,
-			   "dump string array");
+  name_len = strlen(name);
+  arrayname_len = name_len + 2 + 32 + 1;
+
+  arrayname = tdcpm_malloc(arrayname_len, "dump string array");
 
   strcpy (arrayname, name);
-
-  arrayindex = arrayname + strlen(name);
+  arrayindex = arrayname + name_len;
+  arrayindex_len = arrayname_len - name_len;
 
   level_iter = level_iter->_next;
 
@@ -271,7 +274,7 @@ void tdcpm_struct_value_dump_struct_item_array(uintptr_t offset,
 
   for (i = 0; i < level->_max_index; i++)
     {
-      sprintf (arrayindex, "[%zd]", i);
+      snprintf (arrayindex, arrayindex_len, "[%zd]", i);
 
       if (level_iter == &(item->_levels))
 	tdcpm_struct_value_dump_struct_item(arrayoffset, arrayname, item);
