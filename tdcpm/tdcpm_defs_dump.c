@@ -45,10 +45,10 @@ typedef struct tdcpm_deserialize_info_t
     value = pun._dbl;				    \
   } while (0)
 
-void tdcpm_dump_ser_nodes(tdcpm_deserialize_info *deser, int indent);
+void tdcpm_dump_nodes(tdcpm_deserialize_info *deser, int indent);
 
-void tdcpm_dump_ser_var_name(tdcpm_deserialize_info *deser,
-			     int no_index_dot)
+void tdcpm_dump_var_name(tdcpm_deserialize_info *deser,
+			 int no_index_dot)
 {
   uint32_t i;
   uint32_t num_parts;
@@ -89,7 +89,7 @@ void tdcpm_dump_ser_var_name(tdcpm_deserialize_info *deser,
     }
 }
 
-void tdcpm_dump_ser_unit(tdcpm_unit_index unit_idx)
+void tdcpm_dump_unit(tdcpm_unit_index unit_idx)
 {
   char str[128];
   size_t n;
@@ -105,7 +105,7 @@ void tdcpm_dump_ser_unit(tdcpm_unit_index unit_idx)
   printf ("%s", str);
 }
 
-void tdcpm_dump_ser_tspec(tdcpm_tspec_index tspec_idx)
+void tdcpm_dump_tspec(tdcpm_tspec_index tspec_idx)
 {
   char str[128];
   size_t n;
@@ -121,8 +121,8 @@ void tdcpm_dump_ser_tspec(tdcpm_tspec_index tspec_idx)
   printf ("%s", str);
 }
 
-void tdcpm_dump_ser_vect_loop(tdcpm_deserialize_info *deser,
-			      uint32_t num, int several)
+void tdcpm_dump_vect_loop(tdcpm_deserialize_info *deser,
+			  uint32_t num, int several)
 {
   uint32_t i;
   int first = 1;
@@ -152,12 +152,12 @@ void tdcpm_dump_ser_vect_loop(tdcpm_deserialize_info *deser,
       if (unit_idx != 0)
 	{
 	  printf (" ");
-	  tdcpm_dump_ser_unit(unit_idx);
+	  tdcpm_dump_unit(unit_idx);
 	}
       if (tspec_idx != 0)
 	{
 	  printf (" @ ");
-	  tdcpm_dump_ser_tspec(tspec_idx);
+	  tdcpm_dump_tspec(tspec_idx);
 	}
     }
 	
@@ -165,18 +165,18 @@ void tdcpm_dump_ser_vect_loop(tdcpm_deserialize_info *deser,
     printf (" }");
 }
 
-void tdcpm_dump_ser_vect(int several,
-			 tdcpm_deserialize_info *deser)
+void tdcpm_dump_vect(int several,
+		     tdcpm_deserialize_info *deser)
 {
   uint32_t num;
 
   num = TDCPM_DESER_UINT32(deser);
 
-  tdcpm_dump_ser_vect_loop(deser, num, several);
+  tdcpm_dump_vect_loop(deser, num, several);
 }
 
 
-void tdcpm_dump_ser_table(tdcpm_deserialize_info *deser, int indent)
+void tdcpm_dump_table(tdcpm_deserialize_info *deser, int indent)
 {
   uint32_t columns;
   uint32_t rows;
@@ -198,13 +198,13 @@ void tdcpm_dump_ser_table(tdcpm_deserialize_info *deser, int indent)
 	printf (", ");
       first = 0;
 
-      tdcpm_dump_ser_var_name(deser, 0);
+      tdcpm_dump_var_name(deser, 0);
       tspec_idx = TDCPM_DESER_UINT32(deser);
       
       if (tspec_idx != 0)
 	{
 	  printf (" @ ");
-	  tdcpm_dump_ser_tspec(tspec_idx);
+	  tdcpm_dump_tspec(tspec_idx);
 	}
     }
   printf (" ]\n");
@@ -228,7 +228,7 @@ void tdcpm_dump_ser_table(tdcpm_deserialize_info *deser, int indent)
 	  if (value != 1)
 	    printf ("%.4g ", value);
 
-	  tdcpm_dump_ser_unit(unit_idx);
+	  tdcpm_dump_unit(unit_idx);
 	}
       printf (" ]]\n");
     }
@@ -242,17 +242,17 @@ void tdcpm_dump_ser_table(tdcpm_deserialize_info *deser, int indent)
       printf ("%*s", indent, "");
       if (has_var_name)
 	{
-	  tdcpm_dump_ser_var_name(deser, 1);
+	  tdcpm_dump_var_name(deser, 1);
 	  printf (": ");
 	}
       
-      tdcpm_dump_ser_vect_loop(deser, columns, 1 /* several = print { } */);
+      tdcpm_dump_vect_loop(deser, columns, 1 /* several = print { } */);
       
       printf ("\n");
     }
 }
 
-void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
+void tdcpm_dump_node(tdcpm_deserialize_info *deser, int indent)
 {
   uint32_t type;
 
@@ -262,7 +262,7 @@ void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
 
   if (type != TDCPM_NODE_TYPE_VALID)
     {
-      tdcpm_dump_ser_var_name(deser, 0);
+      tdcpm_dump_var_name(deser, 0);
 
       printf (" = ");
     }
@@ -271,7 +271,7 @@ void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
     {
     case TDCPM_NODE_TYPE_VECT:
       {
-	tdcpm_dump_ser_vect(0, deser);
+	tdcpm_dump_vect(0, deser);
 
 	printf (";\n");
       }      
@@ -279,7 +279,7 @@ void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
     case TDCPM_NODE_TYPE_TABLE:
       {
 	printf ("\n");
-	tdcpm_dump_ser_table(deser, indent + 2);
+	tdcpm_dump_table(deser, indent + 2);
 	printf ("\n");
       }
       break;
@@ -287,7 +287,7 @@ void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
       {
 	printf ("{\n");
 
-	tdcpm_dump_ser_nodes(deser, indent + 2);
+	tdcpm_dump_nodes(deser, indent + 2);
 
 	printf ("%*s}\n", indent, "");
       }
@@ -304,14 +304,14 @@ void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
 	tspec_idx_to   = TDCPM_DESER_UINT32(deser);
 	
 	printf ("valid( ");
-	tdcpm_dump_ser_tspec(tspec_idx_from);
+	tdcpm_dump_tspec(tspec_idx_from);
 	printf (", ");
-	tdcpm_dump_ser_tspec(tspec_idx_to);
+	tdcpm_dump_tspec(tspec_idx_to);
 	printf (")\n");
 	
 	printf ("%*s{\n", indent, "");
 
-	tdcpm_dump_ser_nodes(deser, indent + 2);
+	tdcpm_dump_nodes(deser, indent + 2);
 
 	printf ("%*s}\n", indent, "");
       }
@@ -324,7 +324,7 @@ void tdcpm_dump_ser_node(tdcpm_deserialize_info *deser, int indent)
 }
 
 
-void tdcpm_dump_ser_nodes(tdcpm_deserialize_info *deser, int indent)
+void tdcpm_dump_nodes(tdcpm_deserialize_info *deser, int indent)
 {
   uint32_t num, i;
 
@@ -332,16 +332,16 @@ void tdcpm_dump_ser_nodes(tdcpm_deserialize_info *deser, int indent)
 
   for (i = 0; i < num; i++)
     {
-      tdcpm_dump_ser_node(deser, indent);
+      tdcpm_dump_node(deser, indent);
     }
 }
 
-void tdcpm_dump_ser_all_nodes(void)
+void tdcpm_dump_all_nodes(void)
 {
   tdcpm_deserialize_info deser;
 
   deser._cur = _tdcpm_all_nodes_serialized._buf;
   deser._end = deser._cur + _tdcpm_all_nodes_serialized._offset;
   
-  tdcpm_dump_ser_nodes(&deser, 0);
+  tdcpm_dump_nodes(&deser, 0);
 }

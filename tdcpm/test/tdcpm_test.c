@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
       if (dumped)
 	printf ("===\n");
       if (dump_serialized)
-	tdcpm_dump_ser_all_nodes();
+	tdcpm_dump_all_nodes();
       else
 	tdcpm_dump_parselist_all_nodes();
       dumped = 1;
