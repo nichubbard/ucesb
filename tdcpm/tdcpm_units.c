@@ -582,13 +582,15 @@ void tdcpm_unit_new_dissect(tdcpm_dbl_unit *dbl_unit,
 {
   const char *str;
   char *fullexpr;
+  size_t fullexpr_len;
   tdcpm_dbl_unit_build dbl_unit_build;
   int hasvalue = 0;
   const char *p;
 
   str = tdcpm_string_table_get(_tdcpm_parse_string_idents, str_idx);
-  
-  fullexpr = malloc(strlen(str) + 64);
+
+  fullexpr_len = strlen(str) + 64;
+  fullexpr = malloc(fullexpr_len);
 
   p = str;
   while (isblank(*p))
@@ -597,9 +599,10 @@ void tdcpm_unit_new_dissect(tdcpm_dbl_unit *dbl_unit,
     hasvalue = 1;
 
   /* The 'dummy_unit' is never assigned. */
-  sprintf (fullexpr, "defunit: dummy_unit = %s%s;\n",
-	   hasvalue ? "" : "1 ",
-	   str);
+  snprintf (fullexpr, fullexpr_len,
+	    "defunit: dummy_unit = %s%s;\n",
+	    hasvalue ? "" : "1 ",
+	    str);
 
   _tdcpm_parse_catch_unitdef = &dbl_unit_build;
   
