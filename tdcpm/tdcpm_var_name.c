@@ -137,10 +137,10 @@ tdcpm_var_name *tdcpm_var_name_join(tdcpm_var_name *base,
   return base;
 }
 
-void tdcpm_var_name_tmp_join(tdcpm_var_name_tmp *base,
-                             tdcpm_var_name *add)
+void tdcpm_var_name_tmp_alloc_extra(tdcpm_var_name_tmp *base,
+				    uint32_t extra)
 {
-  uint32_t num_parts = base->_num_parts + add->_num_parts;
+  uint32_t num_parts = base->_num_parts + extra;
     
   if (num_parts > base->_num_alloc)
     {
@@ -154,9 +154,15 @@ void tdcpm_var_name_tmp_join(tdcpm_var_name_tmp *base,
 	tdcpm_realloc (base->_parts, base->_num_alloc * sizeof (uint32_t),
 		       "var_name parts");
     }
+}
+
+void tdcpm_var_name_tmp_join(tdcpm_var_name_tmp *base,
+                             tdcpm_var_name *add)
+{
+  tdcpm_var_name_tmp_alloc_extra(base, add->_num_parts);
 
   memcpy(base->_parts + base->_num_parts,
 	 add->_parts, add->_num_parts * sizeof (add->_parts[0]));
 
-  base->_num_parts = num_parts;
+  base->_num_parts += add->_num_parts;
 }

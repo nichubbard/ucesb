@@ -65,6 +65,9 @@ tdcpm_var_name *tdcpm_var_name_off(tdcpm_var_name *base, int offset);
 tdcpm_var_name *tdcpm_var_name_join(tdcpm_var_name *base,
 				    tdcpm_var_name *add);
 
+void tdcpm_var_name_tmp_alloc_extra(tdcpm_var_name_tmp *base,
+				    uint32_t extra);
+
 void tdcpm_var_name_tmp_join(tdcpm_var_name_tmp *base,
 			     tdcpm_var_name *add);
 
