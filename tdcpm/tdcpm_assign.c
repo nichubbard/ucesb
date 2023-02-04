@@ -26,7 +26,11 @@
 #include "tdcpm_defs_struct.h"
 #include "tdcpm_struct_layout.h"
 #include "tdcpm_assign.h"
+#include "tdcpm_error.h"
+#include "tdcpm_serialize_util.h"
 
+void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
+			tdcpm_var_name_tmp *var_name_tmp);
 
 void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 				       tdcpm_dbl_unit **dbl_unit)
@@ -147,7 +151,9 @@ void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
 }
 
 void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
-		       tdcpm_vect_dbl_units *item)
+		       double value,
+		       tdcpm_unit_index unit_idx,
+		       tdcpm_tspec_index tspec_idx)
 {
   /* Try to find the pointer to the item. */
 
@@ -160,10 +166,10 @@ void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
     {
       double factor;
       
-      fprintf (stderr, "%p %.4f\n", p, item->_item._dbl_unit._value);
+      fprintf (stderr, "%p %.4f\n", p, value);
 
       /* Can the units be reconciled? */
-      if (!tdcpm_unit_factor(item->_item._dbl_unit._unit_idx,
+      if (!tdcpm_unit_factor(unit_idx,
 			     dbl_unit->_unit_idx,
 			     &factor))
 	{
@@ -172,77 +178,187 @@ void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
 	}
       
       *((double *) p) =
-	item->_item._dbl_unit._value / factor / dbl_unit->_value;
+	value / factor / dbl_unit->_value;
     }
 }
 
-
-
-
-void tdcpm_assign_vect(tdcpm_var_name_tmp *var_name_tmp,
-		       pd_ll_item *sentinel, int several)
+void tdcpm_assign_var_name_join(tdcpm_deserialize_info *deser,
+				tdcpm_var_name_tmp *var_name_tmp)
 {
-  pd_ll_item *iter;
+  uint32_t i;
+  uint32_t num_parts;
+  uint32_t *destparts;
 
-  if (PD_LL_NEXT(sentinel,PD_LL_FIRST(*sentinel)))
-    several = 1;
+  num_parts = TDCPM_DESER_UINT32(deser);
 
-  (void) several;
+  tdcpm_var_name_tmp_alloc_extra(var_name_tmp, num_parts);
 
-  PD_LL_FOREACH(*sentinel, iter)
+  destparts = &var_name_tmp->_parts[var_name_tmp->_num_parts];
+
+  for (i = 0; i < num_parts; i++)
     {
-      tdcpm_vect_dbl_units *item;
+      uint32_t part;
 
-      item = PD_LL_ITEM(iter, tdcpm_vect_dbl_units, _items);
+      part = TDCPM_DESER_UINT32(deser);
 
-      tdcpm_assign_item(var_name_tmp, item);
+      *(destparts++) = part;
+    }
 
-      /*
-      if (item->_item._unit_idx != 0)
+  var_name_tmp->_num_parts += num_parts;
+}
+
+void tdcpm_assign_vect_loop(tdcpm_deserialize_info *deser,
+			    tdcpm_var_name_tmp *var_name_tmp,
+			    uint32_t num)
+{
+  uint32_t i;
+
+  for (i = 0; i < num; i++)
+    {
+      double value;
+      tdcpm_unit_index unit_idx;
+      tdcpm_tspec_index tspec_idx;
+
+      TDCPM_DESERIALIZE_DOUBLE(deser, value);
+      unit_idx  = TDCPM_DESER_UINT32(deser);
+      tspec_idx = TDCPM_DESER_UINT32(deser);
+
+      tdcpm_assign_item(var_name_tmp, value, unit_idx, tspec_idx);
+    }
+}
+
+void tdcpm_assign_vect(tdcpm_deserialize_info *deser,
+		       tdcpm_var_name_tmp *var_name_tmp)
+{
+  uint32_t num;
+
+  num = TDCPM_DESER_UINT32(deser);
+
+  tdcpm_assign_vect_loop(deser, var_name_tmp, num);
+}
+
+void tdcpm_assign_table(tdcpm_deserialize_info *deser,
+			tdcpm_var_name_tmp *var_name_tmp)
+{
+  uint32_t columns;
+  uint32_t rows;
+  int has_units;
+  uint32_t i;
+
+  columns   = TDCPM_DESER_UINT32(deser);
+  rows      = TDCPM_DESER_UINT32(deser);
+  has_units = TDCPM_DESER_UINT32(deser);
+
+  for (i = 0; i < columns; i++)
+    {
+      tdcpm_tspec_index tspec_idx;
+
+      tdcpm_assign_var_name_join(deser, var_name_tmp);
+      tspec_idx = TDCPM_DESER_UINT32(deser);
+
+      (void) tspec_idx;
+    }
+
+  if (has_units)
+    {
+      for (i = 0; i < columns; i++)
 	{
-	  tdcpm_assign_unit(item->_item._unit_idx);
+	  double value;
+	  tdcpm_unit_index unit_idx;
+
+	  TDCPM_DESERIALIZE_DOUBLE(deser, value);
+	  unit_idx = TDCPM_DESER_UINT32(deser);
+
+	  // Remember the unit?
+	  (void) value;
+	  (void) unit_idx;
 	}
-      */
+    }
+
+  for (i = 0; i < rows; i++)
+    {
+      int has_var_name;
+
+      has_var_name = TDCPM_DESER_UINT32(deser);
+
+      if (has_var_name)
+	{
+	  tdcpm_assign_var_name_join(deser, var_name_tmp);
+	}
+
+      tdcpm_assign_vect_loop(deser, var_name_tmp, columns);
     }
 }
 
-void tdcpm_assign_node(tdcpm_var_name_tmp *var_name_tmp,
-		       tdcpm_vect_node *node)
+
+void tdcpm_assign_node(tdcpm_deserialize_info *deser,
+		       tdcpm_var_name_tmp *var_name_tmp)
 {
-  if (node->_node._type != TDCPM_NODE_TYPE_VALID)
+  uint32_t type;
+
+  type = TDCPM_DESER_UINT32(deser);
+
+  if (type != TDCPM_NODE_TYPE_VALID)
     {
-      tdcpm_var_name_tmp_join(var_name_tmp,
-			      node->_node.n._var_name);
+      tdcpm_assign_var_name_join(deser, var_name_tmp);
     }
 
-  switch (node->_node._type)
+  switch (type)
     {
     case TDCPM_NODE_TYPE_VECT:
       {
-	pd_ll_item *sentinel;
-
-	sentinel = &(node->_node.u._vect);
-
-	tdcpm_assign_vect(var_name_tmp, sentinel, 0);
+	tdcpm_assign_vect(deser, var_name_tmp);
       }
+      break;
+    case TDCPM_NODE_TYPE_TABLE:
+      {
+	tdcpm_assign_table(deser, var_name_tmp);
+      }
+      break;
+    case TDCPM_NODE_TYPE_SUB_NODE:
+      {
+	tdcpm_assign_nodes(deser, var_name_tmp);
+      }
+      break;
+    case TDCPM_NODE_TYPE_VALID:
+      {
+	tdcpm_tspec_index tspec_idx_from, tspec_idx_to;
+
+	/* Jump past the size specifier. */
+	(void) TDCPM_DESER_UINT32(deser);
+	(void) TDCPM_DESER_UINT32(deser);
+
+	tspec_idx_from = TDCPM_DESER_UINT32(deser);
+	tspec_idx_to   = TDCPM_DESER_UINT32(deser);
+
+	// tdcpm_dump_tspec(tspec_idx_from);
+	// tdcpm_dump_tspec(tspec_idx_to);
+
+	(void) tspec_idx_from;
+	(void) tspec_idx_to;
+
+	tdcpm_assign_nodes(deser, var_name_tmp);
+      }
+      break;
+    default:
+      TDCPM_ERROR("Unknown node type (%d).\n",
+		  type);
       break;
     }
 }
 
-void tdcpm_assign_nodes(tdcpm_var_name_tmp *var_name_tmp,
-			pd_ll_item *nodes)
+void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
+			tdcpm_var_name_tmp *var_name_tmp)
 {
-  pd_ll_item *iter;
+  uint32_t num, i;
 
   int depth = var_name_tmp->_num_parts;
 
-  PD_LL_FOREACH(*nodes, iter)
+  num = TDCPM_DESER_UINT32(deser);
+
+  for (i = 0; i < num; i++)
     {
-      tdcpm_vect_node *node;
-
-      node = PD_LL_ITEM(iter, tdcpm_vect_node, _nodes);
-
-      tdcpm_assign_node(var_name_tmp, node);
+      tdcpm_assign_node(deser, var_name_tmp);
 
       var_name_tmp->_num_parts = depth;
     }
@@ -252,7 +368,12 @@ void tdcpm_assign_all_nodes(void)
 {
   tdcpm_var_name_tmp var_name_tmp = { 0, 0, NULL };
 
-  tdcpm_assign_nodes(&var_name_tmp, &_tdcpm_all_nodes);
+  tdcpm_deserialize_info deser;
+
+  deser._cur = _tdcpm_all_nodes_serialized._buf;
+  deser._end = deser._cur + _tdcpm_all_nodes_serialized._offset;
+
+  tdcpm_assign_nodes(&deser, &var_name_tmp);
 
   if (var_name_tmp._parts)
     free(var_name_tmp._parts);
