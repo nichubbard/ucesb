@@ -296,6 +296,8 @@ void tdcpm_assign_node(tdcpm_deserialize_info *deser,
 {
   uint32_t type;
 
+  int depth = var_name_tmp->_num_parts;
+
   type = TDCPM_DESER_UINT32(deser);
 
   if (type != TDCPM_NODE_TYPE_VALID)
@@ -345,6 +347,8 @@ void tdcpm_assign_node(tdcpm_deserialize_info *deser,
 		  type);
       break;
     }
+
+  var_name_tmp->_num_parts = depth;
 }
 
 void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
