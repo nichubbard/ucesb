@@ -44,12 +44,14 @@ struct tdcpm_var_name_t
   uint32_t _parts[1];  /* Must be last, several items allocated. */
 };
 
+/*
 struct tdcpm_var_name_tmp_t
 {
   uint32_t  _num_parts;
   uint32_t  _num_alloc;
   uint32_t *_parts;
 };
+*/
 
 void tdcpm_var_name_init(void);
 
@@ -65,10 +67,12 @@ tdcpm_var_name *tdcpm_var_name_off(tdcpm_var_name *base, int offset);
 tdcpm_var_name *tdcpm_var_name_join(tdcpm_var_name *base,
 				    tdcpm_var_name *add);
 
+/*
 void tdcpm_var_name_tmp_alloc_extra(tdcpm_var_name_tmp *base,
 				    uint32_t extra);
 
 void tdcpm_var_name_tmp_join(tdcpm_var_name_tmp *base,
 			     tdcpm_var_name *add);
+*/
 
 #endif/*__TDCPM_VAR_NAME_H__*/

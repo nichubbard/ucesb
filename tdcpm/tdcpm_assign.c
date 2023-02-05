@@ -29,128 +29,208 @@
 #include "tdcpm_error.h"
 #include "tdcpm_serialize_util.h"
 
-void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
-			tdcpm_var_name_tmp *var_name_tmp);
-
-void *tdcpm_match_var_name_struct_info(tdcpm_var_name_tmp *var_name_tmp,
-				       tdcpm_dbl_unit **dbl_unit)
+typedef struct tdcpm_match_vn_struct_state_t
 {
-  uint32_t part_i = 0;
+  /* Structure we are to look at.
+   * If NULL, then we've hit the leaf - then _item is set.
+   * If item also is NULL, then we did not match at all.
+   */
+  tdcpm_struct_info      *_cur_struct;
+  /* If we are currently looking at indices. */
+  tdcpm_struct_info_item *_item;
+  /* Iterator of index to look at. */
+  pd_ll_item             *_iter_index;
+  /* The offset in the structure so far. */
+  uintptr_t               _offset;
+} tdcpm_match_vn_struct_state;
 
-  tdcpm_struct_info *cur_struct = _tdcpm_li_global;
+void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
+			const tdcpm_match_vn_struct_state *struct_state);
 
-  uintptr_t offset = 0;
 
-  for ( ; ; )
+void
+tdcpm_match_var_name_struct(tdcpm_deserialize_info *deser,
+			    tdcpm_match_vn_struct_state *state)
+{
+  uint32_t num_parts;
+  uint32_t i;
+
+  num_parts = TDCPM_DESER_UINT32(deser);
+
+  for (i = 0; i < num_parts; i++)
     {
-      tdcpm_string_index name_idx;
-      pd_ll_item *iter;
-      tdcpm_struct_info_item *item;
+      uint32_t part;
 
-      /* At this point, we are at a structure (cur_struct), which
-       * means that the next var_name part needs to be a name, to find
-       * the relevant item.
-       */
+      part = TDCPM_DESER_UINT32(deser);
 
-      if (part_i >= var_name_tmp->_num_parts)
+      if (!state->_cur_struct)
 	{
-	  /* var_name out of parts, but we are at a structure. */
-	  return NULL;
+	  /* We expect a name or index, but are at a leaf.  No match. */
+	  goto no_match;
 	}
 
-      if (!(var_name_tmp->_parts[part_i] & TDCPM_VAR_NAME_PART_FLAG_NAME))
+      if (part & TDCPM_VAR_NAME_PART_FLAG_NAME)
 	{
-	  /* Expected name, but got index. */
-	  return NULL;
+	  tdcpm_string_index name_idx;
+	  pd_ll_item *iter;
+	  tdcpm_struct_info_item *item;
+
+	  /*
+	  printf ("Match name %d %s ...",
+		  part & (~TDCPM_VAR_NAME_PART_FLAG_NAME),
+		  tdcpm_string_table_get(_tdcpm_parse_string_idents,
+					 part &
+					 (~TDCPM_VAR_NAME_PART_FLAG_NAME)));
+	  */
+
+	  /* We expect to be at a structure. */
+
+	  if (state->_item)
+	    {
+	      /* Structure has index, but we have name.  No match. */
+	      goto no_match;
+	    }
+
+	  name_idx =
+	    part & (~TDCPM_VAR_NAME_PART_FLAG_NAME);
+
+	  PD_LL_FOREACH(state->_cur_struct->_items, iter)
+	    {
+	      item = PD_LL_ITEM(iter, tdcpm_struct_info_item, _items);
+
+	      if (item->_name_idx == name_idx)
+		goto found_item_name;
+	    }
+	  /* We did not find the named item. */
+	  goto no_match;
+
+	found_item_name:
+	  /* printf (" ! %p\n", item); */
+
+	  state->_offset += item->_offset;
+
+	  state->_item = item;
+	  state->_iter_index = state->_item->_levels._next;
 	}
-
-      name_idx =
-	var_name_tmp->_parts[part_i] & (~TDCPM_VAR_NAME_PART_FLAG_NAME);
-
-      PD_LL_FOREACH(cur_struct->_items, iter)
+      else
 	{
-	  item = PD_LL_ITEM(iter, tdcpm_struct_info_item, _items);
-
-	  if (item->_name_idx == name_idx)
-	    goto found_item_name;
-	}
-      /* We did not find the named item. */
-      return NULL;
-
-    found_item_name:
-      offset += item->_offset;
-      part_i++;
-      
-      /* If the item has indices, then we eat indices. */
-      PD_LL_FOREACH(item->_levels, iter)
-        {
           tdcpm_struct_info_array_level *level;
 	  uint32_t idx;
-          
-          level = PD_LL_ITEM(iter, tdcpm_struct_info_array_level, _levels);
 
-	  if (part_i >= var_name_tmp->_num_parts)
+	  /*
+	  printf ("Match idx [%d] ... { %p %p }", part,
+		  state->_iter_index, &(state->_item->_levels));
+	  */
+
+	  /* We expect to find an index. */
+
+	  if (state->_item == NULL)
 	    {
-	      /* var_name out of parts, but we are at an array dimension. */
-	      return NULL;
+	      /* No indices left.  No match. */
+	      goto no_match;
 	    }
 
-	  if ((var_name_tmp->_parts[part_i] & TDCPM_VAR_NAME_PART_FLAG_NAME))
-	    {
-	      /* Expected index, but got name. */
-	      return NULL;
-	    }
+	  level = PD_LL_ITEM(state->_iter_index,
+			     tdcpm_struct_info_array_level, _levels);
 
-	  idx =
-	    var_name_tmp->_parts[part_i] & (~TDCPM_VAR_NAME_PART_FLAG_NAME);
+	  idx = part;
 
 	  if (idx >= level->_max_index)
 	    {
 	      /* Index out of range. */
-	      return NULL;
+	      goto no_match;
 	    }
 
+	  /*
+	  printf (" of [%zd] * %zd\n",
+		  level->_max_index, level->_stride);
+	  */
 	  /* Index successfully consumed. */
-	  offset += idx * level->_stride;
-	  part_i++;
-        }
+	  state->_offset += idx * level->_stride;
 
-      if (item->_kind == STRUCT_INFO_ITEM_KIND_SUB_STRUCT)
-	{
-	  cur_struct = item->_sub_struct._def;
-	  continue;
+	  state->_iter_index = state->_iter_index->_next;
 	}
 
-      assert (item->_kind == STRUCT_INFO_ITEM_KIND_LEAF);
-      
-      if (part_i < var_name_tmp->_num_parts)
-	{
-	  /* var_name has parts still, but structure reached end. */
-	  return NULL;
-	}
-
-      /* We have reached and of both the var_name and the structure.
-       * I.e. item found.
+      /* Did we run out of indices?
+       * (Or perhaps had none if it was a name match.)
        */
-      
-      {
-	tdcpm_struct_info_leaf *leaf = item->_leaf._item;
+      if (state->_iter_index == &(state->_item->_levels))
+	{
+	  if (state->_item->_kind == STRUCT_INFO_ITEM_KIND_SUB_STRUCT)
+	    {
+	      state->_cur_struct = state->_item->_sub_struct._def;
+	      state->_item = NULL;
+	      continue;
+	    }
 
-	switch (leaf->_kind)
-	  {
-	    /* Should check that types match! */
-	  }
+	  assert (state->_item->_kind == STRUCT_INFO_ITEM_KIND_LEAF);
 
-	/* printf ("Match! (%zd)\n", offset); */
+	  /* We have now hit the leaf. */
 
-	*dbl_unit = &leaf->_dbl_unit;
-
-	return ((void *) offset);
-      }
+	  state->_cur_struct = NULL;
+	}
     }
+
+  /* We matched so far. */
+  return;
+
+ no_match:
+  /* printf (" No match\n"); */
+  /* We must eat the remaining name parts. */
+  for (i++ ; i < num_parts; i++)
+    {
+      uint32_t part;
+
+      part = TDCPM_DESER_UINT32(deser);
+      (void) part;
+    }
+
+  state->_cur_struct = NULL;
+  state->_item = NULL;
+  return;
 }
 
-void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
+
+void *
+tdcpm_match_var_name_struct_leaf(const tdcpm_match_vn_struct_state *state,
+				 tdcpm_dbl_unit **dbl_unit)
+{
+  tdcpm_struct_info_leaf *leaf;
+
+  /* printf ("Try leaf\n"); */
+
+  if (state->_cur_struct)
+    {
+      /* We are not yet at a leaf.  I.e. not a complete match. */
+      return NULL;
+    }
+
+  if (!state->_item)
+    {
+      /* We did not match. */
+      return NULL;
+    }
+
+  /* printf ("Hit\n"); */
+
+  assert (state->_item->_kind == STRUCT_INFO_ITEM_KIND_LEAF);
+
+  leaf = state->_item->_leaf._item;
+
+  switch (leaf->_kind)
+    {
+      /* Should check that types match! */
+    }
+
+  /* printf ("Match! (%zd)\n", offset); */
+
+  *dbl_unit = &leaf->_dbl_unit;
+
+  return ((void *) state->_offset);
+}
+
+
+void tdcpm_assign_item(const tdcpm_match_vn_struct_state *struct_state,
 		       double value,
 		       tdcpm_unit_index unit_idx,
 		       tdcpm_tspec_index tspec_idx)
@@ -160,7 +240,7 @@ void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
   void *p;
   tdcpm_dbl_unit *dbl_unit;
 
-  p = tdcpm_match_var_name_struct_info(var_name_tmp, &dbl_unit);
+  p = tdcpm_match_var_name_struct_leaf(struct_state, &dbl_unit);
 
   if (p)
     {
@@ -182,33 +262,8 @@ void tdcpm_assign_item(tdcpm_var_name_tmp *var_name_tmp,
     }
 }
 
-void tdcpm_assign_var_name_join(tdcpm_deserialize_info *deser,
-				tdcpm_var_name_tmp *var_name_tmp)
-{
-  uint32_t i;
-  uint32_t num_parts;
-  uint32_t *destparts;
-
-  num_parts = TDCPM_DESER_UINT32(deser);
-
-  tdcpm_var_name_tmp_alloc_extra(var_name_tmp, num_parts);
-
-  destparts = &var_name_tmp->_parts[var_name_tmp->_num_parts];
-
-  for (i = 0; i < num_parts; i++)
-    {
-      uint32_t part;
-
-      part = TDCPM_DESER_UINT32(deser);
-
-      *(destparts++) = part;
-    }
-
-  var_name_tmp->_num_parts += num_parts;
-}
-
 void tdcpm_assign_vect_loop(tdcpm_deserialize_info *deser,
-			    tdcpm_var_name_tmp *var_name_tmp,
+			    const tdcpm_match_vn_struct_state *struct_state,
 			    uint32_t num)
 {
   uint32_t i;
@@ -223,22 +278,22 @@ void tdcpm_assign_vect_loop(tdcpm_deserialize_info *deser,
       unit_idx  = TDCPM_DESER_UINT32(deser);
       tspec_idx = TDCPM_DESER_UINT32(deser);
 
-      tdcpm_assign_item(var_name_tmp, value, unit_idx, tspec_idx);
+      tdcpm_assign_item(struct_state, value, unit_idx, tspec_idx);
     }
 }
 
 void tdcpm_assign_vect(tdcpm_deserialize_info *deser,
-		       tdcpm_var_name_tmp *var_name_tmp)
+		       const tdcpm_match_vn_struct_state *struct_state)
 {
   uint32_t num;
 
   num = TDCPM_DESER_UINT32(deser);
 
-  tdcpm_assign_vect_loop(deser, var_name_tmp, num);
+  tdcpm_assign_vect_loop(deser, struct_state, num);
 }
 
 void tdcpm_assign_table(tdcpm_deserialize_info *deser,
-			tdcpm_var_name_tmp *var_name_tmp)
+			const tdcpm_match_vn_struct_state *struct_state)
 {
   uint32_t columns;
   uint32_t rows;
@@ -252,8 +307,14 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
   for (i = 0; i < columns; i++)
     {
       tdcpm_tspec_index tspec_idx;
+      tdcpm_match_vn_struct_state struct_state_tmp;
 
-      tdcpm_assign_var_name_join(deser, var_name_tmp);
+      struct_state_tmp = *struct_state;
+
+      tdcpm_match_var_name_struct(deser, &struct_state_tmp);
+
+      /* We must keep track of each iten, for use as they are assigned! */
+
       tspec_idx = TDCPM_DESER_UINT32(deser);
 
       (void) tspec_idx;
@@ -278,48 +339,52 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
   for (i = 0; i < rows; i++)
     {
       int has_var_name;
+      tdcpm_match_vn_struct_state struct_state_tmp;
+
+      struct_state_tmp = *struct_state; /* Only do this copy when used? */
 
       has_var_name = TDCPM_DESER_UINT32(deser);
 
       if (has_var_name)
 	{
-	  tdcpm_assign_var_name_join(deser, var_name_tmp);
+	  tdcpm_match_var_name_struct(deser, &struct_state_tmp);
 	}
 
-      tdcpm_assign_vect_loop(deser, var_name_tmp, columns);
+      tdcpm_assign_vect_loop(deser, &struct_state_tmp, columns);
     }
 }
 
 
 void tdcpm_assign_node(tdcpm_deserialize_info *deser,
-		       tdcpm_var_name_tmp *var_name_tmp)
+		       const tdcpm_match_vn_struct_state *struct_state)
 {
   uint32_t type;
+  tdcpm_match_vn_struct_state struct_state_tmp;
 
-  int depth = var_name_tmp->_num_parts;
+  struct_state_tmp = *struct_state;
 
   type = TDCPM_DESER_UINT32(deser);
 
   if (type != TDCPM_NODE_TYPE_VALID)
     {
-      tdcpm_assign_var_name_join(deser, var_name_tmp);
+      tdcpm_match_var_name_struct(deser, &struct_state_tmp);
     }
 
   switch (type)
     {
     case TDCPM_NODE_TYPE_VECT:
       {
-	tdcpm_assign_vect(deser, var_name_tmp);
+	tdcpm_assign_vect(deser, &struct_state_tmp);
       }
       break;
     case TDCPM_NODE_TYPE_TABLE:
       {
-	tdcpm_assign_table(deser, var_name_tmp);
+	tdcpm_assign_table(deser, &struct_state_tmp);
       }
       break;
     case TDCPM_NODE_TYPE_SUB_NODE:
       {
-	tdcpm_assign_nodes(deser, var_name_tmp);
+	tdcpm_assign_nodes(deser, &struct_state_tmp);
       }
       break;
     case TDCPM_NODE_TYPE_VALID:
@@ -339,7 +404,7 @@ void tdcpm_assign_node(tdcpm_deserialize_info *deser,
 	(void) tspec_idx_from;
 	(void) tspec_idx_to;
 
-	tdcpm_assign_nodes(deser, var_name_tmp);
+	tdcpm_assign_nodes(deser, &struct_state_tmp);
       }
       break;
     default:
@@ -347,39 +412,35 @@ void tdcpm_assign_node(tdcpm_deserialize_info *deser,
 		  type);
       break;
     }
-
-  var_name_tmp->_num_parts = depth;
 }
 
 void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
-			tdcpm_var_name_tmp *var_name_tmp)
+		 	const tdcpm_match_vn_struct_state *struct_state)
 {
   uint32_t num, i;
-
-  int depth = var_name_tmp->_num_parts;
 
   num = TDCPM_DESER_UINT32(deser);
 
   for (i = 0; i < num; i++)
     {
-      tdcpm_assign_node(deser, var_name_tmp);
-
-      var_name_tmp->_num_parts = depth;
+      tdcpm_assign_node(deser, struct_state);
     }
 }
 
 void tdcpm_assign_all_nodes(void)
 {
-  tdcpm_var_name_tmp var_name_tmp = { 0, 0, NULL };
-
   tdcpm_deserialize_info deser;
+
+  tdcpm_match_vn_struct_state struct_state;
 
   deser._cur = _tdcpm_all_nodes_serialized._buf;
   deser._end = deser._cur + _tdcpm_all_nodes_serialized._offset;
 
-  tdcpm_assign_nodes(&deser, &var_name_tmp);
+  struct_state._cur_struct = _tdcpm_li_global;
+  struct_state._item       = NULL;
+  struct_state._iter_index = NULL;
+  struct_state._offset     = 0;
 
-  if (var_name_tmp._parts)
-    free(var_name_tmp._parts);
+  tdcpm_assign_nodes(&deser, &struct_state);
 }
 
