@@ -313,7 +313,7 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
 
       tdcpm_match_var_name_struct(deser, &struct_state_tmp);
 
-      /* We must keep track of each iten, for use as they are assigned! */
+      /* We must keep track of each item, for use as they are assigned! */
 
       tspec_idx = TDCPM_DESER_UINT32(deser);
 
