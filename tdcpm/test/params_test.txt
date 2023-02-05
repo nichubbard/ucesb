@@ -20,6 +20,19 @@ r.d.k = 3 ns/ch;
 r.e[1].k = 4 MeV/ch;
 r.e[2].m = 5 MeV;
 s[1].m = 8 unit_ten_ps;
+s(4).m = 9 unit_ps;
+
+/* Some of these should perhaps be errors when overall structure is
+ * investigated.
+ */
+r.g = 10;            /* Non-exist member. */
+r.a.a = 10;          /* Too deep member. */
+r.a[1].a = 10;       /* Too deep index and member. */
+r[1].a = 10;         /* Unexpected index (expect name). */
+r.e[1].q = 5 MeV/ch; /* Non-exist member. */
+s.k = 1 ns/ch;       /* Unexpected name (expect index). */
+s[7].m = 8 unit_ten_ps; /* Outside array. */
+r.e[4].k = 4 MeV/ch;    /* Outside array. */
 
 TEST[1] = value_1_ns;
 TEST[2] = 2 unit_ten_ps;
