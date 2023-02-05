@@ -272,13 +272,20 @@ fail_tests: $(FAILSTAMPS) test/fail/xx1.stamp.err.check
 # below on the first test.
 test/fail/%.stamp: test/fail/% test/tdcpm_test
 	@echo " TEST-F  $@"
+	$(QUIET)grep "###" $< | \
+	  sed -e "s,.*###[[:space:]]*,," -e "s,[[:space:]]*\\*/,," \
+	  > $@.err.expect
 	$(QUIET)cpp $< | ( ! test/tdcpm_test --parsed --input-only \
-	  > $@.out 2> $@.err ) || \
+	  > $@.out 2> $@.err ) && \
+	  (grep "`cat $@.err.expect`" $@.err > /dev/null || \
+            (echo -n "Missing/wrong error output: " ; \
+             cat $@.err.expect ; false)) || \
 	  ( echo "Success when expecting failure: cpp $< | ./tdcpm_test:";\
 	    echo "--- input ($<): ---" ; cat $< ; \
 	    echo "--- stdout ($@.out): ---" ; cat $@.out ; \
 	    echo "--- stderr ($@.err): ---" ; cat $@.err ; \
 	    echo "---------------" ; false)
+	$(QUIET)grep "`cat $@.err.expect`" $@.err > /dev/null || echo not
 	$(QUIET)touch $@
 
 test/fail/xx1.stamp.err.check: test/fail/xx1.stamp

@@ -1,1 +1,1 @@
-test/fail/xx1:9: Error: cannot add, unit mismatch between terms.
+test/fail/xx1:10: Error: cannot add, unit mismatch between terms.
