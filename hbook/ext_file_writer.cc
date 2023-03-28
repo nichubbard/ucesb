@@ -441,6 +441,20 @@ void do_file_open(time_t slicetime)
 	  filename = _ts._timeslice_name._curname;
 	}
 
+      /* Since ROOT overwrites write-protected files (ugh!), we first
+       * check that the file is not write-protected.
+       */
+      struct stat statbuf;
+
+      if (stat(filename, &statbuf) == 0)
+	{
+	  if (!(statbuf.st_mode & S_IWUSR))
+	    {
+	      ERR_MSG("Refusing to overwrite %s, which is read-only.",
+		      filename);
+	    }
+	}
+
 #if USING_CERNLIB
       if (strlen(_config._ftitle) > 16)
 	ERR_MSG("HBOOK file title (%s) too long (max 16 chars).",
