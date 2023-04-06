@@ -45,6 +45,8 @@ CXXFLAGS += -DUCESB_SRC
 
 CXXFLAGS += -ansi -Wall -W -Wno-unused-function -Wno-unused-label -Wno-unused-parameter -Wwrite-strings -Wconversion -Werror -Wcast-qual #-Wshadow
 
+CXXLINKFLAGS += -rdynamic # for backtrace
+
 UNAME_S:=$(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
   CXXFLAGS += 

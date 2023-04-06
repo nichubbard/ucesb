@@ -63,6 +63,8 @@ else
   CXXFLAGS += -Wno-comment -Wno-macro-redefined -Wno-sign-conversion -Wno-float-conversion -Wno-mismatched-tags
 endif
 
+CXXLINKFLAGS += -rdynamic # for backtrace
+
 CXXFLAGS += -g
 OPTFLAGS += #-DNDEBUG
 OPTFLAGS += #-fmudflapth # -fstack-protector
