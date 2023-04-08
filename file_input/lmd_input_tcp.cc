@@ -287,7 +287,7 @@
 
 // The LMD tcp connection input works as a front-end for the
 // pipe_buffer.  Instead of reading directly from a file, we read data
-// from ther tcp socket and place it into the buffer.  Care is taken
+// from the tcp socket and place it into the buffer.  Care is taken
 // not to start a transaction that would read data until we internally
 // have buffer space available to hold it.  This way, we cannot lock
 // the server up (even though it also is the servers responsibility to

@@ -116,7 +116,7 @@ void worker_thread::join()
 }
 
 
-// To be called by the tread itself on initialisation
+// To be called by the thread itself on initialisation
 void worker_thread::thread_init()
 {
   TDBG("");

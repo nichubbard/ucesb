@@ -24,7 +24,7 @@
 // when using the multi-event capabilities
 
 // There is no harm in compiling this, since unless they are used, the
-// linker will throw it out.  The modules are part of the commen spec/
+// linker will throw it out.  The modules are part of the common spec/
 // directory, and therefore we'll have the classes defined
 
 // If one included spec/spec.hh .  Try to fix such that one can avoid

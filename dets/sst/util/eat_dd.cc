@@ -70,7 +70,7 @@ bool find_mean_var(std::vector<float>& data,double *mean,double *mean_err_var,do
 
   int n = sorted.size();
 
-  // Try to find the steepest (smallest) difference with 1/2 of the data inbetween
+  // Try to find the steepest (smallest) difference with 1/2 of the data in-between
 
   double prel_mean;
   double prel_sigma;

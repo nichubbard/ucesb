@@ -168,7 +168,7 @@ void open_retire::close_file(data_input_source *source)
 
 void *open_retire::worker()
 {
-  // this thread is the main tread, so never spawned
+  // this thread is the main thread, so never spawned
   assert(false);
   return NULL;
 }

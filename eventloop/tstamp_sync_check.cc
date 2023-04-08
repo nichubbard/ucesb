@@ -736,7 +736,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
   /* To find the period, we try successively larger periods, and
    * count the number of values in the difference histogram in
    * a few intervals surrounding the expected 0th, 1st and 2nd peak,
-   * as well as the areas inbetween:
+   * as well as the areas in-between:
    *
    * [0]:  0     ..    P/4   around 0th peak   ref
    * [1]:  1*P/4 ..  3*P/4                     < ref/10
@@ -752,7 +752,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
    * We then use the first period which manages to find within the 1st
    * and 2nd peaks at least half the numbe of counts as are in the
    * zeroth peak, and at the same time at most 1/10 as many counts in
-   * the regions inbetween.
+   * the regions in-between.
    *
    * When that condition is fulfilled, the search is continued
    * as long as a quality measure based on a product of the number

@@ -74,9 +74,9 @@
 // as long as the handle is shared, and only used by one thread at a
 // time, the handle may be started to be operated upon by one thread,
 // and then continued to be modified by someone else.  Also, all data
-// inbetween the any fragments (i.e. buffer headers) will never be
+// in between the any fragments (i.e. buffer headers) will never be
 // read again, so it is valid to do a memmove of any part of the event
-// in order to join fragments, overwriting the header inbetween).
+// in order to join fragments, overwriting the header in-between).
 // Such memmove is however not allowed if the file was mmap()ed from
 // the file-system (in which case we are anyhow read-only, and will
 // cause a full seg-fault)
@@ -1725,7 +1725,7 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
       else
 	{
 	  // or data was fragmented.  Now, if the fragments are in memory
-	  // order, we also know that we may destroy whatever is inbetween
+	  // order, we also know that we may destroy whatever is in-between
 	  // them, so we need only copy the shortest portion of the subevent
 	  // to make it adjacent to the rest.
 

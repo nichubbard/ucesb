@@ -1047,7 +1047,7 @@ void expand_insert_signal_to_all(signal_spec_range *signal)
 {
   // So, we need to decompose the signal name and identifiers,
   // figure out what indices are to be expanded, and then run them
-  // in lockstep, to generate all signals inbetween.
+  // in lockstep, to generate all signals in-between.
 
   signal_id id_first;
   signal_id id_last;

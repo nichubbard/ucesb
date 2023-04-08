@@ -192,7 +192,7 @@ void convert_units_exponent(const file_line &loc,const char *str,
       const char *end = p;
 
       // Perhaps we are followed by digits for the exponent (possibly
-      // preceeded by a minus sign)
+      // preceded by a minus sign)
 
       if (*p == '^' &&
 	  ((*(p+1) == '-' && isdigit((int) *(p+2))) || isdigit((int) *(p+1))))
