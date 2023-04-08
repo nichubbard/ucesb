@@ -187,7 +187,7 @@ while (@textin)
 
 	# print "Include: ----> ($includeoldmd5sum -> $incf_md5sum)\n";
 
-	# Now, there are four possibilites.
+	# Now, there are four possibilities.
 	# None changed -> nothing to do (except to copy to output)
 	# Chunk changed -> Copy to include file
 	# Include file changed -> Copy to us

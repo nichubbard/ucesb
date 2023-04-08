@@ -64,7 +64,7 @@ GROUP_DATA(group)
 
   if (!(header.item_count & 1))
     {
-      // even humber of data words, padding needed to keep 32-bit alignment
+      // even number of data words, padding needed to keep 32-bit alignment
 
       UINT16 pad NOENCODE
 	{
@@ -107,7 +107,7 @@ EXTENDED_GROUP_DATA(group)
 
   if (header.item_count & 1)
     {
-      // even humber of data words, padding needed to keep 32-bit alignment
+      // even number of data words, padding needed to keep 32-bit alignment
 
       UINT16 pad NOENCODE
 	{
