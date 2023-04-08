@@ -53,7 +53,7 @@ struct hld_subevent
 {
   hld_subevent_header _header;
 
-  char      *_data;   // ptr to data in contigous memory
+  char      *_data;   // ptr to data in contiguous memory
   buf_chunk *_frag;   // where data is (fragmented)
   size_t     _offset; // offset into fragment
 

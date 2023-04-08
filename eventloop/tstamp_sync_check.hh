@@ -71,7 +71,7 @@
 #define TSTAMP_SYNC_INFO_NO_VALUE              0x0100
 /* No peak value. */
 #define TSTAMP_SYNC_INFO_NO_PEAK_FIT           0x0200
-/* Sync check value is outside any of the known peaks.  (May be inbetween.) */
+/* Sync check value is outside any of the known peaks.  (May be in-between.) */
 #define TSTAMP_SYNC_INFO_OUTSIDE_PEAK          0x0400
 /* Peak assignment ambiguous. */
 #define TSTAMP_SYNC_INFO_AMBIGUOUS_PEAK        0x0800

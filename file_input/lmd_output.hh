@@ -36,7 +36,7 @@
 
 struct buf_chunk_swap
 {
-  const char *_ptr;      // could be void*, char* to allow arithmetics
+  const char *_ptr;      // could be void*, char* to allow arithmetic
   size_t      _length;
   bool        _swapping; // true if chunk not in host byte order
 };

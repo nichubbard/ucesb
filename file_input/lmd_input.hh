@@ -46,14 +46,14 @@
 // When we have all the fragments, and the code has decided that the
 // event may be of interest, we'll locate all subevents and fetch
 // their headers, and remember the locations of the data.  But we will
-// NOT make sure that the data is in contigous memory.  That will only
+// NOT make sure that the data is in contiguous memory.  That will only
 // be done per subevent when the data is requested!
 
 struct lmd_subevent
 {
   lmd_subevent_10_1_host _header;
 
-  char      *_data;   // ptr to data in contigous memory
+  char      *_data;   // ptr to data in contiguous memory
   buf_chunk *_frag;   // where data is (fragmented)
   size_t     _offset; // offset into fragment
   // size_t     _length;

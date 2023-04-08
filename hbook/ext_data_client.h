@@ -426,7 +426,7 @@ int ext_data_setup(struct ext_data_client *client,
  *  n  file descriptor.
  * -1  failure, see errno.
  *
- * Error codes on falure come from fcntl().
+ * Error codes on failure come from fcntl().
  */
 
 int ext_data_nonblocking_fd(struct ext_data_client *client);
@@ -455,7 +455,7 @@ int ext_data_nonblocking_fd(struct ext_data_client *client);
  *                  Malformed message.  Bug?
  * EPROTO           Unexpected message.  Bug?
  * EFAULT           @client is NULL.
- * EAGAIN           No futher data at this moment (after using
+ * EAGAIN           No further data at this moment (after using
  *                  ext_data_nonblocking_fd()).
  */
 
@@ -494,7 +494,7 @@ int ext_data_next_event(struct ext_data_client *client,
  *                  Malformed message.  Bug?
  * EPROTO           Unexpected message.  Bug?
  * EFAULT           @client is NULL.
- * EAGAIN           No futher data at this moment (after using
+ * EAGAIN           No further data at this moment (after using
  *                  ext_data_nonblocking_fd()).
  */
 
@@ -548,7 +548,7 @@ int ext_data_get_raw_data(struct ext_data_client *client,
  * @client          Connection context structure.
  * @buf             Pointer to the data structure.
  * @size            Size of the structure.  Use sizeof(struct).
- * @clear_zzp_lists Clear contents of varible sized (zero-suppressed)
+ * @clear_zzp_lists Clear contents of variable sized (zero-suppressed)
  *                  lists.  Should be 0 for performance, see below.
  * @struct_id       Key of structure to clear, 0 if name_id = "".
  *

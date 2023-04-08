@@ -212,7 +212,7 @@ public:
 				uint32_t **raw = NULL,
 				uint32_t raw_words = 0);
   void send_done();
-  void send_flush(); /* Used when data is sent seldomly...  Hmmm */
+  void send_flush(); /* Used when data is sent seldom...  Hmmm */
 
   uint32_t max_h1i_size(size_t max_id_title_len,uint32_t bins);
   void send_hist_h1i(int hid,const char *id,const char *title,
@@ -356,7 +356,7 @@ inline uint32_t external_write_float_as_uint32(float src)
  *   uint32_t       offset   (offset in the staging array of the item)
  *
  *                           In case of zero-suppressed arrays, they
- *                           must be directly preceeded by the
+ *                           must be directly preceded by the
  *                           controlling variable, which offset is to
  *                           be OR marked with 0x80000000.  This is
  *                           followed by two values, max_loops and
@@ -365,7 +365,7 @@ inline uint32_t external_write_float_as_uint32(float src)
  *                           given in round-robin order).
  *
  *                           All @offset are to written with htonl(), to
- *                           avoid endianess issues.
+ *                           avoid endianness issues.
  *
  *                           Items that are to be cleared with 0 (e.g.
  *                           integers), should have a marker 0x40000000.
@@ -421,7 +421,7 @@ inline uint32_t external_write_float_as_uint32(float src)
  *   uint32_t       value    (value, see writing_ntuple.hh for
  *                           type-punning of floats) Both @offset and
  *                           @value are to be written with htonl(), to
- *                           avoid endianess issues.
+ *                           avoid endianness issues.
  *
  *                           The values are to be given in the same
  *                           order as the offsets to

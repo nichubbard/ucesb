@@ -36,14 +36,14 @@ struct rich_map_xy_item
 
 union rich_map_module_xy
 {
-  uint8 _used [2/*contoller*/][8/*port*/][8/*module*/];
-  uint8 _usedf[2/*contoller*/ *8/*port*/ *8/*module*/];
+  uint8 _used [2/*controller*/][8/*port*/][8/*module*/];
+  uint8 _usedf[2/*controller*/ *8/*port*/ *8/*module*/];
 };
 
 union rich_map_xy
 {
-  rich_map_xy_item _upi [2/*contoller*/][8/*port*/][8/*module*/][64/*channel*/];
-  rich_map_xy_item _upif[2/*contoller*/ *8/*port*/ *8/*module*/ *64/*channel*/];
+  rich_map_xy_item _upi [2/*controller*/][8/*port*/][8/*module*/][64/*channel*/];
+  rich_map_xy_item _upif[2/*controller*/ *8/*port*/ *8/*module*/ *64/*channel*/];
 };
 
 // For mapping xy -> upi
@@ -111,7 +111,7 @@ struct rich_map_reindex_item
 
 struct rich_map_reindex
 {
-  rich_map_reindex_item _upif[2/*contoller*/ *8/*port*/ *8/*module*/ *64/*channel*/];
+  rich_map_reindex_item _upif[2/*controller*/ *8/*port*/ *8/*module*/ *64/*channel*/];
 };
 
 // All remap info

@@ -32,7 +32,7 @@
 //
 // - different call sequence (also local parameters handled with a
 // list of labels) (if this is an improvement is up to the user)
-// (these local labels should start at 1, and be consequtively used
+// (these local labels should start at 1, and be consecutively used
 // within each record)
 //
 // - ability to include this code as part of UCESB (GPLed) (works, as

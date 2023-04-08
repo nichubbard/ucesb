@@ -286,7 +286,7 @@ void call_r2c_convert(void *r2c_ptr,const void *src_ptr)
 
   switch (zzp_info->_type)
     {
-    case ZZP_INFO_NONE: // no zero supress item
+    case ZZP_INFO_NONE: // no zero suppress item
       break;
     case ZZP_INFO_FIXED_LIST: // part of fixed list
       {

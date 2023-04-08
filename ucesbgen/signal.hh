@@ -93,7 +93,7 @@ public:
 public:
   signal_spec_base *_decl;
   signal_spec_base *_decl_unit;
-  // file_line _loc_decl; // location of first signal forcing (declaring) our existance
+  // file_line _loc_decl; // location of first signal forcing (declaring) our existence
 
 public:
   // When we are a leaf, list all the indices that are used to reach us.

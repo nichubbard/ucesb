@@ -42,7 +42,7 @@
 
 // The UNLIKELY(...) should also be in the PEEK_FROM_BUFFER, but it
 // seems many versions (random) of gcc then comes with spurious warnings
-// about __match_peek possibly being used unitialized...
+// about __match_peek possibly being used uninitialized...
 
 #define PEEK_FROM_BUFFER(loc,data_type,dest) {                      \
   if (/*UNLIKELY(*/!__buffer.peek_##data_type(&dest)/*)*/) {        \
