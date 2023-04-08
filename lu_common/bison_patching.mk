@@ -9,7 +9,7 @@ BISON_PATCH_PIPELINE=\
 # The yystpcpy is a bit difficult.  For newer versions (which have
 # it), we want to cast to YYPTRDIFF_T, while for older we want
 # to cast to YYPTRDIFF_T.  Therefore we have to expressions, both
-# preceeded by an address range: /startregex/,/stopregex/.
+# preceded by an address range: /startregex/,/stopregex/.
 # The address range is used to tell if YYPTRDIFF_T at all has appeared
 # in the file or not.  If yes, then change to YYPTRDIFF_T, otherwise use
 # YYSIZE_T.  The pattern /quee3oNa/ is something which would not be
