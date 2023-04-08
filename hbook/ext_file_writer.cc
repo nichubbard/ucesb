@@ -1397,7 +1397,7 @@ void do_create_branch(global_struct *s,
 
       if (!br)
 	{
-	  WARN_MSG("Requsted branch (%s) does not exist in tree.",
+	  WARN_MSG("Requested branch (%s) does not exist in tree.",
 		   item._var_name);
 	  /* Not such a disaster, just ignore it.  Zeroes will be
 	   * delivered for each event...
@@ -1409,13 +1409,13 @@ void do_create_branch(global_struct *s,
       // the variable we want to get at!
 
       if (br->GetNleaves() != 1)
-	ERR_MSG("Requsted branch (%s) does not have one leaf (%d).",
+	ERR_MSG("Requested branch (%s) does not have one leaf (%d).",
 		item._var_name,br->GetNleaves());
 
       TLeaf *lf = br->GetLeaf(item._var_name);
 
       if (!lf)
-	ERR_MSG("Requsted leaf (%s) does not exist in branch.",
+	ERR_MSG("Requested leaf (%s) does not exist in branch.",
 		item._var_name);
 
       // Make sure it is counted only if we are counted
@@ -2828,7 +2828,7 @@ public:
 // rounds) are quite different, making the control loops short and
 // thus increasing their relative overhead.
 
-// Radix sort minimum.  Treat it as a continous function,
+// Radix sort minimum.  Treat it as a continuous function,
 // differentiate wrt k: 3n*(2^k*(k*ln 2-1)-3*N)/k^2.
 // Find zero - 3n*(2^k*(k*ln 2-1)-3*N)/k^2 == 0,
 // 2^k*(k*ln 2-1)-3*N == 0
@@ -5664,7 +5664,7 @@ int main(int argc,char *argv[])
 	  if (shmc->_cur == shmc->_end)
 	    shmc->_cur = shmc->_begin; // start over from beginning
 	  assert(shmc->_cur + sizeof (uint32_t) <= shmc->_end);
-	  MFENCE; // we cannot write that we're done until we wont use
+	  MFENCE; // we cannot write that we're done until we won't use
 		  // the data any longer
 	  shmc->_ctrl->_done += length;
           MFENCE;

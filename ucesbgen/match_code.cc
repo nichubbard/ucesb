@@ -346,7 +346,7 @@ struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &infos,
       // pair must differ in at least one bit on their each common,
       // mask, or trouble ahead...
 
-      std::vector<bool> ambigous(infos.size(),false);
+      std::vector<bool> ambiguous(infos.size(),false);
 
       for (unsigned int i = 0; i < infos.size()-1; i++)
 	{
@@ -363,8 +363,8 @@ struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &infos,
 
 		  d.text_fmt("// Indistinguishable: %d %d\n",i,j);
 
-		  ambigous[i] = true;
-		  ambigous[j] = true;
+		  ambiguous[i] = true;
+		  ambiguous[j] = true;
 		}
 	    }
 	}
@@ -375,7 +375,7 @@ struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &infos,
 	  const match_info &info = infos[i];
 	  const struct_decl *decl = info._decl;
 
-	  if (ambigous[i])
+	  if (ambiguous[i])
 	    d.text("VERIFY_");
 	  d.text_fmt("MATCH_DECL_QUICK(%d,__match_no,%d,",
 		     decl->_loc._internal,info._index);
@@ -383,7 +383,7 @@ struct_unpack_code::gen_match_decl_quick(const std::vector<match_info> &infos,
 	  d.text_fmt(",__match_peek,0x%0*x,0x%0*x",
 		     size/4,info._mask,
 		     size/4,info._value);
-	  if (ambigous[i])
+	  if (ambiguous[i])
 	    {
 	      const struct_header_named *named_header = find_decl(decl,false);
 
@@ -405,7 +405,7 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
 					     const char *abort_spurious_label,
 					     bool last_subevent_item)
 {
-  // We only handle a certain (but common) subset of matching possibilites.
+  // We only handle a certain (but common) subset of matching possibilities.
   //
   // The candidates must all want to read the same kind of data word
   // (uint8/uint16/uint32)
@@ -535,7 +535,7 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
 		 items->size() <= 127 ? 8 : 32,
 		 array_size);
 
-      std::vector<std::vector<int> > ambigous;
+      std::vector<std::vector<int> > ambiguous;
 
       for (int index = 0; index < array_size; index++)
 	{
@@ -546,7 +546,7 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
 	  // then we mark the entry as having a dual match and it will give an
 	  // run-time error
 
-	  std::vector<int> this_ambigous;
+	  std::vector<int> this_ambiguous;
 
 	  for (unsigned int i = 0; i < infos.size(); i++)
 	    {
@@ -582,28 +582,28 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
 		  if (match_no != -1)
 		    {
 		      d.text_fmt("/*%d*/",match_no);
-		      this_ambigous.push_back(match_no);
+		      this_ambiguous.push_back(match_no);
 		    }
 		  d.text_fmt("/*%d*/",i+1);
-		  this_ambigous.push_back((int) i+1);
+		  this_ambiguous.push_back((int) i+1);
 		  match_no = -1; // we had several matches!
 		}
 	    cannot_match:
 	      ;
 	    }
-	  if (this_ambigous.size())
+	  if (this_ambiguous.size())
 	    {
-	      // have we already seen this set of ambigous items?
+	      // have we already seen this set of ambiguous items?
 
-	      for (size_t i = 0; i < ambigous.size(); i++)
-		if (ambigous[i] == this_ambigous)
+	      for (size_t i = 0; i < ambiguous.size(); i++)
+		if (ambiguous[i] == this_ambiguous)
 		  {
 		    match_no = -((int) i+1);
-		    goto found_ambigous_set;
+		    goto found_ambiguous_set;
 		  }
-	      ambigous.push_back(this_ambigous);
-	      match_no = (int) -ambigous.size();
-	    found_ambigous_set:
+	      ambiguous.push_back(this_ambiguous);
+	      match_no = (int) -ambiguous.size();
+	    found_ambiguous_set:
 	      ;
 	    }
 
@@ -619,20 +619,20 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
       // standard matching routines.  TODO: this can actually be fixed
       // by a somewhat more advanced handling..
 
-      // Hmm, no actully this cannot happen.  We have an array based
+      // Hmm, no actually this cannot happen.  We have an array based
       // on all bits that at all can differ.  If this is not unique
       // here, it will also not be unique using the other method.
       // Well, with ranges this is not true.  They may be unique,
-      // altough the bits are not.
+      // although the bits are not.
 
       // d.text_fmt("fprintf(stderr,\" 0x%%08x %%d\\n\",__match_peek,__match_index);\n");
 
       d.text("__match_no = __match_index_array[__match_index];\n");
 
-      // If we had a ambigous match, then we've gotten a negative
+      // If we had a ambiguous match, then we've gotten a negative
       // index out (which has an associated set of items to check
 
-      if (!ambigous.empty())
+      if (!ambiguous.empty())
 	{
 	  d.text("if (__match_no < 0)\n");
 	  d.text("{\n");
@@ -641,9 +641,9 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
 	  sd.text("{\n");
 	  dumper ssd(sd,2);
 
-	  for (size_t i = 0; i < ambigous.size(); i++)
+	  for (size_t i = 0; i < ambiguous.size(); i++)
 	    {
-	      std::vector<int> &a = ambigous[i];
+	      std::vector<int> &a = ambiguous[i];
 
 	      ssd.text_fmt("case %d:\n",-((int) i+1));
 	      dumper sssd(ssd,2);
@@ -684,7 +684,7 @@ bool struct_unpack_code::gen_optimized_match(const file_line &loc,
   // We however have another problem.  If the select several
   // statement is not the last one in the subevent, it may be that
   // a proper match would have rejected our item (depending on
-  // e.g. an variable that we could not evalute.  And then we
+  // e.g. an variable that we could not evaluate.  And then we
   // should not try to unpack, but rather continue after the
   // select several statement instead, (without issuing an error)
 

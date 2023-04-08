@@ -165,7 +165,7 @@ void map_members(const data_map<T> &map,const T &src MAP_MEMBERS_PARAM)
       //WARNING("%d",map._zzp_info._type);
       switch (map._zzp_info->_type)
 	{
-	case ZZP_INFO_NONE: // no zero supress item
+	case ZZP_INFO_NONE: // no zero suppress item
 	  // case ZZP_INFO_FIXED_LIST: // part of fixed list
 	  break;
 	case ZZP_INFO_CALL_ARRAY_INDEX:

@@ -46,7 +46,7 @@
 // requested (not so likely though)
 
 // Since event reading also is expected to be a light-weight operation
-// (in comparision to unpacking/mapping/analysis/ntuple-writing), it
+// (in comparison to unpacking/mapping/analysis/ntuple-writing), it
 // should be fairly harmless to let this thread wonder around the
 // cpus...  It may then perhaps manage to do it's work on an cpu
 // standing around waiting?

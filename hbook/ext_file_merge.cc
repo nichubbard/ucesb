@@ -231,7 +231,7 @@ void ext_merge_array(uint32_t **ptr_o,
 
   /* For lists (loops) we add data from all sources,
    * individually.  Thus the peril is if there are too many
-   * items, which cannot be accomodated.
+   * items, which cannot be accommodated.
    *
    * TODO: We also want keep the sorting of items, in case they were
    * delivered in index order.
@@ -461,7 +461,7 @@ void ext_merge_multi_array(uint32_t **ptr_o,
 	      maii_end->_index,
 	      maii_end->_items);
 
-      /* Does it continue the previus item, or is it a new one? */
+      /* Does it continue the previous item, or is it a new one? */
       if (maii_end->_index != cur_index)
 	{
 	  /* New index.  First make a dummy with zero entries. */

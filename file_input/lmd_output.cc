@@ -41,10 +41,10 @@
 // Write LMD files.
 //
 // Due to some (mucho-monumental) brain-damages in the way the LMD
-// files are handled (mainly the lack of an endianess marker for the
-// data itself, we need to make some precautions.  (The endianess of
+// files are handled (mainly the lack of an endianness marker for the
+// data itself, we need to make some precautions.  (The endianness of
 // the headers is known, and further it is assumed that that buffer
-// has been written in the same endianess.  So far so good.  Trouble
+// has been written in the same endianness.  So far so good.  Trouble
 // comes as certain programs 'transporting' these buffers take upon
 // themselves to swap them into their native byte order and then let
 // them continue.  Which is a disaster, since the byteswapping is on
@@ -54,8 +54,8 @@
 // This program will _not_ be doing any 32-bit aligned byte-swapping
 // unless we know what data we operate on.  Therefore, any data that
 // is output will be output in the same order we got it.  To make that
-// possible, we'll (if for any reason our input data changed endianess
-// between events), create a new buffer in the new endianess.
+// possible, we'll (if for any reason our input data changed endianness
+// between events), create a new buffer in the new endianness.
 //
 // Second issue: since it seems that it is not supported to put event
 // data into the file header buffer (although all necessary fields are
@@ -619,7 +619,7 @@ void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
 
   memset (&_buffer_header,0,sizeof (_buffer_header));
 
-  _buffer_header.l_buf = old_buffer_no + 1; // this will give continuity errors when reading several files, that were created independently... (reader should not care about troubles when recieving a file header)
+  _buffer_header.l_buf = old_buffer_no + 1; // this will give continuity errors when reading several files, that were created independently... (reader should not care about troubles when receiving a file header)
 
   // marker for swapping order
   // network order 0x0000001 : data written in network (big endian order) (scrambled?)
@@ -630,7 +630,7 @@ void lmd_output_buffered::new_buffer(size_t lie_about_used_when_large_dlen)
   //                           data written in host order (host == big endian)
   // network order 0x0200001 : headers written in network order
   //                           data written in host order (host == little endian)
-  // so,           0x0000002 : marker for data endianess
+  // so,           0x0000002 : marker for data endianness
   // hmmm....
 
   /*
@@ -755,7 +755,7 @@ void lmd_output_buffered::write_event(const lmd_event_out *event,
   // the event should be in the _event object
 
   // first of all, flush the output buffer if the space left is less
-  // than an event header! (which can not be divided into fragements!
+  // than an event header! (which can not be divided into fragments!
 
   if (_cur_buf_left <= sizeof (lmd_event_10_1_host))
     {

@@ -75,7 +75,7 @@ void land_watcher_event_info(watcher_event_info *info,
       info->_display |= WATCHER_DISPLAY_SPILL_EOS;
     }
 
-  /* One can also override the _time and _event_no variables, altough
+  /* One can also override the _time and _event_no variables, although
    * for LMD files formats this is filled out before (from the buffer
    * headers), so only needed if we do not like the information
    * contained in there.  Hmm _time from buffer not implemented yet...
@@ -83,7 +83,7 @@ void land_watcher_event_info(watcher_event_info *info,
 
   // Since we have a time stamp (on some events), we'd rather use that
   // than the buffer timestamp, since the buffer timestamp is the time
-  // of packaging, and not of event occuring
+  // of packaging, and not of event occurring
 
   // clean it for events not having it
   info->_info &= ~WATCHER_DISPLAY_INFO_TIME;

@@ -119,7 +119,7 @@ void fa192mar09_watcher_event_info(watcher_event_info *info,
 
   // Since we have a time stamp (on some events), we'd rather use that
   // than the buffer timestamp, since the buffer timestamp is the time
-  // of packaging, and not of event occuring
+  // of packaging, and not of event occurring
 
   // clean it for events not having it
   info->_info &= ~WATCHER_DISPLAY_INFO_TIME;

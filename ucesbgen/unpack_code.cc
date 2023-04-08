@@ -1092,7 +1092,7 @@ const struct_header_named *find_decl(const struct_decl* decl,bool subevent)
   const struct_header_named *named_header =
     dynamic_cast<const struct_header_named *>(str_decl->_header);
   if (!named_header && !subevent)
-    ERROR_LOC(decl->_loc,"Structure %s defintion does not have a parameter list (even empty).",
+    ERROR_LOC(decl->_loc,"Structure %s definition does not have a parameter list (even empty).",
 	      decl->_ident);
 
   if (!(decl->_opts & STRUCT_DECL_OPTS_EXTERNAL) !=
@@ -1530,7 +1530,7 @@ void struct_unpack_code::gen_match(const file_line &loc,
 			// not the last item in the subevent, we can
 			// however not guarantee that just because we
 			// found 1 item matching, that it _is_ our
-			// match, since it may have been spurios.  If
+			// match, since it may have been spurious.  If
 			// the check however fails, this just means
 			// that we should continue unpack the subevent
 			// after this select statement

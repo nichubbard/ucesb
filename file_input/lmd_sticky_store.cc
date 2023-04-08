@@ -16,7 +16,7 @@
  * the contents of the array, we keep an additional array with just
  * the meta-data, i.e. identifiers, lengths and offsets of the events
  * and subevents.  Thus it is easy to in that metadata remove (by
- * marking, not moving) entries as they are superceeded.  Further, to
+ * marking, not moving) entries as they are superseded.  Further, to
  * easily find entries in the array, we also keep a hash-table of all
  * identifiers, with offsets to the last (i.e. active) entry.
  *
@@ -33,7 +33,7 @@
  * data.  If that is the case, we compact the array instead of
  * allocating more memory.  This will of course take time proportional
  * to the array size, but as it at most happens when we reach the end
- * of the array, its occurance goes inversely proportional to the
+ * of the array, its occurrence goes inversely proportional to the
  * array size, and thus overall scales with the copy cost.
  *
  */
@@ -463,7 +463,7 @@ void lmd_sticky_store::compact_data()
   fprintf(stderr,"Compact data!\n");
 # endif
 #endif
-  // Go trough the meta-data, and move all event data up ahead.
+  // Go through the meta-data, and move all event data up ahead.
 
   size_t dest_offset = 0;
   size_t iter_ev_offset;
@@ -527,7 +527,7 @@ void lmd_sticky_store::compact_meta()
   fprintf(stderr,"Compact meta!\n");
 # endif
 #endif
-  // Go trough the meta-data, and squeeze out all subevents that have
+  // Go through the meta-data, and squeeze out all subevents that have
   // vanished.
 
   size_t dest_offset = 0;
@@ -603,7 +603,7 @@ void lmd_sticky_store::populate_hash()
   for (size_t i = 0; i < _hash_size; i++)
     _hash[i]._sub_offset = 0;
   
-  // Go trough the meta-data, and reconstruct the hash table
+  // Go through the meta-data, and reconstruct the hash table
   size_t iter_ev_offset;
 
   for (iter_ev_offset = 0; iter_ev_offset < _meta_end; )
@@ -761,7 +761,7 @@ void lmd_sticky_store::write_events(lmd_output_buffered *dest)
 # endif
 #endif
 
-  // Go trough the meta-data, and prepare all non-empty events
+  // Go through the meta-data, and prepare all non-empty events
   // for writing, and send the write call.
 
   // TODO: when writing for a file, we should not eject sticky

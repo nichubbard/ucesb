@@ -642,7 +642,7 @@ bool set_raw_to_tcal(void *info,
     }
 
   /* For non-toggle items, use0 and use1 will be the same (0).
-   * For toggle items, they will by defult be different, and thus
+   * For toggle items, they will by default be different, and thus
    * check and (at bottom) assign both slots.
    * Unless toggle is given, in which case they only deal with the
    * wanted item.

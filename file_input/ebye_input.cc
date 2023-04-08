@@ -68,7 +68,7 @@ bool ebye_source::read_record()
       // This is a ugly hack
 
       // The filler seems to be 0x5e, so if not, we cause an error
-      // (endianess does not matter, all bytes 0x5e)
+      // (endianness does not matter, all bytes 0x5e)
 
       if (_record_header._id[0] != 0x5e)
 	ERROR("Record ID not %s.",EBYE_RECORD_ID);
@@ -92,16 +92,16 @@ bool ebye_source::read_record()
 
   switch (_record_header._endian_tape)
     {
-    case 0x0001: // our endianess, nothing to do
+    case 0x0001: // our endianness, nothing to do
       break;
-    case 0x0100: // opposite endianess
+    case 0x0100: // opposite endianness
       _record_header._sequence    = bswap_32(_record_header._sequence);
       _record_header._stream      = bswap_16(_record_header._stream);
       _record_header._tape        = bswap_16(_record_header._tape);
       _record_header._data_length = bswap_32(_record_header._data_length);
       break;
     default:
-      ERROR("Unexpected tape endianess (0x%04x).",_record_header._endian_tape);
+      ERROR("Unexpected tape endianness (0x%04x).",_record_header._endian_tape);
     }
 
   if (_conf._print_buffer)
@@ -151,14 +151,14 @@ bool ebye_source::read_record()
 
   switch (_record_header._endian_data)
     {
-    case 0x0001: // our endianess, nothing to do
+    case 0x0001: // our endianness, nothing to do
       break;
-    case 0x0100: // opposite endianess
+    case 0x0100: // opposite endianness
       // do_swap32(_record_buf,data_size);
       _swapping = true;
       break;
     default:
-      ERROR("Unexpected data endianess (0x%04x).",_record_header._endian_tape);
+      ERROR("Unexpected data endianness (0x%04x).",_record_header._endian_tape);
     }
 
   return true;
@@ -167,7 +167,7 @@ bool ebye_source::read_record()
 bool ebye_source::skip_record()
 {
   // TODO: Also handle the case when the filler got momentarily wrong...
-  // (might give many spurios errors until things resyncronise...)
+  // (might give many spurious errors until things resyncronise...)
 
   _input._cur = (_input._cur & ~0x3ff) + 0x400;
 
@@ -190,7 +190,7 @@ ebye_event *ebye_source::get_event()
 
 #ifdef USE_THREADING
   // Even if we blow up with an error, the reclaim item will be in the
-  // reclaim list, so the memory wont leak
+  // reclaim list, so the memory won't leak
   dest = (ebye_event *) _wt._defrag_buffer->allocate_reclaim(sizeof (ebye_event));
 #else
   _file_event.release();

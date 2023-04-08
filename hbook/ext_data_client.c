@@ -1926,7 +1926,7 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 	    uint32_t newsize, magic;
 	    uint32_t *p = (uint32_t *) (header+1);
 
-	    /* Resize our recieve buffer, to be able to receive the
+	    /* Resize our receive buffer, to be able to receive the
 	     * maximum size messages that may arrive.
 	     */
 
@@ -2339,7 +2339,7 @@ int ext_data_setup(struct ext_data_client *client,
 
       client->_buf_alloc = bufsize;
 
-      /* We send some minimum messages to the recepient so that it at
+      /* We send some minimum messages to the recipient so that it at
        * least can check that the data is not completely bogus.
        */
 

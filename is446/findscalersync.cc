@@ -322,7 +322,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 	    }
 
 	  // if we searching backwards, do not find the forward
-	  // offest, then we accept the backward offset, similarly,
+	  // offset, then we accept the backward offset, similarly,
 	  // searching forwards, if we do not find the backwards
 	  // offset, we accept it
 

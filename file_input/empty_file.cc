@@ -46,7 +46,7 @@
 
 // This program creates a stream of data representing empty events on
 // stdout.  It can be used to test the basic event processing of
-// almost any unpacker, as empty events usually are valid (altough
+// almost any unpacker, as empty events usually are valid (although
 // they perhaps shouldn't).  One can also test the processing overhead
 // for an event as such.
 

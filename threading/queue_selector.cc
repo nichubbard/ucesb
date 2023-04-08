@@ -39,7 +39,7 @@ int queue_selector::next_queue()
     }
 
   // Go over the queues and find out who is in most need of more events.
-  // If we find anyone being empty, we'll enque events into that one, without
+  // If we find anyone being empty, we'll enqueue events into that one, without
   // further looking into the other ones
 
   for (int i = 0; i < _queues; i++)

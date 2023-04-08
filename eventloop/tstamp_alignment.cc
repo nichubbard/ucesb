@@ -195,7 +195,7 @@ void tstamp_alignment::account(ssize_t index, uint64_t stamp)
 
   // And, to get the data in the other direction, for every
   // other known branch/id, we record how long the time
-  // is to us...  But only if we have not occured already
+  // is to us...  But only if we have not occurred already
   // after they were seen the last time...
 
   size_t ids = _vect_histo.size();

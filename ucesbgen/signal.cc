@@ -284,7 +284,7 @@ void insert_signal(event_signal &top,
 	  ++part;
 	  // The amount of indices must be the same, but they may be
 	  // too small...
-	  // Now, run in parallell with two iterators, one for part,
+	  // Now, run in parallel with two iterators, one for part,
 	  // one for the indices
 
 	  node = child->second;
@@ -623,7 +623,7 @@ void event_signal::dump(dumper &d,int level,
 
   if (_multi_size != -1)
     {
-      // It's requested that the leaf node be made multi-entry Altough
+      // It's requested that the leaf node be made multi-entry Although
       // our unpacker C++ could handle it, psdc is not able to handle
       // two raw_array_..._zero_suppress templates for the same
       // variable, so we must not be zero suppressed also.

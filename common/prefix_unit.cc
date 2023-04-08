@@ -119,14 +119,14 @@ void convert_units_exponent(const file_line &loc,const char *str,
 	  if (*p == '*')
 	    {
 	      if (this_mult)
-		ERROR_LOC(loc,"Multiple consequtive '*' or '/' in unit '%s'.",str);
+		ERROR_LOC(loc,"Multiple consecutive '*' or '/' in unit '%s'.",str);
 	      this_mult = 1;
 	      continue;
 	    }
 	  if (*p == '/')
 	    {
 	      if (this_mult)
-		ERROR_LOC(loc,"Multiple consequtive '*' or '/' in unit '%s'.",str);
+		ERROR_LOC(loc,"Multiple consecutive '*' or '/' in unit '%s'.",str);
 	      this_mult = -1;
 	      continue;
 	    }
@@ -428,7 +428,7 @@ bool match_units(const prefix_units_exponent *dest,
 
   // removing the items with prefixes are somewhat harder, as we
   // cannot do direct string comparisons until we've removed the
-  // prefixes.  In the src (temp) list, we actally also do not know if
+  // prefixes.  In the src (temp) list, we actually also do not know if
   // the first character is a prefix or not.
 
   unit_exponent_map tmp_pre_dest;

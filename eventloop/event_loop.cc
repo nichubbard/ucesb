@@ -1221,7 +1221,7 @@ void unpack_subevent(event_base_t &eb,
    *
    * So we should rather have subevents switch on their type/subtype,
    * and then control and subcrate would choose the particular
-   * instance, while procid would need to tell the endianess of
+   * instance, while procid would need to tell the endianness of
    * the producer.
    */
 

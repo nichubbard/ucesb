@@ -38,7 +38,7 @@
 // external source.  The buffer is also used when unpacking the
 // events, i.e.  we cannot reuse the buffer until release_to(end)
 // has been called.  When a certain range is requested for allocation,
-// we'll make sure that range is available as a continous stretch of
+// we'll make sure that range is available as a continuous stretch of
 // memory, (for this class) without affecting any previously given
 // ranges (after any call to release_to).  (the direct file mmap
 // class may need to reorganize the memory pointers)
@@ -71,9 +71,9 @@
 // map_range:
 // * Check if the requested range is available
 //   - If not available, wait for the producer to make it available
-//   - If available, make sure it is continous.  If non-continous (i.e. at
+//   - If available, make sure it is continuous.  If non-continuous (i.e. at
 //     end of buffer and wrapping to starting end, copy data to
-//     a temporary buffer such that the range is continous.
+//     a temporary buffer such that the range is continuous.
 
 
 // Since we never want to empty all the event processing threads just
@@ -115,7 +115,7 @@ void *pipe_buffer::reader()
 
   // Make the read file non-blocking to handle cases where the
   // read would be from some socket of sorts, that may actually
-  // offer nothing to read, despite the select succesful (see linux
+  // offer nothing to read, despite the select successful (see linux
   // bug notes of select)
 
   if (fcntl(_fd,F_SETFL,fcntl(_fd,F_GETFL) | O_NONBLOCK) == -1)
@@ -401,7 +401,7 @@ int pipe_buffer_base::map_range(off_t start,off_t end,buf_chunk chunks[2])
 
   if (size <= segment)
     {
-      // We have good luck.  It's continous
+      // We have good luck.  It's continuous
 
       chunks[0]._ptr    = _buffer + offset;
       chunks[0]._length = size;

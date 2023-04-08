@@ -1064,8 +1064,8 @@ void ext_writer_shm_buf::resize_shm(uint32_t size)
   assert (_end > _begin); // or external_writer_shm_control too large
   assert (_ctrl->_magic == EXTERNAL_WRITER_MAGIC);
 
-  // _ctrl->_size is set by the reciever (as we cannot change it from
-  // the initial value as it's being checked by the reciever, perhaps
+  // _ctrl->_size is set by the receiver (as we cannot change it from
+  // the initial value as it's being checked by the receiver, perhaps
   // after we did the resize)
 
   // Virtually consume all the available space.  Will be 'free'd' by

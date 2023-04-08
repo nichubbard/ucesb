@@ -154,7 +154,7 @@
 // into output_buffer...  The reading is done in chunks of 16384
 // bytes, with the routine which handles timeouts...  hmm...
 
-// When done, and no errors occured, an acknowledge buffer is prepared
+// When done, and no errors occurred, an acknowledge buffer is prepared
 // (but not sent by this routine)
 
 // acknowledge_buffer structure
@@ -169,7 +169,7 @@
 // the status argument to bits already set
 
 // Then we're back to the connect routine, which now takes care of the
-// recieved data...  swapping is checked...  i.e. testbit.  it is
+// received data...  swapping is checked...  i.e. testbit.  it is
 // checked if it becomes better by swapping it.  Then there is
 // something strange, the data_length is used unswapped together with
 // the length of the 11 last data words to swap those and the data...
@@ -385,7 +385,7 @@ bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
 
   // Make the read file non-blocking to handle cases where the
   // read would be from some socket of sorts, that may actually
-  // offer nothing to read, despite the select succesful (see linux
+  // offer nothing to read, despite the select successful (see linux
   // bug notes of select)
 
 
@@ -496,7 +496,7 @@ void lmd_input_tcp::close_connection()
 
 void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 {
-  // If we are running threaded, then we'll wait indefinately for some
+  // If we are running threaded, then we'll wait indefinitely for some
   // input... ?!?
 
   while (count)
@@ -1114,7 +1114,7 @@ size_t lmd_input_tcp_stream::get_buffer(void *buf,size_t count)
       // but also in the middle wrapped the linear space then we for the
       // second call may handle only empty buffers.  those will be
       // silently eaten, and thus we produce no data, but we did discard
-      // buffers.  As the recepients of our return call treat total == 0
+      // buffers.  As the recipients of our return call treat total == 0
       // as an error, we must in this case try to read data again...
 
 

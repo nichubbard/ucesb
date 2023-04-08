@@ -209,9 +209,9 @@ void bits_spec::dump(dumper &d) const
     {
       if (_name)
 	d.text(" = ");
-      // Special case to not print CHECK, incase of an constant and no name...
+      // Special case to not print CHECK, in case of an constant and no name...
       // URK, is this ugly?!?
-      // This is just such that we can still parse waht we generate, since as the parser is right now
+      // This is just such that we can still parse what we generate, since as the parser is right now
       // one must give all items a name for checking, except when checking a constant...
       if (!_name)
 	{

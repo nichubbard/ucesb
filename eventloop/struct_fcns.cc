@@ -244,7 +244,7 @@ enumerate_members(const signal_id &id,
 
 #ifndef NAN
 #warning NAN not defined, using hack...
-// This NAN defintion comes from the GNU C library, bits/nan.h
+// This NAN definition comes from the GNU C library, bits/nan.h
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define __nan_bytes { 0x7f, 0xc0, 0, 0 }
 #endif

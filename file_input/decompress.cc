@@ -114,7 +114,7 @@ void decompressor::start(int *fd_in,
   // handle.  We're responsible for reaping the child process.
 
   // Note: the file must be closed BEFORE we reap the child, since
-  // otherwise we may wait indefinately, since the child may be
+  // otherwise we may wait indefinitely, since the child may be
   // waiting for us to read.  But if we close, it'll get a deadly
   // signal for writing to a closed file that is closed on the other end.
 
@@ -358,7 +358,7 @@ void decompress(decompressor **handler,
 #ifdef HAVE_TEE
   else
     {
-      // Creat a pipe to tee() into.
+      // Create a pipe to tee() into.
 
       int pipe_tee[2];
 
@@ -685,7 +685,7 @@ void data_input_source::open(const char *filename
   // a pipe, don't even try to open using a decompressor, as it will
   // not be able to work (we use them using direct filenames, not
   // piping into them, which of course ne could do, but it's too much
-  // pain) It's harmless to try mmaping, altough it won't work... :)
+  // pain) It's harmless to try mmaping, although it won't work... :)
 
   const char *decompress_filename = filename;
 

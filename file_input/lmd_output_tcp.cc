@@ -235,7 +235,7 @@ void lmd_output_state::add_client_stream(lmd_output_stream *stream)
 
 void lmd_output_state::free_oldest_unused()
 {
-  // find the oldest stream that noone is sending from
+  // find the oldest stream that no one is sending from
 
   lmd_output_stream *stream = _stream_first;
 
@@ -269,7 +269,7 @@ void lmd_output_state::free_client_stream(lmd_output_stream *stream)
 
   if (_sendonce)
     {
-      // noone should be sending from this one
+      // no one should be sending from this one
       assert(stream->_clients == 0);
       force_free = true;
     }
@@ -385,7 +385,7 @@ lmd_output_stream *lmd_output_state::get_next_client_stream(lmd_output_stream *s
 		      "See code for details.");
 	      // As soon as a client skips some stream, it will have to
 	      // request a full recovery stream.  We need two things to
-	      // adress this: variable-sized streams such that we
+	      // address this: variable-sized streams such that we
 	      // need not transmit unduly large amounts of data as recovery.
 	      // And recovery streams tailored for each receiver.
 	      // ~ Alternatively: for each stream sent only once, we need
@@ -1128,7 +1128,7 @@ void *lmd_output_tcp::server()
 
       if (!_hold || !_clients.empty())
 	{
-	  // We wont allow tokens from producer unless we are also
+	  // We won't allow tokens from producer unless we are also
 	  // ready to deque streams
 	  nfd = _block_server.setup_select(nfd,&readfds);
 
@@ -1508,7 +1508,7 @@ void lmd_output_tcp::close()
 {
   if (_active)
     {
-      // make sure all buffers of the stream get's sent
+      // make sure all buffers of the stream gets sent
 
       if (_cur_buf_start)
 	{
@@ -1661,7 +1661,7 @@ bool lmd_output_tcp::do_sticky_replay()
   // Remove the flag that we need a recovery stream.  This so that it
   // can be set again by the needing thread.  In principle, the
   // (better, i.e. last) point to remove the flag would be when the
-  // receving (server) thread receives the first stream of the replay.
+  // receiving (server) thread receives the first stream of the replay.
   // But if we wait that long, potentially the writing thread sees the
   // request still being active, and injects multiple replay
   // streams...
@@ -1682,7 +1682,7 @@ void lmd_output_tcp::mark_replay_stream(bool replay)
   if (replay)
     {
       _mark_replay_stream = LOS_FLAGS_STICKY_RECOVERY_FIRST;
-      // We definately want to be told as soon as this one becomes
+      // We definitely want to be told as soon as this one becomes
       // available; someone is waiting for it...
       _tell_fill_stream = 1;
     }
@@ -2004,7 +2004,7 @@ lmd_output_tcp *parse_open_lmd_server(const char *command)
 			   forcemap ? false : true);
   if (trans_port != -1)
     {
-      /* Bind portmap port before legacy port, so clients do not accidentaly
+      /* Bind portmap port before legacy port, so clients do not accidentally
        * revert to the legacy port while we are trying to bind.
        */
        if (!nopmap)

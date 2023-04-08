@@ -1157,7 +1157,7 @@ int main(int argc, char **argv)
 	  _event_processor_threads[i].spawn();
 	}
     no_more_worker_cpus:
-      // Put us back to execute whereever the OS finds nice
+      // Put us back to execute wherever the OS finds nice
       sched_setaffinity(0,sizeof(orig_affinity),&orig_affinity);
     }
 #endif
@@ -2106,7 +2106,7 @@ get_next_event:
     // * Monitoring (if enabled).
 
     // The reason we are opening the files is that we want that task
-    // to be asyncronous to the file reading.
+    // to be asynchronous to the file reading.
 
     // This is a very light-working thread.  May fiddle around on any
     // CPU it likes.  (wherever there are some cycles to spare)

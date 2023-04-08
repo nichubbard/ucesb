@@ -215,8 +215,8 @@ EXT_DECL_DATA_SRC_FCN_ARG(void,EXT_CROS3::__unpack,uint16 ccb_id)
   // Of course, when passing data from one architecture to another, byte
   // swapping is necessary.  But to also 're-define' the order of data
   // does not exactly help.  Either one defines the data structures with a
-  // specific endianess (e.g. 'network order' = big endian), and both
-  // writer and reader obeys this, or one marks the endianess (basically
+  // specific endianness (e.g. 'network order' = big endian), and both
+  // writer and reader obeys this, or one marks the endianness (basically
   // only if one is concerned that the writer does not have the time to
   // do the swapping.
 
@@ -405,7 +405,7 @@ EXT_DECL_DATA_SRC_FCN_ARG(bool,EXT_CROS3::__match,uint16 ccb_id)
 
   // In principle, we could check all data up to the ccb_id, but that is
   // only necessary if we want to see if the matches are valid or not.
-  // As we only expect to have to distinguish data from differend ccb's
+  // As we only expect to have to distinguish data from different ccb's
   // (and nothing else, i.e. the subevent only has ccb data in it),
   // we'll simply check the ccb id
 

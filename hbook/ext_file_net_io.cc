@@ -296,7 +296,7 @@ void ext_net_io_commit_chunk(size_t length,send_item_chunk *chunk)
   _net_stat._committed_size += length;
 
   // If there are any clients that have reached the end of data, they
-  // need to be made aware of the availabilty of new data
+  // need to be made aware of the availability of new data
 
   send_client *client;
 
@@ -478,7 +478,7 @@ void ext_net_io_server_accept()
   // selects (see Linux man page bug notes)
 
   // make it asynchronous (deliver SIGIO when I/O possible) to prevent
-  // possible infinte loop handling events without being sent in the
+  // possible infinite loop handling events without being sent in the
   // 'main' routine
 
   ext_net_io_nonblock_async(client_fd,"client connection");

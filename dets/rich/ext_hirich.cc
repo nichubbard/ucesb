@@ -82,7 +82,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_HIRICH::__unpack)
   // before all the data and HIRICH_MARKER_FOOTER after all the data
 
   // As the footer does not contain the 'module header valid marker'
-  // we'll use a strategy whereby if the next data word for a moudle
+  // we'll use a strategy whereby if the next data word for a module
   // header is not valid, we'll also check to see if it perhaps is the
   // footer marker, in which case we'll abort unpacking, and leave it
   // for the subevent itself to handle the footer.  This way, we'd

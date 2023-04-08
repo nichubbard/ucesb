@@ -845,7 +845,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 
   /* Find the location of the peaks in the original data.
    *
-   * This is also done with a cosine function convolution.  The serach
+   * This is also done with a cosine function convolution.  The search
    * is effectively finding the phase of the cosine function.  This
    * time for one period, from -PI to PI, i.e. wanting to find a peak
    * at the center of the function, and no data at the edges.

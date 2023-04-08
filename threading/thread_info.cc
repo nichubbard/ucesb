@@ -98,10 +98,10 @@ Error messages, info etc...
   i.e. 1000 events.  1000 events is then 100k data, i.e. large enough
   to vicitimize any L1 cache, and quite easilty also L2 caches (they
   also need to hold instructions and calibration parameters).  We can
-  therefor say, that we need not consider the caching, i.e. to keep
+  therefore say, that we need not consider the caching, i.e. to keep
   locality of the events.  The only exception we do to this is that of
   course, serial jobs that run in threads that also handle some
-  parallell job, will handle these different tasks for the same event
+  parallel job, will handle these different tasks for the same event
   directly after each other.
 
   Let's make the main thread (i.e. the first one) responsible for:
