@@ -575,10 +575,8 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  error_branch_id & WR_STAMP_EBID_UNUSED,
 	  error_branch_id);
 
-/* HTT: Don't know about this yet...
   if (error_branch_id & WR_STAMP_EBID_ERROR)
     return false;
-*/
 
   ts_sync_info._id = ((error_branch_id &
 		       WR_STAMP_EBID_BRANCH_ID_MASK) >>
