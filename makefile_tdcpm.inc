@@ -19,9 +19,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301  USA
 
-TDCPM=$(UCESB_BASE_DIR)/tdcpm/tdcpm_test # should be tdcpm/tdcpm
+TDCPM=$(UCESB_BASE_DIR)/tdcpm/test/tdcpm_test # should be tdcpm/tdcpm
 
--include $(UCESB_BASE_DIR)/tdcpm/tdcpm_test.base.dep
+-include $(UCESB_BASE_DIR)/tdcpm/test/tdcpm_test.base.dep
 
 $(TDCPM):
 	$(MAKE) -C $(UCESB_BASE_DIR)/tdcpm test/tdcpm_test test
