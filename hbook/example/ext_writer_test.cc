@@ -68,7 +68,9 @@ void send_offsets_mystruct(external_writer *ew)
   ew->send_hbname_branch("DEF",offsetof(mystruct,c),sizeof(event.c),
 			 "c",-1,"",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
   ew->send_hbname_branch("DEF",offsetof(mystruct,b),sizeof(event.b),
-			 "b",-1,"",EXTERNAL_WRITER_FLAG_TYPE_INT32);
+			 "b",-1,"",EXTERNAL_WRITER_FLAG_TYPE_INT32 |
+			 EXTERNAL_WRITER_FLAG_HAS_LIMIT,
+			 0,3);
   ew->send_hbname_branch("DEF",offsetof(mystruct,d),sizeof(event.d),
 			 "d",4,"b",EXTERNAL_WRITER_FLAG_TYPE_FLOAT32);
   ew->send_hbname_branch("DEF",offsetof(mystruct,e),sizeof(event.e),
