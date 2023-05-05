@@ -754,6 +754,9 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  const char *name_id, int *struct_id,
 			  uint32_t exclude_success);
 
+/* In case using code needs to compile also with earlier version. */
+#define EXT_DATA_SETUP_STDERR_HAS_EXCLUDE_SUCCESS 1
+
 int ext_data_nonblocking_fd_stderr(struct ext_data_client *client);
 
 int ext_data_next_event_stderr(struct ext_data_client *client,
