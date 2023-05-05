@@ -38,14 +38,12 @@
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_xtst_regress.h"
 #define EXT_EVENT_STRUCT              EXT_STR_xtst_regress
-#define EXT_EVENT_STRUCT_LAYOUT       EXT_STR_xtst_regress_layout
-#define EXT_EVENT_STRUCT_LAYOUT_INIT  EXT_STR_xtst_regress_LAYOUT_INIT
+#define EXT_EVENT_STRUCT_ITEMS_INFO   EXT_STR_xtst_regress_ITEMS_INFO
 
 /* */
 
 #define EXT_STICKY_STRUCT              EXT_STR_hsticky
-#define EXT_STICKY_STRUCT_LAYOUT       EXT_STR_hsticky_layout
-#define EXT_STICKY_STRUCT_LAYOUT_INIT  EXT_STR_hsticky_LAYOUT_INIT
+#define EXT_STICKY_STRUCT_ITEMS_INFO   EXT_STR_hsticky_ITEMS_INFO
 
 /* */
 
@@ -61,9 +59,6 @@ int main(int argc,char *argv[])
 
   EXT_EVENT_STRUCT event;
   EXT_STICKY_STRUCT sticky;
-#if 0
-  EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
-#endif
   struct ext_data_structure_info *struct_info = NULL;
   struct ext_data_structure_info *sticky_struct_info = NULL;
   uint32_t struct_map_success;
@@ -91,7 +86,7 @@ int main(int argc,char *argv[])
       exit(1);
     }
 
-  EXT_STR_xtst_regress_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 1);
+  EXT_EVENT_STRUCT_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 1);
   if (!ok)
     {
       perror("ext_data_struct_info_item");
@@ -107,7 +102,7 @@ int main(int argc,char *argv[])
       exit(1);
     }
 
-  EXT_STR_hsticky_ITEMS_INFO(ok, sticky_struct_info, 0, EXT_STICKY_STRUCT, 1);
+  EXT_STICKY_STRUCT_ITEMS_INFO(ok, sticky_struct_info, 0, EXT_STICKY_STRUCT, 1);
   if (!ok)
     {
       perror("ext_data_struct_info_item");
@@ -123,14 +118,12 @@ int main(int argc,char *argv[])
     exit(1);
 
   if (!ext_data_setup_stderr(client,
-#if 0 /* Do it by the structure info, so we can handle differing input. */
-			     &event_layout,sizeof(event_layout),
-#else
 			     NULL, 0,
-#endif
 			     struct_info, &struct_map_success,
 			     sizeof(event),
-			     "", &hevent_id))
+			     "", &hevent_id,
+			     ~((uint32_t) 0) /* mapping checks done
+					      * 'manually' below */))
     {
       fprintf (stderr,"Failed to setup data structure from stream.\n");
       exit(1);
@@ -168,19 +161,10 @@ int main(int argc,char *argv[])
 			     NULL, 0,
 			     sticky_struct_info, &struct_map_success,
 			     sizeof(sticky),
-			     "hsticky", &hsticky_id))
+			     "hsticky", &hsticky_id,
+			     EXT_DATA_ITEM_MAP_OK))
     {
       fprintf (stderr,"Failed to setup sticky data structure from stream.\n");
-      exit(1);
-    }
-
-  if (struct_map_success & ~EXT_DATA_ITEM_MAP_OK)
-    {
-      fprintf (stderr,"Sticky structure was not completely mapped (0x%04x).\n",
-	       struct_map_success);
-      ext_data_struct_info_print_map_success(sticky_struct_info,
-					     stderr,
-					     EXT_DATA_ITEM_MAP_OK);
       exit(1);
     }
 

@@ -712,6 +712,10 @@ const char *ext_data_last_error(struct ext_data_client *client);
 /* The following functions are the same as those above, except that
  * errors are caught and messages printed to stderr.
  *
+ * Exception: ext_data_setup_stderr has additional argument:
+ * @exclude_success  See ext_data_struct_info_map_success,
+ *                   typical use: EXT_DATA_ITEM_MAP_OK.
+ *
  * Returns:
  *
  * ext_data_struct_info_alloc_stderr   pointer or NULL
@@ -747,7 +751,8 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  struct ext_data_structure_info *struct_info,
 			  uint32_t *struct_map_success,
 			  size_t size_buf,
-			  const char *name_id, int *struct_id);
+			  const char *name_id, int *struct_id,
+			  uint32_t exclude_success);
 
 int ext_data_nonblocking_fd_stderr(struct ext_data_client *client);
 

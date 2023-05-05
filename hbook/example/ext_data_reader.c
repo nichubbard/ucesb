@@ -35,6 +35,7 @@
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_h101.h"
 #define EXT_EVENT_STRUCT              EXT_STR_h101
+#define EXT_EVENT_STRUCT_ITEMS_INFO   EXT_STR_h101_ITEMS_INFO
 /* Do NOT use the following defines.
  * They are kept only to make verify that old code still work.
  */
@@ -166,7 +167,7 @@ int main(int argc,char *argv[])
       exit(1);
     }
 
-  EXT_STR_h101_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 0);
+  EXT_EVENT_STRUCT_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 0);
   if (!ok)
     {
       perror("ext_data_struct_info_item");

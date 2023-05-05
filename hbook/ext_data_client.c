@@ -3620,13 +3620,16 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  struct ext_data_structure_info *struct_info,
 			  uint32_t *struct_map_success,
 			  size_t size_buf,
-			  const char *name_id, int *struct_id)
+			  const char *name_id, int *struct_id,
+			  uint32_t exclude_success)
 {
+  uint32_t map_success;
+
   int ret = ext_data_setup(client,
 			   struct_layout_info, size_info,
-			   struct_info, struct_map_success,
+			   struct_info, &map_success,
 			   size_buf,
-			   name_id,struct_id);
+			   name_id, struct_id);
 
   if (ret == -1)
     {
@@ -3634,6 +3637,26 @@ int ext_data_setup_stderr(struct ext_data_client *client,
       fprintf (stderr,"Failed to setup connection: %s\n",
 	       client->_last_error);
       /* Not more fatal than that we can disconnect. */
+      return 0;
+    }
+
+  if (struct_map_success)
+    *struct_map_success = map_success;
+
+  /* Since we are stderr version, we check the mapping success here.
+   * In order for user to not have to call another function to do the
+   * check.
+   */
+
+  if (struct_info &&
+      (map_success & ~exclude_success))
+    {
+      fprintf (stderr,
+	       "Structure '%s' was not completely mapped (0x%04x).\n",
+	       name_id, map_success);
+      ext_data_struct_info_print_map_success(struct_info,
+					     stderr,
+					     EXT_DATA_ITEM_MAP_OK);
       return 0;
     }
 
