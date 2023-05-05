@@ -35,6 +35,9 @@
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_h101.h"
 #define EXT_EVENT_STRUCT              EXT_STR_h101
+/* Do NOT use the following defines.
+ * They are kept only to make verify that old code still work.
+ */
 #define EXT_EVENT_STRUCT_LAYOUT       EXT_STR_h101_layout
 #define EXT_EVENT_STRUCT_LAYOUT_INIT  EXT_STR_h101_LAYOUT_INIT
 
@@ -58,6 +61,7 @@ int main(int argc,char *argv[])
 
   EXT_EVENT_STRUCT event;
 #if !USE_ITEMS_INFO
+  /* Do not use this.  Use version below (USE_ITEMS_INFO)! */
   EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
 #else
   struct ext_data_structure_info *struct_info = NULL;
@@ -175,6 +179,7 @@ int main(int argc,char *argv[])
 
   if (ext_data_setup(client,
 #if !USE_ITEMS_INFO
+		     /* Do not use this.  Use USE_ITEMS_INFO version below! */
 		     &event_layout,sizeof(event_layout),
 		     NULL, NULL,
 #else
