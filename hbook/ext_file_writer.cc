@@ -1553,6 +1553,24 @@ void request_create_branch(void *msg,uint32_t *left)
 		item._var_ctrl_name,item._var_name);
 
       item._ctrl_offset = iter->second;
+
+      stage_array_item_map::iterator iter2 =
+	s->_stage_array._items.find(item._ctrl_offset);
+
+      if (iter == s->_stage_array._names.end())
+	ERR_MSG("Unable to find controlling item (%s) for %s by offset %d.",
+		item._var_ctrl_name,item._var_name,item._ctrl_offset);
+
+      if (!(iter2->second._var_type & EXTERNAL_WRITER_FLAG_HAS_LIMIT))
+	ERR_MSG("Controlling item (%s) for %s has no limit.",
+		item._var_ctrl_name,item._var_name);
+
+      if (iter2->second._limit_min < 0 ||
+	  iter2->second._limit_max > item._var_array_len)
+	ERR_MSG("Controlling item (%s) for %s has limits [] outside array [].",
+		item._var_ctrl_name, item._var_name,
+		iter2->second._limit_min, iter2->second._limit_max,
+		0, item._var_array_len);
     }
   else
     item._ctrl_offset   = (uint32_t) -1;
