@@ -83,6 +83,7 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info);
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
+ *                  Note: fixed array handled by @size above.
  *
  * Return value:
  *
@@ -130,6 +131,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
+ *                  Note: fixed array handled by @size above.
  *
  * Failure or success is reported in @ok.
  *

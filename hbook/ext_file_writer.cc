@@ -1707,7 +1707,8 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 		   "EXT_STR_ITEM_INFO%4s(ok,si,offset,struct_t,printerr,\\\n"
 		   "  %*.0s%s,%*.0s%s,\\\n"
 		   "  %*.0s\"%s\"",
-		   item._var_array_len != (uint32_t) -1 ? "_ZZP" :
+		   (item._var_array_len != (uint32_t) -1) ?
+		   (item._var_ctrl_name ? "_ZZP" : "") :
 		   (item._limit_max != -1 ? "_LIM" : ""),
 		   19,"",item._var_name,
 		   padlen,"",item_type,
@@ -1717,8 +1718,10 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	      if (item._var_ctrl_name)
 		fprintf (fid,",%*.0s\"%s\"",
 			 padlen,"",item._var_ctrl_name);
+	      /* Fixed array size is handled by size / sizeof argument.
 	      else
 		fprintf (fid,",%d",item._var_array_len);
+	      */
 	    }
 	  else if (item._limit_max != -1)
 	    fprintf (fid,",%d",item._limit_max);
