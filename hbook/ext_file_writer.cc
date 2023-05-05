@@ -2201,7 +2201,8 @@ void write_structure_header(FILE *fid, global_struct *s,
 
   fprintf (fid,
 	   "typedef struct EXT_STR_%s_layout_t\n"
-	   "{\n",
+	   "{\n"
+	   "  /* *********** Do NOT use this structure! *********** */\n",
 	   struct_name);
 
   fprintf (fid,
@@ -2226,12 +2227,16 @@ void write_structure_header(FILE *fid, global_struct *s,
 
   fprintf (fid,
 	   "\n"
+	   "  /* *********** Do NOT use this structure! *********** */\n"
 	   "} EXT_STR_%s_layout;\n",
 	   struct_name);
 
   fprintf (fid,
 	   "\n"
-	   "#define EXT_STR_%s_LAYOUT_INIT { \\\n",
+	   "#define EXT_STR_%s_LAYOUT_INIT { \\\n"
+	   "  /* ************* Do NOT use this macro! ************* */ \\\n"
+	   "  /* Use EXT_STR_%s_ITEMS_INFO instead! */ \\\n",
+	   struct_name,
 	   struct_name);
 
   fprintf (fid,"  0x%08x, \\\n"
@@ -2270,6 +2275,7 @@ void write_structure_header(FILE *fid, global_struct *s,
 
   fprintf (fid," \\\n"
 	   "  } \\\n"
+	   "  /* ************* Do NOT use this macro! ************* */ \\\n"
 	   "};\n");
 }
 
