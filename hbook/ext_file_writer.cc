@@ -1565,7 +1565,7 @@ void request_create_branch(void *msg,uint32_t *left)
 	ERR_MSG("Controlling item (%s) for %s has no limit.",
 		item._var_ctrl_name,item._var_name);
 
-      if (iter2->second._limit_min < 0 ||
+      if (/* always: iter2->second._limit_min < 0 || */
 	  iter2->second._limit_max > item._var_array_len)
 	ERR_MSG("Controlling item (%s) for %s has limits [] outside array [].",
 		item._var_ctrl_name, item._var_name,
