@@ -517,10 +517,16 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 	   * be larger than our array size.
 	   */
 
-	  if (check->_limit_max == (uint32_t) -1 ||
-	      check->_limit_max > array_items)
+	  if (check->_limit_max == (uint32_t) -1)
 	    {
-	      struct_info->_last_error = "Mismatch with control item limit.";
+	      struct_info->_last_error = "Missing control item limit.";
+	      errno = EINVAL;
+	      goto failure_free_return;
+	    }
+	  if (check->_limit_max > array_items)
+	    {
+	      struct_info->_last_error = "Mismatch with control item limit "
+		"(array too small).";
 	      errno = EINVAL;
 	      goto failure_free_return;
 	    }
