@@ -19,13 +19,15 @@
  */
 
 #include "ext_data_clnt_stderr.hh"
+#include "ext_data_struct_info.hh"
+
+#include "ext_data_client.h"
 
 /* Change these, here or replace in the code. */
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_h101.h"
 #define EXT_EVENT_STRUCT              EXT_STR_h101
-#define EXT_EVENT_STRUCT_LAYOUT       EXT_STR_h101_layout
-#define EXT_EVENT_STRUCT_LAYOUT_INIT  EXT_STR_h101_LAYOUT_INIT
+#define EXT_EVENT_STRUCT_ITEMS_INFO   EXT_STR_h101_ITEMS_INFO
 
 /* */
 
@@ -37,9 +39,11 @@
 int main(int argc,char *argv[])
 {
   ext_data_clnt_stderr client;
+  int ok;
 
   EXT_EVENT_STRUCT event;
-  EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
+  ext_data_struct_info struct_info;
+  uint32_t struct_map_success;
 
   if (argc < 2)
     {
@@ -52,9 +56,19 @@ int main(int argc,char *argv[])
   if (!client.connect(argv[1]))
     exit(1);
 
-  if (client.setup(&event_layout,sizeof(event_layout),
-		   NULL, NULL,
-		   sizeof(event)))
+  EXT_EVENT_STRUCT_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 0);
+  if (!ok)
+    {
+      perror("ext_data_struct_info_item");
+      fprintf (stderr,"Failed to setup structure information.\n");
+      exit(1);
+    }
+
+  if (client.setup(NULL, 0,
+		   &struct_info, &struct_map_success,
+		   sizeof(event),
+		   "",NULL,
+		   EXT_DATA_ITEM_MAP_OK))
     {
       /* Handle events. */
 
