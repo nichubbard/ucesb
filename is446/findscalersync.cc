@@ -381,7 +381,7 @@ void do_sync (ecv::iterator f,ecv::iterator e)
 	  // so we have both a previous and a next, and they are not
 	  // the same.  can be before (after) us find a copy of the
 	  // good offset known from after (before us), without and
-	  // mentioning of the good ofter known before (after) us?
+	  // mentioning of the good after known before (after) us?
 
 	  ebis_offsets_v::iterator eoj;
 

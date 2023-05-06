@@ -22,7 +22,7 @@
 #define __MILLE_OUTPUT__
 
 // This file constitutes an alternative to using the Mille.h/Mille.cc
-// source for writing data file for the Millepede system.  (see
+// source for writing data file for the Millipede system.  (see
 // http://www.desy.de/~blobel/mptalks.html)
 //
 // The reasons would be:
@@ -39,7 +39,7 @@
 // the GPL ends at program boundaries)
 //
 // - in no way is this an attempt att circumventing the licence of
-// Millepede.
+// Millipede.
 
 #include <stdio.h>
 

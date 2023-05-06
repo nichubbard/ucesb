@@ -12,7 +12,7 @@ $(GENDIR)/extwrite_%.hh: $(EXTWRITE) $(EXTWRITE_SOURCES) | $(GENDIR)/gen
 	  rm $@
 
 # This rule fixes up problems with auto-gen dependent paths
-# in dependecy files.  Automatic dependencies are a pain.
+# in dependency files.  Automatic dependencies are a pain.
 #$(GENDIR)/extwrite_%.hh: $(EXTWRITE_GENDIR)/extwrite_%.hh
 #	@echo " SPECIAL $@"
 

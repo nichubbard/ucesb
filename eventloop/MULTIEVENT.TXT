@@ -31,7 +31,7 @@ physics performance of an experiment.
 We'd like the user function interface to the data (data structure
 member names etc) to be unchanged between multi- and singe-event mode.
 This will be done by keeping the original data structure member name
-and make it an refernce, which for each loop turn can be made to point
+and make it an reference, which for each loop turn can be made to point
 to the appropriate data from that module per that event.  Should there
 be no appropriate data, we'll let it point to an statically
 initialized clean data structure for that module, i.e. implicit
@@ -75,8 +75,8 @@ USING_MULTI_EVENTS=1
 Declares that the multi-subevents is enabled.  The data structures are
 allocated dynamically as needed for each module.  They are never freed
 again, i.e. space is used as needed by the largest event.  Note: a
-large number is not particularly harmful, as the memory actually wont
-can be swapped out unless actually used again.  This is necesary for
+large number is not particularly harmful, as the memory actually won't
+can be swapped out unless actually used again.  This is necessary for
 multi-event handling, and it being defined, actually makes the code
 compile and prepare for such handling.
 
@@ -87,7 +87,7 @@ these with data which is in principle available per each
 multi-subevent is not recommended (possibly forbidden).
 
 For the specification lists, the keyword 'multi' before an module or
-other specifiction (of the form 'name = STRUCT();' declares that this
+other specification (of the form 'name = STRUCT();' declares that this
 entry is multi-event capable, or rather that it may occur several
 times, and that for each time, the next item in the list should be
 filled.

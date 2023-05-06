@@ -186,7 +186,7 @@ void mille_file::open(const char *filename)
       ERROR("Failed to open file '%s' for writing.",filename);
     }
 
-  INFO(0,"Opened millepede output file '%s'.",filename);
+  INFO(0,"Opened millipede output file '%s'.",filename);
 }
 
 void mille_file::close()

@@ -436,7 +436,7 @@ CXXLIBS      += -lpthread
 
 OBJS         +=
 
-# TODO: Warnings have been made common.  For some while, we wont
+# TODO: Warnings have been made common.  For some while, we will not
 # make them fatal by default.  But that will come!
 
 ifeq (,$(FORCE_PTHREAD)) # not if we forced

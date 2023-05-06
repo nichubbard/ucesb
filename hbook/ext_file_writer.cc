@@ -5768,7 +5768,7 @@ int main(int argc,char *argv[])
   // start producing data.  It has forcefully put itself into waiting
   // for a _consumer_ wakeup token.  However, it did not set the
   // request, as that may still have been needed for us.  That way, it
-  // will not interfer with the control segment further until we have
+  // will not interfere with the control segment further until we have
   // come here.
   //
   // - First verify that the control segment was in sync at this point
