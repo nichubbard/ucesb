@@ -1621,7 +1621,7 @@ uint32_t calc_structure_xor_sum(stage_array &sa)
 
 void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 {
-  if (_config._debug_header)
+  if (_config._header_debug)
     {
       for (stage_array_item_map::iterator iter = sa._items.begin();
 	   iter != sa._items.end(); ++iter)
@@ -1686,7 +1686,7 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
       if (!infomacro)
 	{
 	  fprintf (fid,"%*s",indent,"");
-	  if (_config._debug_header)
+	  if (_config._header_debug)
 	    fprintf (fid,"/* %04x %04x */ ",offset,item._length);
 	  fprintf (fid,"%s %s",
 		   var_type->_Cname,
@@ -1717,7 +1717,7 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	    }
 
 	  fprintf (fid,"%*s",indent,"");
-	  if (_config._debug_header)
+	  if (_config._header_debug)
 	    fprintf (fid,"/* %04x %04x */ ",offset,item._length);
 	  int padlen = 32 - strlen(item._var_name);
 	  if (padlen < 0)
@@ -1808,7 +1808,7 @@ void generate_structure_item(FILE *fid,
 		   EXTERNAL_WRITER_FLAG_TYPE_MASK];
 
   fprintf (fid,"%*s",indent,"");
-  if (_config._debug_header)
+  if (_config._header_debug)
     fprintf (fid,"/* %04x %04x */ ",offset,item._length);
   fprintf (fid,"%s ",
 	   var_type->_Cname);
@@ -2088,7 +2088,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		  set_strings sub_used_names;
 
 		  fprintf (fid,"%*sstruct",indent,"");
-		  if (_config._debug_header)
+		  if (_config._header_debug)
 		    fprintf (fid," /* %04x %2d*%04x (%zd) */",
 			     offset,max_index,array_size,suba.size());
 		  fprintf (fid," {\n");
@@ -2112,7 +2112,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		}
 	      else
 		{
-		  if (_config._debug_header)
+		  if (_config._header_debug)
 		    {
 		      fprintf (fid,"%*s",indent,"");
 		      fprintf (fid,"/* %04x %2d*%04x (%zd) */",
@@ -5199,7 +5199,7 @@ void usage(char *cmdname)
   printf ("  --header=FILE      Write data structure declaration to FILE.\n");
   printf ("  --id=ID            Override ID of header written.\n");
   printf ("  --dump-raw         Dump raw protocol data.\n");
-  printf ("  --debug-header     Litter header declaration with offsets and sizes.\n");
+  printf ("  --header-debug     Litter header declaration with offsets and sizes.\n");
   printf ("  --server[=PORT]    Run a external data server (at PORT).\n");
   printf ("  --stdout           Write data to stdout.\n");
   printf ("  --dump[=FORMAT]    Make text dump of data.  (FORMAT: normal, wide, [compact_]json)\n");
@@ -5351,8 +5351,9 @@ int main(int argc,char *argv[])
       else if (MATCH_ARG("--dump-raw")) {
 	_config._dump_raw = 1;
       }
-      else if (MATCH_ARG("--debug-header")) {
-	_config._debug_header = 1;
+      else if (MATCH_ARG("--header-debug") ||
+	       MATCH_ARG("--debug-header") /* old */) {
+	_config._header_debug = 1;
       }
       else if (MATCH_PREFIX("--server=",post)) {
 	_config._port = atoi(post);
