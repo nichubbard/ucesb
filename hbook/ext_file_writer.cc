@@ -2212,6 +2212,8 @@ void write_structure_header(FILE *fid, global_struct *s,
 	   "  \\\n"
 	   "} while (0);\n");
 
+  if (_config._header_layout)
+    {
   fprintf (fid,
 	   "\n"
 	   "/********************************************************\n"
@@ -2299,6 +2301,7 @@ void write_structure_header(FILE *fid, global_struct *s,
 	   "  } \\\n"
 	   "  /* ************* Do NOT use this macro! ************* */ \\\n"
 	   "};\n");
+  }
 }
 
 void write_header()
@@ -5200,6 +5203,7 @@ void usage(char *cmdname)
   printf ("  --id=ID            Override ID of header written.\n");
   printf ("  --dump-raw         Dump raw protocol data.\n");
   printf ("  --header-debug     Litter header declaration with offsets and sizes.\n");
+  printf ("  --header-layout    Include deprecated LAYOUT_INIT in header.\n");
   printf ("  --server[=PORT]    Run a external data server (at PORT).\n");
   printf ("  --stdout           Write data to stdout.\n");
   printf ("  --dump[=FORMAT]    Make text dump of data.  (FORMAT: normal, wide, [compact_]json)\n");
@@ -5354,6 +5358,9 @@ int main(int argc,char *argv[])
       else if (MATCH_ARG("--header-debug") ||
 	       MATCH_ARG("--debug-header") /* old */) {
 	_config._header_debug = 1;
+      }
+      else if (MATCH_ARG("--header-layout")) {
+	_config._header_layout = 1;
       }
       else if (MATCH_PREFIX("--server=",post)) {
 	_config._port = atoi(post);

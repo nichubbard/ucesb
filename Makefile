@@ -165,7 +165,7 @@ EMPTY_EMPTY_FILE=--lmd --random-trig --events=10
 $(EXTTDIR)/ext_h101.h: empty/empty $(EXT_STRUCT_WRITER)
 	@echo "  EMPTY  $@"
 	@mkdir -p $(EXTTDIR)
-	$(QUIET)empty/empty /dev/null --ntuple=UNPACK,STRUCT_HH,$@ \
+	$(QUIET)empty/empty /dev/null --ntuple=UNPACK,STRUCT_HH,LAYOUT,$@ \
 	  > $@.out 2> $@.err || \
 	  ( echo "Failure while running: '$< /dev/null --ntuple=UNPACK,STRUCT_HH,$@':" ; \
 	    echo "--- stdout: ---" ; cat $@.out ; \

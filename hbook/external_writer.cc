@@ -286,7 +286,7 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
   int fd_dest = -1;
 
   char tmp[1024];
-  /*const*/ char *argv[25];
+  /*const*/ char *argv[30];
   int argc = 0;
   char *executable = NULL;
 
@@ -370,6 +370,12 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
     {
       snprintf (tmp,sizeof(tmp),
 		"--header=%s",filename);  argv[argc++] = strdup(tmp);
+
+      if (opt & NTUPLE_OPT_STRUCT_HH_LAYOUT)
+	{
+	  snprintf (tmp,sizeof(tmp),
+		    "--header-layout");  argv[argc++] = strdup(tmp);
+	}
     }
 
   if (opt & NTUPLE_OPT_READER_INPUT)
@@ -454,6 +460,11 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
     }
 
   argv[argc++] = NULL; // terminate
+
+  // This is sloppy, but better than nothing.
+  if (argc >= 25) // Intentionally smaller than 30 above.
+    ERROR("Argument count overflow when generating "
+	  "external writer command line.");
 
   int dummy_fd; // so they are not closed
 
