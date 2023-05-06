@@ -427,7 +427,7 @@ header_ident:
 /*******************************************************/
 
 /* Double '[[' since we otherwise are ambiguous with an index [i]:
- * before a value line, if we are to allow units preceeded by values.
+ * before a value line, if we are to allow units preceded by values.
  * (Reduce-reduce conflict.)
  */
 header_units:

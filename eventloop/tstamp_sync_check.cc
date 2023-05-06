@@ -750,7 +750,7 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
    * 0  1  2  3  4
    *
    * We then use the first period which manages to find within the 1st
-   * and 2nd peaks at least half the numbe of counts as are in the
+   * and 2nd peaks at least half the number of counts as are in the
    * zeroth peak, and at the same time at most 1/10 as many counts in
    * the regions in-between.
    *

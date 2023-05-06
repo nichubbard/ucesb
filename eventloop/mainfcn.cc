@@ -2184,7 +2184,7 @@ get_next_event:
 			// the data format) has been localized, and also
 			// defragmented...
 
-			// Set up the pointers for where to put the allocated meory
+			// Set up the pointers for where to put the allocated memory
 			_wt._last_reclaim       = item._last_reclaim;
 
 			event_base *eb = (event_base *) item._event;
