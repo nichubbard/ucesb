@@ -65,6 +65,8 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info);
 
 /*************************************************************************/
 
+#define EXT_DATA_ITEM_FLAGS_OPTIONAL  0x01
+
 /* Add one item of structure information.
  *
  * @struct_info     Information structure.
@@ -83,7 +85,9 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info);
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
- *                  Note: fixed array handled by @size above.
+ *                  Note: fixed array size is handled by @size above.
+ * @flags           Mark that an item is optional. Failure to map the item
+ *                  will be reported differently (..._MAP_OPT_NOT_FOUND).
  *
  * Return value:
  *
@@ -101,7 +105,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 			      int type,
 			      const char *prename, int preindex,
 			      const char *name, const char *ctrl_name,
-			      int limit_max);
+			      int limit_max, uint32_t flags);
 
 /*************************************************************************/
 
@@ -131,44 +135,65 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
- *                  Note: fixed array handled by @size above.
+ *                  Note: fixed array size is handled by @size above.
+ * @flags           Mark that an item is optional. Failure to map the item
+ *                  will be reported differently (..._MAP_OPT_NOT_FOUND).
  *
  * Failure or success is reported in @ok.
  *
  */
 
-#define EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			      item,type,name,ctrl,limit_max)		\
+#define EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			       item,type,name,ctrl,limit_max,flags)	\
   if (!printerr) {							\
     ok &= (ext_data_struct_info_item(struct_info,			\
 				     offsetof (struct_t, item)+offset,	\
 				     sizeof (((struct_t *) 0)->item),	\
 				     EXT_DATA_ITEM_TYPE_##type,		\
 				     "", -1,				\
-				     name, ctrl, limit_max) == 0);	\
+				     name, ctrl, limit_max, flags) == 0); \
   } else {								\
     ok &= ext_data_struct_info_item_stderr(struct_info,			\
 					   offsetof (struct_t, item)+offset, \
 					   sizeof (((struct_t *) 0)->item), \
 					   EXT_DATA_ITEM_TYPE_##type,	\
 					   "", -1,			\
-					   name, ctrl, limit_max);	\
+					   name, ctrl, limit_max, flags); \
   }
+
+#define EXT_STR_ITEM_INFO2(ok,struct_info,offset,struct_t,printerr,	\
+			   item,type,name,flags)			\
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",-1,flags)
+
+#define EXT_STR_ITEM_INFO2_ZZP(ok,struct_info,offset,struct_t,printerr,	\
+			       item,type,name,ctrl,flags)		\
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,ctrl,-1,flags)
+
+#define EXT_STR_ITEM_INFO2_LIM(ok,struct_info,offset,struct_t,printerr,	\
+			       item,type,name,limit_max,flags)		\
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",limit_max,flags)
+
+/* These are to support old generated code which did not have the
+ * flags parameter.
+ */
 
 #define EXT_STR_ITEM_INFO(ok,struct_info,offset,struct_t,printerr,	\
 			  item,type,name)				\
-  EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			item,type,name,"",-1)
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",-1,0)
 
 #define EXT_STR_ITEM_INFO_ZZP(ok,struct_info,offset,struct_t,printerr,	\
 			      item,type,name,ctrl)			\
-  EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			item,type,name,ctrl,-1)
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,ctrl,-1,0)
 
 #define EXT_STR_ITEM_INFO_LIM(ok,struct_info,offset,struct_t,printerr,	\
 			      item,type,name,limit_max)			\
-  EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			item,type,name,"",limit_max)
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",limit_max,0)
 
 /*************************************************************************/
 
@@ -191,10 +216,12 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
 #define EXT_DATA_ITEM_MAP_ARRAY_FEWER    0x0020u /* Array, client shorter. */
 #define EXT_DATA_ITEM_MAP_ARRAY_MORE     0x0040u /* Array, client longer. */
 #define EXT_DATA_ITEM_MAP_NOT_DONE       0x0080u /* Never reached mapping. */
+#define EXT_DATA_ITEM_MAP_OPT_NOT_FOUND  0x0100u /* Optional item not found. */
 
 /* This mask identifies mappings which loose no data. */
 #define EXT_DATA_ITEM_MAP_OK            (EXT_DATA_ITEM_MAP_MATCH | \
-					 EXT_DATA_ITEM_MAP_ARRAY_MORE)
+					 EXT_DATA_ITEM_MAP_ARRAY_MORE | \
+					 EXT_DATA_ITEM_MAP_OPT_NOT_FOUND)
 /* This mask identifies mappings which may drop data from server,
  * but all client items had sources.
  */
@@ -740,7 +767,7 @@ int ext_data_struct_info_item_stderr(struct ext_data_structure_info *struct_info
 				     int type,
 				     const char *prename, int preindex,
 				     const char *name, const char *ctrl_name,
-				     int limit_max);
+				     int limit_max, uint32_t flags);
 
 struct ext_data_client *ext_data_connect_stderr(const char *server);
 

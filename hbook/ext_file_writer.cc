@@ -1723,7 +1723,7 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	  if (padlen < 0)
 	    padlen = 0;
 	  fprintf (fid,
-		   "EXT_STR_ITEM_INFO%4s(ok,si,offset,struct_t,printerr,\\\n"
+		   "EXT_STR_ITEM_INFO2%4s(ok,si,offset,struct_t,printerr,\\\n"
 		   "  %*.0s%s,%*.0s%s,\\\n"
 		   "  %*.0s\"%s\"",
 		   (item._var_array_len != (uint32_t) -1) ?
@@ -1744,7 +1744,7 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	    }
 	  else if (item._limit_max != -1)
 	    fprintf (fid,",%d",item._limit_max);
-	  fprintf (fid,");%s\n",
+	  fprintf (fid,",0/*flags*/);%s\n",
 		   infomacro ? " \\" : "");
 	}
       location = offset + item._length;

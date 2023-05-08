@@ -80,6 +80,7 @@ struct ext_data_structure_item
   uint32_t    _var_type;
   uint32_t    _limit_min;
   uint32_t    _limit_max;
+  uint32_t    _flags;
 
   uint32_t    _map_success;
 
@@ -395,6 +396,7 @@ ext_data_struct_info_print_map_success(struct ext_data_structure_info *
       EXT_DATA_PRINT_MAP_SUCCESS(MATCH,         "match");
       EXT_DATA_PRINT_MAP_SUCCESS(NO_DEST,       "no dest - not mapped");
       EXT_DATA_PRINT_MAP_SUCCESS(NOT_FOUND,     "not found");
+      EXT_DATA_PRINT_MAP_SUCCESS(OPT_NOT_FOUND, "optional item not found");
       EXT_DATA_PRINT_MAP_SUCCESS(TYPE_MISMATCH, "type mismatch");
       EXT_DATA_PRINT_MAP_SUCCESS(CTRL_MISMATCH, "ctrl item mismatch");
       EXT_DATA_PRINT_MAP_SUCCESS(ARRAY_FEWER,   "array short");
@@ -415,7 +417,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 			      int type,
 			      const char *prename, int preindex,
 			      const char *name, const char *ctrl_name,
-			      int limit_max)
+			      int limit_max, uint32_t flags)
 {
   struct ext_data_structure_item **item_ptr;
   struct ext_data_structure_item **item_ptr_before_off;
@@ -463,6 +465,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
       item->_limit_max = -1;
     }
   item->_ctrl_item = NULL;
+  item->_flags = flags;
 
   item->_map_success = (uint32_t) -1;
 
@@ -627,8 +630,16 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	{
 	  if (!match)
 	    {
-	      DEBUG_MATCHING("no match.\n");
-	      item->_map_success = EXT_DATA_ITEM_MAP_NOT_FOUND;
+	      if (item->_flags & EXT_DATA_ITEM_FLAGS_OPTIONAL)
+		{
+		  DEBUG_MATCHING("optional item no match.\n");
+		  item->_map_success = EXT_DATA_ITEM_MAP_OPT_NOT_FOUND;
+		}
+	      else
+		{
+		  DEBUG_MATCHING("no match.\n");
+		  item->_map_success = EXT_DATA_ITEM_MAP_NOT_FOUND;
+		}
 	      goto no_match;
 	    }
 
@@ -1901,7 +1912,7 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 				      var_type,
 				      "", -1,
 				      var_name, var_ctrl_name,
-				      limit_max);
+				      limit_max, 0);
 
 	    break;
 	  }
@@ -3577,13 +3588,13 @@ int ext_data_struct_info_item_stderr(struct ext_data_structure_info *struct_info
 				     int type,
 				     const char *prename, int preindex,
 				     const char *name, const char *ctrl_name,
-				     int limit_max)
+				     int limit_max, uint32_t flags)
 {
   int ret = ext_data_struct_info_item(struct_info,
 				      offset, size, type,
 				      prename, preindex,
 				      name, ctrl_name,
-				      limit_max);
+				      limit_max, flags);
 
   if (ret != 0)
     {
