@@ -3981,8 +3981,8 @@ bool ntuple_get_event(char *msg,char **end)
     uint32_t *start = (uint32_t *) (header + 1);
 
     start[0] = htonl(0); // struct_index (0, only one when reading)
-    start[0] = htonl(0); // ntuple_index (0, only one when reading)
-    start[1] = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
+    start[1] = htonl(0); // ntuple_index (0, only one when reading)
+    start[2] = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
     uint32_t *cur = start + 3;
 
