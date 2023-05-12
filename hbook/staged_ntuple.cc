@@ -77,7 +77,6 @@ void staged_ntuple::open_xx(const char *filename,
   _ext->init_x(ntuple_type,ntuple_opt,
 	       filename,ftitle,
 	       server_port,
-	       !!(ntuple_type & NTUPLE_TYPE_STRUCT_HH),
 	       timeslice,timeslice_subdir,autosave,
 	       ts_merge_window);
   _ext->send_file_open(sort_u32_words);

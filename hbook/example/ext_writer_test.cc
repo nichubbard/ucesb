@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
   ew = new external_writer();
 
   ew->init_x(type | NTUPLE_CASE_KEEP, opt,
-	     filename,"Title",-1,generate_header,
+	     filename,"Title",-1,
 	     false,false,false, 0);
 
   ew->send_file_open(0);

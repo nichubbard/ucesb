@@ -181,7 +181,7 @@ public:
 public:
   void init_x(unsigned int type,unsigned int opt,
 	      const char *filename,const char *ftitle,
-	      int server_port,int generate_header,
+	      int server_port,
 	      int timeslice,int timeslice_subdir,
 	      int autosave,int ts_merge_window);
   void close();
