@@ -4029,6 +4029,7 @@ bool ntuple_get_event(char *msg,char **end)
 
 	    for (int i = items; i; i--)
 	      {
+		mark   = *(o++);
 		offset = (*(o++)) & 0x3fffffff;
 		value = *((uint32_t *) (s->_stage_array._ptr + offset));
 
