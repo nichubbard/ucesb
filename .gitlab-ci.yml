@@ -36,7 +36,7 @@ stages:
 .build: &build
   script:
     - test -d /opt/root && source /opt/root/bin/thisroot.sh || echo No ROOT installed
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - $CXX --version
@@ -47,7 +47,7 @@ stages:
 
 .build-bsd: &build-bsd
   script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - $CC --version
@@ -67,7 +67,7 @@ stages:
 
 .debian: &debian
   before_script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - apt-get update -yq > /dev/null
@@ -81,7 +81,7 @@ stages:
 
 .old-debian: &old-debian
   before_script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - apt-get update -yq > /dev/null
@@ -123,7 +123,7 @@ stages:
 .ubuntu-gcc6-with-flex: &ubuntu-gcc6
   <<: *debian
   before_script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export FLEX=${JOB_NAME[6]}
     - apt-get update -yq > /dev/null
     - apt-get install -y --no-install-recommends flex bison libncurses5-dev
@@ -157,7 +157,7 @@ stages:
   script:
     - _DISABLE="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
     - _SSH="ssh -c 3des-cbc root@127.0.0.1 -p $PORT $_DISABLE"
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - _TARGET="${JOB_NAME[4]}"
     - sleep 60
     - while ! $_SSH -o ConnectTimeout=5 'uname -a'; do
