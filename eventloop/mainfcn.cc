@@ -934,14 +934,14 @@ int main(int argc, char **argv)
   //memset(&action,0,sizeof(action));
   //action.sa_handler = signal_handler_ret;
   //sigemptyset(&action.sa_mask);
-  //action.sa_flags   = 0;
+  //action.sa_flags   = SA_RESTART;
   //sigaction(SIGUSR1,&action,NULL);
 
   struct sigaction action;
   memset(&action,0,sizeof(action));
   action.sa_handler = sigint_handler;
   sigemptyset(&action.sa_mask);
-  action.sa_flags   = 0;
+  action.sa_flags   = SA_RESTART;
   sigaction(SIGINT,&action,NULL);
 
   // Copied from hbook/ext_file_writer.cc
@@ -954,8 +954,24 @@ int main(int argc, char **argv)
   memset(&action,0,sizeof(action));
   action.sa_handler = sigalarm_handler;
   sigemptyset(&action.sa_mask);
-  action.sa_flags   = 0;
+  action.sa_flags   = SA_RESTART;
   sigaction(SIGALRM,&action,NULL);
+
+  /* Note about SA_RESTART above:
+   *
+   * If a signal (e.g. ALARM) happens while printf is executing, and
+   * it is printing to a pipe (e.g. | less), but not a file, it may do
+   * an incomplete job and return error.  (Some data may be written,
+   * but parts of the FILE buffer for stdout may be lost.)  With
+   * SA_RESTART the printf is restarted/resumed after the signal.
+   *
+   * This can be provoked more by setting the itimer interval shorter
+   * above (also note the setitimer call further down).  If the ALARM
+   * handler is set to SIG_IGN, the issue is not observed.
+   *
+   * It is not clear if there are other reasons why printf may do an
+   * incomplete job (and program then continue executing).
+   */
 
   // We don't want any SIGPIPE signals to kill us
 
