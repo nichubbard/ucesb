@@ -244,13 +244,18 @@ thread_block    _block_main;
 
 int _got_sigint = 0;
 
+/* Note printf is NOT signal handler safe!
+ *
+ * The buffer for stdout may be corrupted by these actions!
+ */
+
 void sigint_handler(int sig)
 {
   _got_sigint++;
 
   if (_got_sigint > 1)
     {
-      printf ("Got many SIGINT requests, next will go through");
+      printf ("Got many SIGINT requests, next will go through.\n");
       signal(SIGINT,SIG_DFL);
     }
   else
