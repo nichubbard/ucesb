@@ -207,6 +207,25 @@ ebye_event *ebye_source::get_event()
 	  continue; // We read a record, just make sure we're not immediately at it's end
 	}
 
+#ifdef USE_EBYE_INPUT_TIMESTAMPED
+      // Dummy event header.  Entire buffer.
+
+      {
+	uint32 length = _record_header._data_length;
+
+	dest->_header._start_end_token_length = length;
+
+	if (!get_range(dest->_chunks,&dest->_data,
+		       _chunk_cur,_chunk_end,
+		       length))
+	  ERROR("Event longer (%d) than data in record.", length);
+
+	dest->_swapping = _swapping;
+
+	return dest;
+      }
+#endif
+
       ebye_event_header *event_header = &dest->_header;
 
       if (!get_range((char *) event_header,

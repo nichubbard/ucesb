@@ -528,6 +528,14 @@ OBJS         += ebye_input.o
 EMPTY_FILE_FORMAT = --ebye
 endif
 
+ifdef USE_EBYE_INPUT_TIMESTAMPED
+CXXFLAGS     += -DUSE_EBYE_INPUT_TIMESTAMPED=$(USE_EBYE_INPUT_TIMESTAMPED) \
+		-DUSE_EBYE_INPUT_32=$(USE_EBYE_INPUT_TIMESTAMPED) \
+		-DUSE_EBYE_INPUT=$(USE_EBYE_INPUT_TIMESTAMPED)
+OBJS         += ebye_input.o
+EMPTY_FILE_FORMAT = --ebye
+endif
+
 #########################################################
 
 ifdef USE_HLD_INPUT
