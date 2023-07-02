@@ -971,6 +971,9 @@ int main(int argc, char **argv)
    *
    * It is not clear if there are other reasons why printf may do an
    * incomplete job (and program then continue executing).
+   *
+   * Update: if signal is used instead of sigaction, that also works.
+   * (On linux, the system call (rt_sigaction) is with SA_RESTART.)
    */
 
   // We don't want any SIGPIPE signals to kill us
