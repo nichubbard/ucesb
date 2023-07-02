@@ -255,7 +255,7 @@ void sigint_handler(int sig)
 
   if (_got_sigint > 1)
     {
-      printf ("Got many SIGINT requests, next will go through.\n");
+      fprintf (stderr, "Got many SIGINT requests, next will go through.\n");
       signal(SIGINT,SIG_DFL);
     }
   else
@@ -266,7 +266,7 @@ void sigint_handler(int sig)
 	fprintf (stderr, "\n");
 #endif
 
-      printf ("Termination request, setting max events to 1...\n");
+      fprintf (stderr, "Termination request, setting max events to 1...\n");
       _conf._max_events = 1;
     }
 }
