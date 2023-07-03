@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -239,7 +240,9 @@ void *decompress_relay_thread(void *info)
 	    }
 	  printf ("\n");
 	  */
-	  ssize_t n = write(drt->_fd_write,aligned + offset,towrite);
+	  // MSG_NOSIGNAL to prevent SIGPIPE generation.
+	  ssize_t n = send(drt->_fd_write, aligned + offset, towrite,
+			   MSG_NOSIGNAL);
 
 	  if (n == -1)
 	    {

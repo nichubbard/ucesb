@@ -976,12 +976,8 @@ int main(int argc, char **argv)
    * (On linux, the system call (rt_sigaction) is with SA_RESTART.)
    */
 
-  // We don't want any SIGPIPE signals to kill us
-
-  sigset_t sigmask;
-  sigemptyset(&sigmask);
-  sigaddset(&sigmask,SIGPIPE);
-  sigprocmask(SIG_BLOCK,&sigmask,NULL);
+  // We sure want SIGPIPE to kill us when stdout or stderr are gone!
+  // (Ignore-code deleted.)
 
   // We may now use this thread as a worker, i.e. allocate memory
   // from defrag buffers etc

@@ -682,7 +682,8 @@ bool lmd_output_client_con::after_select(fd_set *readfds,fd_set *writefds,
       {
 	size_t max_send = sizeof (ltcp_stream_trans_open_info) - _offset;
 
-	n = write(_fd,((char *) &info) + _offset,max_send);
+	// MSG_NOSIGNAL to prevent SIGPIPE generation.
+	n = send(_fd, ((char *) &info) + _offset, max_send, MSG_NOSIGNAL);
       }
 
       if (n == 0)
@@ -785,7 +786,8 @@ bool lmd_output_client_con::after_select(fd_set *readfds,fd_set *writefds,
       {
 	size_t max_send = _current->_filled - _offset;
 
-	n = write(_fd,_current->_bufs + _offset,max_send);
+	// MSG_NOSIGNAL to prevent SIGPIPE generation.
+	n = send(_fd, _current->_bufs + _offset, max_send, MSG_NOSIGNAL);
       }
 
       if (n == 0)
