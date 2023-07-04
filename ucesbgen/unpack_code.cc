@@ -578,22 +578,29 @@ void struct_unpack_code::gen(indexed_decl_map &indexed_decl,
   const struct_encode    *encode;
   const struct_match_end *match_end;
 
-  if ((data    = dynamic_cast<const struct_data*   >(item))) gen(header,
-								 data   ,d,type,mei);
-  if ((decl    = dynamic_cast<const struct_decl*   >(item))) gen(indexed_decl,
-								 decl   ,d,type,mei);
-  if ((list    = dynamic_cast<const struct_list*   >(item))) gen(header,
-								 list   ,d,type,mei,last_subevent_item);
-  if ((select  = dynamic_cast<const struct_select* >(item))) gen(select ,d,type,mei,last_subevent_item);
-  if ((cond    = dynamic_cast<const struct_cond*   >(item))) gen(header,
-								 cond   ,d,type,mei,last_subevent_item);
-  if ((member  = dynamic_cast<const struct_member* >(item))) gen(member ,d,type);
-  if ((mark    = dynamic_cast<const struct_mark*   >(item))) gen(mark   ,d,type);
-  if ((check   = dynamic_cast<const struct_check_count*>(item))) gen(check  ,d,type);
-  if ((encode  = dynamic_cast<const struct_encode* >(item))) gen(encode ,d,type);
-  if ((match_end = dynamic_cast<const struct_match_end* >(item))) gen(match_end ,d,type,mei);
+  if ((data    = dynamic_cast<const struct_data*   >(item)))
+    gen(header,	data,       d,type,mei);
+  if ((decl    = dynamic_cast<const struct_decl*   >(item)))
+    gen(indexed_decl, decl, d,type,mei);
+  if ((list    = dynamic_cast<const struct_list*   >(item)))
+    gen(header,	list,       d,type,mei,last_subevent_item);
+  if ((select  = dynamic_cast<const struct_select* >(item)))
+    gen(select,             d,type,mei,last_subevent_item);
+  if ((cond    = dynamic_cast<const struct_cond*   >(item)))
+    gen(header,	cond,       d,type,mei,last_subevent_item);
+  if ((member  = dynamic_cast<const struct_member* >(item)))
+    gen(member,             d,type);
+  if ((mark    = dynamic_cast<const struct_mark*   >(item)))
+    gen(mark,               d,type);
+  if ((check   = dynamic_cast<const struct_check_count*>(item)))
+    gen(check,              d,type);
+  if ((encode  = dynamic_cast<const struct_encode* >(item)))
+    gen(encode,             d,type);
+  if ((match_end = dynamic_cast<const struct_match_end* >(item)))
+    gen(match_end,          d,type,mei);
 
-  if (d._current > d._indent) d.nl();
+  if (d._current > d._indent)
+    d.nl();
 }
 
 void struct_unpack_code::gen(const encode_spec_base *item,
