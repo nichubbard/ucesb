@@ -533,6 +533,12 @@ ebye_empty: $(DEPENDENCIES)
 
 #########################################################
 
+.PHONY: iss_lmd
+iss_lmd: $(DEPENDENCIES)
+	@$(MAKE) -C $@ -f ../makefile_unpacker.inc UNPACKER=$@
+
+#########################################################
+
 clean: clean-dir-ucesbgen clean-dir-psdc clean-dir-file_input \
 	clean-dir-rfiocmd clean-dir-hbook clean-dir-tdcpm \
 	$(UNPACKERS:%=clean-unp-%) $(UNPACKERS_EXT:%=clean-unp-%) \
