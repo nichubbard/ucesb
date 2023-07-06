@@ -28,11 +28,10 @@ SUBEVENT(FA192MAR09_VME)
 {
   header = LAND_STD_VME();
 
-  /*
   select several
     {
+      mdpp = VME_MESYTEC_MDPP16(geom=0);
     }
-  */
 }
 
 EVENT
