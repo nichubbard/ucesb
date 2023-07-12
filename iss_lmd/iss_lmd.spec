@@ -38,3 +38,8 @@ EVENT
 {
   vme = FA192MAR09_VME(type=88,subtype=8800,crate=0);
 }
+
+SIGNAL(ZERO_SUPPRESS_MULTI(16): MT1);
+SIGNAL(ZERO_SUPPRESS_MULTI(16): MT2);
+SIGNAL(MT1, vme.mdpp.trig_tdc[0], DATA16_OVERFLOW);
+SIGNAL(MT2, vme.mdpp.trig_tdc[1], DATA16_OVERFLOW);
