@@ -175,6 +175,23 @@ bool VME_MESYTEC_MTDC32::good_event_counter_offset(uint32 expect) const
 } 
 #endif
 
+#ifdef DECLARED_UNPACK_VME_MESYTEC_MDPP16
+uint32 VME_MESYTEC_MDPP16::get_event_counter() const
+{
+  return end_of_event.counter;
+}
+
+uint32 VME_MESYTEC_MDPP16::get_event_counter_offset(uint32 start) const
+{
+  return (end_of_event.counter - start) & 0x3FFFFFFF;
+}
+
+bool VME_MESYTEC_MDPP16::good_event_counter_offset(uint32 expect) const
+{
+  return 1;
+}
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 
 // The following does not have files in spec/ - should rather be
