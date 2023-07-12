@@ -20,3 +20,7 @@
 # MA  02110-1301  USA
 
 USE_LMD_INPUT=1
+
+CXXFLAGS += -DCONTROL_INCLUDE
+
+OBJS += iss_lmd_user.o

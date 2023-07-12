@@ -1,8 +1,6 @@
-// -*- C++ -*-
-
 /* This file is part of UCESB - a tool for data unpacking and processing.
  *
- * Copyright (C) 2016  Haakan T. Johansson  <f96hajo@chalmers.se>
+ * Copyright (C) 2016  GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,21 +18,11 @@
  * MA  02110-1301  USA
  */
 
-#include "spec/spec.spec"
+#ifndef __CONTROL_HH__
+#define __CONTROL_HH__
 
-#include "spec/land_std_vme.spec"
+#define UNPACK_EVENT_USER_FUNCTION  iss_lmd_user_function_multi
 
-SUBEVENT(FA192MAR09_VME)
-{
-  header = LAND_STD_VME();
+#define USING_MULTI_EVENTS 1
 
-  select several
-    {
-      multi mdpp = VME_MESYTEC_MDPP16(geom=0);
-    }
-}
-
-EVENT
-{
-  vme = FA192MAR09_VME(type=88,subtype=8800,crate=0);
-}
+#endif//__CONTROL_HH__
