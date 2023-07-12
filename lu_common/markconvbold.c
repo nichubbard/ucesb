@@ -33,7 +33,15 @@
 
 regex_t *markconvbold_compile()
 {
-  regex_t *regex = new regex_t;
+  regex_t *regex;
+
+  regex = (regex_t *) malloc(sizeof (regex_t));
+
+  if (!regex)
+    {
+      fprintf(stderr,"Regex allocation failure!");
+      exit (1);
+    }
 
   /* printf ("Compiling...\n"); */
 
@@ -64,7 +72,7 @@ regex_t *markconvbold_compile()
       char errstr[len];
       regerror(ret,regex,errstr,sizeof(errstr));
 
-      delete regex;
+      free (regex);
 
       fprintf(stderr,"Regex compilation failure!  (Error: %s)",errstr);
       exit (1);
@@ -73,7 +81,21 @@ regex_t *markconvbold_compile()
   return regex;
 }
 
-static regex_t *_markconvbold_regex = markconvbold_compile();
+static regex_t *_markconvbold_regex =
+#ifdef __cplusplus
+  markconvbold_compile()
+  #else
+  NULL /* Note: must call markconvbold_init() ! */
+#endif
+  ;
+
+void markconvbold_init(void)
+{
+  if (_markconvbold_regex)
+    return;
+
+  _markconvbold_regex = markconvbold_compile();
+}
 
 char *markconvbold(const char *fmt)
 {
@@ -131,11 +153,11 @@ char *markconvbold(const char *fmt)
        * start after a %%)
        */
 
-      bool dobold = true;
+      int dobold = 1;
 
       if (pmatch[REGEXP_NOBOLD_CONVERSION_MATCH_PERCENT].rm_so != -1 &&
 	  curfmt[pmatch[REGEXP_NOBOLD_CONVERSION_MATCH_PERCENT].rm_so] == '%')
-	dobold = false;
+	dobold = 0;
 
       /* copy up to the match (destroys curfmt <-> rm_so relationship) */
 
@@ -149,7 +171,7 @@ char *markconvbold(const char *fmt)
 	{
 	  curfmt += strlen(ERR_NOBOLD);
 	  match_length -= (regoff_t) strlen(ERR_NOBOLD);
-	  dobold = false;
+	  dobold = 0;
 	}
 
       if (dobold)
