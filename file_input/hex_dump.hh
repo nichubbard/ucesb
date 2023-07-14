@@ -21,6 +21,8 @@
 #ifndef __HEX_DUMP_HH__
 #define __HEX_DUMP_HH__
 
+#include <ctype.h>
+
 #include "data_src.hh"
 #include "colourtext.hh"
 
@@ -62,7 +64,8 @@ void hex_dump(FILE *fid,
 	      const char *fmt,
 	      int fmt_max_len,
 	      hex_dump_buf &buf,
-	      hex_dump_mark_buf *erraddr)
+	      hex_dump_mark_buf *erraddr,
+	      bool find_TXT0 = false)
 {
   for ( ; start < end; start++)
     {
@@ -111,7 +114,71 @@ void hex_dump(FILE *fid,
 	buf._end += sprintf(buf._end,"%s",CT_OUT(NORM_DEF_COL));
 
       assert(buf._end <= buf._buf + sizeof(buf._buf));
-    }
+
+      if (find_TXT0 &&
+	  (uint32) item == 0x54585430 && /* Possible TXT0 marker. */
+	  start + 1 < end)               /* Space for size marker. */
+	{
+	  T next = *(start + 1);
+	  size_t remain = (((T *) end) - start - 2) * sizeof (T);
+
+	  next = swapping ? bswap(next) : next;
+
+	  printf ("Hi! %d %zd\n", next, remain);
+
+	  if (next == remain)
+	    {
+	      buf.eject();
+	      buf._end +=
+		sprintf(buf._end,
+			"--- TXT0 dump (%6d bytes) -----------"
+			"--------------------------------",
+			next);
+	      buf.eject();
+
+	      T *tp32 = start + 2;
+
+	      for ( ; tp32 < end; tp32++)
+		{
+		  T text32 = *tp32;
+
+		  text32 = swapping ? bswap(text32) : text32;
+
+		  for (size_t i = 0; i < sizeof (T); i++)
+		    {
+		      unsigned char c;
+
+		      c = (unsigned char)
+			(text32 >> (8 * (sizeof (T) - 1 - i)));
+
+		      size_t add = 0;
+
+		      if (isprint(c))
+			add += sprintf(buf._end,"%c",c);
+		      else
+			add += sprintf(buf._end,"\\x%02x",c);
+
+		      buf._end += add;
+		      buf._added += add;
+
+		      if (buf._added >= 72)
+			{
+			  buf._end += sprintf(buf._end,"\\");
+			  buf.eject();
+			}
+		    }
+		}
+
+	      buf.eject();
+	      buf._end +=
+		sprintf(buf._end,
+			"----------------------------------------"
+			"--------------------------------");
+	      buf.eject();
+	      return;
+	    }
+	}
+   }
 }
 
 #endif//__HEX_DUMP_HH__

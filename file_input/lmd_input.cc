@@ -1287,7 +1287,7 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 		    hex_dump(stdout,
 			     (uint32*) subevent_info->_data,
 			     subevent_info->_data + data_length,_swapping,
-			     "%c%08x",9,buf,unpack_fail);
+			     "%c%08x",9,buf,unpack_fail, true);
 		  else
 		    hex_dump(stdout,
 			     (uint16*) subevent_info->_data,
