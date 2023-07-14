@@ -26,6 +26,8 @@
 #include "str_set.hh"
 #include "account.hh"
 
+#include <inttypes.h>
+
 // We generate the unpack code recursively, i.e. whenever an subevent
 // needs another subevent, that other subevent has to be processed
 // first.

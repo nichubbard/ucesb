@@ -37,6 +37,7 @@
 #include <limits.h>
 #include <sys/time.h>
 #include <time.h>
+#include <inttypes.h>
 
 // Write LMD files.
 //
@@ -1087,7 +1088,7 @@ void lmd_output_file::report_open_close(bool open)
 	    t, "Open", _cur_filename);
   else
     sprintf(output,
-	    "%-19s  %-5s  %-71s  Size:%11llu  Events:%10u\n",
+	    "%-19s  %-5s  %-71s  Size:%11" PRIu64 "  Events:%10" PRIu32 "\n",
 	    t, "Close", _cur_filename, _cur_size, _cur_events);
 
   _lmd_log->append(output);

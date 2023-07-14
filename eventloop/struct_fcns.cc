@@ -316,35 +316,35 @@ void unpack_subevent_base::dump(const signal_id &id,pretty_dump_info &pdi) const
 void rawdata64::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[64];
-  snprintf(buf,sizeof(buf),"0x%016llx=%lld",value,value);
+  snprintf(buf,sizeof(buf),"0x%016" PRIx64 "=%" PRId64 "",value,value);
   pretty_dump(id,buf,pdi);
 }
 
 void rawdata32::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%08x=%d",value,value);
+  snprintf(buf,sizeof(buf),"0x%08" PRIx32 "=%" PRId32 "",value,value);
   pretty_dump(id,buf,pdi);
 }
 
 void rawdata24::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%08x=%d",value,value);
+  snprintf(buf,sizeof(buf),"0x%08" PRIx32 "=%" PRId32 "",value,value);
   pretty_dump(id,buf,pdi);
 }
 
 void rawdata16::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%04x=%d",value,value);
+  snprintf(buf,sizeof(buf),"0x%04" PRIx16 "=%" PRId16 "",value,value);
   pretty_dump(id,buf,pdi);
 }
 
 void rawdata16plus::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%04x=%d%c%c%c%c",
+  snprintf(buf,sizeof(buf),"0x%04" PRIx16 "=%" PRId16 "%c%c%c%c",
           value,value,
 	  underflow ? 'U' : ' ',
 	  range ?     'R' : ' ',
@@ -356,7 +356,7 @@ void rawdata16plus::dump(const signal_id &id,pretty_dump_info &pdi) const
 void rawdata14::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%04x=%d%c%c",
+  snprintf(buf,sizeof(buf),"0x%04" PRIx16 "=%" PRId16 "%c%c",
 	  value,value,
 	  range ?    'R' : ' ',
 	  overflow ? 'O' : ' ');
@@ -366,7 +366,7 @@ void rawdata14::dump(const signal_id &id,pretty_dump_info &pdi) const
 void rawdata12::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%03x=%d%c%c",
+  snprintf(buf,sizeof(buf),"0x%03" PRIx16 "=%" PRId16 "%c%c",
 	  value,value,
 	  range ?    'R' : ' ',
 	  overflow ? 'O' : ' ');
@@ -376,26 +376,31 @@ void rawdata12::dump(const signal_id &id,pretty_dump_info &pdi) const
 void rawdata8::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  snprintf(buf,sizeof(buf),"0x%02x=%d",value,value);
+  snprintf(buf,sizeof(buf),"0x%02" PRIx8 "=%" PRId8 "",value,value);
   pretty_dump(id,buf,pdi);
 }
 
 void dump_uint8 (const uint8  item,const signal_id &id,
 		 pretty_dump_info &pdi) {
-  char buf[32]; snprintf(buf,sizeof(buf),"0x%02x=%d",item,item); pretty_dump(id,buf,pdi);}
+  char buf[32]; snprintf(buf,sizeof(buf),"0x%02" PRIx8 "=%" PRId8 "",
+			 item,item); pretty_dump(id,buf,pdi);}
 void dump_uint16(const uint16 item,const signal_id &id,
 		 pretty_dump_info &pdi) {
-  char buf[32]; snprintf(buf,sizeof(buf),"0x%04x=%d",item,item); pretty_dump(id,buf,pdi);}
+  char buf[32]; snprintf(buf,sizeof(buf),"0x%04" PRIx16 "=%" PRId16 "",
+			 item,item); pretty_dump(id,buf,pdi);}
 void dump_uint32(const uint32 item,const signal_id &id,
 		 pretty_dump_info &pdi) {
-  char buf[32]; snprintf(buf,sizeof(buf),"0x%08x=%d",item,item); pretty_dump(id,buf,pdi);}
+  char buf[32]; snprintf(buf,sizeof(buf),"0x%08" PRIx32 "=%" PRId32 "",
+			 item,item); pretty_dump(id,buf,pdi);}
 void dump_uint64(const uint64 item,const signal_id &id,
 		 pretty_dump_info &pdi) {
-  char buf[64]; snprintf(buf,sizeof(buf),"0x%016llx=%lld",item,item); pretty_dump(id,buf,pdi);}
+  char buf[64]; snprintf(buf,sizeof(buf),"0x%016" PRIx64 "=%" PRId64 "",
+			 item,item); pretty_dump(id,buf,pdi);}
 void dump_float (const float  item,const signal_id &id,
 		 pretty_dump_info &pdi) {
   if (!pdi._dump_nan && isnan(item)) return;
-  char buf[32]; snprintf(buf,sizeof(buf),"%.7g",item);   pretty_dump(id,buf,pdi);}
+  char buf[32]; snprintf(buf,sizeof(buf),"%.7g",item);
+  pretty_dump(id,buf,pdi);}
 void dump_double(const double item,const signal_id &id,
 		 pretty_dump_info &pdi) {
 #if GCC_VERSION == 40902
@@ -405,7 +410,8 @@ void dump_double(const double item,const signal_id &id,
 #else
   if (!pdi._dump_nan && isnan(item)) return;
 #endif
-  char buf[32]; snprintf(buf,sizeof(buf),"%.13g",item);   pretty_dump(id,buf,pdi);}
+  char buf[32]; snprintf(buf,sizeof(buf),"%.13g",item);
+  pretty_dump(id,buf,pdi);}
 
 
 #define FCNCALL_CLASS_NAME(name) name

@@ -37,6 +37,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <inttypes.h>
 
 //template<typename T>
 //class calib_map;
@@ -61,7 +62,7 @@ public:
 
   void dump()
   {
-    printf ("0x%016llx",value);
+    printf ("0x%016" PRIx64 "",value);
   }
 
   void dump(const signal_id &id,pretty_dump_info &pdi) const;
