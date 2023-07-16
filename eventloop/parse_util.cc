@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 uint64 parse_size_postfix(const char *post,const char *allowed,
 			  const char *error_name,bool fit32bits)
@@ -55,7 +56,7 @@ uint64 parse_size_postfix(const char *post,const char *allowed,
 
  success:
   if (fit32bits && size > 0xffffffff)
-    ERROR("%s request too large (%lld): post",error_name,size);
+    ERROR("%s request too large (%" PRIu64 "): post",error_name,size);
 
   return size;
 }
