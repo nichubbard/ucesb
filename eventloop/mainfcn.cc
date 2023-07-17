@@ -127,6 +127,7 @@ void usage()
   printf ("  --print           Print event headers.\n");
   printf ("  --data            Print event data.\n");
   printf ("  --debug           Print events causing errors.\n");
+  printf ("  --print-members   Print unpack data members.\n");
   printf ("  --colour=yes|no   Force colour and markup on or off.\n");
   printf ("  --event-sizes     Show average sizes of events and subevents.\n");
   printf ("  --data-sizes      Show data size usage by data members.\n");
@@ -748,6 +749,9 @@ int main(int argc, char **argv)
       }
       else if (MATCH_ARG("--debug")) {
 	_conf._debug = 1;
+      }
+      else if (MATCH_ARG("--print-members")) {
+	_conf._member_dump = 1;
       }
       else if (MATCH_ARG("--quiet")) {
 	_conf._quiet++;
@@ -1490,18 +1494,38 @@ get_next_event:
 #if defined(USE_LMD_INPUT)
 	      if (file_event->is_sticky())
 		{
-		  if (_conf._account)
-		    loop.unpack_event<sticky_event_base,1>(*sticky_event);
+		  if (_conf._member_dump)
+		    {
+		      if (_conf._account)
+			loop.unpack_event<sticky_event_base,1,1>(*sticky_event);
+		      else
+			loop.unpack_event<sticky_event_base,0,1>(*sticky_event);
+		    }
 		  else
-		    loop.unpack_event<sticky_event_base,0>(*sticky_event);
+		    {
+		      if (_conf._account)
+			loop.unpack_event<sticky_event_base,1,0>(*sticky_event);
+		      else
+			loop.unpack_event<sticky_event_base,0,0>(*sticky_event);
+		    }
 		}
 	      else
 #endif
 		{
-		  if (_conf._account)
-		    loop.unpack_event<event_base,1>(*event);
+		  if (_conf._member_dump)
+		    {
+		      if (_conf._account)
+			loop.unpack_event<event_base,1,1>(*event);
+		      else
+			loop.unpack_event<event_base,0,1>(*event);
+		    }
 		  else
-		    loop.unpack_event<event_base,0>(*event);
+		    {
+		      if (_conf._account)
+			loop.unpack_event<event_base,1,0>(*event);
+		      else
+			loop.unpack_event<event_base,0,0>(*event);
+		    }
 		}
 		}
 

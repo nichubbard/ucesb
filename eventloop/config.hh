@@ -76,6 +76,7 @@ struct config_opts
 
   int _show_members;
   int _event_sizes;
+  int _member_dump;
   int _account;
   int _show_calib;
 
