@@ -24,6 +24,8 @@
 #include "error.hh"
 #include "optimise.hh"
 
+#include "colourtext.hh"
+
 /*
  *
  */

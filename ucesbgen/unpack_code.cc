@@ -754,6 +754,7 @@ void struct_unpack_code::gen(const struct_header *header,
 {
   const char *data_type = "";
   const char *full_name = "";
+  const char *fmt = "";
   static int data_done_counter = 0;
 
   // if the value is declared as no-enocde, it should not go into the data
@@ -761,10 +762,10 @@ void struct_unpack_code::gen(const struct_header *header,
 
   switch (data->_size)
     {
-    case 64: data_type = "uint64 "; full_name = "u64"; break;
-    case 32: data_type = "uint32 "; full_name = "u32"; break;
-    case 16: data_type = "uint16 "; full_name = "u16"; break;
-    case 8:  data_type = "uint8  "; full_name = "u8"; break;
+    case 64: data_type = "uint64 "; full_name = "u64"; fmt = "PRIx64"; break;
+    case 32: data_type = "uint32 "; full_name = "u32"; fmt = "PRIx32"; break;
+    case 16: data_type = "uint16 "; full_name = "u16"; fmt = "PRIx16"; break;
+    case 8:  data_type = "uint8  "; full_name = "u8";  fmt = "PRIx8";  break;
     }
 
   const char *prefix = "";
@@ -1056,7 +1057,8 @@ void struct_unpack_code::gen(const struct_header *header,
 	  {
 	    char name_prefix_str[512];
 
-	    snprintf(name_prefix_str,sizeof(name_prefix_str),"%s.",data->_ident);
+	    snprintf(name_prefix_str,sizeof(name_prefix_str),
+		     "%s.",data->_ident);
 
 	    prefix_ident name_prefix;
 
@@ -1075,6 +1077,57 @@ void struct_unpack_code::gen(const struct_header *header,
 	      if (!data_done_label)
 		return;
 	    }
+	}
+
+      if (type & UCT_UNPACK)
+	{
+	  d.text_fmt("if (__buffer.is_memberdump())\n");
+	  d.text_fmt("{\n");
+	  dumper sd(d,2);
+	  sd.text_fmt("printf(\""
+		     "%%s"            // CT_OUT(BOLD)
+		     "%%0%d\" %s \""  // actual value
+		     "%%s"            // CT_OUT(NORM)
+		     ": %s \", "      // ...
+		     "CT_OUT(BOLD), " // CT_OUT(BOLD)
+		     "%s%s.%s, "      // actual value
+		     "CT_OUT(NORM)"   // CT_OUT(NORM)
+		     ");\n",
+		     data->_size / 4, fmt,
+		     data->_ident,
+		     prefix,data->_ident,full_name);
+
+	  bits_spec_list::const_iterator i;
+	  for (i = data->_bits->begin(); i != data->_bits->end(); ++i)
+	    {
+	      bits_spec *b = *i;
+
+	      if (!b->_cond && b->_name)
+		{
+		  /* We cannot use fmt.  Bitfields apparently send
+		   * int (not long) when field is smaller than 32 bits
+		   * and full type (bitfield) is 64 bits.  Since we
+		   * do not want to double-guess the compiler, always
+		   * force to uint64.
+		   */
+		  sd.text_fmt("printf(\".%s="    // name
+			     "%%s"               // CT_OUT(BOLD)
+			     "%%%d\" PRIx64 \""  // actual value
+			     "%%s"               // CT_OUT(NORM)
+			     " \", "             // ...
+			     "CT_OUT(BOLD), "    // CT_OUT(BOLD)
+			     "%s %s%s.%s, "      // actual value
+			     "CT_OUT(NORM)"      // CT_OUT(NORM)
+			     ");\n",
+			     b->_name,
+			     (b->_max - b->_min + 1 + 3) / 4,
+			     /*fmt,*/ "(uint64_t) ",
+			     prefix,data->_ident,b->_name);
+		}
+	    }
+
+	  sd.text_fmt("printf(\"\\n\");\n");
+	  d.text_fmt("}\n");
 	}
 
       if ((type & UCT_UNPACK) &&
