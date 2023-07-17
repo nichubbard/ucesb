@@ -444,7 +444,7 @@ void struct_unpack_code::gen(const struct_header *header,
 
   dumper sd(d,2);
 
-  if (type & UCT_UNPACK)
+  if (is_function && !!(type & UCT_UNPACK))
     {
       sd.text_fmt("if (__buffer.is_memberdump())\n");
       sd.text_fmt("{\n");
@@ -454,13 +454,21 @@ void struct_unpack_code::gen(const struct_header *header,
 
       assert(named_header);
 
+      const struct_header_subevent *subevent_header =
+	dynamic_cast<const struct_header_subevent *>(header);
+
       dumper ssd(sd,2);
       ssd.text_fmt("printf(\""
-		   "          "     // indent for data dump
-		   "%%s"            // actual name
-		   ": \\n\", "      // ...
-		   "\"%s\""         // actual name
+		   "          "          // indent for data dump
+		   "%%s"                 // CT_OUT(BOLD_MAGENTA)
+		   "%%s"                 // actual name
+		   "%%s"                 // CT_OUT(NORM)
+		   ": \\n\", "           // ...
+		   "CT_OUT(BOLD_%s),  "  // CT_OUT(BOLD_MAGENTA)
+		   "\"%s\","             // actual name
+		   "CT_OUT(NORM)"        // CT_OUT(NORM)
 		   ");\n",
+		   subevent_header ? "MAGENTA" : "BLUE",
 		   named_header ? named_header->_name : "-");
 
       sd.text_fmt("}\n");
@@ -1107,17 +1115,17 @@ void struct_unpack_code::gen(const struct_header *header,
 	  d.text_fmt("{\n");
 	  dumper sd(d,2);
 	  sd.text_fmt("printf(\""
-		     "%%s"            // CT_OUT(BOLD)
-		     "%%0%d\" %s \""  // actual value
-		     "%%s"            // CT_OUT(NORM)
-		     ": %s \", "      // ...
-		     "CT_OUT(BOLD), " // CT_OUT(BOLD)
-		     "%s%s.%s, "      // actual value
-		     "CT_OUT(NORM)"   // CT_OUT(NORM)
-		     ");\n",
-		     data->_size / 4, fmt,
-		     data->_ident,
-		     prefix,data->_ident,full_name);
+		      "%%s"            // CT_OUT(BOLD)
+		      "%%0%d\" %s \""  // actual value
+		      "%%s"            // CT_OUT(NORM)
+		      ": %s \", "      // ...
+		      "CT_OUT(BOLD), " // CT_OUT(BOLD)
+		      "%s%s.%s, "      // actual value
+		      "CT_OUT(NORM)"   // CT_OUT(NORM)
+		      ");\n",
+		      data->_size / 4, fmt,
+		      data->_ident,
+		      prefix,data->_ident,full_name);
 
 	  bits_spec_list::const_iterator i;
 	  for (i = data->_bits->begin(); i != data->_bits->end(); ++i)
@@ -1133,18 +1141,18 @@ void struct_unpack_code::gen(const struct_header *header,
 		   * force to uint64.
 		   */
 		  sd.text_fmt("printf(\".%s="    // name
-			     "%%s"               // CT_OUT(BOLD)
-			     "%%%d\" PRIx64 \""  // actual value
-			     "%%s"               // CT_OUT(NORM)
-			     " \", "             // ...
-			     "CT_OUT(BOLD), "    // CT_OUT(BOLD)
-			     "%s %s%s.%s, "      // actual value
-			     "CT_OUT(NORM)"      // CT_OUT(NORM)
-			     ");\n",
-			     b->_name,
-			     (b->_max - b->_min + 1 + 3) / 4,
-			     /*fmt,*/ "(uint64_t) ",
-			     prefix,data->_ident,b->_name);
+			      "%%s"               // CT_OUT(BOLD)
+			      "%%%d\" PRIx64 \""  // actual value
+			      "%%s"               // CT_OUT(NORM)
+			      " \", "             // ...
+			      "CT_OUT(BOLD), "    // CT_OUT(BOLD)
+			      "%s %s%s.%s, "      // actual value
+			      "CT_OUT(NORM)"      // CT_OUT(NORM)
+			      ");\n",
+			      b->_name,
+			      (b->_max - b->_min + 1 + 3) / 4,
+			      /*fmt,*/ "(uint64_t) ",
+			      prefix,data->_ident,b->_name);
 		}
 	    }
 
