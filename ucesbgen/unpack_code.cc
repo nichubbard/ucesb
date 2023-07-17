@@ -442,9 +442,31 @@ void struct_unpack_code::gen(const struct_header *header,
   if (type & (UCT_UNPACK | UCT_MATCH | UCT_PACKER))
     d.text("{\n");
 
-  struct_item_list::const_iterator i;
-
   dumper sd(d,2);
+
+  if (type & UCT_UNPACK)
+    {
+      sd.text_fmt("if (__buffer.is_memberdump())\n");
+      sd.text_fmt("{\n");
+
+      const struct_header_named *named_header =
+	dynamic_cast<const struct_header_named *>(header);
+
+      assert(named_header);
+
+      dumper ssd(sd,2);
+      ssd.text_fmt("printf(\""
+		   "          "     // indent for data dump
+		   "%%s"            // actual name
+		   ": \\n\", "      // ...
+		   "\"%s\""         // actual name
+		   ");\n",
+		   named_header ? named_header->_name : "-");
+
+      sd.text_fmt("}\n");
+    }
+
+  struct_item_list::const_iterator i;
 
   indexed_decl_map indexed_decl;
 
