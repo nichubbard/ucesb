@@ -1102,7 +1102,7 @@ void struct_unpack_code::gen(const struct_header *header,
 	    {
 	      bits_spec *b = *i;
 
-	      if (!b->_cond && b->_name)
+	      if (/* !b->_cond && */ b->_name)
 		{
 		  /* We cannot use fmt.  Bitfields apparently send
 		   * int (not long) when field is smaller than 32 bits
