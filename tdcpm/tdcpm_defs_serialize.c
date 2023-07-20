@@ -110,22 +110,36 @@ void tdcpm_serialize_table(tdcpm_table *table,
   size_t words = 0;
   uint32_t columns = 0;
   uint32_t rows = 0;
+  uint32_t has_units = 0;
+  uint32_t has_names = 0;
 
   dest = NULL;
 
   words += 1 /* columns */ + 1 /* rows */ + 1 /* flag have units */;
-  /* Get size of header items. */
-  PD_LL_FOREACH(table->_header, iter)
+
+  /* Since we allow tables without headers (or empty), we need to
+   * handle that case.  Here may be fine, but unpacking needs to know.
+   */
+  has_names = !PD_LL_IS_EMPTY(&(table->_header));
+
+  if (has_names)
     {
-      tdcpm_vect_var_names *vn;
-      vn = PD_LL_ITEM(iter, tdcpm_vect_var_names, _items);
-      words += tdcpm_serialize_var_name_size(vn->_item._item) + 1 /* tspec */;
-      /* columns++; */
+      /* Get size of header items. */
+      PD_LL_FOREACH(table->_header, iter)
+	{
+	  tdcpm_vect_var_names *vn;
+	  vn = PD_LL_ITEM(iter, tdcpm_vect_var_names, _items);
+	  words += tdcpm_serialize_var_name_size(vn->_item._item) +
+	    1 /* tspec */;
+	  /* columns++; */
+	}
     }
 
   columns = table->_columns;
 
-  if (!PD_LL_IS_EMPTY(&(table->_units)))
+  has_units = !PD_LL_IS_EMPTY(&(table->_units));
+
+  if (has_units)
     {
       /* 2 words for value, 1 for unit index */
       words += 3 * columns;
@@ -150,7 +164,7 @@ void tdcpm_serialize_table(tdcpm_table *table,
 
   *(dest++) = columns;
   *(dest++) = rows;
-  *(dest++) = !PD_LL_IS_EMPTY(&(table->_units));
+  *(dest++) = has_units | (has_names << 1);
 
   PD_LL_FOREACH(table->_header, iter)
     {

@@ -160,31 +160,38 @@ void tdcpm_dump_table(tdcpm_deserialize_info *deser, int indent)
 {
   uint32_t columns;
   uint32_t rows;
-  int has_units;
+  uint32_t has_names_units;
+  uint32_t has_units;
+  uint32_t has_names;
   uint32_t i;
   int first;
 
-  columns   = TDCPM_DESER_UINT32(deser);
-  rows      = TDCPM_DESER_UINT32(deser);
-  has_units = TDCPM_DESER_UINT32(deser);
+  columns         = TDCPM_DESER_UINT32(deser);
+  rows            = TDCPM_DESER_UINT32(deser);
+  has_names_units = TDCPM_DESER_UINT32(deser);
+  has_names = (has_names_units >> 1) & 1;
+  has_units = (has_names_units     ) & 1;
 
   printf ("%*s[ ", indent, "");
-  first = 1;
-  for (i = 0; i < columns; i++)
+  if (has_names)
     {
-      tdcpm_tspec_index tspec_idx;
-      
-      if (!first)
-	printf (", ");
-      first = 0;
-
-      tdcpm_dump_var_name(deser, 0);
-      tspec_idx = TDCPM_DESER_UINT32(deser);
-      
-      if (tspec_idx != 0)
+      first = 1;
+      for (i = 0; i < columns; i++)
 	{
-	  printf (" @ ");
-	  tdcpm_dump_tspec(tspec_idx);
+	  tdcpm_tspec_index tspec_idx;
+      
+	  if (!first)
+	    printf (", ");
+	  first = 0;
+
+	  tdcpm_dump_var_name(deser, 0);
+	  tspec_idx = TDCPM_DESER_UINT32(deser);
+      
+	  if (tspec_idx != 0)
+	    {
+	      printf (" @ ");
+	      tdcpm_dump_tspec(tspec_idx);
+	    }
 	}
     }
   printf (" ]\n");

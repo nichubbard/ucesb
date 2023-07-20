@@ -297,27 +297,34 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
 {
   uint32_t columns;
   uint32_t rows;
+  uint32_t has_names_units;
   int has_units;
+  int has_names;
   uint32_t i;
 
-  columns   = TDCPM_DESER_UINT32(deser);
-  rows      = TDCPM_DESER_UINT32(deser);
-  has_units = TDCPM_DESER_UINT32(deser);
+  columns         = TDCPM_DESER_UINT32(deser);
+  rows            = TDCPM_DESER_UINT32(deser);
+  has_names_units = TDCPM_DESER_UINT32(deser);
+  has_names = (has_names_units >> 1) & 1;
+  has_units = (has_names_units     ) & 1;
 
-  for (i = 0; i < columns; i++)
+  if (has_names)
     {
-      tdcpm_tspec_index tspec_idx;
-      tdcpm_match_vn_struct_state struct_state_tmp;
+      for (i = 0; i < columns; i++)
+	{
+	  tdcpm_tspec_index tspec_idx;
+	  tdcpm_match_vn_struct_state struct_state_tmp;
 
-      struct_state_tmp = *struct_state;
+	  struct_state_tmp = *struct_state;
 
-      tdcpm_match_var_name_struct(deser, &struct_state_tmp);
+	  tdcpm_match_var_name_struct(deser, &struct_state_tmp);
 
-      /* We must keep track of each item, for use as they are assigned! */
+	  /* We must keep track of each item, for use as they are assigned! */
 
-      tspec_idx = TDCPM_DESER_UINT32(deser);
+	  tspec_idx = TDCPM_DESER_UINT32(deser);
 
-      (void) tspec_idx;
+	  (void) tspec_idx;
+	}
     }
 
   if (has_units)
