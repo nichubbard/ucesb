@@ -120,8 +120,10 @@ void tdcpm_serialize_table(tdcpm_table *table,
       tdcpm_vect_var_names *vn;
       vn = PD_LL_ITEM(iter, tdcpm_vect_var_names, _items);
       words += tdcpm_serialize_var_name_size(vn->_item._item) + 1 /* tspec */;
-      columns++;
+      /* columns++; */
     }
+
+  columns = table->_columns;
 
   if (!PD_LL_IS_EMPTY(&(table->_units)))
     {
@@ -284,7 +286,7 @@ void tdcpm_serialize_nodes(pd_ll_item *nodes,
   pd_ll_item *iter;
   uint32_t num = 0;
   uint32_t *dest;
- 
+
   /* First need to count the items. */
   PD_LL_FOREACH(*nodes, iter)
     num++;

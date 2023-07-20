@@ -81,6 +81,7 @@ struct tdcpm_table_t
   pd_ll_item _header;
   pd_ll_item _units;
   pd_ll_item _lines;
+  int        _columns; /* Helper. */
 };
 
 /**************************************************************************/

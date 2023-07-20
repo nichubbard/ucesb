@@ -404,6 +404,8 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
 	n_items = n_line_items;
     }
 
+  table->_columns = n_items;
+
   return table;
 }
 
