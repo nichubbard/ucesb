@@ -185,7 +185,7 @@ ssize_t lexer_read(char* buf,size_t max_size);
                 return *yytext;
             }
 
-\"[^\"\n]*\" { /* Cannot handle \" inside strings. */
+\"[^\"\n\0]*\" { /* Cannot handle \" inside strings. */
                 yylval.strValue = find_str_strings(yytext+1,strlen(yytext)-2);
                 return STRING;
             }
