@@ -53,6 +53,8 @@ tdcpm_string_index find_str_strings(const char* str, size_t len)
 {
   tdcpm_string_index idx;
 
+  assert ((ssize_t) len >= 0);
+
   idx = tdcpm_string_table_insert(_tdcpm_parse_string_idents, str, len);
   return idx;
 }
