@@ -156,7 +156,9 @@ tdcpm_string_index tdcpm_string_table_insert(tdcpm_string_table *table,
   uint32_t hash;
   char *this_str;
   tdcpm_str_len str_len;
-  
+  ssize_t src_offset = -1;
+  const char *src = str;
+
   /* Does the string exist in the hash table? */
   hash = tdcpm_string_table_hash_calc(str, len);
 
@@ -189,9 +191,24 @@ tdcpm_string_index tdcpm_string_table_insert(tdcpm_string_table *table,
       while (table->_alloc_strings < table->_size_strings + len + 1)
 	table->_alloc_strings *= 2;
 
+      /* Check that we are not copying from a part of a string in
+       * the string table.  That will fail if we reallocate.
+       */
+      if (str >= table->_strings &&
+	  str <  table->_strings + table->_size_strings)
+	{
+	  /* We are copying from a string inside the string table.
+	   * This needs special handling in case of reallocation.
+	   */
+	  src_offset = str - table->_strings;
+	}
+
       table->_strings =
 	(char *) tdcpm_realloc (table->_strings, table->_alloc_strings,
 				"string table");
+
+      if (src_offset != -1)
+	src = table->_strings + src_offset;
     }
 
   if (table->_alloc_offsets <= table->_num_strings)
@@ -216,7 +233,7 @@ tdcpm_string_index tdcpm_string_table_insert(tdcpm_string_table *table,
 
   this_str = table->_strings + table->_size_strings;
 
-  memcpy(this_str, str, len);
+  memcpy(this_str, src, len);
   *(this_str + len) = 0;
 
   /* Add to the offsets list. */
