@@ -38,11 +38,11 @@ uint32_t *tdcpm_serialize_var_name(tdcpm_var_name *v,
 {
   uint32_t i;
 
-  *(dest++) = v->_num_parts;
+  TDCPM_SERIALIZE_UINT32(dest, v->_num_parts);
   
   for (i = 0; i < v->_num_parts; i++)
     {
-      *(dest++) = v->_parts[i];
+      TDCPM_SERIALIZE_UINT32(dest, v->_parts[i]);
     }
 
   return dest;
@@ -69,9 +69,9 @@ uint32_t *tdcpm_serialize_vect_loop(pd_ll_item *sentinel,
 
       TDCPM_SERIALIZE_DOUBLE(dest, item->_item._dbl_unit._value);
 
-      *(dest++) = item->_item._dbl_unit._unit_idx;
+      TDCPM_SERIALIZE_UINT32(dest, item->_item._dbl_unit._unit_idx);
 
-      *(dest++) = item->_item._tspec_idx;
+      TDCPM_SERIALIZE_UINT32(dest, item->_item._tspec_idx);
     }
 
   return dest;
@@ -94,7 +94,7 @@ void tdcpm_serialize_vect(pd_ll_item *sentinel,
   
   dest = tdcpm_serialize_alloc_words(ser, words);
 
-  *(dest++) = num;
+  TDCPM_SERIALIZE_UINT32(dest, num);
 
   dest = tdcpm_serialize_vect_loop(sentinel, dest);
 
@@ -162,16 +162,16 @@ void tdcpm_serialize_table(tdcpm_table *table,
   
   dest = tdcpm_serialize_alloc_words(ser, words);
 
-  *(dest++) = columns;
-  *(dest++) = rows;
-  *(dest++) = has_units | (has_names << 1);
+  TDCPM_SERIALIZE_UINT32(dest, columns);
+  TDCPM_SERIALIZE_UINT32(dest, rows);
+  TDCPM_SERIALIZE_UINT32(dest, has_units | (has_names << 1));
 
   PD_LL_FOREACH(table->_header, iter)
     {
       tdcpm_vect_var_names *vn;
       vn = PD_LL_ITEM(iter, tdcpm_vect_var_names, _items);
       dest = tdcpm_serialize_var_name(vn->_item._item, dest);
-      *(dest++) = vn->_item._tspec_idx;
+      TDCPM_SERIALIZE_UINT32(dest, vn->_item._tspec_idx);
     }
 
   if (!PD_LL_IS_EMPTY(&(table->_units)))
@@ -182,7 +182,7 @@ void tdcpm_serialize_table(tdcpm_table *table,
 	  unit = PD_LL_ITEM(iter, tdcpm_vect_dbl_units, _items);
 
 	  TDCPM_SERIALIZE_DOUBLE(dest, unit->_item._dbl_unit._value);
-	  *(dest++) = unit->_item._dbl_unit._unit_idx;
+	  TDCPM_SERIALIZE_UINT32(dest, unit->_item._dbl_unit._unit_idx);
 	}
     }
   
@@ -191,7 +191,7 @@ void tdcpm_serialize_table(tdcpm_table *table,
       tdcpm_vect_table_lines *line;
       line = PD_LL_ITEM(iter, tdcpm_vect_table_lines, _items);
 
-      *(dest++) = !!(line->_item._var_name);
+      TDCPM_SERIALIZE_UINT32(dest, !!(line->_item._var_name));
       if (line->_item._var_name)
 	dest = tdcpm_serialize_var_name(line->_item._var_name, dest);
       
@@ -222,7 +222,7 @@ void tdcpm_serialize_node(tdcpm_vect_node *node,
 
   dest = tdcpm_serialize_alloc_words(ser, words);
 
-  *(dest++) = node->_node._type;
+  TDCPM_SERIALIZE_UINT32(dest, node->_node._type);
 
   if (node->_node._type != TDCPM_NODE_TYPE_VALID)
     {
@@ -233,8 +233,8 @@ void tdcpm_serialize_node(tdcpm_vect_node *node,
       off_size = TDCPM_SERIALIZE_CUROFF(ser, dest);
       dest += 2; /* Used for size_valid_block below. */
       
-      *(dest++) = node->_node.n._tspec_idx._from;
-      *(dest++) = node->_node.n._tspec_idx._to;
+      TDCPM_SERIALIZE_UINT32(dest, node->_node.n._tspec_idx._from);
+      TDCPM_SERIALIZE_UINT32(dest, node->_node.n._tspec_idx._to);
     }
 
   tdcpm_serialize_commit_words(ser, dest);
@@ -306,7 +306,7 @@ void tdcpm_serialize_nodes(pd_ll_item *nodes,
     num++;
 
   dest = tdcpm_serialize_alloc_words(ser, 1);
-  *(dest++) = num;
+  TDCPM_SERIALIZE_UINT32(dest, num);
   tdcpm_serialize_commit_words(ser, dest);
 
   PD_LL_FOREACH(*nodes, iter)

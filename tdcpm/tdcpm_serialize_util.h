@@ -46,6 +46,10 @@ typedef union tdcpm_pun_double_uint64_t
   uint64_t _u64;
 } tdcpm_pun_double_uint64;
 
+#define TDCPM_SERIALIZE_UINT32(dest, value) do { \
+    *(dest++) = (uint32_t) (value);		 \
+  } while (0)
+
 #define TDCPM_SERIALIZE_UINT64(dest, value) do { \
     uint64_t u64 = (value);			 \
     *(dest++) = (uint32_t) (u64 >> 32);		 \
