@@ -72,11 +72,14 @@ typedef struct tdcpm_deserialize_info_t
   uint32_t  *_end;
 } tdcpm_deserialize_info;
 
-#define TDCPM_DESER_UINT32(deser) (*((deser)->_cur++))
+#define TDCPM_DESERIALIZE_UINT32(deser, value) do { \
+    value = (*((deser)->_cur++));                   \
+  } while (0)
 
 #define TDCPM_DESERIALIZE_UINT64(deser, value) do { \
-    uint32_t __hi = TDCPM_DESER_UINT32(deser);	    \
-    uint32_t __lo = TDCPM_DESER_UINT32(deser);	    \
+    uint32_t __hi, __lo;			    \
+    TDCPM_DESERIALIZE_UINT32(deser, __hi);          \
+    TDCPM_DESERIALIZE_UINT32(deser, __lo);          \
     value = (((uint64_t) __hi) << 32) | __lo;	    \
   } while (0)
 

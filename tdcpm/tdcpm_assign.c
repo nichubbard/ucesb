@@ -55,13 +55,13 @@ tdcpm_match_var_name_struct(tdcpm_deserialize_info *deser,
   uint32_t num_parts;
   uint32_t i;
 
-  num_parts = TDCPM_DESER_UINT32(deser);
+  TDCPM_DESERIALIZE_UINT32(deser, num_parts);
 
   for (i = 0; i < num_parts; i++)
     {
       uint32_t part;
 
-      part = TDCPM_DESER_UINT32(deser);
+      TDCPM_DESERIALIZE_UINT32(deser, part);
 
       if (!state->_cur_struct)
 	{
@@ -181,7 +181,7 @@ tdcpm_match_var_name_struct(tdcpm_deserialize_info *deser,
     {
       uint32_t part;
 
-      part = TDCPM_DESER_UINT32(deser);
+      TDCPM_DESERIALIZE_UINT32(deser, part);
       (void) part;
     }
 
@@ -275,8 +275,8 @@ void tdcpm_assign_vect_loop(tdcpm_deserialize_info *deser,
       tdcpm_tspec_index tspec_idx;
 
       TDCPM_DESERIALIZE_DOUBLE(deser, value);
-      unit_idx  = TDCPM_DESER_UINT32(deser);
-      tspec_idx = TDCPM_DESER_UINT32(deser);
+      TDCPM_DESERIALIZE_UINT32(deser, unit_idx);
+      TDCPM_DESERIALIZE_UINT32(deser, tspec_idx);
 
       tdcpm_assign_item(struct_state, value, unit_idx, tspec_idx);
     }
@@ -287,7 +287,7 @@ void tdcpm_assign_vect(tdcpm_deserialize_info *deser,
 {
   uint32_t num;
 
-  num = TDCPM_DESER_UINT32(deser);
+  TDCPM_DESERIALIZE_UINT32(deser, num);
 
   tdcpm_assign_vect_loop(deser, struct_state, num);
 }
@@ -302,9 +302,9 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
   int has_names;
   uint32_t i;
 
-  columns         = TDCPM_DESER_UINT32(deser);
-  rows            = TDCPM_DESER_UINT32(deser);
-  has_names_units = TDCPM_DESER_UINT32(deser);
+  TDCPM_DESERIALIZE_UINT32(deser, columns);
+  TDCPM_DESERIALIZE_UINT32(deser, rows);
+  TDCPM_DESERIALIZE_UINT32(deser, has_names_units);
   has_names = (has_names_units >> 1) & 1;
   has_units = (has_names_units     ) & 1;
 
@@ -321,7 +321,7 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
 
 	  /* We must keep track of each item, for use as they are assigned! */
 
-	  tspec_idx = TDCPM_DESER_UINT32(deser);
+	  TDCPM_DESERIALIZE_UINT32(deser, tspec_idx);
 
 	  (void) tspec_idx;
 	}
@@ -335,7 +335,7 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
 	  tdcpm_unit_index unit_idx;
 
 	  TDCPM_DESERIALIZE_DOUBLE(deser, value);
-	  unit_idx = TDCPM_DESER_UINT32(deser);
+	  TDCPM_DESERIALIZE_UINT32(deser, unit_idx);
 
 	  // Remember the unit?
 	  (void) value;
@@ -350,7 +350,7 @@ void tdcpm_assign_table(tdcpm_deserialize_info *deser,
 
       struct_state_tmp = *struct_state; /* Only do this copy when used? */
 
-      has_var_name = TDCPM_DESER_UINT32(deser);
+      TDCPM_DESERIALIZE_UINT32(deser, has_var_name);
 
       if (has_var_name)
 	{
@@ -370,7 +370,7 @@ void tdcpm_assign_node(tdcpm_deserialize_info *deser,
 
   struct_state_tmp = *struct_state;
 
-  type = TDCPM_DESER_UINT32(deser);
+  TDCPM_DESERIALIZE_UINT32(deser, type);
 
   if (type != TDCPM_NODE_TYPE_VALID)
     {
@@ -397,13 +397,15 @@ void tdcpm_assign_node(tdcpm_deserialize_info *deser,
     case TDCPM_NODE_TYPE_VALID:
       {
 	tdcpm_tspec_index tspec_idx_from, tspec_idx_to;
+	uint32_t dummy;
 
 	/* Jump past the size specifier. */
-	(void) TDCPM_DESER_UINT32(deser);
-	(void) TDCPM_DESER_UINT32(deser);
+	TDCPM_DESERIALIZE_UINT32(deser, dummy);
+	TDCPM_DESERIALIZE_UINT32(deser, dummy);
+	(void) dummy;
 
-	tspec_idx_from = TDCPM_DESER_UINT32(deser);
-	tspec_idx_to   = TDCPM_DESER_UINT32(deser);
+	TDCPM_DESERIALIZE_UINT32(deser, tspec_idx_from);
+	TDCPM_DESERIALIZE_UINT32(deser, tspec_idx_to);
 
 	// tdcpm_dump_tspec(tspec_idx_from);
 	// tdcpm_dump_tspec(tspec_idx_to);
@@ -426,7 +428,7 @@ void tdcpm_assign_nodes(tdcpm_deserialize_info *deser,
 {
   uint32_t num, i;
 
-  num = TDCPM_DESER_UINT32(deser);
+  TDCPM_DESERIALIZE_UINT32(deser, num);
 
   for (i = 0; i < num; i++)
     {
