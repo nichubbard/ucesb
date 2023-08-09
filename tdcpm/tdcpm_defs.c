@@ -338,6 +338,7 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
   pd_ll_item *iter, *iter2;
   size_t n_header = 0, n_units = 0;
   size_t n_items;
+  int first;
 
   table = (tdcpm_table *) TDCPM_MALLOC(tdcpm_table);
 
@@ -382,6 +383,8 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
   /* printf ("h: %zd u: %zd\n", n_header, n_units); */
   /* printf ("%p %p %p\n", header, units, lines); */
 
+  first = 1;
+
   PD_LL_FOREACH(table->_lines, iter)
     {
       tdcpm_vect_table_lines *line;
@@ -394,7 +397,7 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
 
       /* printf ("l: %zd\n", n_line_items); */
 
-      if (n_items && n_line_items != n_items)
+      if ((n_items || !first) && n_line_items != n_items)
 	{
 	  fprintf (stderr,
 		   "Table header (or first line) (%zd) "
@@ -404,6 +407,8 @@ tdcpm_table *tdcpm_table_new(tdcpm_vect_var_names   *header,
 	}
       else
 	n_items = n_line_items;
+
+      first = 0;
     }
 
   table->_columns = n_items;

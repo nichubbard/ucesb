@@ -62,6 +62,14 @@ POS(5) =
   { 11    }
   ;
 
+/* ### */
+
+/* Fail due to wrong #items in line. */
+POOS(5) =
+  [   ,]
+  { },
+  {0}
+
 /* ### Unit mismatch */
 
 /* Fail due to wrong unit. */
