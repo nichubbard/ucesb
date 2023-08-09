@@ -23,6 +23,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 /**************************************************************************/
 
@@ -48,6 +49,7 @@ typedef union tdcpm_pun_double_uint64_t
 
 #define TDCPM_SERIALIZE_UINT32(dest, value) do { \
     *(dest++) = (uint32_t) (value);		 \
+    /* printf("%s: %" PRIu32 "\n",#value, value); */ \
   } while (0)
 
 #define TDCPM_SERIALIZE_UINT64(dest, value) do { \
@@ -80,6 +82,7 @@ typedef struct tdcpm_deserialize_info_t
 
 #define TDCPM_DESERIALIZE_UINT32(deser, value) do { \
     value = (*((deser)->_cur++));                   \
+    /* printf("%s: %" PRIu32 "\n",#value, value); */ \
   } while (0)
 
 #define TDCPM_DESERIALIZE_UINT64(deser, value) do { \
