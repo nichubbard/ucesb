@@ -36,6 +36,7 @@
 #define LMD_INPUT_TYPE_STREAM  (INPUT_TYPE_LAST+1)
 #define LMD_INPUT_TYPE_TRANS   (INPUT_TYPE_LAST+2)
 #define LMD_INPUT_TYPE_EVENT   (INPUT_TYPE_LAST+3)
+#define LMD_INPUT_TYPE_FAKERNET  (INPUT_TYPE_LAST+4)
 
 // After we have gotten all the records needed for an event (none yet
 // released), but before we have investigated the subevent headers, we

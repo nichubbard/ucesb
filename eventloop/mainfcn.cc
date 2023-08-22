@@ -352,6 +352,13 @@ bool add_input_try_follow_link(const char *path,
     input._name = strdup(post);
     return true;
   }
+  if ((match_opt_dashes &&
+       MATCH_PATH_PREFIX("--fnet=",post)) ||
+      MATCH_PATH_PREFIX("fnet://",post)) {
+    input._type = LMD_INPUT_TYPE_FAKERNET;
+    input._name = strdup(post);
+    return true;
+  }
 #endif//USE_LMD_INPUT
 
   struct stat buf;

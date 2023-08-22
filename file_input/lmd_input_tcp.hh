@@ -33,6 +33,8 @@
 
 #define LMD_TCP_PORT_TRANS_MAP_ADD  1234
 
+#define LMD_TCP_PORT_FAKERNET          1
+
 #define LMD_TCP_INFO_BUFSIZE_NODATA     -1
 #define LMD_TCP_INFO_BUFSIZE_MAXCLIENTS -2
 
@@ -239,6 +241,17 @@ public:
   virtual size_t get_buffer(void *buf,size_t count);
 
   virtual size_t preferred_min_buffer_size();
+};
+
+
+class lmd_input_tcp_fakernet :
+  public lmd_input_tcp_transport
+{
+public:
+  virtual ~lmd_input_tcp_fakernet() { }
+
+public:
+  virtual size_t connect(const char *server);
 };
 
 

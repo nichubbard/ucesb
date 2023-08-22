@@ -617,6 +617,10 @@ void data_input_source::connect(const char *name,int type
       server = new lmd_input_tcp_transport();
 
       break;
+    case LMD_INPUT_TYPE_FAKERNET:
+      server = new lmd_input_tcp_fakernet();
+
+      break;
     default:
       assert(false);
       return;

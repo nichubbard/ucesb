@@ -1026,6 +1026,15 @@ size_t lmd_input_tcp_transport::get_buffer(void *buf,size_t count)
 
 /////////////////////////////////////////////////////////////////////
 
+size_t lmd_input_tcp_fakernet::connect(const char *server)
+{
+  return do_map_connect(server,
+			-1,
+			LMD_TCP_PORT_FAKERNET);
+}
+
+/////////////////////////////////////////////////////////////////////
+
 lmd_input_tcp_stream::lmd_input_tcp_stream()
 {
   _buffers_to_read = 0;
