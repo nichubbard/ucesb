@@ -494,7 +494,7 @@ void lmd_input_tcp::close_connection()
 
 
 
-void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
+void lmd_input_tcp::do_read(void *buf,size_t count,int timeout_us)
 {
   // If we are running threaded, then we'll wait indefinitely for some
   // input... ?!?
@@ -516,10 +516,10 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 
       struct timeval timewait;
 
-      timewait.tv_sec  = timeout;
-      timewait.tv_usec = 0;
+      timewait.tv_sec  = timeout_us / 1000000;
+      timewait.tv_usec = timeout_us % 1000000;
 
-      int n = select(nfds+1,&rfds,NULL,NULL,timeout >= 0 ? &timewait : NULL);
+      int n = select(nfds+1,&rfds,NULL,NULL,timeout_us >= 0 ? &timewait : NULL);
 
       if (n == -1)
 	{
@@ -568,8 +568,8 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 	  buf = ((char *) buf) + n;
 	  count -= (size_t) n;
 
-	  if (timeout >= 0)
-	    timeout = 100;
+	  if (timeout_us >= 0)
+	    timeout_us = 100 * 1000000;
 	}
 
     }
@@ -577,7 +577,7 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 
 
 
-void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
+void lmd_input_tcp::do_write(void *buf,size_t count,int timeout_us)
 {
   // Also the writes operate with timeout, since the stream server
   // may pile up the input...
@@ -599,10 +599,10 @@ void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
 
       struct timeval timewait;
 
-      timewait.tv_sec  = timeout;
-      timewait.tv_usec = 0;
+      timewait.tv_sec  = timeout_us / 1000000;
+      timewait.tv_usec = timeout_us % 1000000;
 
-      int n = select(nfds+1,NULL,&wfds,NULL,timeout >= 0 ? &timewait : NULL);
+      int n = select(nfds+1,NULL,&wfds,NULL,timeout_us >= 0 ? &timewait : NULL);
 
       if (n == -1)
 	{
@@ -651,8 +651,8 @@ void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
 	  buf = ((char *) buf) + n;
 	  count -= (size_t) n;
 
-	  if (timeout >= 0)
-	    timeout = 100;
+	  if (timeout_us >= 0)
+	    timeout_us = 100 * 1000000;
 	}
     }
 }

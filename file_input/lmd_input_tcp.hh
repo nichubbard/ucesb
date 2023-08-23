@@ -193,8 +193,8 @@ protected:
 		       uint16_t port, bool error_on_failure);
   void close_connection();
 
-  void do_read(void *buf,size_t count,int timeout = -1);
-  void do_write(void *buf,size_t count,int timeout = -1);
+  void do_read(void *buf,size_t count,int timeout_us = -1);
+  void do_write(void *buf,size_t count,int timeout_us = -1);
 
 public:
   virtual size_t connect(const char *server) = 0;
