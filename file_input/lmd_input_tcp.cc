@@ -368,16 +368,29 @@ bool lmd_input_tcp::parse_connection(const char *server,
 }
 
 bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
-				    uint16_t port, bool error_on_failure)
+				    uint16_t port, bool error_on_failure,
+				    bool tcp)
 {
   int rc;
   struct sockaddr_in serv_addr;
+  int type, protocol;
 
   serv_addr = *p_serv_addr;
   serv_addr.sin_port = htons(port);
 
+  if (tcp)
+    {
+      type     = SOCK_STREAM;
+      protocol = IPPROTO_TCP;
+    }
+  else
+    {
+      type     = SOCK_DGRAM;
+      protocol = IPPROTO_UDP;
+    }
+
   /* socket creation */
-  _fd = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
+  _fd = socket(PF_INET, type, protocol);
   if (_fd < 0) {
     ERROR("Cannot open socket.");
     return false;
@@ -388,14 +401,13 @@ bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
   // offer nothing to read, despite the select successful (see linux
   // bug notes of select)
 
-
   if (fcntl(_fd,F_SETFL,fcntl(_fd,F_GETFL) | O_NONBLOCK) == -1)
     {
       perror("fcntl()");
       exit(1);
     }
 
-  INFO(0,"Connecting port: %d",port);
+  INFO(0,"Connecting %s port: %d", tcp ? "TCP" : "UDP", port);
 
   rc = ::connect(_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
   if (rc < 0) {
@@ -695,6 +707,38 @@ void lmd_input_tcp::create_dummy_buffer(void *buf,size_t count,
 }
 
 
+#define FAKERNET_REG_ACCESS_ADDR_WRITE      0x80000000 /* Write request. */
+#define FAKERNET_REG_ACCESS_ADDR_RESET_TCP            0x08000800  /* 0x1 */
+
+void lmd_input_tcp_buffer::reset_tcp()
+{
+  uint32_t udp_packet[4];
+  int i;
+
+  for (i = 0; i < 3; i++)
+    {
+      INFO(0, "Send TCP reset via UDP.");
+
+      udp_packet[0] = htonl(0);
+      udp_packet[1] = htonl(0);
+      udp_packet[2] = htonl(FAKERNET_REG_ACCESS_ADDR_WRITE |
+			    FAKERNET_REG_ACCESS_ADDR_RESET_TCP);
+      udp_packet[3] = htonl(0);
+
+      try
+	{
+	  do_write(udp_packet, sizeof (udp_packet), 100000);
+	  do_read(udp_packet, sizeof (udp_packet), 100000);
+	  return;
+	}
+      catch (error &e)
+	{
+	  // Try again.
+	}
+    }
+
+  ERROR("Failed to reset TCP via UDP.");
+}
 
 
 size_t lmd_input_tcp_buffer::read_info(int *data_port)
@@ -935,7 +979,8 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
 
 size_t lmd_input_tcp_buffer::do_map_connect(const char *server,
 					    int port_map_add,
-					    uint16_t default_port)
+					    uint16_t default_port,
+					    bool tcp_reset_by_udp)
 {
   struct sockaddr_in serv_addr;
   uint16_t port;
@@ -943,6 +988,19 @@ size_t lmd_input_tcp_buffer::do_map_connect(const char *server,
   if (!lmd_input_tcp::parse_connection(server, &serv_addr, &port,
 				       default_port))
     return false;
+
+  if (tcp_reset_by_udp)
+    {
+      uint16_t udp_reset_port = LMD_UDP_PORT_FAKERNET_IDEMPOTENT;
+
+      if (!lmd_input_tcp_buffer::open_connection(&serv_addr, udp_reset_port,
+						 false, false))
+	return false;
+
+      reset_tcp();
+
+      lmd_input_tcp_buffer::close_connection();
+    }
 
   int data_port = -1;
   size_t ret;
@@ -1030,7 +1088,8 @@ size_t lmd_input_tcp_fakernet::connect(const char *server)
 {
   return do_map_connect(server,
 			-1,
-			LMD_TCP_PORT_FAKERNET);
+			LMD_TCP_PORT_FAKERNET,
+			true);
 }
 
 /////////////////////////////////////////////////////////////////////

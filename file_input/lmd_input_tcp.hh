@@ -33,7 +33,8 @@
 
 #define LMD_TCP_PORT_TRANS_MAP_ADD  1234
 
-#define LMD_TCP_PORT_FAKERNET          1
+#define LMD_TCP_PORT_FAKERNET              1
+#define LMD_UDP_PORT_FAKERNET_IDEMPOTENT  15
 
 #define LMD_TCP_INFO_BUFSIZE_NODATA     -1
 #define LMD_TCP_INFO_BUFSIZE_MAXCLIENTS -2
@@ -190,7 +191,8 @@ protected:
 			uint16_t *port,
 			uint16_t default_port);
   bool open_connection(const struct sockaddr_in *p_serv_addr,
-		       uint16_t port, bool error_on_failure);
+		       uint16_t port, bool error_on_failure,
+		       bool tcp = true);
   void close_connection();
 
   void do_read(void *buf,size_t count,int timeout_us = -1);
@@ -221,9 +223,12 @@ protected:
 
   size_t read_buffer(void *buf,size_t count,int *nbufs);
 
+  void reset_tcp();
+
 protected:
   size_t do_map_connect(const char *server,
-			int port_map_add, uint16_t default_port);
+			int port_map_add, uint16_t default_port,
+			bool tcp_reset_by_udp = false);
 
 };
 
