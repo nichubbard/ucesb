@@ -25,9 +25,7 @@
 
 USE_LMD_INPUT=1
 
-CXXFLAGS += -D'RAW_EVENT_USER_FUNCTION=user_function' \
-	-D'INIT_USER_FUNCTION=init_function' \
-	-D'EXIT_USER_FUNCTION=exit_function'
+CXXFLAGS += -DCONTROL_INCLUDE
 
 OBJS += tamex17sync_user.o
 
