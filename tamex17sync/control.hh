@@ -26,4 +26,7 @@
 
 #define RAW_EVENT_USER_FUNCTION     user_function
 
+#define HANDLE_COMMAND_LINE_OPTION  tamex17sync_handle_command_line_option
+#define USAGE_COMMAND_LINE_OPTIONS  tamex17sync_usage_command_line_options
+
 #endif//__CONTROL_HH__

@@ -21,7 +21,7 @@
 #include <math.h>
 
 #include "structures.hh"
-
+#include "convert_picture.hh"
 #include "user.hh"
 
 #define COARSE_RANGE   0x2000
@@ -152,14 +152,29 @@ void user_function(unpack_event *event,
 	      }
 }
 
+const char *_syncplot_name = NULL;
+
 void exit_function()
 {
-  for (size_t sys_i = 0; sys_i < 8; sys_i++)
-    for (size_t board_i = 0; board_i < 16; board_i++)
+  size_t dim = (size_t) (8 * 16);
+
+  printf ("dim %zd\n",dim);
+
+  unsigned char *pict =
+    (unsigned char *) malloc(sizeof(unsigned char) * dim * dim);
+
+  memset(pict, 0, sizeof(char) * dim * dim);
+
+  for (int sys_i = 0; sys_i < 8; sys_i++)
+    for (int board_i = 0; board_i < 16; board_i++)
       {
-	for (size_t sys_j = 0; sys_j < 8; sys_j++)
-	  for (size_t board_j = 0; board_j < 16; board_j++)
+	int x = sys_i * 16 + board_i;
+
+	for (int sys_j = 0; sys_j < 8; sys_j++)
+	  for (int board_j = 0; board_j < 16; board_j++)
 	    {
+	      int y = sys_j * 16 + board_j;
+
 	      int      max_i = -1;
 	      uint32_t max_c = 0;
 	      uint32_t sum_c = 0;
@@ -195,6 +210,11 @@ void exit_function()
 	      double peak_fraction = (1. * sum_close_c) / sum_c;
 
 	      if (sum_c == 0)
+		pict[y * dim + x] = 255;
+	      else
+		pict[y * dim + x] = (unsigned char) (peak_fraction * 128);
+
+	      if (sum_c == 0)
 		printf ("-");
 	      else if (peak_fraction > 0.98)
 		printf (".");
@@ -203,5 +223,30 @@ void exit_function()
 	    }
 	printf ("\n");
       }
+
+  if (_syncplot_name)
+    convert_picture(_syncplot_name,(char *) pict,(int) dim,(int) dim);
+
+  free(pict);
 }
 
+void tamex17sync_usage_command_line_options()
+{
+  //      "  --option          Explanation.\n"
+  printf ("  --syncplot=FILE   Generate sync plot.\n");
+}
+
+bool tamex17sync_handle_command_line_option(const char *arg)
+{
+  const char *post;
+
+#define MATCH_PREFIX(prefix,post) (strncmp(arg,prefix,strlen(prefix)) == 0 && *(post = arg + strlen(prefix)) != '\0')
+#define MATCH_ARG(name) (strcmp(arg,name) == 0)
+
+ if (MATCH_PREFIX("--syncplot=",post)) {
+   _syncplot_name = post;
+   return true;
+ }
+
+ return false;
+}
