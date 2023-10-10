@@ -30,9 +30,13 @@
 
 uint32_t corr[8][16][8][16][COARSE_BINS];
 
+uint32_t _triggers[16];
+
 void init_function()
 {
   memset(corr, 0, sizeof (corr));
+
+  memset(_triggers, 0, sizeof (_triggers));
 }
 
 uint64 has[8];
@@ -95,6 +99,8 @@ void loop_over_tamex(t *tmx, size_t countof_tmx, board_data */*dummy*/)
 
 	      if (tamex_board->time_coarse._num_entries[ch_i] > 0)
 		{
+		  _triggers[tamex_board->tdc_header.trigger_type]++;
+
 		  if (!has_lec)
 		    {
 		      lec = tamex_board->tdc_header.lec;
@@ -156,6 +162,12 @@ const char *_syncplot_name = NULL;
 
 void exit_function()
 {
+  printf ("Triggers: ");
+  for (int i = 0; i < 16; i++)
+    if (_triggers[i])
+      printf (" %d: %d", i, _triggers[i]);
+  printf ("\n");
+
   size_t dim = (size_t) (8 * 16);
 
   printf ("dim %zd\n",dim);
