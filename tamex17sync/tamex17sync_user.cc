@@ -168,96 +168,98 @@ void exit_function()
       printf (" %d: %d", i, _triggers[i]);
   printf ("\n");
 
-  size_t dim = (size_t) (8 * 16);
-
-  printf ("dim %zd\n",dim);
-
-  unsigned char *pict =
-    (unsigned char *) malloc(sizeof(unsigned char) * dim * dim * 3);
-
-  memset(pict, 0, sizeof(char) * dim * dim * 3);
-
-  for (int sys_i = 0; sys_i < 8; sys_i++)
-    for (int board_i = 0; board_i < 16; board_i++)
-      {
-	int x = sys_i * 16 + board_i;
-
-	for (int sys_j = 0; sys_j < 8; sys_j++)
-	  for (int board_j = 0; board_j < 16; board_j++)
-	    {
-	      int y = sys_j * 16 + board_j;
-
-	      int      max_i = -1;
-	      uint32_t max_c = 0;
-	      uint32_t sum_c = 0;
-	      uint32_t sum_close_c = 0;
-
-	      for (int i = 0; i < COARSE_BINS; i++)
-		{
-		  uint32_t c =
-		    corr[sys_i][board_i][sys_j][board_j][i];
-		  
-		  if (c > max_c)
-		    {
-		      max_i = i;
-		      max_c = c;
-		    }
-		  sum_c += c;
-		}
-
-	      /* Count everything within +/- of the max. */
-
-	      for (int ii = -2; ii <= 2; ii++)
-		{
-		  uint32_t c =
-		    corr[sys_i][board_i][sys_j][board_j]
-		    [(max_i+ii) & (COARSE_BINS - 1)];
-
-		  sum_close_c += c;
-		}
-
-	      /* printf (" [%d %4d/%4d]", max_i, sum_close_c, sum_c); */
-	      /* printf (" %4d:%.3f", max_i, (1. * sum_close_c) / sum_c); */
-
-	      double frac = (1. * sum_close_c) / sum_c;
-
-	      unsigned char *p_pict = &pict[3 * (y * dim + x)];
-
-	      if (sum_c == 0)
-		{
-		  p_pict[0] = 255;
-		  p_pict[1] = 255;
-		  p_pict[2] = 255;
-		}
-	      else if (frac > 0.95)
-		{
-		  p_pict[0] = 0;
-		  p_pict[1] = (unsigned char) ((frac-0.95) / 0.05 * 255);
-		  p_pict[2] = (unsigned char) (255 - (frac-0.95) / 0.05 * 255);
-		}
-	      else
-		{
-		  p_pict[0] = (unsigned char) ((0.95-frac) / 0.95 * 255);
-		  p_pict[1] = 0;
-		  p_pict[2] = (unsigned char) (255 - (0.95-frac) / 0.95 * 255);
-		}
-
-	      /*
-	      if (sum_c == 0)
-		printf ("-");
-	      else if (frac > 0.98)
-		printf (".");
-	      else
-		printf ("%1.0f",-log2(frac));
-	      */
-	    }
-	/* printf ("\n"); */
-      }
-
   if (_syncplot_name)
-    convert_picture(_syncplot_name,(char *) pict,(int) dim,(int) dim, true);
+    {
+      size_t dim = (size_t) (8 * 16);
 
-  free(pict);
+      printf ("dim %zd\n",dim);
+
+      unsigned char *pict =
+	(unsigned char *) malloc(sizeof(unsigned char) * dim * dim * 3);
+
+      memset(pict, 0, sizeof(char) * dim * dim * 3);
+
+      for (int sys_i = 0; sys_i < 8; sys_i++)
+	for (int board_i = 0; board_i < 16; board_i++)
+	  {
+	    int x = sys_i * 16 + board_i;
+
+	    for (int sys_j = 0; sys_j < 8; sys_j++)
+	      for (int board_j = 0; board_j < 16; board_j++)
+		{
+		  int y = sys_j * 16 + board_j;
+
+		  int      max_i = -1;
+		  uint32_t max_c = 0;
+		  uint32_t sum_c = 0;
+		  uint32_t sum_close_c = 0;
+
+		  for (int i = 0; i < COARSE_BINS; i++)
+		    {
+		      uint32_t c =
+			corr[sys_i][board_i][sys_j][board_j][i];
+
+		      if (c > max_c)
+			{
+			  max_i = i;
+			  max_c = c;
+			}
+		      sum_c += c;
+		    }
+
+		  /* Count everything within +/- of the max. */
+
+		  for (int ii = -2; ii <= 2; ii++)
+		    {
+		      uint32_t c =
+			corr[sys_i][board_i][sys_j][board_j]
+			[(max_i+ii) & (COARSE_BINS - 1)];
+
+		      sum_close_c += c;
+		    }
+
+		  /* printf (" [%d %4d/%4d]", max_i, sum_close_c, sum_c); */
+		  /* printf (" %4d:%.3f", max_i, (1. * sum_close_c) / sum_c);*/
+
+		  double frac = (1. * sum_close_c) / sum_c;
+
+		  unsigned char *p_pict = &pict[3 * (y * dim + x)];
+
+		  if (sum_c == 0)
+		    {
+		      p_pict[0] = 255;
+		      p_pict[1] = 255;
+		      p_pict[2] = 255;
+		    }
+		  else if (frac > 0.95)
+		    {
+		      p_pict[0] = 0;
+		      p_pict[1] = (unsigned char) ((frac-0.95) / 0.05*255);
+		      p_pict[2] = (unsigned char) (255-(frac-0.95) / 0.05*255);
+		    }
+		  else
+		    {
+		      p_pict[0] = (unsigned char) ((0.95-frac) / 0.95*255);
+		      p_pict[1] = 0;
+		      p_pict[2] = (unsigned char) (255-(0.95-frac) / 0.95*255);
+		    }
+
+		  /*
+		    if (sum_c == 0)
+		      printf ("-");
+		    else if (frac > 0.98)
+		      printf (".");
+		    else
+		      printf ("%1.0f",-log2(frac));
+		  */
+		}
+	    /* printf ("\n"); */
+	  }
+
+      convert_picture(_syncplot_name,(char *) pict,(int) dim,(int) dim, true);
+
+      free(pict);
+    }
 }
 
 void tamex17sync_usage_command_line_options()
