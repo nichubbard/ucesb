@@ -161,6 +161,7 @@ void user_function(unpack_event *event,
 }
 
 const char *_syncplot_name = NULL;
+const char *_syncplot_diff_name = NULL;
 
 void one_rgb(unsigned char *rgb, unsigned char val)
 {
@@ -288,12 +289,94 @@ void exit_function()
 
       free(pict);
     }
+
+  if (_syncplot_diff_name)
+    {
+      size_t dimx = (size_t) (8 * 16) * 9;
+      size_t dimy = (size_t) (8 * 16) * 9;
+
+      printf ("dim %zd x %zd\n",dimx,dimy);
+
+      unsigned char *pict =
+	(unsigned char *) malloc(sizeof(unsigned char) * dimx * dimy * 3);
+
+      memset(pict, 255, sizeof(char) * dimx * dimy * 3);
+
+      for (int sys_i = 0; sys_i < 8; sys_i++)
+	for (int board_i = 0; board_i < 16; board_i++)
+	  {
+	    int xoff = 9 * (sys_i * 16 + board_i);
+
+	    for (int sys_j = 0; sys_j < 8; sys_j++)
+	      for (int board_j = 0; board_j < 16; board_j++)
+		{
+		  int yoff = 9 * (sys_j * 16 + board_j);
+
+		  uint32_t sum_c = 0;
+
+		  for (int i = 0; i < COARSE_BINS; i++)
+		    {
+		      uint32_t c =
+                        corr[sys_i][board_i][sys_j][board_j][i];
+
+		      sum_c += c;
+		    }
+
+		  if ((xoff == 0 || xoff == 9 || xoff == 18) &&
+		      (yoff == 0))
+		    printf ("\n");
+
+		  for (int i = 0; i < COARSE_BINS; i++)
+		    {
+		      int xbin = i % 8;
+		      int ybin = i / 8;
+
+		      /* Sum the central coasre bin and its neighbours. */
+		      uint32_t cm1 =
+                        corr[sys_i][board_i][sys_j][board_j][(i-1)%
+							     COARSE_BINS];
+		      uint32_t c0 =
+                        corr[sys_i][board_i][sys_j][board_j][i];
+		      uint32_t cp1 =
+                        corr[sys_i][board_i][sys_j][board_j][(i+1)%
+							     COARSE_BINS];
+
+		      uint32_t c = cm1 + c0 + cp1;
+
+		      double frac = (1. * c) / sum_c;
+
+		      unsigned char *p_pict =
+			&pict[3 * ((yoff+ybin) * dimx + (xoff+xbin))];
+
+		      if ((xoff == 0 || xoff == 9 || xoff == 18) &&
+			  (yoff == 0))
+			printf ("%6d %6d %6d %6d %6d %.6f\n",
+				sum_c, cm1, c0, cp1, c, frac);
+
+		      if (c == 0)
+			{
+			  one_rgb(p_pict, 0);
+			}
+		      else
+			{
+			  map_colour(p_pict, frac);
+			}
+		    }
+		}
+	  }
+
+      convert_picture(_syncplot_diff_name, (char *) pict,
+		      (int) dimx,(int) dimy, true);
+
+      free(pict);
+    }
 }
 
 void tamex17sync_usage_command_line_options()
 {
   //      "  --option          Explanation.\n"
   printf ("  --syncplot=FILE   Generate sync plot.\n");
+  printf ("  --syncplotdiff=FILE  Generate sync plot with diff spectra.\n");
 }
 
 bool tamex17sync_handle_command_line_option(const char *arg)
@@ -305,6 +388,9 @@ bool tamex17sync_handle_command_line_option(const char *arg)
 
  if (MATCH_PREFIX("--syncplot=",post)) {
    _syncplot_name = post;
+   return true;
+ } else if (MATCH_PREFIX("--syncplot-diff=",post)) {
+   _syncplot_diff_name = post;
    return true;
  }
 
