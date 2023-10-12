@@ -59,7 +59,7 @@ void loop_over_tamex(t *tmx, size_t countof_tmx, board_data */*dummy*/)
     {
       uint32_t lec = -1;
       int has_lec = 0;
-      
+
       for (size_t board_i = 0;
 	   board_i < countof(tmx[0].data.tamex);
 	   board_i++)
@@ -82,7 +82,7 @@ void loop_over_tamex(t *tmx, size_t countof_tmx, board_data */*dummy*/)
 		      sys_i, board_i, ch_i,
 		      tamex_board->time_coarse._num_entries[ch_i]);
 	      */
-	      
+
 	      for (uint32 hit_i = 0;
 		   hit_i < tamex_board->time_coarse._num_entries[ch_i];
 		   hit_i++)
@@ -91,7 +91,7 @@ void loop_over_tamex(t *tmx, size_t countof_tmx, board_data */*dummy*/)
 		  printf (" %d",
 			  tamex_board->time_coarse._items[ch_i][hit_i].value);
 		  */
-		  
+
 		  has[sys_i] |= ((uint64_t) 1) << board_i;
 		  val[sys_i][board_i] =
 		    tamex_board->time_coarse._items[ch_i][hit_i].value;
@@ -119,7 +119,7 @@ void loop_over_tamex(t *tmx, size_t countof_tmx, board_data */*dummy*/)
 		}
 
 	      /* printf ("\n"); */
-	      
+
 	      /* _items[n][max_entries] */
 
 	    }
