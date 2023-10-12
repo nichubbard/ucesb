@@ -25,8 +25,8 @@
 #include "user.hh"
 
 #define COARSE_RANGE   0x800                          /* 2048 (11 bits) */
-#define COARSE_SHIFT   2
-#define COARSE_BINS    (COARSE_RANGE >> COARSE_SHIFT) /* 512 */
+#define COARSE_SHIFT   5
+#define COARSE_BINS    (COARSE_RANGE >> COARSE_SHIFT) /* 64 */
 
 uint32_t corr[8][16][8][16][COARSE_BINS];
 
