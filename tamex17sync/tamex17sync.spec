@@ -236,11 +236,14 @@ EVENT
   tmxfh2[6] = tamex_subev_fh(type=102, subtype=10200, control=23);
   tmxfh2[7] = tamex_subev_fh(type=102, subtype=10200, control=24);
 
-  tmx[0] = tamex_subev(type=102, subtype=10200, control= 3);
-  tmx[1] = tamex_subev(type=102, subtype=10200, control= 8);
+  tmx[0]  = tamex_subev(type=102, subtype=10200, control= 3);
+  tmx[1]  = tamex_subev(type=102, subtype=10200, control= 8);
 
-  tmx[2] = tamex_subev(type=102, subtype=10200, control=10);
-  tmx[3] = tamex_subev(type=102, subtype=10200, control=11);
+  tmx[2]  = tamex_subev(type=102, subtype=10200, control=10);
+  tmx[3]  = tamex_subev(type=102, subtype=10200, control=11);
+
+  tmx2[0] = tamex_subev(type=102, subtype=10200, control=67);
+  tmx2[1] = tamex_subev(type=102, subtype=10200, control=68);
 
   ignore_unknown_subevent;
 }

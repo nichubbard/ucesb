@@ -142,6 +142,8 @@ void user_function(unpack_event *event,
 		  &(event->tmxfh2[0].data.tamex[0].data));
   loop_over_tamex(event->tmx, countof(event->tmx),
 		  &(event->tmx[0].data.tamex[0].data));
+  loop_over_tamex(event->tmx2, countof(event->tmx2),
+		  &(event->tmx2[0].data.tamex[0].data));
 
   for (size_t sys_i = 0; sys_i < 8; sys_i++)
     for (size_t board_i = 0; board_i < 16; board_i++)
