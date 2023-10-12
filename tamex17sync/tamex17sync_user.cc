@@ -162,6 +162,42 @@ void user_function(unpack_event *event,
 
 const char *_syncplot_name = NULL;
 
+void one_rgb(unsigned char *rgb, unsigned char val)
+{
+  rgb[0] = rgb[1] = rgb[2] = val;
+}
+
+void map_colour(unsigned char *rgb, double frac)
+{
+  if (frac > 0.95)
+    {
+      double frac2 = (frac - 0.95) / 0.05;
+      /* 0 to 1 for 0.95 to 1.00 */ /* blue to green */
+
+      rgb[0] = 0;
+      rgb[1] = (unsigned char) (   frac2  * 255); /* green at 1 */
+      rgb[2] = (unsigned char) ((1-frac2) * 255); /* blue at 0 */
+    }
+  else if (frac > 0.25)
+    {
+      double frac2 = (frac - 0.25) / (0.95 - 0.25);
+      /* 0 to 1 for 0.25 to 0.95 */ /* yellow to blue */
+
+      rgb[0] = 0;
+      rgb[1] = (unsigned char) ((1-frac2) * 255); /* yellow at 0 */
+      rgb[2] = 255;
+    }
+  else
+    {
+      double frac2 = (frac - 0.00) / 0.25;
+      /* 0 to 1 for 0 to 0.95 */ /* red to yellow */
+
+      rgb[0] = (unsigned char) ((1-frac2) * 255); /* red at 0 */
+      rgb[1] = (unsigned char) (   frac2  * 255); /* yellow at 1 */
+      rgb[2] = (unsigned char) (   frac2  * 255); /* yellow at 1 */
+    }
+}
+
 void exit_function()
 {
   printf ("Triggers: ");
@@ -229,21 +265,11 @@ void exit_function()
 
 		  if (sum_c == 0)
 		    {
-		      p_pict[0] = 255;
-		      p_pict[1] = 255;
-		      p_pict[2] = 255;
-		    }
-		  else if (frac > 0.95)
-		    {
-		      p_pict[0] = 0;
-		      p_pict[1] = (unsigned char) ((frac-0.95) / 0.05*255);
-		      p_pict[2] = (unsigned char) (255-(frac-0.95) / 0.05*255);
+		      one_rgb(p_pict, 255);
 		    }
 		  else
 		    {
-		      p_pict[0] = (unsigned char) ((0.95-frac) / 0.95*255);
-		      p_pict[1] = 0;
-		      p_pict[2] = (unsigned char) (255-(0.95-frac) / 0.95*255);
+		      map_colour(p_pict, frac);
 		    }
 
 		  /*
