@@ -336,7 +336,12 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
     *var_name = item->_var_name;
 
   if (offset)
-    *offset = item->_offset;
+    {
+      if (struct_info->_ret_for_server)
+	*offset = (uint32_t) -1;
+      else
+	*offset = item->_offset;
+    }
 
   if (map_success)
     *map_success = item->_map_success;

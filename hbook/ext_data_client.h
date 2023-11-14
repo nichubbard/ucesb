@@ -238,7 +238,7 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  *
  * Note that after all client items, information is also reported
  * about items in the server structure that have not been mapped,
- * i.e. ..._NO_DEST.
+ * i.e. ..._NO_DEST.  For server items, @offset is returned as -1.
  *
  * Do not call this function after the ext_data_client connection has
  * been closed.
@@ -249,7 +249,7 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  * @struct_info     Information structure.
  * @restart         Set to 1 on first call, then 0.
  * @var_name        Name of item (result).
- * @offset          Offset of item (result).
+ * @offset          Offset of item (result).  (-1 for server items.)
  * @map_success     Matching outcome (result).
  *
  * Return value:
