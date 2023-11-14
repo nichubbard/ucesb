@@ -236,8 +236,9 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  * First call this function with @restart = 1, and as long as it
  * returns success, with @restart = 0.
  *
- * Note that information is also reported about items in the server
- * structure that have not been mapped, i.e. ..._NO_DEST.
+ * Note that after all client items, information is also reported
+ * about items in the server structure that have not been mapped,
+ * i.e. ..._NO_DEST.
  *
  * Do not call this function after the ext_data_client connection has
  * been closed.
@@ -246,8 +247,7 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  * below!
  *
  * @struct_info     Information structure.
- * @kind            Kind of item to return.  (1 = start client items,
- *                  2 = start server items, 0 = continue).
+ * @restart         Set to 1 on first call, then 0.
  * @var_name        Name of item (result).
  * @offset          Offset of item (result).
  * @map_success     Matching outcome (result).
