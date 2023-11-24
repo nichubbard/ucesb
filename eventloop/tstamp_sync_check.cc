@@ -162,6 +162,12 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
     printf ("  %s%s%s",
 	    COLOURTEXT_GET(0,flag_color), flag_str, CT_OUT(NORM_DEF_COL));
 
+  if (ts_sync_info._id == _ref_id)
+    {
+      printf (" %s%s%s",
+	      COLOURTEXT_GET(0,CTR_CYAN), "(ref)", CT_OUT(NORM_DEF_COL));
+    }
+
   printf ("\n");
   fflush(stdout);
 
