@@ -411,6 +411,7 @@ void tstamp_sync_check::analyse_values(size_t end, size_t at_least)
 
       uint64_t t_from = t_prev + ((t_cur - t_prev) / 2);
 
+      /* Skip until the first midpoint. */
       for ( ; i_check < i_ref_next; i_check++)
 	{
 	  uint64_t t_check = _list[i_check]._timestamp;
@@ -426,6 +427,7 @@ void tstamp_sync_check::analyse_values(size_t end, size_t at_least)
       /* Cannot take direct average, since sum can be too large. */
       uint64_t t_until = t_cur + ((t_next - t_cur) / 2);
 
+      /* Check until the second midpoint. */
       for ( ; i_check < i_ref_next; i_check++)
 	{
 	  uint64_t t_check = _list[i_check]._timestamp;
@@ -639,6 +641,12 @@ void dct_one_period_find_phase(uint16_t *vals, int n,
   info._start_i = good_i;
 }
 
+/* Function to figure out the 'period' of the sync check values.  The
+ * 'period' is the difference between the nominal sync check values.
+ *
+ * Note: it is not a time period.
+ */
+
 void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 						       int *peaks, int *npeaks)
 {
@@ -704,8 +712,8 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
    * Assuming that we have n different values.  If all distances are
    * roughly the same, we will then have n peaks (including the 0th
    * peak).  With a total statistics of m counts (typically 256), we
-   * will then have m/n members of each peak in the raw data, call
-   * that N (=m/n).
+   * will then have approximately m/n members of each peak in the raw
+   * data, call that N (=m/n).  Since all pairs are accumulated:
    *
    * The 0th difference peak thus contain n*N*(N-1)/2 ~= n*N^2/2 values,
    * i.e. all self-differences.
@@ -804,7 +812,9 @@ void tstamp_sync_check::estimate_ref_sync_value_period(size_t end,
 	  counts[4] > counts[0] / 2  &&
 	  counts[5] < counts[0] / 2)
 	{
-	  /* We cannot be lower than 0. */
+	  /* We cannot be lower than 0, so first round always accepted
+	   * (no break).
+	   */
 	  if (quality <= good_quality)
 	    break;
 
@@ -1282,7 +1292,7 @@ void tstamp_sync_check::analyse(bool to_end)
 
       /* Find the three last reference values (prev, mid, last).
        *
-       * Analysis will the run to the midpoint (timestamp-wise)
+       * Actual matching will run to the midpoint (timestamp-wise)
        * between mid and last.
        *
        * We then retain values from mid for next round.
@@ -1321,10 +1331,15 @@ void tstamp_sync_check::analyse(bool to_end)
 	}
     }
 
+  /* Figure out the typical sync check values. */
   estimate_ref_sync_value_period(analyse_end, peaks, &npeaks);
 
+  /* Figure out the mapping of sync check values for each id vs. the
+   * reference.
+   */
   estimate_sync_values(analyse_end, peaks, &npeaks);
 
+  /* Investigate the actual matching of sync check values. */
   analyse_values(analyse_end, mid);
 
 
