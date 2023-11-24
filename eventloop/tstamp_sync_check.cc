@@ -1326,14 +1326,22 @@ void tstamp_sync_check::analyse(bool to_end)
 
       mid = mid_i;
 
-      /* That no reference values are present does typically not
-       * happen.  Nevertheless, if this is the case, use half
-       * the values.  (Any reason to not use all?)
+      /* That three reference values are not present does typically
+       * not happen.  If it happens, we must still get rid of some
+       * data from the buffer (it will be marked with various kinds of
+       * errors).
+       *
+       * Since we typically remove data until the mid (second-last)
+       * reference value, if that does not exist, then we arbitrarily
+       * consume ('analyse') half the items.
+       *
+       * (Any reason to not use all?)
        */
-      if (analyse_end <= 0)
+      if (mid <= 0)
 	{
-	  analyse_end = _num_items / 2;
-	  mid = analyse_end;
+	  mid = _num_items / 2;
+	  if (analyse_end <= mid)
+	    analyse_end = mid;
 	}
     }
 
