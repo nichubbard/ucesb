@@ -106,8 +106,15 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
 	    CT_OUT(BOLD), ts_sync_info._timestamp - _prev_timestamp,
 	    /* */                                       CT_OUT(NORM));
 
-  printf ("  %s[%x]%s %s%5d%s ",
-	  CT_OUT(BOLD), ts_sync_info._sync_check_flags, CT_OUT(NORM),
+  printf ("  %s[%c%c%c]%s %s%5d%s ",
+	  CT_OUT(BOLD),
+	  ts_sync_info._sync_check_flags &
+	  (SYNC_CHECK_REF  >> SYNC_CHECK_FLAGS_SHIFT) ? 'R' : ' ',
+	  ts_sync_info._sync_check_flags &
+	  (SYNC_CHECK_RECV >> SYNC_CHECK_FLAGS_SHIFT)  ? 's' : ' ',
+	  ts_sync_info._sync_check_flags &
+	  (SYNC_CHECK_LOCAL>> SYNC_CHECK_FLAGS_SHIFT) ? 'L' : ' ',
+	  CT_OUT(NORM),
 	  CT_OUT(BOLD_MAGENTA), ts_sync_info._sync_check_value,
 	  /*                                         */ CT_OUT(NORM_DEF_COL));
 
