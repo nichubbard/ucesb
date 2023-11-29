@@ -85,11 +85,18 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
 
   ts = ts_sync_info._timestamp;
 
-  printf ("%s%04x%s:%s%04x%s:%s%04x%s:%s%04x%s",
-	  CT_OUT(BOLD_BLUE), (int) (ts >> 48) & 0xffff, CT_OUT(NORM_DEF_COL),
-	  CT_OUT(BOLD_BLUE), (int) (ts >> 32) & 0xffff, CT_OUT(NORM_DEF_COL),
-	  CT_OUT(BOLD_BLUE), (int) (ts >> 16) & 0xffff, CT_OUT(NORM_DEF_COL),
-	  CT_OUT(BOLD_BLUE), (int) (ts      ) & 0xffff, CT_OUT(NORM_DEF_COL));
+  if (ts_sync_info._timestamp == 0)
+    printf ("%s----%s:%s----%s:%s----%s:%s----%s",
+	    CT_OUT(BOLD_BLUE), CT_OUT(NORM_DEF_COL),
+	    CT_OUT(BOLD_BLUE), CT_OUT(NORM_DEF_COL),
+	    CT_OUT(BOLD_BLUE), CT_OUT(NORM_DEF_COL),
+	    CT_OUT(BOLD_BLUE), CT_OUT(NORM_DEF_COL));
+  else
+    printf ("%s%04x%s:%s%04x%s:%s%04x%s:%s%04x%s",
+	    CT_OUT(BOLD_BLUE), (int) (ts >> 48) & 0xffff,CT_OUT(NORM_DEF_COL),
+	    CT_OUT(BOLD_BLUE), (int) (ts >> 32) & 0xffff,CT_OUT(NORM_DEF_COL),
+	    CT_OUT(BOLD_BLUE), (int) (ts >> 16) & 0xffff,CT_OUT(NORM_DEF_COL),
+	    CT_OUT(BOLD_BLUE), (int) (ts      ) & 0xffff,CT_OUT(NORM_DEF_COL));
 
   if (ts_sync_info._timestamp == 0)
     printf ("  %s%10s%s",
