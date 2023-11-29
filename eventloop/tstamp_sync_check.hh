@@ -104,6 +104,7 @@ struct tstamp_sync_account
 struct tstamp_sync_info
 {
   uint16_t _id;
+  uint16_t _trigger;
   uint32_t _event_no;
   uint64_t _timestamp;
   uint16_t _sync_check_flags;

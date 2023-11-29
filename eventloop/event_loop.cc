@@ -1835,6 +1835,7 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
 #endif
 
       ts_sync_info._event_no = eb._unpack.event_no;
+      ts_sync_info._trigger = eb._unpack.trigger;
 
       bool good_stamp =
 	get_timestamp(_ts_align_hist ? _ts_align_hist->get_style() :

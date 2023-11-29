@@ -75,9 +75,12 @@ void tstamp_sync_check::dump(tstamp_sync_info &ts_sync_info)
       printf ("\n");
     }
 
-  printf ("%s%-12u%s %s%02x%s  ",
+  printf ("%s%-12u%s %s%2d%s %s%02x%s  ",
 	  CT_OUT(BOLD_BLUE),
 	  ts_sync_info._event_no,
+	  CT_OUT(NORM_DEF_COL),
+	  CT_OUT(BOLD_BLUE),
+	  ts_sync_info._trigger,
 	  CT_OUT(NORM_DEF_COL),
 	  CT_OUT(BOLD),
 	  ts_sync_info._id,
