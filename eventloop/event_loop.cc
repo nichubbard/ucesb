@@ -436,12 +436,11 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
 	  error_branch_id & TITRIS_STAMP_EBID_UNUSED,
 	  error_branch_id);
 
-  if (error_branch_id & TITRIS_STAMP_EBID_ERROR)
-    return false;
+  uint16_t id = ((error_branch_id &
+		  TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
+		 TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
 
-  ts_sync_info._id = ((error_branch_id &
-		       TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
-		      TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
+  ts_sync_info._id = id;
 
   if (ts_align_index)
     {
@@ -449,11 +448,11 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
 	*ts_align_index = -1;
       else
 	*ts_align_index =
-	  _ts_align_hist->get_index(subevent_info,
-				    (error_branch_id &
-				     TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
-				    TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
+	  _ts_align_hist->get_index(subevent_info, id);
     }
+
+  if (error_branch_id & TITRIS_STAMP_EBID_ERROR)
+    return false;
 
   if (data + 4 > data_end)
     ERROR("First subevent does not have data enough for TITRIS time stamp "
@@ -575,12 +574,11 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  error_branch_id & WR_STAMP_EBID_UNUSED,
 	  error_branch_id);
 
-  if (error_branch_id & WR_STAMP_EBID_ERROR)
-    return false;
+  uint16_t id = ((error_branch_id &
+		  WR_STAMP_EBID_BRANCH_ID_MASK) >>
+		 WR_STAMP_EBID_BRANCH_ID_SHIFT);
 
-  ts_sync_info._id = ((error_branch_id &
-		       WR_STAMP_EBID_BRANCH_ID_MASK) >>
-		      WR_STAMP_EBID_BRANCH_ID_SHIFT);
+  ts_sync_info._id = id;
 
   if (ts_align_index)
     {
@@ -588,11 +586,11 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
         *ts_align_index = -1;
       else
 	*ts_align_index =
-	  _ts_align_hist->get_index(subevent_info,
-				    (error_branch_id &
-				     WR_STAMP_EBID_BRANCH_ID_MASK) >>
-				    WR_STAMP_EBID_BRANCH_ID_SHIFT);
+	  _ts_align_hist->get_index(subevent_info, id);
     }
+
+  if (error_branch_id & WR_STAMP_EBID_ERROR)
+    return false;
 
   if (data + 5 > data_end)
     ERROR("First subevent does not have data enough "
