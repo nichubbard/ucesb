@@ -29,6 +29,34 @@ FATIMA_SCALER()
   }
 }
 
+FRS_MVLC_SCALER()
+{
+  MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
+  UINT32 marker NOENCODE {
+    0_15 : unk1;
+    16_31: match;
+  }
+  if (marker.match == 0xf520)
+  {
+  UINT16 header {
+    0_1: 0;
+    2_7: nlw;
+    8_11: type = MATCH(4);
+    12_15: geo;
+  }
+  UINT16 header2 NOENCODE;
+
+  list (0 <= i < header.nlw) {
+    UINT32 scaler NOENCODE {
+      0_31: value;
+      ENCODE(scalers[i], (value=value));
+    }
+  }
+
+  UINT32 trailer NOENCODE;
+  }
+}
+
 FRS_MAIN_SCALER()
 {
   MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
@@ -118,17 +146,20 @@ SUBEVENT(tpat_subev)
 
 SUBEVENT(frs_main_subev)
 {
+  wr = WHITE_RABBIT();
+  scaler = FRS_MVLC_SCALER();
   select several
   {
-    scaler = FRS_MAIN_SCALER();
+    dummy = DUMMY();
   }
 }
 
 SUBEVENT(frs_frs_subev)
 {
+  scaler = FRS_MVLC_SCALER();
   select several
   {
-    scaler = FRS_FRS_SCALER();
+    dummy = DUMMY();
   }
 }
 
@@ -142,8 +173,8 @@ EVENT
   //FRS = WR_BLOCK(procid=10);
   revisit fatima = fatima_vme(procid=70, type=10, subtype=1);
   revisit frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
-  revisit frs_frs = frs_frs_subev(type=12, subtype=1, procid=30);
-  revisit frs_main = frs_main_subev(type=12, subtype=1, procid=10);
+  revisit frs_frs = frs_frs_subev(type=10, subtype=1, procid=30);
+  revisit frs_main = frs_main_subev(type=10, subtype=1, procid=10);
   ignore_unknown_subevent;
 }
 

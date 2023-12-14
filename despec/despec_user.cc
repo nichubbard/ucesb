@@ -165,6 +165,12 @@ void despec_watcher_event_info(watcher_event_info *info,
   {
     if (event->wr[i].first == 0x200) continue;
 
+    if (event->wr[i].first == 0x100 && event->trigger == 2)
+    {
+      info->_type = DESPEC_WATCH_TYPE_TCAL;
+      pulse = true;
+    }
+
     last_event[event->wr[i].first] = _despec_now;
 
     if (pulse)
