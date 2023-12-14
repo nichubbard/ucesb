@@ -363,6 +363,19 @@ void despec_watcher_init()
   });
 
   report.mutable_summary()->set_server(_inputs[0]._name);
+  // Bit of a hack, look for trans server (only one used) and if active 
+  // report hostname/port to ucesb protobuf
+  for (auto& op : _outputs)
+  {
+    if (op._type == LMD_INPUT_TYPE_STREAM && strstr(op._name, "trans") != 0)
+    {
+      char hostname[64];
+      char analserver[64 + 10];
+      gethostname(hostname, 64);
+      sprintf(analserver, "%s:%d", hostname, 6000);
+      report.mutable_summary()->set_analserver(analserver);
+    }
+  }
 
   sleep(1);
 

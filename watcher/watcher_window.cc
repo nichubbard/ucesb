@@ -383,7 +383,7 @@ void watcher_window::keepalive()
 void watcher_window::on_error(const char* buf, int type)
 {
   errors.push_back({buf, type});
-  if (errors.size() > 20)
+  if (errors.size() > 2000)
     errors.pop_front();
   
   wcolor_set(werror,COL_TEXT_NORMAL+type,NULL);  
