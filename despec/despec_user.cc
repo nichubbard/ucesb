@@ -1,3 +1,5 @@
+#include "config.hh"
+#include "lmd_input.hh"
 #include "structures.hh"
 
 #include "user.hh"
@@ -229,9 +231,13 @@ void despec_watcher_event_info(watcher_event_info *info,
   // No pulser for 2 minutes - downgrade to ? status again
   for (auto& i : pulsers)
   {
-    if (i.second + 120e9 < _despec_now)
+    if (i.second && i.second + 120e9 < _despec_now)
     {
-      daq_sync[i.first] = 0;
+      // Reset ALL daq syncs for now, they should be redone next time?
+      for (auto syncid : daq_sync) {
+        daq_sync[syncid.first] = 0;
+      }
+      i.second = 0;
     }
   }
 
