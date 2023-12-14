@@ -266,6 +266,7 @@ void despec_watcher_event_info(watcher_event_info *info,
 
 void zmq_calculate_scalers()
 {
+#ifdef ZEROMQ
   double dt = (_despec_now - _despec_last) / (double)1e9;
 
   report.clear_scalers();
@@ -332,6 +333,7 @@ void zmq_calculate_scalers()
       entry->set_spill(sc_sp[j]);
     }
   }
+#endif
 }
 
 void despec_watcher_init()
