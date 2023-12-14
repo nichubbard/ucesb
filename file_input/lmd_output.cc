@@ -402,6 +402,13 @@ void lmd_output_file::open_file(const char* filename)
   assert(_fd_handle == -1); // we should not have the close_file below
   close_file();
 
+  struct itimerval ival;
+  memset(&ival,0,sizeof(ival));
+  ival.it_interval.tv_usec = 0; // 250000 us == 0.25 s
+  ival.it_value.tv_usec    = 0;
+  setitimer(ITIMER_REAL,&ival,NULL);
+
+
   if ((_fd_handle = open(filename,
 			 O_WRONLY | O_CREAT | O_TRUNC
 #ifdef O_LARGEFILE
@@ -414,6 +421,11 @@ void lmd_output_file::open_file(const char* filename)
       ERROR("Failed to open file '%s' for writing.",filename);
     }
   INFO(0,"Opened output file '%s'",filename);
+
+  memset(&ival,0,sizeof(ival));
+  ival.it_interval.tv_usec = 250000; // 250000 us == 0.25 s
+  ival.it_value.tv_usec    = 250000;
+  setitimer(ITIMER_REAL,&ival,NULL);
 
   assert (!_cur_filename);
   _cur_filename = new char[strlen(filename)+1];
