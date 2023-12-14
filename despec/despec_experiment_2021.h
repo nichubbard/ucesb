@@ -1,3 +1,4 @@
+#define EXPERIMENT_NAME "2021 Experiments"
 
 std::map<int, std::string> names =
 {
