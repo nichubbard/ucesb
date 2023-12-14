@@ -510,22 +510,13 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
           int feeID = 1 + ((channelID >> 6) & 0x3F);
           channelID &= 0x3F;
 #ifdef AIDA_REAL_IMPLANTS
-          if (feeID == 1 || feeID == 3)
+          if (feeID == 1 || feeID == 3 || feeID == 5 || feeID == 6 || feeID == 7 || feeID == 8)
           {
             cur_aida->pside_imp[0] = true;
           }
           if (feeID == 2 || feeID == 4)
           {
             cur_aida->nside_imp[0] = true;
-          }
-
-          if (feeID == 5 || feeID == 7)
-          {
-            cur_aida->pside_imp[1] = true;
-          }
-          if (feeID == 6 || feeID == 8)
-          {
-            cur_aida->nside_imp[1] = true;
           }
 
           if (cur_aida->pside_imp[0] && cur_aida->nside_imp[0])
@@ -536,15 +527,6 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
             }
             cur_aida->pside_imp[0] = false;
             cur_aida->nside_imp[0] = false;
-          }
-          if (cur_aida->pside_imp[1] && cur_aida->nside_imp[1])
-          {
-            if (_AIDA_WATCHER_STATS)
-            {
-              _AIDA_WATCHER_STATS->add_i(5);
-            }
-            cur_aida->pside_imp[1] = false;
-            cur_aida->nside_imp[1] = false;
           }
 #else
 
