@@ -16,7 +16,7 @@ USE_LMD_INPUT=1
 OBJS += despec_user.o
 
 CXXFLAGS += -DCONTROL_INCLUDE -Wno-conversion -Wno-float-conversion
-CXXFLAGS += -DDESPEC_EXPERIMENT_H="\"despec_experiment_s505.h\""
+CXXFLAGS += -DDESPEC_EXPERIMENT_H="\"despec_dryrun_2023.h\""
 #CXXFLAGS = -DZMQ_PORT="\"5000\""
 
 ifeq ($(BPLAST_FIX),y)
