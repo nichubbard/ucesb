@@ -1033,7 +1033,7 @@ void lmd_output_file::write_file_header(const s_filhe_extra_host *file_header_ex
 
 void
 lmd_output_file::set_file_header(const s_filhe_extra_host *file_header_extra,
-				 const char *add_comment)
+				 const char *add_comment, const char* comment2, const char* comment3)
 {
   // If file is now (i.e. no buffer yet) write file header.
   // Also keep file header to be written in case of renewed file.
@@ -1069,6 +1069,27 @@ lmd_output_file::set_file_header(const s_filhe_extra_host *file_header_extra,
       sizeof(_file_header_extra.s_strings[comment_index].string))
     _file_header_extra.s_strings[comment_index].string_l =
       sizeof(_file_header_extra.s_strings[comment_index].string);
+
+  if (strlen(comment2) != 0 && comment_index < countof(_file_header_extra.s_strings))
+  {
+    comment_index = _file_header_extra.filhe_lines++;
+    strncpy((char*) _file_header_extra.s_strings[comment_index].string,
+	    comment2,
+	    sizeof(_file_header_extra.s_strings[comment_index].string));
+    _file_header_extra.s_strings[comment_index].string_l =
+      (uint16) strlen(comment2);
+  }
+
+  if (strlen(comment3) != 0 && comment_index < countof(_file_header_extra.s_strings))
+  {
+    comment_index = _file_header_extra.filhe_lines++;
+    strncpy((char*) _file_header_extra.s_strings[comment_index].string,
+	    comment3,
+	    sizeof(_file_header_extra.s_strings[comment_index].string));
+    _file_header_extra.s_strings[comment_index].string_l =
+      (uint16) strlen(comment3);
+  }
+
 
   _has_file_header = true;
 

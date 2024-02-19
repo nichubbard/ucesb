@@ -1254,7 +1254,7 @@ int main(int argc, char **argv)
 	snprintf (msg,sizeof(msg),
 		  "Bad events found by UCESB/unpacker: %s",argv[0]);
 
-	loop._file_output_bad->set_file_header(NULL,msg);
+	loop._file_output_bad->set_file_header(NULL,msg, "", "");
       }
     for (config_output_vect::iterator output = _outputs.begin();
 	 output != _outputs.end() ; ++output)
@@ -1787,10 +1787,26 @@ get_next_event:
 		  snprintf (msg,sizeof(msg),
 			    "Processed by UCESB/unpacker: %s",argv[0]);
 
+		  char msg_eb[81] = "";
+		  char msg_ts[81] = "";
+
+		  if (_conf._enable_eventbuilder)
+		  {
+		    snprintf(msg_eb, sizeof(msg_eb),
+			      "DESPEC Event Building for AIDA%s",
+			      _conf._enable_dtas ? ", DTAS" : "");
+		  }
+
+		  if (_conf._event_stitch_mode == TIMESTAMP_TYPE_WR)
+		  {
+		    snprintf (msg_ts, sizeof(msg),
+			    "Time-stitched with WR, window = %d ns", _conf._event_stitch_value);
+		  }
+
 		  for (unsigned int i = 0; i < loop._output.size(); i++)
 		    {
 		      output_info &output = loop._output[i];
-		      output._dest->set_file_header(file_header,msg);
+		      output._dest->set_file_header(file_header,msg, msg_eb, msg_ts);
 		    }
 		  check_new_file_header = false;
 		}

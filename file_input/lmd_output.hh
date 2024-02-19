@@ -116,7 +116,7 @@ public:
   virtual void event_no_seen(sint32 eventno) { }
 
   virtual void set_file_header(const s_filhe_extra_host *file_header_extra,
-			       const char *add_comment) { }
+			       const char *add_comment, const char* comment2, const char* comment3) { }
 
   virtual void close() = 0;
 
@@ -198,7 +198,7 @@ public:
   virtual void event_no_seen(sint32 eventno);
 
   virtual void set_file_header(const s_filhe_extra_host *file_header_extra,
-			       const char *add_comment);
+			       const char *add_comment, const char* comment2, const char* comment3);
 
   virtual void close();
 
