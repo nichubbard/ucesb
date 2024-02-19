@@ -71,14 +71,17 @@ get_event_retry:
     {
       _TRACE(" loading more events to complete the AIDA fragment %16lx\n", cur_aida->timestamp);
       file_status_t s;
-      while ((s = load_events()) != aida_event && s != eof && load_event_wr - cur_aida->timestamp < _conf._eventbuilder_window);
-      if (cur_aida && cur_aida->fragment) {
+      while ((s = load_events()) != aida_event && s != eof && load_event_wr - (cur_aida->timestamp + AIDA_TIME_SHIFT) < _conf._eventbuilder_window);
+      // If the cur_aida is still set to be emitted, it's not a fragment
+      if (cur_aida && cur_aida->fragment && cur_aida->timestamp < first->timestamp) {
+        _TRACE(" Marking AIDA event as unfragmented due to WR\n");
         // Unfragment the event, store it and continue
         cur_aida->fragment = false;
         events.push(cur_aida);
         cur_aida = nullptr;
-        goto get_event_retry;
       }
+      // Always retry after loading events?
+      goto get_event_retry;
     }
     if (cur_dtas != nullptr && cur_dtas->timestamp < first->timestamp)
     {
@@ -111,7 +114,7 @@ get_event_retry:
       else
       {
         if (!emit_skip)
-            TIMEWARP("=> Not emitting timewarped event (%16lx before %16lx)", first->timestamp, emit_wr);
+            TIMEWARP("=> Not emitting timewarped event of type %s (%16lx before %16lx)", first->type(), first->timestamp, emit_wr);
           emit_skip++;
           first->return_to_pool();
           lmd_source::release_events();
@@ -625,7 +628,7 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
         {
           // End of Event
 #if _AIDA_DUMP
-          _TRACE ("end of event (before last word) %16lx\n", cur_aida->timestamp);
+          _TRACE ("end of event (before last word) %16lx -> %16lx\n", cur_aida->timestamp + AIDA_TIME_SHIFT, cur_aida->timestamp);
 #endif
           // If there is exactly one entry (2 words) and it's an ADC entry, discard it as it won't be front-back matched
 #ifdef AIDA_OPTIMISE
@@ -647,7 +650,7 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
           {
             cur_aida->fragment = false;
             cur_aida->fragment_wr = old_ts;
-            if (cur_aida->implant()) cur_aida->timestamp = cur_aida->implant_wr_s;
+            //if (cur_aida->implant()) cur_aida->timestamp = cur_aida->implant_wr_s;
             //aida_events_merge.push_back(cur_aida);
             events.push(cur_aida);
             cur_aida = nullptr;
@@ -658,7 +661,7 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
           _TRACE(" new AIDA event %16lx\n", load_event_wr);
         }
 
-        if ((word1 & 0xF0000000) == 0xC0000000)
+        if ((word1 & 0xC0000000) == 0xC0000000)
         {
           cur_aida->fragment_wr = load_event_wr;
         }
@@ -666,7 +669,7 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
         cur_aida->data.push_back(word1);
         cur_aida->data.push_back(word2);
 
-        if ((word1 & 0xF0000000) == 0xC0000000)
+        if ((word1 & 0xC0000000) == 0xC0000000)
         {
           old_ts = load_event_wr;
         }

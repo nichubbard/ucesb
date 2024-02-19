@@ -23,8 +23,8 @@ struct lmd_event_multievent;
 #define AIDA_REAL_IMPLANTS
 
 #define _ENABLE_TRACE 0
-#define _AIDA_DUMP 0
-#define _DTAS_DUMP 1
+#define _AIDA_DUMP 1
+#define _DTAS_DUMP 0
 #if _ENABLE_TRACE
 #define _TRACE(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -207,6 +207,7 @@ public:
   virtual ~event_entry() {}
   virtual void reset() = 0;
   virtual lmd_event* emit() = 0;
+  virtual const char* type() const = 0;
 
   event_entry() : timestamp(0), event_no(0), pool(nullptr) {}
 
@@ -271,6 +272,8 @@ struct aidaevent_entry : public event_entry
 
   virtual lmd_event* emit();
 
+  virtual const char* type() const { return "aida"; }
+
   virtual void return_to_pool() {
     aidaevent_queue* q = reinterpret_cast<aidaevent_queue*>(this->pool);
     pool_delete(*q, this);
@@ -295,6 +298,13 @@ struct triggerevent_entry : public event_entry
   virtual ~triggerevent_entry() {}
 
   virtual lmd_event* emit();
+
+  virtual const char* type() const {
+    int procid = event._subevents[0]._header.i_procid;
+    static char buf[64];
+    sprintf(buf, "trigger:prcid=%d", procid);
+    return buf;
+  }
 
   virtual void return_to_pool() {
     triggerevent_queue* q = reinterpret_cast<triggerevent_queue*>(this->pool);
@@ -328,6 +338,8 @@ struct dtasevent_entry : public event_entry
   }
 
   virtual lmd_event* emit();
+
+  virtual const char* type() const { return "dtas"; }
 
   virtual void return_to_pool() {
     dtasevent_queue* q = reinterpret_cast<dtasevent_queue*>(this->pool);
