@@ -470,7 +470,7 @@ void c_struct_def::make_corr_struct(const char *type,
 	if (!name || strcasecmp(name,"E") != 0)
 	  continue;
 
-      // The item is choosen
+      // The item is chosen
 
       items.push_back(&item);
       tree.insert(item._id._parts.begin(),

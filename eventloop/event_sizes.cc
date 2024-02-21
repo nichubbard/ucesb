@@ -125,7 +125,7 @@ void event_sizes::show()
 
       char trigno[16];
 
-      sprintf (trigno,"%d",trig);
+      snprintf(trigno,sizeof(trigno),"%d",trig);
 
       show_sizes("trig ",trig == 16 ? "other" : trigno,
 		 &ev_size[trig],_subev_size[trig]);

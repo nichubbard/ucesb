@@ -35,6 +35,10 @@
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_h101.h"
 #define EXT_EVENT_STRUCT              EXT_STR_h101
+#define EXT_EVENT_STRUCT_ITEMS_INFO   EXT_STR_h101_ITEMS_INFO
+/* Do NOT use the following defines.
+ * They are kept only to make verify that old code still work.
+ */
 #define EXT_EVENT_STRUCT_LAYOUT       EXT_STR_h101_layout
 #define EXT_EVENT_STRUCT_LAYOUT_INIT  EXT_STR_h101_LAYOUT_INIT
 
@@ -58,6 +62,7 @@ int main(int argc,char *argv[])
 
   EXT_EVENT_STRUCT event;
 #if !USE_ITEMS_INFO
+  /* Do not use this.  Use version below (USE_ITEMS_INFO)! */
   EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
 #else
   struct ext_data_structure_info *struct_info = NULL;
@@ -162,7 +167,7 @@ int main(int argc,char *argv[])
       exit(1);
     }
 
-  EXT_STR_h101_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 0);
+  EXT_EVENT_STRUCT_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 0);
   if (!ok)
     {
       perror("ext_data_struct_info_item");
@@ -175,6 +180,7 @@ int main(int argc,char *argv[])
 
   if (ext_data_setup(client,
 #if !USE_ITEMS_INFO
+		     /* Do not use this.  Use USE_ITEMS_INFO version below! */
 		     &event_layout,sizeof(event_layout),
 		     NULL, NULL,
 #else
@@ -196,7 +202,10 @@ int main(int argc,char *argv[])
     {
       fprintf (stderr, "Structure was not completely mapped (0x%04x).\n",
 	       struct_map_success);
-      /* Print user-friendly report of mapping issues. */
+      /* Print user-friendly report of mapping issues.
+       * Here only missing items are reported; to report all give 0 as
+       * last flag.
+       */
       ext_data_struct_info_print_map_success(struct_info,
 					     stderr,
 					     EXT_DATA_ITEM_MAP_OK);

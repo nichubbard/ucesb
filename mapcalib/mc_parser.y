@@ -431,7 +431,7 @@ value:
         | value '*' value         { $$ = $1 * $3; }
         | value '/' value
           {
-	    if ($3 != 0.0)
+	    if ($3 == 0.0)
 	      yyerror("Warning: Division by zero.");
 	    $$ = $1 / $3;
 	  }

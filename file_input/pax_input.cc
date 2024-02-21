@@ -148,7 +148,7 @@ bool pax_source::read_record()
 }
 
 // This routine is called when we have failed to do an get_event
-// Discared the current record and try to continue reading the file If
+// Discarded the current record and try to continue reading the file If
 // the failure happened while trying to read a record itself (e.g. due
 // to a malformed record header) it is sane to try again.
 // If the failure was due to running out of data while reading the
@@ -188,7 +188,7 @@ pax_event *pax_source::get_event()
 
 #ifdef USE_THREADING
   // Even if we blow up with an error, the reclaim item will be in the
-  // reclaim list, so the memory wont leak
+  // reclaim list, so the memory won't leak
   dest = (pax_event *) _wt._defrag_buffer->allocate_reclaim(sizeof (pax_event));
 #else
   _file_event.release();

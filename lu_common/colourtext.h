@@ -32,38 +32,60 @@
 
 #define CTR_NONE                0 /* used in markconvbold_output */
 #define CTR_WHITE_BG_RED        1
-#define CTR_YELLOW_BG_RED       2
-#define CTR_RED_BG_GREEN        3
-#define CTR_YELLOW_BG_BLUE      4
-#define CTR_BLACK_BG_YELLOW     5
-#define CTR_BLUE_BG_YELLOW      6
-#define CTR_WHITE_BG_MAGENTA    7
-#define CTR_RED                 8
-#define CTR_GREEN               9
-#define CTR_BLUE               10
-#define CTR_MAGENTA            11
-#define CTR_CYAN               12
-#define CTR_WHITE              13 /* not for general use!!! */
-#define CTR_BLACK              14 /* not for general use!!! */
-#define CTR_NUM_COLORS         15 /* end of colors */
+#define CTR_BLACK_BG_RED        2
+#define CTR_GREEN_BG_RED        3 /* avoid */
+#define CTR_CYAN_BG_RED         4 /* avoid */
+#define CTR_YELLOW_BG_RED       5
+#define CTR_WHITE_BG_GREEN      6
+#define CTR_BLACK_BG_GREEN      7
+#define CTR_RED_BG_GREEN        8 /* avoid */
+#define CTR_YELLOW_BG_GREEN     9
+#define CTR_MAGENTA_BG_GREEN   10 /* avoid */
+#define CTR_WHITE_BG_BLUE      11
+#define CTR_GREEN_BG_BLUE      12
+#define CTR_CYAN_BLUE          13
+#define CTR_RED_BLUE           14 /* avoid */
+#define CTR_YELLOW_BG_BLUE     15
+#define CTR_WHITE_BG_CYAN      16
+#define CTR_BLACK_BG_CYAN      17
+#define CTR_RED_BG_CYAN        18
+#define CTR_YELLOW_BG_CYAN     19
+#define CTR_BLACK_BG_YELLOW    20
+#define CTR_RED_BG_YELLOW      21
+#define CTR_BLUE_BG_YELLOW     22
+#define CTR_CYAN_BG_YELLOW     23
+#define CTR_WHITE_BG_MAGENTA   24
+#define CTR_BLACK_BG_MAGENTA   25
+#define CTR_GREEN_BG_MAGENTA   26
+#define CTR_CYAN_BG_MAGENTA    27
+#define CTR_YELLOW_BG_MAGENTA  28
+#define CTR_RED                29
+#define CTR_GREEN              30
+#define CTR_BLUE               31
+#define CTR_MAGENTA            32
+#define CTR_CYAN               33
+#define CTR_WHITE              34 /* not for general use!!! */
+#define CTR_BLACK              35 /* not for general use!!! */
+#define CTR_NUM_COLORS         (CTR_BLACK+1) /* end of colors */
 
-#define CTR_BOLD_RED           15
-#define CTR_BOLD_GREEN         16
-#define CTR_BOLD_BLUE          17
-#define CTR_BOLD_MAGENTA       18
-#define CTR_BOLD_CYAN          19
-#define CTR_UL_RED             20
-#define CTR_UL_GREEN           21
-#define CTR_UL_BLUE            22
-#define CTR_UL_MAGENTA         23
-#define CTR_UL_CYAN            24
-#define CTR_NORM_DEF_COL       25
-#define CTR_DEF_COL            26
-#define CTR_NORM               27
-#define CTR_BOLD               28
-#define CTR_UL                 29
-#define CTR_UP1LINE            30
-#define CTR_NUM_REQUEST        31
+#define CTR_BOLD_RED           36
+#define CTR_BOLD_GREEN         37
+#define CTR_BOLD_BLUE          38
+#define CTR_BOLD_MAGENTA       39
+#define CTR_BOLD_CYAN          40
+#define CTR_BOLD_WHITE_BG_RED  41
+#define CTR_UL_RED             42
+#define CTR_UL_GREEN           43
+#define CTR_UL_BLUE            44
+#define CTR_UL_MAGENTA         45
+#define CTR_UL_CYAN            46
+#define CTR_NORM_DEF_COL       47
+#define CTR_DEF_COL            48
+#define CTR_NORM               49
+#define CTR_BOLD               50
+#define CTR_UL                 51
+#define CTR_UP1LINE            52
+#define CTR_NUM_REQUEST        (CTR_UP1LINE+1)
 
 #ifdef USE_CURSES
 
@@ -101,6 +123,9 @@ extern colourtext_prepared_item _colourtext_prepared[2][CTR_NUM_REQUEST];
 #define CT_ERR(request) \
   COLOURTEXT_GET(1,CTR_##request)
 
+#define CT_OUTERR(outerr,request) \
+  COLOURTEXT_GET(outerr,CTR_##request)
+
 #define CTP_OUT(request) \
   COLOURTEXT_GET_PREPARED(0,CTR_##request)
 #define CTP_ERR(request) \
@@ -133,6 +158,8 @@ void colourpair_prepare(void);
 
 #define CT_OUT(request) ""
 #define CT_ERR(request) ""
+
+#define CT_OUTERR(outerr,request) ""
 
 #define CTP_OUT(request) NULL
 #define CTP_ERR(request) NULL

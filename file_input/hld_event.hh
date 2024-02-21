@@ -41,7 +41,7 @@ union hld_decoding
     uint32 _type  : 16;
   };
 #endif
-  uint32 u32; // among others, gives endianess
+  uint32 u32; // among others, gives endianness
                     // high byte = 00, low != 0
                     // second byte gives subevent alignment shift
                     // 0=8bits,1=16bits,2=32bits align=1<<shift

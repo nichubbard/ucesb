@@ -46,7 +46,7 @@ void limit_file_size::parse_open_first_file(const char *filename)
   if (!dot)
     dot = last_slash + strlen(last_slash);
 
-  // If we find an occurance of '.lmd', that takes precedence.
+  // If we find an occurrence of '.lmd', that takes precedence.
   const char *dot_lmd = strstr(last_slash, ".lmd");
 
   while (dot_lmd)

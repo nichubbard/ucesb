@@ -84,7 +84,7 @@ void *event_processor::worker()
 {
   TDBG("");
 
-  // Take in events from our input queue, find a slot in the ouput
+  // Take in events from our input queue, find a slot in the output
   // queue, and process the event
 
 
@@ -145,7 +145,7 @@ void *event_processor::worker()
 	    // process_event();
 	  } catch (error &e) {
 
-	    // If an error occured during processing, remove the
+	    // If an error occurred during processing, remove the
 	    // PROCESS flag
 
 	    send_item._info &= ~EQ_INFO_PROCESS;

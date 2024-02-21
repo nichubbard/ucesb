@@ -116,7 +116,7 @@ void USAGE_COMMAND_LINE_OPTIONS();
 // multi-threading, it may be used SIMULTANEOUSLY by several user
 // functions (unless precautions are taken).  When (if) varying
 // calibration parameters are implemented, multi-processing will be
-// handled such that it is updated inbetween handling of events from
+// handled such that it is updated in-between handling of events from
 // different regimes, i.e. update will have to block processing by the
 // user function.
 

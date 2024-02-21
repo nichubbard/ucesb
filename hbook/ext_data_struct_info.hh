@@ -40,7 +40,7 @@ protected:
 
 public:
   // Giving this away is necessary due to the EXT_STR_ITEM_... macros.
-  // Thos macros in turn benefit from being macros (and not functions),
+  // Those macros in turn benefit from being macros (and not functions),
   // as they wrap some use of offsetof and sizeof.
   operator ext_data_structure_info*();
 

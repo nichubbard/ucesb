@@ -30,9 +30,9 @@ void const32::dump(dumper &d) const
   char buf[64];
 
   if (_value < 256)
-    sprintf (buf,"%d",_value);
+    snprintf(buf,sizeof(buf),"%d",_value);
   else
-    sprintf (buf,"0x%0*x",_value > 0xffff ? 8 : (2),_value);
+    snprintf(buf,sizeof(buf),"0x%0*x",_value > 0xffff ? 8 : (2),_value);
   d.text(buf);
 }
 

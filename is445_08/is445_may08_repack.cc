@@ -345,7 +345,7 @@ void is445_may08_unpack::open_output(const char *filename)
       while ((p = strchr(vars,'n')) != NULL)
 	*p = (char) ('1'+i);
       char strip[64];
-      sprintf(strip,"STRIP%d",i+1);
+      snprintf(strip,sizeof(strip),"STRIP%d",i+1);
       _ntu.hbname(strip,&ntup_event.strips[i],vars);
       printf ("Variables: %s\n",vars);
     }

@@ -61,6 +61,10 @@
 # define MFENCE asm __volatile__ ("" : : : "memory")
 #endif
 
+#ifdef __arm64__
+#define MFENCE asm __volatile__ ("    dmb ish  \n\t")
+#endif
+
 #ifdef __sparc__
 # define MFENCE asm __volatile__ ("" : : : "memory")
 #endif

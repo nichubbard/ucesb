@@ -216,7 +216,7 @@ void ext_writer_pipe_buf::init_alloc()
 
 void external_writer::init_x(unsigned int type,unsigned int opt,
 			     const char *filename,const char *ftitle,
-			     int server_port,int generate_header,
+			     int server_port,
 			     int timeslice,int timeslice_subdir,
 			     int autosave,
 			     int ts_merge_window)
@@ -286,7 +286,7 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
   int fd_dest = -1;
 
   char tmp[1024];
-  /*const*/ char *argv[25];
+  /*const*/ char *argv[30];
   int argc = 0;
   char *executable = NULL;
 
@@ -370,6 +370,12 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
     {
       snprintf (tmp,sizeof(tmp),
 		"--header=%s",filename);  argv[argc++] = strdup(tmp);
+
+      if (opt & NTUPLE_OPT_STRUCT_HH_LAYOUT)
+	{
+	  snprintf (tmp,sizeof(tmp),
+		    "--header-layout");  argv[argc++] = strdup(tmp);
+	}
     }
 
   if (opt & NTUPLE_OPT_READER_INPUT)
@@ -454,6 +460,11 @@ void external_writer::init_x(unsigned int type,unsigned int opt,
     }
 
   argv[argc++] = NULL; // terminate
+
+  // This is sloppy, but better than nothing.
+  if (argc >= 25) // Intentionally smaller than 30 above.
+    ERROR("Argument count overflow when generating "
+	  "external writer command line.");
 
   int dummy_fd; // so they are not closed
 
@@ -597,10 +608,11 @@ void ext_writer_shm_buf::commit_buf_space(size_t space)
     _cur = _begin; // start over from beginning
   assert(_cur + sizeof (uint32_t) <= _end);
 
+  MFENCE;
   // if the consumer wanted to be woken up...
 
   if (_ctrl->_need_consumer_wakeup &&
-      (((int) _ctrl->_avail) - ((int) _ctrl->_wakeup_avail)) >= 0)
+      (((ssize_t) _ctrl->_avail) - ((ssize_t) _ctrl->_wakeup_avail)) >= 0)
     {
       _ctrl->_need_consumer_wakeup = 0;
       SFENCE;
@@ -1063,8 +1075,8 @@ void ext_writer_shm_buf::resize_shm(uint32_t size)
   assert (_end > _begin); // or external_writer_shm_control too large
   assert (_ctrl->_magic == EXTERNAL_WRITER_MAGIC);
 
-  // _ctrl->_size is set by the reciever (as we cannot change it from
-  // the initial value as it's being checked by the reciever, perhaps
+  // _ctrl->_size is set by the receiver (as we cannot change it from
+  // the initial value as it's being checked by the receiver, perhaps
   // after we did the resize)
 
   // Virtually consume all the available space.  Will be 'free'd' by
@@ -1231,7 +1243,7 @@ void ext_writer_shm_buf::message_body_done(uint32_t *end)
   _cur = (char*) end;
 
   if (_ctrl->_need_producer_wakeup &&
-      (((int) _ctrl->_done) - ((int) _ctrl->_wakeup_done)) >= 0)
+      (((ssize_t) _ctrl->_done) - ((ssize_t) _ctrl->_wakeup_done)) >= 0)
     {
       _ctrl->_need_producer_wakeup = 0;
       SFENCE;

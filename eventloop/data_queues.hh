@@ -44,7 +44,7 @@ struct ofq_item
 
 //////////////////////////////////////////////////////////////////////
 
-// The process_mask is superfluos, since the queue in which the event
+// The process_mask is superfluous, since the queue in which the event
 // is currently waiting, tells what is to be done next
 
 #define EQ_INFO_NEXT_PROCESS_MASK 0x000000ff // mask to tell what is next processing stage

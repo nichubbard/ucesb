@@ -74,7 +74,7 @@ public:
   bool check_sync(const sync_check_info<n,bits> &info,
 		  event_counter_bits<bits_ref> reference)
   {
-    // @refernce is passed directly, as it is just one varible (with
+    // @reference is passed directly, as it is just one variable (with
     // template info) so pass by value (copy) is perfectly fine!
 
     // loop over the modules for which we have information
@@ -83,7 +83,7 @@ public:
 
     for (int i = 0; i < info._num_items; i++)
       {
-	// we want the difference of between the refernce and the
+	// we want the difference of between the reference and the
 	// event counters to be the same as noted by the offset
 
 	// (of course, if the DAQ would make sure (reset stuff on

@@ -432,7 +432,7 @@ public:
 
     if (_num_entries[i] >= max_entries)
       ERROR_U_LOC(loc,
-		  "Attempt to insert to many items "
+		  "Attempt to insert too many items "
 		  "in multi-entry list (%d>=%d)",
 		  _num_entries[i],max_entries);
 
@@ -447,7 +447,7 @@ public:
       _num_entries[i] = 0;
 
     if (_num_entries[i] >= max_entries)
-      ERROR("Attempt to insert to many items in multi-entry list (%d>=%d)",
+      ERROR("Attempt to insert too many items in multi-entry list (%d>=%d)",
 	    _num_entries[i],max_entries);
 
     item_t &item = _items[i][_num_entries[i]++];

@@ -24,22 +24,26 @@
 
 #define VME_CAEN_V1x90_NAME_POSTFIX(postfix) VME_CAEN_V1290##postfix
 #define VME_CAEN_V1x90_NO 1290
+#define VME_CAEN_V1x90_NUM_CH 32
 #include "vme_caen_v1290.spec"
 #undef VME_CAEN_V1x90_NAME_POSTFIX
 #undef VME_CAEN_V1x90_NO
+#undef VME_CAEN_V1x90_NUM_CH
 
 #define VME_CAEN_V1x90_NAME_POSTFIX(postfix) VME_CAEN_V1190##postfix
 #define VME_CAEN_V1x90_NO 1190
+#define VME_CAEN_V1x90_NUM_CH 128
 #include "vme_caen_v1290.spec"
 #undef VME_CAEN_V1x90_NAME_POSTFIX
 #undef VME_CAEN_V1x90_NO
+#undef VME_CAEN_V1x90_NUM_CH
 
 #else
 
 VME_CAEN_V1x90_NAME_POSTFIX(_SUBTDC)(tdc,event_id,data /* from parent */)
 {
   // Should have our own data type...
-  MEMBER(DATA24 data[32] ZERO_SUPPRESS_MULTI(128)); // comes from parent
+  MEMBER(DATA24 data[VME_CAEN_V1x90_NUM_CH] ZERO_SUPPRESS_MULTI(128)); // comes from parent
 
   MARK_COUNT(tdc_start);
 
@@ -102,7 +106,7 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SUBTDC)(tdc,event_id,data /* from parent */)
 VME_CAEN_V1x90_NAME_POSTFIX()(geom)
 {
   // Should have our own data type...
-  MEMBER(DATA24 data[32] ZERO_SUPPRESS_MULTI(128));
+  MEMBER(DATA24 data[VME_CAEN_V1x90_NUM_CH] ZERO_SUPPRESS_MULTI(128));
 
   MARK_COUNT(v1190_start);
 
@@ -147,7 +151,7 @@ VME_CAEN_V1x90_NAME_POSTFIX()(geom)
 VME_CAEN_V1x90_NAME_POSTFIX(_SHORT_SUBTDC)(tdc,event_id,data /* from parent */)
 {
   // Should have our own data type...
-  MEMBER(DATA24 data[32] ZERO_SUPPRESS_MULTI(128)); // comes from parent
+  MEMBER(DATA24 data[VME_CAEN_V1x90_NUM_CH] ZERO_SUPPRESS_MULTI(128)); // comes from parent
 
   UINT32 ch_data NOENCODE
     {
@@ -191,7 +195,7 @@ VME_CAEN_V1x90_NAME_POSTFIX(_SHORT_SUBTDC_ERROR)(tdc)
 VME_CAEN_V1x90_NAME_POSTFIX(_SHORT)(geom)
 {
   // Should have our own data type...
-  MEMBER(DATA24 data[32] ZERO_SUPPRESS_MULTI(128));
+  MEMBER(DATA24 data[VME_CAEN_V1x90_NUM_CH] ZERO_SUPPRESS_MULTI(128));
 
   MARK_COUNT(v1190_start);
 

@@ -23,6 +23,7 @@
 
 void convert_picture(const char *filename,
 		     const char *pict,
-		     int width,int height);
+		     int width,int height,
+		     bool color = false);
 
 #endif//__CONVERT_PICTURE_HH__

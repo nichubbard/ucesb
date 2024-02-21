@@ -49,7 +49,8 @@ public:
 	    ext_data_struct_info *struct_info,
 	    uint32_t *struct_map_success,
 	    size_t size_buf,
-	    const char *name_id = "", int *struct_id = NULL);
+	    const char *name_id = "", int *struct_id = NULL,
+	    uint32_t exclude_success = 0 /* better?: EXT_DATA_ITEM_MAP_OK */);
 
   int next_event(int *struct_id);
   int fetch_event(void *buf,size_t size,int struct_id = 0);

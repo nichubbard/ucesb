@@ -94,7 +94,7 @@ void hbook::open(const char *filename,const char* top,
 
   // 32000 records * 8191 record size is 262144000 about 260 MB
   // let's later change the record size to 4096 so that paw auto detection works
-  // anyhow, 500000 * 4096 is 2 GB (almost).  I hope noone wants larger ntuples :-)
+  // anyhow, 500000 * 4096 is 2 GB (almost).  I hope no one wants larger ntuples :-)
 
   strcpy (chfile,filename);
   strcpy (_chtop,top);
@@ -157,7 +157,7 @@ void hbook_ntuple::hbookn(int hid,
    * garbled.  So i make a copy...
    *
    * Should really investigate cfortran.h to see what is going on.  Did
-   * that, and any workaroung would be even more painful (if possible..)
+   * that, and any workaround would be even more painful (if possible..)
    */
 
   char copy_tags[512][9];

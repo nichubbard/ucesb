@@ -63,8 +63,8 @@ void sticky_subevent_user_function(unpack_sticky_event *sticky_event,
   if (sev_header->_header.i_type == 10 &&
       sev_header->_header.i_subtype == 1)
     return; // Timestamp subevent (not real sticky)
-  if (sev_header->_header.i_type == 0x0cae &&
-      sev_header->_header.i_subtype == 0x0caf)
+  if (!(sev_header->_header.i_type == 0x789a &&
+	sev_header->_header.i_subtype == 0xbad0))
     return; // Correlation sticky subevent (not handled here)
 
   int crate = sev_header->h_subcrate;

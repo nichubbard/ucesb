@@ -37,7 +37,7 @@
 
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
 
-template<int swapping,int scramble,int account>
+template<int swapping,int scramble,int account,int memberdump>
 class __data_src
 {
 public:
@@ -63,6 +63,7 @@ public:
   int is_swapping()  { return swapping; }
   int is_scrambled() { return scramble; }
   int is_account()   { return account; }
+  int is_memberdump() { return memberdump; }
 
 public:
   char *_data;
@@ -260,7 +261,7 @@ public:
 
 #if defined(USE_PAX_INPUT) || defined(USE_GENF_INPUT) || defined(USE_EBYE_INPUT_16)
 
-template<int swapping,int account>
+template<int swapping,int account,int memberdump>
 class __data_src
 {
 public:
@@ -285,6 +286,7 @@ public:
 public:
   int is_swapping()  { return swapping; }
   int is_account()   { return account; }
+  int is_memberdump() { return memberdump; }
 
 public:
   uint16 *_data;
@@ -351,7 +353,7 @@ public:
 
 #ifdef USE_EBYE_INPUT_32
 
-template<int swapping,int account>
+template<int swapping,int account,int memberdump>
 class __data_src
 {
 public:
@@ -376,6 +378,7 @@ public:
 public:
   int is_swapping()  { return swapping; }
   int is_account()   { return account; }
+  int is_memberdump() { return memberdump; }
 
 public:
   uint32 *_data;

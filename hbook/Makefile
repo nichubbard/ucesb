@@ -254,6 +254,8 @@ ROOT_CXXFLAGS += $(shell $(FILE_ROOT_CONFIG) --cflags)
 ROOT_CXXLINKFLAGS += $(shell $(FILE_ROOT_CONFIG) --ldflags)
 ROOT_CXXLIBS      += $(shell $(FILE_ROOT_CONFIG) --libs)
 
+ROOT_CXXLINKFLAGS += -rdynamic # for backtrace
+
 ROOT_INC_DIR = $(shell $(FILE_ROOT_CONFIG) --incdir | sed -e 's,//,/,g')
 endif
 
@@ -320,7 +322,7 @@ all: struct_writer
 
 STRUCT_CXXFLAGS += -DSTRUCT_WRITER=1
 STRUCT_CXXFLAGS +=
-STRUCT_CXXLINKFLAGS +=
+STRUCT_CXXLINKFLAGS += -rdynamic # for backtrace
 STRUCT_CXXLIBS      +=
 
 STRUCT_OBJS = ext_struct_writer.o ext_struct_net_io.o ext_struct_merge.o

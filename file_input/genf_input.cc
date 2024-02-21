@@ -92,7 +92,7 @@ genf_event *genf_source::get_event()
 
 #ifdef USE_THREADING
   // Even if we blow up with an error, the reclaim item will be in the
-  // reclaim list, so the memory wont leak
+  // reclaim list, so the memory won't leak
   dest = (genf_event *) _wt._defrag_buffer->allocate_reclaim(sizeof (genf_event));
 #else
   _file_event.release();

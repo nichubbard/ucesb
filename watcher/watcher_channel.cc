@@ -61,7 +61,7 @@ inline void display_bins(watcher_display_info& info,
       if (max_type != -1)
 	{
 	  wcolor_set(info._w,info._col_data[max_type],NULL);
-	  sprintf (buf,"%c",hexilog2b1(sum));
+	  snprintf(buf,sizeof(buf),"%c",hexilog2b1(sum));
 	  waddstr(info._w,buf);
 	}
       else
@@ -110,12 +110,12 @@ inline void display_range_bins(watcher_display_info& info,
 	{
 	  double mean = sum_x / sum;
 
-	  sprintf (buf,"%4d",(int) (mean + 0.5));
-	  //sprintf (buf,"%4d",sum);
+	  snprintf(buf,sizeof(buf),"%4d",(int) (mean + 0.5));
+	  //snprintf(buf,sizeof(buf),"%4d",sum);
 	}
       else
 	{
-	  sprintf (buf,"%*s",DRB_OUTPUT_WIDTH,".");
+	  snprintf(buf,sizeof(buf),"%*s",DRB_OUTPUT_WIDTH,".");
 	}
       waddstr(info._w,buf);
 
@@ -227,7 +227,7 @@ void watcher_channel::display(watcher_display_info& info/*,
       wmove(info._w,info._line,10+14+i);
       if (_data[i]._zero)
 	{
-	  sprintf (buf,"%c",hexilog2b1(_data[i]._zero));
+	  snprintf(buf,sizeof(buf),"%c",hexilog2b1(_data[i]._zero));
 	  waddstr(info._w,buf);
 	}
       else
@@ -255,7 +255,7 @@ void watcher_channel::display(watcher_display_info& info/*,
       wmove(info._w,info._line,10+20+NUM_WATCH_BINS+1+1+i);
       if (_data[i]._overflow)
 	{
-	  sprintf (buf,"%c",hexilog2b1(_data[i]._overflow));
+	  snprintf(buf,sizeof(buf),"%c",hexilog2b1(_data[i]._overflow));
 	  waddstr(info._w,buf);
 	}
       else
@@ -352,7 +352,7 @@ void watcher_present_channel::display(watcher_display_info& info)
   if (max_type != -1)
     {
       wcolor_set(info._w,info._col_data[max_type],NULL);
-      sprintf (buf,"%c",hexilog2b1(sum));
+      snprintf(buf,sizeof(buf),"%c",hexilog2b1(sum));
       waddstr(info._w,buf);
     }
   else

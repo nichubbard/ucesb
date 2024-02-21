@@ -214,7 +214,7 @@ void init_cwn_var(ntuple_item *item,
       ERROR("64-bit uint not handled.");
       // TODO: can be fixed; suggestion to make 2 entries, hi and lo.
       // issue will be in unpacking part to place items correctly.
-      // possibly with the compresed data, which give fixed
+      // possibly with the compressed data, which give fixed
       // locations.  Perhaps give extra word-swap array to make
       // post-unpack corrections?
     }

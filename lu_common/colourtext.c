@@ -59,6 +59,7 @@ char *tigetstr_wrap(const char *capname)
 size_t colourtext_init()
 {
   int i;
+  int errret, ret;
 
   /*
   if (force_colour == -1 ||
@@ -68,14 +69,10 @@ size_t colourtext_init()
   for (i = 0; i < CTR_MAX_PART; i++)
     _colourtext_escape_part[i] = NULL;
 
-  int errret, ret;
-
   ret = setupterm(NULL, 1, &errret);
 
   if (ret == ERR)
-    {
-      return colourtext_prepare();
-    }
+    goto call_colourtext_prepare;
 
   /* printf ("%d %d %d\n",ret,ERR,errret); */
 
@@ -93,24 +90,30 @@ size_t colourtext_init()
 #define NCURSES_CONST
 #endif
 
-  NCURSES_CONST char *setaf = tigetstr_wrap("setaf");
+  {
+    NCURSES_CONST char *setaf = tigetstr_wrap("setaf");
 
-  /* printf ("%p %p\n",_escape_bold,setaf); */
+    /* printf ("%p %p\n",_escape_bold,setaf);
+       fflush(stdout); */
 
-  fflush(stdout);
+    for (i = 0; i < 8; i++)
+      if (setaf)
+	_colourtext_escape_part[CTR_PART_FGCOL(i)] = strdup(tparm(setaf,i));
+  }
+  {
+    NCURSES_CONST char *setab = tigetstr_wrap("setab");
 
-  for (i = 0; i < 8; i++)
-    if (setaf)
-      _colourtext_escape_part[CTR_PART_FGCOL(i)] = strdup(tparm(setaf,i));
-
-  NCURSES_CONST char *setab = tigetstr_wrap("setab");
-
-  for (i = 0; i < 8; i++)
-    if (setab)
-      _colourtext_escape_part[CTR_PART_BGCOL(i)] = strdup(tparm(setab,i));
+    for (i = 0; i < 8; i++)
+      if (setab)
+	_colourtext_escape_part[CTR_PART_BGCOL(i)] = strdup(tparm(setab,i));
+  }
 
   /* printf ("%p %p\n",_escape_col[0],_escape_col[1]); */
 
+ call_colourtext_prepare:
+  /* Before calling colourtext_prepare(), make sure 
+   * _colourtext_escape_part[] is not NULL.
+   */
   for (i = 0; i < CTR_MAX_PART; i++)
     if (_colourtext_escape_part[i] == NULL)
       _colourtext_escape_part[i] = "";
@@ -169,6 +172,106 @@ size_t colourtext_prepare()
 
   for (i = 0; i < 2; i++)
     {
+#define MAX_PARTS 4
+
+      const signed char
+	_colourtext_item_parts[CTR_NUM_REQUEST+1][1+MAX_PARTS] = {
+	{ CTR_NONE, 	         0, 0, 0, 0 },
+	{ CTR_WHITE_BG_RED,      CTR_PART_FGCOL(COLOR_WHITE),
+	  /* */                  CTR_PART_BGCOL(COLOR_RED), 0, 0 },
+	{ CTR_BLACK_BG_RED,      CTR_PART_FGCOL(COLOR_BLACK),
+	  /* */                  CTR_PART_BGCOL(COLOR_RED), 0, 0 },
+	{ CTR_GREEN_BG_RED,      CTR_PART_FGCOL(COLOR_GREEN),
+	  /* */                  CTR_PART_BGCOL(COLOR_RED), 0, 0 },
+	{ CTR_CYAN_BG_RED,       CTR_PART_FGCOL(COLOR_CYAN),
+	  /* */                  CTR_PART_BGCOL(COLOR_RED), 0, 0 },
+	{ CTR_YELLOW_BG_RED,     CTR_PART_FGCOL(COLOR_YELLOW),
+	  /* */                  CTR_PART_BGCOL(COLOR_RED), 0, 0 },
+	{ CTR_WHITE_BG_GREEN,    CTR_PART_FGCOL(COLOR_WHITE),
+	  /* */                  CTR_PART_BGCOL(COLOR_GREEN), 0, 0 },
+	{ CTR_BLACK_BG_GREEN,    CTR_PART_FGCOL(COLOR_BLACK),
+	  /* */                  CTR_PART_BGCOL(COLOR_GREEN), 0, 0 },
+	{ CTR_RED_BG_GREEN,      CTR_PART_FGCOL(COLOR_RED),
+	  /* */                  CTR_PART_BGCOL(COLOR_GREEN), 0, 0 },
+	{ CTR_YELLOW_BG_GREEN,   CTR_PART_FGCOL(COLOR_YELLOW),
+	  /* */                  CTR_PART_BGCOL(COLOR_GREEN), 0, 0 },
+	{ CTR_MAGENTA_BG_GREEN,  CTR_PART_FGCOL(COLOR_MAGENTA),
+	  /* */                  CTR_PART_BGCOL(COLOR_GREEN), 0, 0 },
+	{ CTR_WHITE_BG_BLUE,     CTR_PART_FGCOL(COLOR_WHITE),
+	  /* */                  CTR_PART_BGCOL(COLOR_BLUE), 0, 0 },
+	{ CTR_GREEN_BG_BLUE,     CTR_PART_FGCOL(COLOR_GREEN),
+	  /* */                  CTR_PART_BGCOL(COLOR_BLUE), 0, 0 },
+	{ CTR_CYAN_BLUE,         CTR_PART_FGCOL(COLOR_CYAN),
+	  /* */                  CTR_PART_BGCOL(COLOR_BLUE), 0, 0 },
+	{ CTR_RED_BLUE,          CTR_PART_FGCOL(COLOR_RED),
+	  /* */                  CTR_PART_BGCOL(COLOR_BLUE), 0, 0 },
+	{ CTR_YELLOW_BG_BLUE,    CTR_PART_FGCOL(COLOR_YELLOW),
+	  /* */                  CTR_PART_BGCOL(COLOR_BLUE), 0, 0 },
+	{ CTR_WHITE_BG_CYAN,     CTR_PART_FGCOL(COLOR_WHITE),
+	  /* */                  CTR_PART_BGCOL(COLOR_CYAN), 0, 0 },
+	{ CTR_BLACK_BG_CYAN,     CTR_PART_FGCOL(COLOR_BLACK),
+	  /* */                  CTR_PART_BGCOL(COLOR_CYAN), 0, 0 },
+	{ CTR_RED_BG_CYAN,       CTR_PART_FGCOL(COLOR_RED),
+	  /* */                  CTR_PART_BGCOL(COLOR_CYAN), 0, 0 },
+	{ CTR_YELLOW_BG_CYAN,    CTR_PART_FGCOL(COLOR_YELLOW),
+	  /* */                  CTR_PART_BGCOL(COLOR_CYAN), 0, 0 },
+	{ CTR_BLACK_BG_YELLOW,   CTR_PART_FGCOL(COLOR_BLACK),
+	  /* */                  CTR_PART_BGCOL(COLOR_YELLOW), 0, 0 },
+	{ CTR_RED_BG_YELLOW,     CTR_PART_FGCOL(COLOR_RED),
+	  /* */                  CTR_PART_BGCOL(COLOR_YELLOW), 0, 0 },
+	{ CTR_BLUE_BG_YELLOW,    CTR_PART_FGCOL(COLOR_BLUE),
+	  /* */                  CTR_PART_BGCOL(COLOR_YELLOW), 0, 0 },
+	{ CTR_CYAN_BG_YELLOW,    CTR_PART_FGCOL(COLOR_CYAN),
+	  /* */                  CTR_PART_BGCOL(COLOR_YELLOW), 0, 0 },
+	{ CTR_WHITE_BG_MAGENTA,  CTR_PART_FGCOL(COLOR_WHITE),
+	  /* */                  CTR_PART_BGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_BLACK_BG_MAGENTA,  CTR_PART_FGCOL(COLOR_BLACK),
+	  /* */                  CTR_PART_BGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_GREEN_BG_MAGENTA,  CTR_PART_FGCOL(COLOR_GREEN),
+	  /* */                  CTR_PART_BGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_CYAN_BG_MAGENTA,   CTR_PART_FGCOL(COLOR_CYAN),
+	  /* */                  CTR_PART_BGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_YELLOW_BG_MAGENTA, CTR_PART_FGCOL(COLOR_YELLOW),
+	  /* */                  CTR_PART_BGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_RED,           CTR_PART_FGCOL(COLOR_RED),     0, 0, 0 },
+	{ CTR_GREEN,         CTR_PART_FGCOL(COLOR_GREEN),   0, 0, 0 },
+	{ CTR_BLUE,          CTR_PART_FGCOL(COLOR_BLUE),    0, 0, 0 },
+	{ CTR_MAGENTA,       CTR_PART_FGCOL(COLOR_MAGENTA), 0, 0, 0 },
+	{ CTR_CYAN,          CTR_PART_FGCOL(COLOR_CYAN),    0, 0, 0 },
+	{ CTR_WHITE,         CTR_PART_FGCOL(COLOR_WHITE),   0, 0, 0 },
+	{ CTR_BLACK,         CTR_PART_FGCOL(COLOR_BLACK),   0, 0, 0 },
+	{ CTR_BOLD_RED,      CTR_PART_BOLD,
+	  /* */              CTR_PART_FGCOL(COLOR_RED),     0, 0 },
+	{ CTR_BOLD_GREEN,    CTR_PART_BOLD,
+	  /* */              CTR_PART_FGCOL(COLOR_GREEN),   0, 0 },
+	{ CTR_BOLD_BLUE,     CTR_PART_BOLD,
+	  /* */              CTR_PART_FGCOL(COLOR_BLUE),    0, 0 },
+	{ CTR_BOLD_MAGENTA,  CTR_PART_BOLD,
+	  /* */              CTR_PART_FGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_BOLD_CYAN,     CTR_PART_BOLD,
+	  /* */              CTR_PART_FGCOL(COLOR_CYAN),    0, 0 },
+	{ CTR_BOLD_WHITE_BG_RED, CTR_PART_BOLD,
+	  /* */              CTR_PART_FGCOL(COLOR_WHITE),
+	  /* */              CTR_PART_BGCOL(COLOR_RED),     0 },
+	{ CTR_UL_RED,        CTR_PART_UNDERLINE,
+	  /* */              CTR_PART_FGCOL(COLOR_RED),     0, 0 },
+	{ CTR_UL_GREEN,      CTR_PART_UNDERLINE,
+	  /* */              CTR_PART_FGCOL(COLOR_GREEN),   0, 0 },
+	{ CTR_UL_BLUE,       CTR_PART_UNDERLINE,
+	  /* */              CTR_PART_FGCOL(COLOR_BLUE),    0, 0 },
+	{ CTR_UL_MAGENTA,    CTR_PART_UNDERLINE,
+	  /* */              CTR_PART_FGCOL(COLOR_MAGENTA), 0, 0 },
+	{ CTR_UL_CYAN,       CTR_PART_UNDERLINE,
+	  /* */              CTR_PART_FGCOL(COLOR_CYAN),    0, 0 },
+	{ CTR_NORM_DEF_COL,  CTR_PART_SGR0, CTR_PART_OP,    0, 0 },   
+	{ CTR_DEF_COL,       CTR_PART_OP,                   0, 0, 0 },
+	{ CTR_NORM, 	     CTR_PART_SGR0,                 0, 0, 0 },
+	{ CTR_BOLD, 	     CTR_PART_BOLD,                 0, 0, 0 },
+	{ CTR_UL, 	     CTR_PART_UNDERLINE,            0, 0, 0 },
+	{ CTR_UP1LINE,       CTR_PART_CUU1,                 0, 0, 0 },
+	{ -1,                0, 0, 0, 0 }
+      };
+
       for (j = 0; j < CTR_NUM_REQUEST; j++)
 	{
 	  if (_prepared && strcmp(_colourtext_prepared[i][j]._str,"") != 0) {
@@ -193,69 +296,38 @@ size_t colourtext_prepare()
 	  _do_colourtext != 1)
 	continue;
 
-#define MAX_PARTS 4
-
-      const char _colourtext_item_parts[CTR_NUM_REQUEST][MAX_PARTS] = {
-	{ 0, },                                 /* CTR_NONE */
-	{ CTR_PART_FGCOL(COLOR_WHITE),
-	  CTR_PART_BGCOL(COLOR_RED), 0 },       /* CTR_WHITE_BG_RED */
-	{ CTR_PART_FGCOL(COLOR_YELLOW),
-	  CTR_PART_BGCOL(COLOR_RED), 0 },       /* CTR_YELLOW_BG_RED */
-	{ CTR_PART_FGCOL(COLOR_RED),
-	  CTR_PART_BGCOL(COLOR_GREEN), 0 },     /* CTR_RED_BG_GREEN */
-	{ CTR_PART_FGCOL(COLOR_YELLOW),
-	  CTR_PART_BGCOL(COLOR_BLUE), 0, 0 },   /* CTR_YELLOW_BG_BLUE */
-	{ CTR_PART_FGCOL(COLOR_BLACK),
-	  CTR_PART_BGCOL(COLOR_YELLOW), 0, 0 }, /* CTR_BLACK_BG_YELLOW */
-	{ CTR_PART_FGCOL(COLOR_BLUE),
-	  CTR_PART_BGCOL(COLOR_YELLOW), 0, 0 }, /* CTR_BLUE_BG_YELLOW */
-	{ CTR_PART_FGCOL(COLOR_WHITE),
-	  CTR_PART_BGCOL(COLOR_MAGENTA), 0 },   /* CTR_WHITE_BG_MAGENTA */
-	{ CTR_PART_FGCOL(COLOR_RED),     0, 0, 0 }, /* CTR_RED */
-	{ CTR_PART_FGCOL(COLOR_GREEN),   0, 0, 0 }, /* CTR_GREEN */
-	{ CTR_PART_FGCOL(COLOR_BLUE),    0, 0, 0 }, /* CTR_BLUE */
-	{ CTR_PART_FGCOL(COLOR_MAGENTA), 0, 0, 0 }, /* CTR_MAGENTA */
-	{ CTR_PART_FGCOL(COLOR_CYAN),    0, 0, 0 }, /* CTR_CYAN */
-	{ CTR_PART_FGCOL(COLOR_WHITE),   0, 0, 0 }, /* CTR_WHITE */
-	{ CTR_PART_FGCOL(COLOR_BLACK),   0, 0, 0 }, /* CTR_BLACK */
-	{ CTR_PART_BOLD,
-	  CTR_PART_FGCOL(COLOR_RED),     0, 0 }, /* CTR_BOLD_RED */
-	{ CTR_PART_BOLD,
-	  CTR_PART_FGCOL(COLOR_GREEN),   0, 0 }, /* CTR_BOLD_GREEN */
-	{ CTR_PART_BOLD,
-	  CTR_PART_FGCOL(COLOR_BLUE),    0, 0 }, /* CTR_BOLD_BLUE */
-	{ CTR_PART_BOLD,
-	  CTR_PART_FGCOL(COLOR_MAGENTA), 0, 0 }, /* CTR_BOLD_MAGENTA */
-	{ CTR_PART_BOLD,
-	  CTR_PART_FGCOL(COLOR_CYAN),    0, 0 }, /* CTR_BOLD_CYAN */
-	{ CTR_PART_UNDERLINE,
-	  CTR_PART_FGCOL(COLOR_RED),     0, 0 }, /* CTR_UL_RED */
-	{ CTR_PART_UNDERLINE,
-	  CTR_PART_FGCOL(COLOR_GREEN),   0, 0 }, /* CTR_UL_GREEN */
-	{ CTR_PART_UNDERLINE,
-	  CTR_PART_FGCOL(COLOR_BLUE),    0, 0 }, /* CTR_UL_BLUE */
-	{ CTR_PART_UNDERLINE,
-	  CTR_PART_FGCOL(COLOR_MAGENTA), 0, 0 }, /* CTR_UL_MAGENTA */
-	{ CTR_PART_UNDERLINE,
-	  CTR_PART_FGCOL(COLOR_CYAN),    0, 0 }, /* CTR_UL_CYAN */
-	{ CTR_PART_SGR0, CTR_PART_OP, 0, 0 },   /* CTR_NORM_DEF_COL */
-	{ CTR_PART_OP, 0, 0, 0 },               /* CTR_DEF_COL */
-	{ CTR_PART_SGR0, 0, 0, 0 },             /* CTR_NORM */
-	{ CTR_PART_BOLD, 0, 0, 0 },             /* CTR_BOLD */
-	{ CTR_PART_UNDERLINE, 0, 0, 0 },        /* CTR_UL */
-	{ CTR_PART_CUU1,                 0, 0, 0 }, /* CTR_UP1LINE */
-      };
-
       for (j = 0; j < CTR_NUM_REQUEST; j++)
 	{
 	  char prepare[256];
 
 	  prepare[0] = 0;
 
+	  if (_colourtext_item_parts[j][0] != j)
+	    {
+	      fprintf (stderr,
+		       "Colourtext internal error (wrong ctr for %d).\n", j);
+	      exit(1);
+	    }
+
 	  for (k = 0; k < MAX_PARTS; k++)
-	    if (_colourtext_item_parts[j][k])
-	      strcat(prepare,
-		     _colourtext_escape_part[(int) _colourtext_item_parts[j][k]]);
+	    {
+	      int part = (int) _colourtext_item_parts[j][1+k];
+
+	      if (!part)
+		break;
+
+	      if (_colourtext_escape_part[part])
+		strcat(prepare,
+		       _colourtext_escape_part[part]);
+	      else
+		{
+		  /*
+		  fprintf (stderr,
+			   "Colourtext warning: no escape for part %d.\n",
+			   part);
+		  */
+		}
+	    }
 
 	  _colourtext_prepared[i][j]._str = strdup(prepare);
 	  _colourtext_prepared[i][j]._len = strlen(prepare);
@@ -268,6 +340,15 @@ size_t colourtext_prepare()
 		  escapeashash(_colourtext_prepared[i][j]));
 	  */
 	}
+
+      if (_colourtext_item_parts[CTR_NUM_REQUEST][0] != -1)
+	{
+	  fprintf (stderr,
+		   "Colourtext internal error (wrong final ctr).\n");
+	  exit(1);
+	}
+
+
     }
 
   _prepared = 1;
@@ -281,13 +362,34 @@ void colourpair_prepare()
 
   const signed char _colourpairs[CTR_NUM_COLORS][2] = {
     { -1, -1 },
-    { COLOR_WHITE,  COLOR_RED },
-    { COLOR_YELLOW, COLOR_RED },
-    { COLOR_RED,    COLOR_GREEN },
-    { COLOR_YELLOW, COLOR_BLUE },
-    { COLOR_BLACK,  COLOR_YELLOW },
-    { COLOR_BLUE,   COLOR_YELLOW },
-    { COLOR_WHITE,  COLOR_MAGENTA },
+    { COLOR_WHITE,   COLOR_RED },
+    { COLOR_BLACK,   COLOR_RED },
+    { COLOR_GREEN,   COLOR_RED },
+    { COLOR_CYAN,    COLOR_RED },
+    { COLOR_YELLOW,  COLOR_RED },
+    { COLOR_WHITE,   COLOR_GREEN },
+    { COLOR_BLACK,   COLOR_GREEN },
+    { COLOR_RED,     COLOR_GREEN },
+    { COLOR_YELLOW,  COLOR_GREEN },
+    { COLOR_MAGENTA, COLOR_GREEN },
+    { COLOR_WHITE,   COLOR_BLUE },
+    { COLOR_GREEN,   COLOR_BLUE },
+    { COLOR_CYAN,    COLOR_BLUE },
+    { COLOR_RED,     COLOR_BLUE },
+    { COLOR_YELLOW,  COLOR_BLUE },
+    { COLOR_WHITE,   COLOR_CYAN },
+    { COLOR_BLACK,   COLOR_CYAN },
+    { COLOR_RED,     COLOR_CYAN },
+    { COLOR_YELLOW,  COLOR_CYAN },
+    { COLOR_BLACK,   COLOR_YELLOW },
+    { COLOR_RED,     COLOR_YELLOW },
+    { COLOR_BLUE,    COLOR_YELLOW },
+    { COLOR_CYAN,    COLOR_YELLOW },
+    { COLOR_WHITE,   COLOR_MAGENTA },
+    { COLOR_BLACK,   COLOR_MAGENTA },
+    { COLOR_GREEN,   COLOR_MAGENTA },
+    { COLOR_CYAN,    COLOR_MAGENTA },
+    { COLOR_YELLOW,  COLOR_MAGENTA },
     { COLOR_RED,     -1 },
     { COLOR_GREEN,   -1 },
     { COLOR_BLUE,    -1 },

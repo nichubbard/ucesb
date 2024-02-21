@@ -103,7 +103,8 @@ struct ext_write_config
   const char *_header;
   const char *_header_id;
   const char *_header_id_orig;
-  int         _debug_header;
+  int         _header_debug;
+  int         _header_layout;
   int         _port;
   int         _stdout;
   int         _bitpack;

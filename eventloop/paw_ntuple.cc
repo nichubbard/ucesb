@@ -411,6 +411,7 @@ void paw_ntuple_usage()
   printf ("ROOT                Produce ROOT tree (default with .root).\n");
   printf ("STRUCT|SERVER       Run STRUCT server to send data.\n");
   printf ("STRUCT_HH           Produce header file for STRUCT server data.\n");
+  printf ("LAYOUT              Include deprecated LAYOUT_INIT in header.\n");
   printf ("port=N              Run STRUCT server on port N.\n");
   printf ("UPPER               Make all variable names upper case.\n");
   printf ("LOWER               Make all variable names lower case.\n");
@@ -575,6 +576,8 @@ paw_ntuple *paw_ntuple_open_stage(const char *command,bool reading)
 	ntuple_type |= NTUPLE_TYPE_ROOT;
       else if (MATCH_ARG("STRUCT_HH"))
 	ntuple_type |= NTUPLE_TYPE_STRUCT_HH;
+      else if (MATCH_ARG("LAYOUT"))
+	ntuple_opt |= NTUPLE_OPT_STRUCT_HH_LAYOUT;
       else if (MATCH_ARG("STRUCT") || MATCH_ARG("SERVER"))
 	ntuple_type |= NTUPLE_TYPE_STRUCT;
       else if (MATCH_PREFIX("PORT=",post) || MATCH_PREFIX("port=",post))

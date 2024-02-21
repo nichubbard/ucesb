@@ -441,6 +441,20 @@ void do_file_open(time_t slicetime)
 	  filename = _ts._timeslice_name._curname;
 	}
 
+      /* Since ROOT overwrites write-protected files (ugh!), we first
+       * check that the file is not write-protected.
+       */
+      struct stat statbuf;
+
+      if (stat(filename, &statbuf) == 0)
+	{
+	  if (!(statbuf.st_mode & S_IWUSR))
+	    {
+	      ERR_MSG("Refusing to overwrite %s, which is read-only.",
+		      filename);
+	    }
+	}
+
 #if USING_CERNLIB
       if (strlen(_config._ftitle) > 16)
 	ERR_MSG("HBOOK file title (%s) too long (max 16 chars).",
@@ -831,15 +845,15 @@ void close_output()
       char msg_index[64] = "";
       char msg_hists[64] = "";
       if (_config._timeslice)
-	sprintf (msg_total,", %lld total",
+	snprintf(msg_total,sizeof(msg_total),", %lld total",
 		 (long long int) _g._num_events_total);
       if (num_trees > 1)
-	sprintf (msg_trees," in %d trees",(int) num_trees);
+	snprintf(msg_trees,sizeof(msg_trees)," in %d trees",(int) num_trees);
       if (num_index_entries)
-	sprintf (msg_index,", %lld index-entries",
+	snprintf(msg_index,sizeof(msg_index),", %lld index-entries",
 		 (long long int) num_index_entries);
       if (_g._num_hists)
-	sprintf (msg_hists,", %d histograms",_g._num_hists);
+	snprintf(msg_hists,sizeof(msg_hists),", %d histograms",_g._num_hists);
       MSG("Closed file (%lld events%s%s%s%s).",
 	  (long long int) _g._num_events,
 	  msg_total,msg_trees,msg_index,msg_hists);
@@ -1383,7 +1397,7 @@ void do_create_branch(global_struct *s,
 
       if (!br)
 	{
-	  WARN_MSG("Requsted branch (%s) does not exist in tree.",
+	  WARN_MSG("Requested branch (%s) does not exist in tree.",
 		   item._var_name);
 	  /* Not such a disaster, just ignore it.  Zeroes will be
 	   * delivered for each event...
@@ -1395,13 +1409,13 @@ void do_create_branch(global_struct *s,
       // the variable we want to get at!
 
       if (br->GetNleaves() != 1)
-	ERR_MSG("Requsted branch (%s) does not have one leaf (%d).",
+	ERR_MSG("Requested branch (%s) does not have one leaf (%d).",
 		item._var_name,br->GetNleaves());
 
       TLeaf *lf = br->GetLeaf(item._var_name);
 
       if (!lf)
-	ERR_MSG("Requsted leaf (%s) does not exist in branch.",
+	ERR_MSG("Requested leaf (%s) does not exist in branch.",
 		item._var_name);
 
       // Make sure it is counted only if we are counted
@@ -1539,6 +1553,25 @@ void request_create_branch(void *msg,uint32_t *left)
 		item._var_ctrl_name,item._var_name);
 
       item._ctrl_offset = iter->second;
+
+      stage_array_item_map::iterator iter2 =
+	s->_stage_array._items.find(item._ctrl_offset);
+
+      if (iter == s->_stage_array._names.end())
+	ERR_MSG("Unable to find controlling item (%s) for %s by offset %d.",
+		item._var_ctrl_name,item._var_name,item._ctrl_offset);
+
+      if (!(iter2->second._var_type & EXTERNAL_WRITER_FLAG_HAS_LIMIT))
+	ERR_MSG("Controlling item (%s) for %s has no limit.",
+		item._var_ctrl_name,item._var_name);
+
+      if (/* always: iter2->second._limit_min < 0 || */
+	  iter2->second._limit_max > item._var_array_len)
+	ERR_MSG("Controlling item (%s) for %s "
+		"has limits [%d,%d] outside array [%d,%d].",
+		item._var_ctrl_name, item._var_name,
+		iter2->second._limit_min, iter2->second._limit_max,
+		0, item._var_array_len);
     }
   else
     item._ctrl_offset   = (uint32_t) -1;
@@ -1588,7 +1621,7 @@ uint32_t calc_structure_xor_sum(stage_array &sa)
 
 void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 {
-  if (_config._debug_header)
+  if (_config._header_debug)
     {
       for (stage_array_item_map::iterator iter = sa._items.begin();
 	   iter != sa._items.end(); ++iter)
@@ -1653,7 +1686,7 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
       if (!infomacro)
 	{
 	  fprintf (fid,"%*s",indent,"");
-	  if (_config._debug_header)
+	  if (_config._header_debug)
 	    fprintf (fid,"/* %04x %04x */ ",offset,item._length);
 	  fprintf (fid,"%s %s",
 		   var_type->_Cname,
@@ -1684,16 +1717,17 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	    }
 
 	  fprintf (fid,"%*s",indent,"");
-	  if (_config._debug_header)
+	  if (_config._header_debug)
 	    fprintf (fid,"/* %04x %04x */ ",offset,item._length);
 	  int padlen = 32 - strlen(item._var_name);
 	  if (padlen < 0)
 	    padlen = 0;
 	  fprintf (fid,
-		   "EXT_STR_ITEM_INFO%4s(ok,si,offset,struct_t,printerr,\\\n"
+		   "EXT_STR_ITEM_INFO2%4s(ok,si,offset,struct_t,printerr,\\\n"
 		   "  %*.0s%s,%*.0s%s,\\\n"
 		   "  %*.0s\"%s\"",
-		   item._var_array_len != (uint32_t) -1 ? "_ZZP" :
+		   (item._var_array_len != (uint32_t) -1) ?
+		   (item._var_ctrl_name ? "_ZZP" : "") :
 		   (item._limit_max != -1 ? "_LIM" : ""),
 		   19,"",item._var_name,
 		   padlen,"",item_type,
@@ -1703,12 +1737,14 @@ void generate_structure(FILE *fid,stage_array &sa,int indent,bool infomacro)
 	      if (item._var_ctrl_name)
 		fprintf (fid,",%*.0s\"%s\"",
 			 padlen,"",item._var_ctrl_name);
+	      /* Fixed array size is handled by size / sizeof argument.
 	      else
 		fprintf (fid,",%d",item._var_array_len);
+	      */
 	    }
 	  else if (item._limit_max != -1)
 	    fprintf (fid,",%d",item._limit_max);
-	  fprintf (fid,");%s\n",
+	  fprintf (fid,",0/*flags*/);%s\n",
 		   infomacro ? " \\" : "");
 	}
       location = offset + item._length;
@@ -1772,7 +1808,7 @@ void generate_structure_item(FILE *fid,
 		   EXTERNAL_WRITER_FLAG_TYPE_MASK];
 
   fprintf (fid,"%*s",indent,"");
-  if (_config._debug_header)
+  if (_config._header_debug)
     fprintf (fid,"/* %04x %04x */ ",offset,item._length);
   fprintf (fid,"%s ",
 	   var_type->_Cname);
@@ -2052,7 +2088,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		  set_strings sub_used_names;
 
 		  fprintf (fid,"%*sstruct",indent,"");
-		  if (_config._debug_header)
+		  if (_config._header_debug)
 		    fprintf (fid," /* %04x %2d*%04x (%zd) */",
 			     offset,max_index,array_size,suba.size());
 		  fprintf (fid," {\n");
@@ -2076,7 +2112,7 @@ void generate_structure_onion(FILE *fid,stage_array_item_map &sa,
 		}
 	      else
 		{
-		  if (_config._debug_header)
+		  if (_config._header_debug)
 		    {
 		      fprintf (fid,"%*s",indent,"");
 		      fprintf (fid,"/* %04x %2d*%04x (%zd) */",
@@ -2176,6 +2212,8 @@ void write_structure_header(FILE *fid, global_struct *s,
 	   "  \\\n"
 	   "} while (0);\n");
 
+  if (_config._header_layout)
+    {
   fprintf (fid,
 	   "\n"
 	   "/********************************************************\n"
@@ -2187,7 +2225,8 @@ void write_structure_header(FILE *fid, global_struct *s,
 
   fprintf (fid,
 	   "typedef struct EXT_STR_%s_layout_t\n"
-	   "{\n",
+	   "{\n"
+	   "  /* *********** Do NOT use this structure! *********** */\n",
 	   struct_name);
 
   fprintf (fid,
@@ -2212,12 +2251,16 @@ void write_structure_header(FILE *fid, global_struct *s,
 
   fprintf (fid,
 	   "\n"
+	   "  /* *********** Do NOT use this structure! *********** */\n"
 	   "} EXT_STR_%s_layout;\n",
 	   struct_name);
 
   fprintf (fid,
 	   "\n"
-	   "#define EXT_STR_%s_LAYOUT_INIT { \\\n",
+	   "#define EXT_STR_%s_LAYOUT_INIT { \\\n"
+	   "  /* ************* Do NOT use this macro! ************* */ \\\n"
+	   "  /* Use EXT_STR_%s_ITEMS_INFO instead! */ \\\n",
+	   struct_name,
 	   struct_name);
 
   fprintf (fid,"  0x%08x, \\\n"
@@ -2256,7 +2299,9 @@ void write_structure_header(FILE *fid, global_struct *s,
 
   fprintf (fid," \\\n"
 	   "  } \\\n"
+	   "  /* ************* Do NOT use this macro! ************* */ \\\n"
 	   "};\n");
+  }
 }
 
 void write_header()
@@ -2814,7 +2859,7 @@ public:
 // rounds) are quite different, making the control loops short and
 // thus increasing their relative overhead.
 
-// Radix sort minimum.  Treat it as a continous function,
+// Radix sort minimum.  Treat it as a continuous function,
 // differentiate wrt k: 3n*(2^k*(k*ln 2-1)-3*N)/k^2.
 // Find zero - 3n*(2^k*(k*ln 2-1)-3*N)/k^2 == 0,
 // 2^k*(k*ln 2-1)-3*N == 0
@@ -3360,8 +3405,9 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // buffers (which are there even if there are no consumers).
       // That way, we save a memcpy operation.
 
+      // Add 1 for the (possible) final jump to complete the buffer.
       size_t max_length = s->_stage_array._rewrite_max_bytes_per_item *
-	((ppp - s->_stage_array._offset_value)/* / 2*/);
+	((ppp - s->_stage_array._offset_value)/* / 2*/ + 1);
 
       max_length = (max_length + 3) & ~3; // 4-byte alignment
       max_length += sizeof (external_writer_buf_header);
@@ -3554,7 +3600,11 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       // if we employ zero suppression, so it's anyhow not to be
       // used.  We do this such that the unpacking can verify that
       // at least all the offsets worked out together.
-
+      /*
+      MSG("rewrite: before end jump: %d, %d",
+	  ((char *) dest - (char *) (mark_dest + 1)),
+	  ((((char *) dest - (char *) *header) + 3) & ~3));
+      */
       if (cur_offset != s->_stage_array._length)
 	{
 	  uint32_t offset = s->_stage_array._length - sizeof(uint32_t);
@@ -3582,9 +3632,9 @@ void request_ntuple_fill(ext_write_config_comm *comm,
       uint32_t new_length =
 	((((char *) dest - (char *) header) + 3) & ~3);
       /*
-      MSG("rewrite: %d items (%d bpi), %d / nl: %d ml: %d",
-	  (ppp - _stage_array._offset_value) / 2,
-	  _stage_array._rewrite_max_bytes_per_item,
+      MSG("rewrite: %zd items (%d bpi), %d / nl: %d ml: %d",
+	  (ppp - s->_stage_array._offset_value) / 2,
+	  s->_stage_array._rewrite_max_bytes_per_item,
 	  ((char *) dest - (char *) (mark_dest + 1)),
 	  new_length,max_length);
       */
@@ -3931,8 +3981,8 @@ bool ntuple_get_event(char *msg,char **end)
     uint32_t *start = (uint32_t *) (header + 1);
 
     start[0] = htonl(0); // struct_index (0, only one when reading)
-    start[0] = htonl(0); // ntuple_index (0, only one when reading)
-    start[1] = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
+    start[1] = htonl(0); // ntuple_index (0, only one when reading)
+    start[2] = htonl(EXTERNAL_WRITER_COMPACT_NONPACKED);
 
     uint32_t *cur = start + 3;
 
@@ -3979,6 +4029,7 @@ bool ntuple_get_event(char *msg,char **end)
 
 	    for (int i = items; i; i--)
 	      {
+		mark   = *(o++);
 		offset = (*(o++)) & 0x3fffffff;
 		value = *((uint32_t *) (s->_stage_array._ptr + offset));
 
@@ -5152,7 +5203,8 @@ void usage(char *cmdname)
   printf ("  --header=FILE      Write data structure declaration to FILE.\n");
   printf ("  --id=ID            Override ID of header written.\n");
   printf ("  --dump-raw         Dump raw protocol data.\n");
-  printf ("  --debug-header     Litter header declaration with offsets and sizes.\n");
+  printf ("  --header-debug     Litter header declaration with offsets and sizes.\n");
+  printf ("  --header-layout    Include deprecated LAYOUT_INIT in header.\n");
   printf ("  --server[=PORT]    Run a external data server (at PORT).\n");
   printf ("  --stdout           Write data to stdout.\n");
   printf ("  --dump[=FORMAT]    Make text dump of data.  (FORMAT: normal, wide, [compact_]json)\n");
@@ -5304,8 +5356,12 @@ int main(int argc,char *argv[])
       else if (MATCH_ARG("--dump-raw")) {
 	_config._dump_raw = 1;
       }
-      else if (MATCH_ARG("--debug-header")) {
-	_config._debug_header = 1;
+      else if (MATCH_ARG("--header-debug") ||
+	       MATCH_ARG("--debug-header") /* old */) {
+	_config._header_debug = 1;
+      }
+      else if (MATCH_ARG("--header-layout")) {
+	_config._header_layout = 1;
       }
       else if (MATCH_PREFIX("--server=",post)) {
 	_config._port = atoi(post);
@@ -5437,7 +5493,7 @@ int main(int argc,char *argv[])
   memset(&action,0,sizeof(action));
   action.sa_handler = sigint_handler;
   sigemptyset(&action.sa_mask);
-  action.sa_flags   = 0;
+  action.sa_flags   = SA_RESTART;
   sigaction(SIGINT,&action,NULL);
 
   if (!_config._forked
@@ -5461,7 +5517,7 @@ int main(int argc,char *argv[])
       memset(&action,0,sizeof(action));
       action.sa_handler = sigalarm_handler;
       sigemptyset(&action.sa_mask);
-      action.sa_flags   = 0;
+      action.sa_flags   = SA_RESTART;
       sigaction(SIGALRM,&action,NULL);
     }
 
@@ -5469,7 +5525,7 @@ int main(int argc,char *argv[])
   memset(&action,0,sizeof(action));
   action.sa_handler = sigio_handler;
   sigemptyset(&action.sa_mask);
-  action.sa_flags   = 0;
+  action.sa_flags   = SA_RESTART;
   sigaction(SIGIO,&action,NULL);
 #endif
 
@@ -5599,7 +5655,8 @@ int main(int argc,char *argv[])
 	      // waste the space at the end
 	      shmc->_ctrl->_done += lin_left;
 	      shmc->_cur = shmc->_begin;
-	      continue;
+              MFENCE;
+              goto check_producer_wakeup;
 	    }
 
 	  if (lin_left < sizeof(external_writer_buf_header))
@@ -5607,7 +5664,7 @@ int main(int argc,char *argv[])
 		    request);
 
 	  // MSG("CONSUME: %08x %08x (%x) [%08x].",_ctrl->_done,_cur-(char*)_ctrl,header->_length,header->_request);
-
+          {
 	  uint32_t length  = ntohl(header->_length);
 
 	  if (length & 3)
@@ -5644,16 +5701,19 @@ int main(int argc,char *argv[])
 	  if (shmc->_cur == shmc->_end)
 	    shmc->_cur = shmc->_begin; // start over from beginning
 	  assert(shmc->_cur + sizeof (uint32_t) <= shmc->_end);
-	  MFENCE; // we cannot write that we're done until we wont use
+	  MFENCE; // we cannot write that we're done until we won't use
 		  // the data any longer
 	  shmc->_ctrl->_done += length;
+          MFENCE;
+          }
 
 	  // Did we by chance clean up enough of the buffer, that we
 	  // should wake the consumer up?
 
+	check_producer_wakeup:
 	  if (shmc->_ctrl->_need_producer_wakeup &&
-	      (((int) shmc->_ctrl->_done) -
-	       ((int) shmc->_ctrl->_wakeup_done)) >= 0)
+	      (((ssize_t) shmc->_ctrl->_done) -
+	       ((ssize_t) shmc->_ctrl->_wakeup_done)) >= 0)
 	    {
 	      shmc->_ctrl->_need_producer_wakeup = 0;
 	      MFENCE;
@@ -5709,7 +5769,7 @@ int main(int argc,char *argv[])
   // start producing data.  It has forcefully put itself into waiting
   // for a _consumer_ wakeup token.  However, it did not set the
   // request, as that may still have been needed for us.  That way, it
-  // will not interfer with the control segment further until we have
+  // will not interfere with the control segment further until we have
   // come here.
   //
   // - First verify that the control segment was in sync at this point
@@ -5776,8 +5836,8 @@ int main(int argc,char *argv[])
 	    goto read_done;
 
 	  if (shmc->_ctrl->_need_consumer_wakeup &&
-	      (((int) shmc->_ctrl->_avail) -
-	       ((int) shmc->_ctrl->_wakeup_avail)) >= 0)
+	      (((ssize_t) shmc->_ctrl->_avail) -
+	       ((ssize_t) shmc->_ctrl->_wakeup_avail)) >= 0)
 	    {
 	      shmc->_ctrl->_need_consumer_wakeup = 0;
 	      SFENCE;

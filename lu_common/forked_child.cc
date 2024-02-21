@@ -317,7 +317,7 @@ forked_child::wait(bool terminate_child,
       return;
     }
 
-  // It is (may be) ok of the child process died due to recieving
+  // It is (may be) ok of the child process died due to receiving
   // a sigpipe (since we might have closed the reading end before
   // end of file)
 

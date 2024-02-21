@@ -41,7 +41,8 @@ GENDIR=gen
 
 UNPACKERS=land xtst rpc2006 is446 is430_05 is445_08 labbet1 mwpclab \
 	gamma_k8 hacky empty sid_genf madrid ebye i123 s107 tacquila \
-	fa192mar09 is507 sampler ridf despec
+	fa192mar09 is507 sampler ridf despec ebye_empty iss_lmd \
+	tamex17sync #tagtest
 
 UNPACKERS_is446=is446_toggle is446_tglarray
 
@@ -60,9 +61,10 @@ include $(UCESB_BASE_DIR)/makefile_empty_file.inc
 include $(UCESB_BASE_DIR)/makefile_tdas_conv.inc
 include $(UCESB_BASE_DIR)/makefile_ext_file_writer.inc
 include $(UCESB_BASE_DIR)/makefile_ext_writer_test.inc
+include $(UCESB_BASE_DIR)/makefile_tdcpm.inc
 
 DEPENDENCIES=$(UCESBGEN) $(PSDC) $(EMPTY_FILE) $(EXT_WRITERS) \
-	$(EXT_WRITER_TEST)_tests
+	$(EXT_WRITER_TEST)_tests $(TDCPM)
 
 include $(UCESB_BASE_DIR)/makefile_hasrawapi.inc
 ifneq (,$(HAS_RAWAPI))
@@ -170,7 +172,7 @@ EMPTY_EMPTY_FILE=--lmd --random-trig --events=10
 $(EXTTDIR)/ext_h101.h: empty/empty $(EXT_STRUCT_WRITER)
 	@echo "  EMPTY  $@"
 	@mkdir -p $(EXTTDIR)
-	$(QUIET)empty/empty /dev/null --ntuple=UNPACK,STRUCT_HH,$@ \
+	$(QUIET)empty/empty /dev/null --ntuple=UNPACK,STRUCT_HH,LAYOUT,$@ \
 	  > $@.out 2> $@.err || \
 	  ( echo "Failure while running: '$< /dev/null --ntuple=UNPACK,STRUCT_HH,$@':" ; \
 	    echo "--- stdout: ---" ; cat $@.out ; \
@@ -542,8 +544,26 @@ ridf: $(DEPENDENCIES)
 
 #########################################################
 
+.PHONY: ebye_empty
+ebye_empty: $(DEPENDENCIES)
+	@$(MAKE) -C $@ -f ../makefile_unpacker.inc UNPACKER=$@
+
+#########################################################
+
+.PHONY: iss_lmd
+iss_lmd: $(DEPENDENCIES)
+	@$(MAKE) -C $@ -f ../makefile_unpacker.inc UNPACKER=$@
+
+#########################################################
+
+.PHONY: tamex17sync
+tamex17sync: $(DEPENDENCIES)
+	@$(MAKE) -C $@ -f ../makefile_unpacker.inc UNPACKER=$@
+
+#########################################################
+
 clean: clean-dir-ucesbgen clean-dir-psdc clean-dir-file_input \
-	clean-dir-rfiocmd clean-dir-hbook \
+	clean-dir-rfiocmd clean-dir-hbook clean-dir-tdcpm \
 	$(UNPACKERS:%=clean-unp-%) $(UNPACKERS_EXT:%=clean-unp-%) \
 	$(UNPACKERS_is446:%=clean-unp-is446-%) \
 	$(UNPACKERS_xtst:%=clean-unp-xtst-%)

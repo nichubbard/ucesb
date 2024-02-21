@@ -33,7 +33,7 @@
 
 struct buf_chunk
 {
-  char   *_ptr;    // could be void*, char* to allow arithmetics
+  char   *_ptr;    // could be void*, char* to allow arithmetic
   size_t  _length;
 };
 
@@ -158,7 +158,7 @@ inline bool get_range_many(char *dest,
 	return false; // no more chunks, and we did not get all
     }
 
-  // So, rest data is available in the last chunk (and it wont eat up
+  // So, rest data is available in the last chunk (and it won't eat up
   // till the end)
 
   memcpy(dest,src->_ptr,length);
@@ -168,7 +168,7 @@ inline bool get_range_many(char *dest,
 }
 
 // Get data from one or two chunks into a buffer, if the source data
-// is continous, or two chunks, src chunks are updated/moved to reflect
+// is continuous, or two chunks, src chunks are updated/moved to reflect
 // that data was used
 
 inline bool get_range(buf_chunk dest[2],char **dest_continous,
@@ -368,7 +368,7 @@ public:
 
 };
 
-// This class encapsulates an continous input file.  Note, after an
+// This class encapsulates an continuous input file.  Note, after an
 // error (marked by either throwing an error, or failure to read data,
 // one must not read more, since _cur has been speculatively moved
 // forward!  (optimisation)

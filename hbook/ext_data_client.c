@@ -80,6 +80,7 @@ struct ext_data_structure_item
   uint32_t    _var_type;
   uint32_t    _limit_min;
   uint32_t    _limit_max;
+  uint32_t    _flags;
 
   uint32_t    _map_success;
 
@@ -279,6 +280,13 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
       return -1;
     }
 
+  if (struct_info->_server_struct_info == NULL)
+    {
+      /* struct_info->_last_error = "Struct_info server context NULL."; */
+      errno = EINVAL;
+      return -1;
+    }
+
   if (restart == 1)
     {
       struct_info->_ret_item = struct_info->_items;
@@ -328,7 +336,12 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
     *var_name = item->_var_name;
 
   if (offset)
-    *offset = item->_offset;
+    {
+      if (struct_info->_ret_for_server)
+	*offset = (uint32_t) -1;
+      else
+	*offset = item->_offset;
+    }
 
   if (map_success)
     *map_success = item->_map_success;
@@ -388,6 +401,7 @@ ext_data_struct_info_print_map_success(struct ext_data_structure_info *
       EXT_DATA_PRINT_MAP_SUCCESS(MATCH,         "match");
       EXT_DATA_PRINT_MAP_SUCCESS(NO_DEST,       "no dest - not mapped");
       EXT_DATA_PRINT_MAP_SUCCESS(NOT_FOUND,     "not found");
+      EXT_DATA_PRINT_MAP_SUCCESS(OPT_NOT_FOUND, "optional item not found");
       EXT_DATA_PRINT_MAP_SUCCESS(TYPE_MISMATCH, "type mismatch");
       EXT_DATA_PRINT_MAP_SUCCESS(CTRL_MISMATCH, "ctrl item mismatch");
       EXT_DATA_PRINT_MAP_SUCCESS(ARRAY_FEWER,   "array short");
@@ -408,7 +422,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 			      int type,
 			      const char *prename, int preindex,
 			      const char *name, const char *ctrl_name,
-			      int limit_max)
+			      int limit_max, uint32_t flags)
 {
   struct ext_data_structure_item **item_ptr;
   struct ext_data_structure_item **item_ptr_before_off;
@@ -456,6 +470,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
       item->_limit_max = -1;
     }
   item->_ctrl_item = NULL;
+  item->_flags = flags;
 
   item->_map_success = (uint32_t) -1;
 
@@ -510,10 +525,16 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 	   * be larger than our array size.
 	   */
 
-	  if (check->_limit_max == (uint32_t) -1 ||
-	      check->_limit_max > array_items)
+	  if (check->_limit_max == (uint32_t) -1)
 	    {
-	      struct_info->_last_error = "Mismatch with control item limit.";
+	      struct_info->_last_error = "Missing control item limit.";
+	      errno = EINVAL;
+	      goto failure_free_return;
+	    }
+	  if (check->_limit_max > array_items)
+	    {
+	      struct_info->_last_error = "Mismatch with control item limit "
+		"(array too small).";
 	      errno = EINVAL;
 	      goto failure_free_return;
 	    }
@@ -614,8 +635,16 @@ int ext_data_struct_match_items(struct ext_data_client *client,
 	{
 	  if (!match)
 	    {
-	      DEBUG_MATCHING("no match.\n");
-	      item->_map_success = EXT_DATA_ITEM_MAP_NOT_FOUND;
+	      if (item->_flags & EXT_DATA_ITEM_FLAGS_OPTIONAL)
+		{
+		  DEBUG_MATCHING("optional item no match.\n");
+		  item->_map_success = EXT_DATA_ITEM_MAP_OPT_NOT_FOUND;
+		}
+	      else
+		{
+		  DEBUG_MATCHING("no match.\n");
+		  item->_map_success = EXT_DATA_ITEM_MAP_NOT_FOUND;
+		}
 	      goto no_match;
 	    }
 
@@ -1888,7 +1917,7 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 				      var_type,
 				      "", -1,
 				      var_name, var_ctrl_name,
-				      limit_max);
+				      limit_max, 0);
 
 	    break;
 	  }
@@ -1919,7 +1948,7 @@ static int ext_data_setup_messages(struct ext_data_client *client)
 	    uint32_t newsize, magic;
 	    uint32_t *p = (uint32_t *) (header+1);
 
-	    /* Resize our recieve buffer, to be able to receive the
+	    /* Resize our receive buffer, to be able to receive the
 	     * maximum size messages that may arrive.
 	     */
 
@@ -2332,7 +2361,7 @@ int ext_data_setup(struct ext_data_client *client,
 
       client->_buf_alloc = bufsize;
 
-      /* We send some minimum messages to the recepient so that it at
+      /* We send some minimum messages to the recipient so that it at
        * least can check that the data is not completely bogus.
        */
 
@@ -3564,13 +3593,13 @@ int ext_data_struct_info_item_stderr(struct ext_data_structure_info *struct_info
 				     int type,
 				     const char *prename, int preindex,
 				     const char *name, const char *ctrl_name,
-				     int limit_max)
+				     int limit_max, uint32_t flags)
 {
   int ret = ext_data_struct_info_item(struct_info,
 				      offset, size, type,
 				      prename, preindex,
 				      name, ctrl_name,
-				      limit_max);
+				      limit_max, flags);
 
   if (ret != 0)
     {
@@ -3607,13 +3636,16 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  struct ext_data_structure_info *struct_info,
 			  uint32_t *struct_map_success,
 			  size_t size_buf,
-			  const char *name_id, int *struct_id)
+			  const char *name_id, int *struct_id,
+			  uint32_t exclude_success)
 {
+  uint32_t map_success;
+
   int ret = ext_data_setup(client,
 			   struct_layout_info, size_info,
-			   struct_info, struct_map_success,
+			   struct_info, &map_success,
 			   size_buf,
-			   name_id,struct_id);
+			   name_id, struct_id);
 
   if (ret == -1)
     {
@@ -3621,6 +3653,26 @@ int ext_data_setup_stderr(struct ext_data_client *client,
       fprintf (stderr,"Failed to setup connection: %s\n",
 	       client->_last_error);
       /* Not more fatal than that we can disconnect. */
+      return 0;
+    }
+
+  if (struct_map_success)
+    *struct_map_success = map_success;
+
+  /* Since we are stderr version, we check the mapping success here.
+   * In order for user to not have to call another function to do the
+   * check.
+   */
+
+  if (struct_info &&
+      (map_success & ~exclude_success))
+    {
+      fprintf (stderr,
+	       "Structure '%s' was not completely mapped (0x%04x).\n",
+	       name_id, map_success);
+      ext_data_struct_info_print_map_success(struct_info,
+					     stderr,
+					     EXT_DATA_ITEM_MAP_OK);
       return 0;
     }
 

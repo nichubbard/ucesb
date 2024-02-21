@@ -428,7 +428,7 @@ void picture_rich(rich_pads *pads)
       char filename[256];
       static int rings = 0;
 
-      sprintf (filename,"ring_%03d.png",rings++);
+      snprintf(filename,sizeof(filename),"ring_%03d.png",rings++);
 
       convert_picture(filename,_pict,PICT_LINE_SIZE,PICT_LINE_SIZE);
 

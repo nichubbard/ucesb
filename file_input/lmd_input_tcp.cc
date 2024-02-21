@@ -160,7 +160,7 @@ extern watcher_window _watcher;
 // into output_buffer...  The reading is done in chunks of 16384
 // bytes, with the routine which handles timeouts...  hmm...
 
-// When done, and no errors occured, an acknowledge buffer is prepared
+// When done, and no errors occurred, an acknowledge buffer is prepared
 // (but not sent by this routine)
 
 // acknowledge_buffer structure
@@ -175,7 +175,7 @@ extern watcher_window _watcher;
 // the status argument to bits already set
 
 // Then we're back to the connect routine, which now takes care of the
-// recieved data...  swapping is checked...  i.e. testbit.  it is
+// received data...  swapping is checked...  i.e. testbit.  it is
 // checked if it becomes better by swapping it.  Then there is
 // something strange, the data_length is used unswapped together with
 // the length of the 11 last data words to swap those and the data...
@@ -293,7 +293,7 @@ extern watcher_window _watcher;
 
 // The LMD tcp connection input works as a front-end for the
 // pipe_buffer.  Instead of reading directly from a file, we read data
-// from ther tcp socket and place it into the buffer.  Care is taken
+// from the tcp socket and place it into the buffer.  Care is taken
 // not to start a transaction that would read data until we internally
 // have buffer space available to hold it.  This way, we cannot lock
 // the server up (even though it also is the servers responsibility to
@@ -374,16 +374,29 @@ bool lmd_input_tcp::parse_connection(const char *server,
 }
 
 bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
-				    uint16_t port, bool error_on_failure)
+				    uint16_t port, bool error_on_failure,
+				    bool tcp)
 {
   int rc;
   struct sockaddr_in serv_addr;
+  int type, protocol;
 
   serv_addr = *p_serv_addr;
   serv_addr.sin_port = htons(port);
 
+  if (tcp)
+    {
+      type     = SOCK_STREAM;
+      protocol = IPPROTO_TCP;
+    }
+  else
+    {
+      type     = SOCK_DGRAM;
+      protocol = IPPROTO_UDP;
+    }
+
   /* socket creation */
-  _fd = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
+  _fd = socket(PF_INET, type, protocol);
   if (_fd < 0) {
     ERROR("Cannot open socket.");
     return false;
@@ -391,9 +404,8 @@ bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
 
   // Make the read file non-blocking to handle cases where the
   // read would be from some socket of sorts, that may actually
-  // offer nothing to read, despite the select succesful (see linux
+  // offer nothing to read, despite the select successful (see linux
   // bug notes of select)
-
 
   if (fcntl(_fd,F_SETFL,fcntl(_fd,F_GETFL) | O_NONBLOCK) == -1)
     {
@@ -401,7 +413,7 @@ bool lmd_input_tcp::open_connection(const struct sockaddr_in *p_serv_addr,
       exit(1);
     }
 
-  INFO(0,"Connecting port: %d",port);
+  INFO(0,"Connecting %s port: %d", tcp ? "TCP" : "UDP", port);
 
   rc = ::connect(_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
   if (rc < 0) {
@@ -500,9 +512,9 @@ void lmd_input_tcp::close_connection()
 
 
 
-void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
+void lmd_input_tcp::do_read(void *buf,size_t count,int timeout_us)
 {
-  // If we are running threaded, then we'll wait indefinately for some
+  // If we are running threaded, then we'll wait indefinitely for some
   // input... ?!?
 
   while (count)
@@ -532,10 +544,10 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
       }
 #endif
 
-      timewait.tv_sec  = timeout;
-      timewait.tv_usec = 0;
+      timewait.tv_sec  = timeout_us / 1000000;
+      timewait.tv_usec = timeout_us % 1000000;
 
-      int n = select(nfds+1,&rfds,NULL,NULL,timeout >= 0 ? &timewait : NULL);
+      int n = select(nfds+1,&rfds,NULL,NULL,timeout_us >= 0 ? &timewait : NULL);
 
       if (n == -1)
 	{
@@ -591,8 +603,8 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 	  buf = ((char *) buf) + n;
 	  count -= (size_t) n;
 
-	  if (timeout >= 0)
-	    timeout = 100;
+	  if (timeout_us >= 0)
+	    timeout_us = 100 * 1000000;
 	}
 
     }
@@ -600,7 +612,7 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout)
 
 
 
-void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
+void lmd_input_tcp::do_write(void *buf,size_t count,int timeout_us)
 {
   // Also the writes operate with timeout, since the stream server
   // may pile up the input...
@@ -622,10 +634,10 @@ void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
 
       struct timeval timewait;
 
-      timewait.tv_sec  = timeout;
-      timewait.tv_usec = 0;
+      timewait.tv_sec  = timeout_us / 1000000;
+      timewait.tv_usec = timeout_us % 1000000;
 
-      int n = select(nfds+1,NULL,&wfds,NULL,timeout >= 0 ? &timewait : NULL);
+      int n = select(nfds+1,NULL,&wfds,NULL,timeout_us >= 0 ? &timewait : NULL);
 
       if (n == -1)
 	{
@@ -674,8 +686,8 @@ void lmd_input_tcp::do_write(void *buf,size_t count,int timeout)
 	  buf = ((char *) buf) + n;
 	  count -= (size_t) n;
 
-	  if (timeout >= 0)
-	    timeout = 100;
+	  if (timeout_us >= 0)
+	    timeout_us = 100 * 1000000;
 	}
     }
 }
@@ -718,6 +730,38 @@ void lmd_input_tcp::create_dummy_buffer(void *buf,size_t count,
 }
 
 
+#define FAKERNET_REG_ACCESS_ADDR_WRITE      0x80000000 /* Write request. */
+#define FAKERNET_REG_ACCESS_ADDR_RESET_TCP            0x08000800  /* 0x1 */
+
+void lmd_input_tcp_buffer::reset_tcp()
+{
+  uint32_t udp_packet[4];
+  int i;
+
+  for (i = 0; i < 3; i++)
+    {
+      INFO(0, "Send TCP reset via UDP.");
+
+      udp_packet[0] = htonl(0);
+      udp_packet[1] = htonl(0);
+      udp_packet[2] = htonl(FAKERNET_REG_ACCESS_ADDR_WRITE |
+			    FAKERNET_REG_ACCESS_ADDR_RESET_TCP);
+      udp_packet[3] = htonl(0);
+
+      try
+	{
+	  do_write(udp_packet, sizeof (udp_packet), 100000);
+	  do_read(udp_packet, sizeof (udp_packet), 100000);
+	  return;
+	}
+      catch (error &e)
+	{
+	  // Try again.
+	}
+    }
+
+  ERROR("Failed to reset TCP via UDP.");
+}
 
 
 size_t lmd_input_tcp_buffer::read_info(int *data_port)
@@ -958,7 +1002,8 @@ size_t lmd_input_tcp_buffer::read_buffer(void *buf,size_t count,
 
 size_t lmd_input_tcp_buffer::do_map_connect(const char *server,
 					    int port_map_add,
-					    uint16_t default_port)
+					    uint16_t default_port,
+					    bool tcp_reset_by_udp)
 {
   struct sockaddr_in serv_addr;
   uint16_t port;
@@ -966,6 +1011,19 @@ size_t lmd_input_tcp_buffer::do_map_connect(const char *server,
   if (!lmd_input_tcp::parse_connection(server, &serv_addr, &port,
 				       default_port))
     return false;
+
+  if (tcp_reset_by_udp)
+    {
+      uint16_t udp_reset_port = LMD_UDP_PORT_FAKERNET_IDEMPOTENT;
+
+      if (!lmd_input_tcp_buffer::open_connection(&serv_addr, udp_reset_port,
+						 false, false))
+	return false;
+
+      reset_tcp();
+
+      lmd_input_tcp_buffer::close_connection();
+    }
 
   int data_port = -1;
   size_t ret;
@@ -1045,6 +1103,16 @@ size_t lmd_input_tcp_transport::get_buffer(void *buf,size_t count)
 	}
     }
   return 0;
+}
+
+/////////////////////////////////////////////////////////////////////
+
+size_t lmd_input_tcp_fakernet::connect(const char *server)
+{
+  return do_map_connect(server,
+			-1,
+			LMD_TCP_PORT_FAKERNET,
+			true);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -1137,7 +1205,7 @@ size_t lmd_input_tcp_stream::get_buffer(void *buf,size_t count)
       // but also in the middle wrapped the linear space then we for the
       // second call may handle only empty buffers.  those will be
       // silently eaten, and thus we produce no data, but we did discard
-      // buffers.  As the recepients of our return call treat total == 0
+      // buffers.  As the recipients of our return call treat total == 0
       // as an error, we must in this case try to read data again...
 
 

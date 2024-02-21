@@ -393,7 +393,7 @@ void file_mmap::release_to(off_t end)
   // between...  :-(
 
   // There is no problem with _gone being smaller than _done.  It is
-  // never smaller than a page, so the bytes inbetween will never have
+  // never smaller than a page, so the bytes in-between will never have
   // been unmapped before us.
 
   off_t away = end & (off_t) _page_mask;

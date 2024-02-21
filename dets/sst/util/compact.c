@@ -33,7 +33,7 @@ compact(const uint32 *src,
 
   // We store all data.  First we need compute an optimal offset to add
   // to the base.  For storing 12 bit data values, which hopefully
-  // usually stays within 16 bits of the offset, we'll use an approch
+  // usually stays within 16 bits of the offset, we'll use an approach
   // with three 'streams' of data.
 
   // The first one is a bit pattern stream which selects if an value is

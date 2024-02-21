@@ -162,7 +162,7 @@ struct md_ident_fl
 
 %expect 0
 
-// shift/reduce conflift:
+// shift/reduce conflict:
 //
 // IDENTIFIER IDENTIFIER  followed by  ':'  is part of a bitfield
 // IDENTIFIER IDENTIFIER  followed by  '[' or ';' is part of an variable
@@ -233,8 +233,8 @@ struct_item_list:
         ;
 
 struct_item:
-          PUBLIC ':'                   { $$ = NULL; /* silenty ignore */ }
-        | ';'                          { $$ = NULL; /* silenty ignore */ }
+          PUBLIC ':'                   { $$ = NULL; /* silently ignore */ }
+        | ';'                          { $$ = NULL; /* silently ignore */ }
         | struct_definition            { $$ = $1; }
         | struct_member ';'            { $$ = $1; }
         | struct_member unit ';'       { $$ = $1; $1->set_unit($2); }

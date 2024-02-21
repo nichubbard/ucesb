@@ -23,7 +23,8 @@
 
 /* TODO: confirm this! */
 #define WR_STAMP_EBID_ERROR           0x00010000
-#define WR_STAMP_EBID_BRANCH_ID_MASK  0x00001f00
+#define WR_STAMP_EBID_BRANCH_ID_MASK  0x00003f00
+#define WR_STAMP_EBID_BRANCH_ID_SHIFT 8
 #define WR_STAMP_EBID_UNUSED		\
   (0xffffffff ^				\
    WR_STAMP_EBID_ERROR ^		\
@@ -34,5 +35,16 @@
 #define WR_STAMP_DATA_1_16_ID         0x04e10000
 #define WR_STAMP_DATA_2_16_ID         0x05e10000
 #define WR_STAMP_DATA_3_16_ID         0x06e10000
+
+/* Extra marker for sync check value. */
+#define SYNC_CHECK_MAGIC_MASK  0xfff00000
+#define SYNC_CHECK_FLAGS_MASK  0x000f0000
+#define SYNC_CHECK_FLAGS_SHIFT 16
+#define SYNC_CHECK_VALUE_MASK  0x0000ffff
+#define SYNC_CHECK_MAGIC       0xf1a00000  /* High 4 bits for geom mism. */
+#define SYNC_CHECK_REF         0x00010000  /* Reference value (master). */
+#define SYNC_CHECK_RECV        0x00020000  /* Received value (slave). */
+#define SYNC_CHECK_LOCAL       0x00040000  /* Local (expect no match, use
+					    * for both master and slave). */
 
 #endif//__WR_STAMP_HH__

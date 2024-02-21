@@ -296,7 +296,7 @@ void ext_net_io_commit_chunk(size_t length,send_item_chunk *chunk)
   _net_stat._committed_size += length;
 
   // If there are any clients that have reached the end of data, they
-  // need to be made aware of the availabilty of new data
+  // need to be made aware of the availability of new data
 
   send_client *client;
 
@@ -435,14 +435,8 @@ void ext_net_io_server_bind(int port)
   MSG("Started server on port %d (data port %d).",
       port,ntohs(serv_addr.sin_port));
 
-  // We don't want any SIGPIPE signals to kill us
-
-  sigset_t sigmask;
-
-  sigemptyset(&sigmask);
-  sigaddset(&sigmask,SIGPIPE);
-
-  sigprocmask(SIG_BLOCK,&sigmask,NULL);
+  // We want SIGPIPE signals to kill us.  (Ignore-code deleted.)
+  // EPIPE-checking locations now use send(,,,MSG_NOSIGNAL)
 }
 
 void ext_net_io_server_accept()
@@ -478,7 +472,7 @@ void ext_net_io_server_accept()
   // selects (see Linux man page bug notes)
 
   // make it asynchronous (deliver SIGIO when I/O possible) to prevent
-  // possible infinte loop handling events without being sent in the
+  // possible infinite loop handling events without being sent in the
   // 'main' routine
 
   ext_net_io_nonblock_async(client_fd,"client connection");
@@ -601,7 +595,8 @@ bool ext_net_io_client_write(send_client *client)
 
   size_t left = client->_chunk->_length - client->_offset;
 
-  ssize_t n = write(client->_fd,client->_chunk->_data+client->_offset,left);
+  ssize_t n = send(client->_fd, client->_chunk->_data+client->_offset, left,
+		   MSG_NOSIGNAL);
 
   if (n == -1)
     {
@@ -663,7 +658,8 @@ bool ext_net_io_portmap_write(portmap_client *portmap)
 {
   size_t left = sizeof(_portmap_msg) - portmap->_offset;
 
-  ssize_t n = write(portmap->_fd,((char*) &_portmap_msg)+portmap->_offset,left);
+  ssize_t n = send(portmap->_fd,((char*) &_portmap_msg)+portmap->_offset,left,
+		   MSG_NOSIGNAL);
 
   if (n == -1)
     {

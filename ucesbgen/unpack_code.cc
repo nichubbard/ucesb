@@ -26,6 +26,8 @@
 #include "str_set.hh"
 #include "account.hh"
 
+#include <inttypes.h>
+
 // We generate the unpack code recursively, i.e. whenever an subevent
 // needs another subevent, that other subevent has to be processed
 // first.
@@ -174,28 +176,28 @@ void generate_unpack_code(struct_definition *structure)
 
   char comment[512];
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker associated structures for %s.",
            structure->_header->_name);
   print_header("STRUCTURES",comment);
   code->_headers.fwrite(stdout);
   print_footer("STRUCTURES");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker for %s.",
            structure->_header->_name);
   print_header("UNPACKER",comment);
   code->_code_unpack.fwrite(stdout);
   print_footer("UNPACKER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event matcher for %s.",
            structure->_header->_name);
   print_header("MATCHER",comment);
   code->_code_match.fwrite(stdout);
   print_footer("MATCHER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event packer for %s.",
            structure->_header->_name);
   print_header("PACKER",comment);
@@ -234,31 +236,31 @@ void generate_unpack_code(event_definition *event)
 
   char comment[512];
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker associated structures for EVENT.");
   print_header("STRUCTURES",comment);
   code->_headers.fwrite(stdout);
   print_footer("STRUCTURES");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event unpacker for EVENT.");
   print_header("UNPACKER",comment);
   code->_code_unpack.fwrite(stdout);
   print_footer("UNPACKER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event packer for EVENT.");
   print_header("PACKER",comment);
   code->_code_packer.fwrite(stdout);
   print_footer("PACKER");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Event revoker for EVENT.");
   print_header("REVOKE",comment);
   code->_code_revoke.fwrite(stdout);
   print_footer("REVOKE");
 
-  sprintf (comment,
+  snprintf(comment,sizeof(comment),
            "Mappings of names for [incl|excl] name lookup.");
   print_header("SUBEVENT_NAMES",comment);
   dumper_dest_file d_dest(stdout);
@@ -383,7 +385,8 @@ void struct_unpack_code::gen(const struct_definition *str,
 
   if (type & (UCT_UNPACK | UCT_MATCH | UCT_PACKER))
     {
-      bool args = named_header && !named_header->_params->empty();
+      bool args = named_header &&
+	has_params(named_header->_params,!!(type & UCT_UNPACK));
 
       d.text_fmt("FORCE_IMPL_DATA_SRC_FCN%s(%s,%s::%s",
 		 args ? "_ARG" : "",
@@ -439,9 +442,39 @@ void struct_unpack_code::gen(const struct_header *header,
   if (type & (UCT_UNPACK | UCT_MATCH | UCT_PACKER))
     d.text("{\n");
 
-  struct_item_list::const_iterator i;
-
   dumper sd(d,2);
+
+  if (is_function && !!(type & UCT_UNPACK))
+    {
+      sd.text_fmt("if (__buffer.is_memberdump())\n");
+      sd.text_fmt("{\n");
+
+      const struct_header_named *named_header =
+	dynamic_cast<const struct_header_named *>(header);
+
+      assert(named_header);
+
+      const struct_header_subevent *subevent_header =
+	dynamic_cast<const struct_header_subevent *>(header);
+
+      dumper ssd(sd,2);
+      ssd.text_fmt("printf(\""
+		   "          "          // indent for data dump
+		   "%%s"                 // CT_OUT(BOLD_MAGENTA)
+		   "%%s"                 // actual name
+		   "%%s"                 // CT_OUT(NORM)
+		   ": \\n\", "           // ...
+		   "CT_OUT(BOLD_%s),  "  // CT_OUT(BOLD_MAGENTA)
+		   "\"%s\","             // actual name
+		   "CT_OUT(NORM)"        // CT_OUT(NORM)
+		   ");\n",
+		   subevent_header ? "MAGENTA" : "BLUE",
+		   named_header ? named_header->_name : "-");
+
+      sd.text_fmt("}\n");
+    }
+
+  struct_item_list::const_iterator i;
 
   indexed_decl_map indexed_decl;
 
@@ -501,13 +534,13 @@ void struct_unpack_code::gen(const file_line &loc,
 
 indexed_type_ind::indexed_type_ind(const char *type,
 				   int max_items,int max_items2,int opts,
-				   const file_line &loc)
+				   int order_index)
 {
-  _type       = type;
-  _max_items  = max_items;
-  _max_items2 = max_items2;
-  _opts       = opts;
-  _loc        = loc;
+  _type        = type;
+  _max_items   = max_items;
+  _max_items2  = max_items2;
+  _opts        = opts;
+  _order_index = order_index;
 }
 
 void insert_indexed_decl(indexed_decl_map &indexed_decl,
@@ -525,7 +558,7 @@ void insert_indexed_decl(indexed_decl_map &indexed_decl,
 					      vi->_index+1,
 					      vi->_index2+1,
 					      opts,
-					      decl->_loc);
+					      decl->_order_index);
 
   exist = indexed_decl.insert(indexed_decl_map::value_type(name,info));
 
@@ -577,22 +610,29 @@ void struct_unpack_code::gen(indexed_decl_map &indexed_decl,
   const struct_encode    *encode;
   const struct_match_end *match_end;
 
-  if ((data    = dynamic_cast<const struct_data*   >(item))) gen(header,
-								 data   ,d,type,mei);
-  if ((decl    = dynamic_cast<const struct_decl*   >(item))) gen(indexed_decl,
-								 decl   ,d,type,mei);
-  if ((list    = dynamic_cast<const struct_list*   >(item))) gen(header,
-								 list   ,d,type,mei,last_subevent_item);
-  if ((select  = dynamic_cast<const struct_select* >(item))) gen(select ,d,type,mei,last_subevent_item);
-  if ((cond    = dynamic_cast<const struct_cond*   >(item))) gen(header,
-								 cond   ,d,type,mei,last_subevent_item);
-  if ((member  = dynamic_cast<const struct_member* >(item))) gen(member ,d,type);
-  if ((mark    = dynamic_cast<const struct_mark*   >(item))) gen(mark   ,d,type);
-  if ((check   = dynamic_cast<const struct_check_count*>(item))) gen(check  ,d,type);
-  if ((encode  = dynamic_cast<const struct_encode* >(item))) gen(encode ,d,type);
-  if ((match_end = dynamic_cast<const struct_match_end* >(item))) gen(match_end ,d,type,mei);
+  if ((data    = dynamic_cast<const struct_data*   >(item)))
+    gen(header,	data,       d,type,mei);
+  if ((decl    = dynamic_cast<const struct_decl*   >(item)))
+    gen(indexed_decl, decl, d,type,mei);
+  if ((list    = dynamic_cast<const struct_list*   >(item)))
+    gen(header,	list,       d,type,mei,last_subevent_item);
+  if ((select  = dynamic_cast<const struct_select* >(item)))
+    gen(select,             d,type,mei,last_subevent_item);
+  if ((cond    = dynamic_cast<const struct_cond*   >(item)))
+    gen(header,	cond,       d,type,mei,last_subevent_item);
+  if ((member  = dynamic_cast<const struct_member* >(item)))
+    gen(member,             d,type);
+  if ((mark    = dynamic_cast<const struct_mark*   >(item)))
+    gen(mark,               d,type);
+  if ((check   = dynamic_cast<const struct_check_count*>(item)))
+    gen(check,              d,type);
+  if ((encode  = dynamic_cast<const struct_encode* >(item)))
+    gen(encode,             d,type);
+  if ((match_end = dynamic_cast<const struct_match_end* >(item)))
+    gen(match_end,          d,type,mei);
 
-  if (d._current > d._indent) d.nl();
+  if (d._current > d._indent)
+    d.nl();
 }
 
 void struct_unpack_code::gen(const encode_spec_base *item,
@@ -744,6 +784,7 @@ void struct_unpack_code::gen(const struct_header *header,
 {
   const char *data_type = "";
   const char *full_name = "";
+  const char *fmt = "";
   static int data_done_counter = 0;
 
   // if the value is declared as no-enocde, it should not go into the data
@@ -751,10 +792,10 @@ void struct_unpack_code::gen(const struct_header *header,
 
   switch (data->_size)
     {
-    case 64: data_type = "uint64 "; full_name = "u64"; break;
-    case 32: data_type = "uint32 "; full_name = "u32"; break;
-    case 16: data_type = "uint16 "; full_name = "u16"; break;
-    case 8:  data_type = "uint8  "; full_name = "u8"; break;
+    case 64: data_type = "uint64 "; full_name = "u64"; fmt = "PRIx64"; break;
+    case 32: data_type = "uint32 "; full_name = "u32"; fmt = "PRIx32"; break;
+    case 16: data_type = "uint16 "; full_name = "u16"; fmt = "PRIx16"; break;
+    case 8:  data_type = "uint8  "; full_name = "u8";  fmt = "PRIx8";  break;
     }
 
   const char *prefix = "";
@@ -819,7 +860,7 @@ void struct_unpack_code::gen(const struct_header *header,
 	      // we do not fit...
 
 	      char label[128];
-	      sprintf (label,"data_done_%d",data_done_counter++);
+	      snprintf(label,sizeof(label),"data_done_%d",data_done_counter++);
 	      data_done_label = strdup(label);
 
 	      d.text_fmt("if (__buffer.empty()) goto %s;\n",data_done_label);
@@ -951,7 +992,7 @@ void struct_unpack_code::gen(const struct_header *header,
       if (data->_flags & (SD_FLAGS_OPTIONAL | SD_FLAGS_SEVERAL))
 	{
 	  char label[128];
-	  sprintf (label,"data_done_%d",data_done_counter++);
+	  snprintf(label,sizeof(label),"data_done_%d",data_done_counter++);
 	  data_done_label = strdup(label);
 	  d.text_fmt("if (__buffer.empty()) goto %s;\n",data_done_label);
 
@@ -1006,9 +1047,9 @@ void struct_unpack_code::gen(const struct_header *header,
 		char name[512];
 
 		if (b->_name)
-		  sprintf(name,"%s%s.%s",prefix,data->_ident,b->_name);
+		  snprintf(name,sizeof(name),"%s%s.%s",prefix,data->_ident,b->_name);
 		else
-		  sprintf(name,"%s%s.unnamed_%d_%d",prefix,data->_ident,b->_min,b->_max);
+		  snprintf(name,sizeof(name),"%s%s.unnamed_%d_%d",prefix,data->_ident,b->_min,b->_max);
 
 		b->_cond->check(d,check_prefix,name,check_data_done_label);
 	      }
@@ -1046,7 +1087,8 @@ void struct_unpack_code::gen(const struct_header *header,
 	  {
 	    char name_prefix_str[512];
 
-	    sprintf(name_prefix_str,"%s.",data->_ident);
+	    snprintf(name_prefix_str,sizeof(name_prefix_str),
+		     "%s.",data->_ident);
 
 	    prefix_ident name_prefix;
 
@@ -1065,6 +1107,57 @@ void struct_unpack_code::gen(const struct_header *header,
 	      if (!data_done_label)
 		return;
 	    }
+	}
+
+      if (type & UCT_UNPACK)
+	{
+	  d.text_fmt("if (__buffer.is_memberdump())\n");
+	  d.text_fmt("{\n");
+	  dumper sd(d,2);
+	  sd.text_fmt("printf(\""
+		      "%%s"            // CT_OUT(BOLD)
+		      "%%0%d\" %s \""  // actual value
+		      "%%s"            // CT_OUT(NORM)
+		      ": %s \", "      // ...
+		      "CT_OUT(BOLD), " // CT_OUT(BOLD)
+		      "%s%s.%s, "      // actual value
+		      "CT_OUT(NORM)"   // CT_OUT(NORM)
+		      ");\n",
+		      data->_size / 4, fmt,
+		      data->_ident,
+		      prefix,data->_ident,full_name);
+
+	  bits_spec_list::const_iterator i;
+	  for (i = data->_bits->begin(); i != data->_bits->end(); ++i)
+	    {
+	      bits_spec *b = *i;
+
+	      if (/* !b->_cond && */ b->_name)
+		{
+		  /* We cannot use fmt.  Bitfields apparently send
+		   * int (not long) when field is smaller than 32 bits
+		   * and full type (bitfield) is 64 bits.  Since we
+		   * do not want to double-guess the compiler, always
+		   * force to uint64.
+		   */
+		  sd.text_fmt("printf(\".%s="    // name
+			      "%%s"               // CT_OUT(BOLD)
+			      "%%%d\" PRIx64 \""  // actual value
+			      "%%s"               // CT_OUT(NORM)
+			      " \", "             // ...
+			      "CT_OUT(BOLD), "    // CT_OUT(BOLD)
+			      "%s %s%s.%s, "      // actual value
+			      "CT_OUT(NORM)"      // CT_OUT(NORM)
+			      ");\n",
+			      b->_name,
+			      (b->_max - b->_min + 1 + 3) / 4,
+			      /*fmt,*/ "(uint64_t) ",
+			      prefix,data->_ident,b->_name);
+		}
+	    }
+
+	  sd.text_fmt("printf(\"\\n\");\n");
+	  d.text_fmt("}\n");
 	}
 
       if ((type & UCT_UNPACK) &&
@@ -1091,7 +1184,7 @@ const struct_header_named *find_decl(const struct_decl* decl,bool subevent)
   const struct_header_named *named_header =
     dynamic_cast<const struct_header_named *>(str_decl->_header);
   if (!named_header && !subevent)
-    ERROR_LOC(decl->_loc,"Structure %s defintion does not have a parameter list (even empty).",
+    ERROR_LOC(decl->_loc,"Structure %s definition does not have a parameter list (even empty).",
 	      decl->_ident);
 
   if (!(decl->_opts & STRUCT_DECL_OPTS_EXTERNAL) !=
@@ -1412,7 +1505,7 @@ void struct_unpack_code::gen_match(const file_line &loc,
 	      char label[128];
 	      static int spurious_label_counter = 0;
 
-	      sprintf (label,"spurious_match_abort_loop_%d",
+	      snprintf(label,sizeof(label),"spurious_match_abort_loop_%d",
 		       spurious_label_counter++);
 	      abort_spurious_label = strdup(label);
 	    }
@@ -1529,7 +1622,7 @@ void struct_unpack_code::gen_match(const file_line &loc,
 			// not the last item in the subevent, we can
 			// however not guarantee that just because we
 			// found 1 item matching, that it _is_ our
-			// match, since it may have been spurios.  If
+			// match, since it may have been spurious.  If
 			// the check however fails, this just means
 			// that we should continue unpack the subevent
 			// after this select statement
@@ -1878,6 +1971,30 @@ void struct_unpack_code::gen(const event_definition *evt,
       //d.text("::__unpack_subevent(subevent_header *__header,__data_src_t &__buffer");
       //d.text(");\n");
     }
+}
+
+bool struct_unpack_code::has_params(const param_list *params,
+				    bool dump_member_args)
+{
+  /* Figure out if gen_params() will dump something. */
+
+  param_list::const_iterator pl;
+
+  for (pl = params->begin(); pl != params->end(); ++pl)
+    {
+      param *p = *pl;
+
+      if (p->_member)
+	{
+	  if (dump_member_args)
+	    return true;
+	}
+      else
+	{
+	  return true;
+	}
+    }
+  return false;
 }
 
 void struct_unpack_code::gen_params(const param_list *params,

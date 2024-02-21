@@ -47,6 +47,7 @@
 #include "worker_thread.hh"
 #include "watcher.hh"
 #include "tstamp_alignment.hh"
+#include "tstamp_sync_check.hh"
 
 #include "event_base.hh"
 
@@ -121,6 +122,7 @@ void usage()
           "                    Transform timestamps before they are evaluated.\n");
   printf ("  --tstamp-hist=[help],[style],[props]\n");
   printf ("                    Histogram of time stamp diffs, style: wr, titris.\n");
+  printf ("  --tstamp-print    Print timestamps.\n");
 #endif
   printf ("  --calib=FILE      Extra input file with mapping/calibration parameters.\n");
 
@@ -136,6 +138,7 @@ void usage()
   printf ("  --print           Print event headers.\n");
   printf ("  --data            Print event data.\n");
   printf ("  --debug           Print events causing errors.\n");
+  printf ("  --print-members   Print unpack data members.\n");
   printf ("  --colour=yes|no   Force colour and markup on or off.\n");
   printf ("  --event-sizes     Show average sizes of events and subevents.\n");
   printf ("  --data-sizes      Show data size usage by data members.\n");
@@ -253,6 +256,11 @@ thread_block    _block_main;
 
 int _got_sigint = 0;
 
+/* Note printf is NOT signal handler safe!
+ *
+ * The buffer for stdout may be corrupted by these actions!
+ */
+
 void sigint_handler(int sig)
 {
   _got_sigint++;
@@ -262,7 +270,7 @@ void sigint_handler(int sig)
       #ifdef USE_CURSES
       endwin();
       #endif
-      printf ("Got many SIGINT requests, next will go through\n");
+      fprintf (stderr, "Got many SIGINT requests, next will go through\n");
       signal(SIGINT,SIG_DFL);
     }
   else
@@ -273,7 +281,7 @@ void sigint_handler(int sig)
 	fprintf (stderr, "\n");
 #endif
 
-      printf ("Termination request, setting max events to 1...\n");
+      fprintf (stderr, "Termination request, setting max events to 1...\n");
       _conf._max_events = 1;
     }
 }
@@ -292,6 +300,7 @@ void sigalarm_handler(int sig)
 /* Hack: should not be here - clean me up! */
 
 extern tstamp_alignment *_ts_align_hist;
+extern tstamp_sync_check *_ts_sync_check;
 #endif
 
 /********************************************************************/
@@ -354,6 +363,13 @@ bool add_input_try_follow_link(const char *path,
        MATCH_PATH_PREFIX("--trans=",post)) ||
       MATCH_PATH_PREFIX("trans://",post)) {
     input._type = LMD_INPUT_TYPE_TRANS; // "MBS transport"
+    input._name = strdup(post);
+    return true;
+  }
+  if ((match_opt_dashes &&
+       MATCH_PATH_PREFIX("--fnet=",post)) ||
+      MATCH_PATH_PREFIX("fnet://",post)) {
+    input._type = LMD_INPUT_TYPE_FAKERNET;
     input._name = strdup(post);
     return true;
   }
@@ -693,6 +709,9 @@ int main(int argc, char **argv)
       else if (MATCH_PREFIX("--tstamp-hist=",post)) {
         _conf._ts_align_hist_command = post;
       }
+      else if (MATCH_ARG("--tstamp-print")) {
+        _conf._ts_print_command = "";
+      }
 #endif//USE_LMD_INPUT
       else if (MATCH_PREFIX("--input-buffer=",post)) {
 	_conf._input_buffer =
@@ -808,6 +827,9 @@ int main(int argc, char **argv)
       }
       else if (MATCH_ARG("--debug")) {
 	_conf._debug = 1;
+      }
+      else if (MATCH_ARG("--print-members")) {
+	_conf._member_dump = 1;
       }
       else if (MATCH_ARG("--quiet")) {
 	_conf._quiet++;
@@ -1013,14 +1035,14 @@ int main(int argc, char **argv)
   //memset(&action,0,sizeof(action));
   //action.sa_handler = signal_handler_ret;
   //sigemptyset(&action.sa_mask);
-  //action.sa_flags   = 0;
+  //action.sa_flags   = SA_RESTART;
   //sigaction(SIGUSR1,&action,NULL);
 
   struct sigaction action;
   memset(&action,0,sizeof(action));
   action.sa_handler = sigint_handler;
   sigemptyset(&action.sa_mask);
-  action.sa_flags   = 0;
+  action.sa_flags   = SA_RESTART;
   sigaction(SIGINT,&action,NULL);
 
   // Copied from hbook/ext_file_writer.cc
@@ -1033,15 +1055,30 @@ int main(int argc, char **argv)
   memset(&action,0,sizeof(action));
   action.sa_handler = sigalarm_handler;
   sigemptyset(&action.sa_mask);
-  action.sa_flags   = 0;
+  action.sa_flags   = SA_RESTART;
   sigaction(SIGALRM,&action,NULL);
 
-  // We don't want any SIGPIPE signals to kill us
+  /* Note about SA_RESTART above:
+   *
+   * If a signal (e.g. ALARM) happens while printf is executing, and
+   * it is printing to a pipe (e.g. | less), but not a file, it may do
+   * an incomplete job and return error.  (Some data may be written,
+   * but parts of the FILE buffer for stdout may be lost.)  With
+   * SA_RESTART the printf is restarted/resumed after the signal.
+   *
+   * This can be provoked more by setting the itimer interval shorter
+   * above (also note the setitimer call further down).  If the ALARM
+   * handler is set to SIG_IGN, the issue is not observed.
+   *
+   * It is not clear if there are other reasons why printf may do an
+   * incomplete job (and program then continue executing).
+   *
+   * Update: if signal is used instead of sigaction, that also works.
+   * (On linux, the system call (rt_sigaction) is with SA_RESTART.)
+   */
 
-  sigset_t sigmask;
-  sigemptyset(&sigmask);
-  sigaddset(&sigmask,SIGPIPE);
-  sigprocmask(SIG_BLOCK,&sigmask,NULL);
+  // We sure want SIGPIPE to kill us when stdout or stderr are gone!
+  // (Ignore-code deleted.)
 
   // We may now use this thread as a worker, i.e. allocate memory
   // from defrag buffers etc
@@ -1127,7 +1164,7 @@ int main(int argc, char **argv)
     {
       char buf[32];
 
-      sprintf(buf,"Work%d",i);
+      snprintf(buf,sizeof(buf),"Work%d",i);
       _ti_info.set_thread(i+1,buf,&_event_processor_threads[i]);
     }
   _ti_info.set_thread(threads+1,"Final",&_open_retire_thread);
@@ -1163,6 +1200,13 @@ int main(int argc, char **argv)
           0
 # endif
           );
+#endif
+    }
+
+  if (_conf._ts_print_command)
+    {
+#ifdef USE_LMD_INPUT
+      _ts_sync_check = new tstamp_sync_check(_conf._ts_print_command);
 #endif
     }
 
@@ -1234,7 +1278,7 @@ int main(int argc, char **argv)
 	  _event_processor_threads[i].spawn();
 	}
     no_more_worker_cpus:
-      // Put us back to execute whereever the OS finds nice
+      // Put us back to execute wherever the OS finds nice
       sched_setaffinity(0,sizeof(orig_affinity),&orig_affinity);
     }
 #endif
@@ -1547,18 +1591,38 @@ get_next_event:
 #if defined(USE_LMD_INPUT)
 	      if (file_event->is_sticky())
 		{
-		  if (_conf._account)
-		    loop.unpack_event<sticky_event_base,1>(*sticky_event);
+		  if (_conf._member_dump)
+		    {
+		      if (_conf._account)
+			loop.unpack_event<sticky_event_base,1,1>(*sticky_event);
+		      else
+			loop.unpack_event<sticky_event_base,0,1>(*sticky_event);
+		    }
 		  else
-		    loop.unpack_event<sticky_event_base,0>(*sticky_event);
+		    {
+		      if (_conf._account)
+			loop.unpack_event<sticky_event_base,1,0>(*sticky_event);
+		      else
+			loop.unpack_event<sticky_event_base,0,0>(*sticky_event);
+		    }
 		}
 	      else
 #endif
 		{
-		  if (_conf._account)
-		    loop.unpack_event<event_base,1>(*event);
+		  if (_conf._member_dump)
+		    {
+		      if (_conf._account)
+			loop.unpack_event<event_base,1,1>(*event);
+		      else
+			loop.unpack_event<event_base,0,1>(*event);
+		    }
 		  else
-		    loop.unpack_event<event_base,0>(*event);
+		    {
+		      if (_conf._account)
+			loop.unpack_event<event_base,1,0>(*event);
+		      else
+			loop.unpack_event<event_base,0,0>(*event);
+		    }
 		}
 		}
 
@@ -2203,7 +2267,7 @@ get_next_event:
     // * Monitoring (if enabled).
 
     // The reason we are opening the files is that we want that task
-    // to be asyncronous to the file reading.
+    // to be asynchronous to the file reading.
 
     // This is a very light-working thread.  May fiddle around on any
     // CPU it likes.  (wherever there are some cycles to spare)
@@ -2281,7 +2345,7 @@ get_next_event:
 			// the data format) has been localized, and also
 			// defragmented...
 
-			// Set up the pointers for where to put the allocated meory
+			// Set up the pointers for where to put the allocated memory
 			_wt._last_reclaim       = item._last_reclaim;
 
 			event_base *eb = (event_base *) item._event;

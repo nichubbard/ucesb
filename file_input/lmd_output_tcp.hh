@@ -98,7 +98,7 @@ struct lmd_output_state
   // that are to be sent to the clients.
 
   // Each client start (either at the last stream available, or with
-  // the oldest one (that still has a continous path to the newest
+  // the oldest one (that still has a continuous path to the newest
   // one, plus 1 for margin) and sends data from there.  (we assume
   // the clients to be faster than the DAQ, but this is not necessary).
 
@@ -213,7 +213,7 @@ public:
 #define LOCC_STATE_STREAM_WAIT    3  // waiting for data in a stream
 #define LOCC_STATE_BUFFER_WAIT    4  // waiting for data in a buffer
 #define LOCC_STATE_SEND_WAIT      5
-#define LOCC_STATE_CLOSE_WAIT     6  // wait (timeout) for othe end to close
+#define LOCC_STATE_CLOSE_WAIT     6  // wait (timeout) for other end to close
 
 
 class lmd_output_tcp;

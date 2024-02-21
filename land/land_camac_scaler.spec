@@ -31,6 +31,6 @@ SUBEVENT(LAND_CAMAC_SCALER)
   if (EXTERNAL has_timestamp)
     {
       UINT32 timestamp;
-      UINT32 endianess { 0_31: 0x87654321; }
+      UINT32 endianness { 0_31: 0x87654321; }
     }
 }

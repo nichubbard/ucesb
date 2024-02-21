@@ -22,7 +22,7 @@
 #define __MILLE_OUTPUT__
 
 // This file constitutes an alternative to using the Mille.h/Mille.cc
-// source for writing data file for the Millepede system.  (see
+// source for writing data file for the Millipede system.  (see
 // http://www.desy.de/~blobel/mptalks.html)
 //
 // The reasons would be:
@@ -32,14 +32,14 @@
 //
 // - different call sequence (also local parameters handled with a
 // list of labels) (if this is an improvement is up to the user)
-// (these local labels should start at 1, and be consequtively used
+// (these local labels should start at 1, and be consecutively used
 // within each record)
 //
 // - ability to include this code as part of UCESB (GPLed) (works, as
 // the GPL ends at program boundaries)
 //
 // - in no way is this an attempt att circumventing the licence of
-// Millepede.
+// Millipede.
 
 #include <stdio.h>
 

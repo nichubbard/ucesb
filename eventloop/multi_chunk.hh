@@ -230,7 +230,7 @@ public:
       }
 
     item_t &item = _items[_num_items];
-    _item_event[_num_items] = -1; // to force error, if unitialized when assigning!
+    _item_event[_num_items] = -1; // to force error, if uninitialized when assigning!
     _num_items++;
     item.__clean(); // clean it before we start to fill it!
     return item;

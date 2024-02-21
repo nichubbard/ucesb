@@ -63,6 +63,8 @@ else
   CXXFLAGS += -Wno-comment -Wno-macro-redefined -Wno-sign-conversion -Wno-float-conversion -Wno-mismatched-tags
 endif
 
+CXXLINKFLAGS += -rdynamic # for backtrace
+
 CXXFLAGS += -g --std=c++14
 OPTFLAGS += #-DNDEBUG
 OPTFLAGS += #-fmudflapth # -fstack-protector
@@ -150,7 +152,7 @@ GENERATED = $(GENDIR)/clean_structures.hh \
 OBJS    = unpacker.o event_loop.o \
 	correlation.o corr_plot_dense.o corr_plot_dense2.o\
 	convert_picture.o pretty_dump.o \
-	event_sizes.o tstamp_alignment.o accounting.o \
+	event_sizes.o tstamp_alignment.o tstamp_sync_check.o accounting.o \
 	mainfcn.o parse_util.o location.o \
 	common.o zero_suppress_map.o signal_id_map.o \
 	struct_fcns.o struct_mapping.o multi_chunk_fcn.o \
@@ -271,10 +273,17 @@ ifdef USE_MERGING # disabled for the time being (to be fixed...)
 NO_USE_EXT_WRITER=1
 endif
 
+#$(warning TARGET:   $(UCESB_BASE_DIR)/hbook/)
+#$(warning CURDIR:   $(CURDIR))
+## realpath --relative-to <curdir> <destination>
+## realpath not always available, sometimes --relative-to not available
+#TARGET_FROM_CURDIR:=$(shell perl -MFile::Spec -e 'print File::Spec->abs2rel(shift, shift)' $(UCESB_BASE_DIR)/hbook/ $(CURDIR))
+#$(warning CUR_DEST: $(TARGET_FROM_CURDIR))
+
 ifndef NO_USE_EXT_WRITER
 CXXFLAGS     += -DUSE_EXT_WRITER=$(USE_EXT_WRITER) \
 	-DUSING_EXT_WRITER=$(USE_EXT_WRITER) \
-	-DEXT_WRITER_PREFIX="\"$(UCESB_BASE_DIR)/hbook/\""
+	-DEXT_WRITER_PREFIX="\"$(shell perl -MFile::Spec -e 'print File::Spec->abs2rel(shift, shift)' $(UCESB_BASE_DIR)/hbook/ $(CURDIR))/\""
 NTUPLE_CREATION=1
 
 OBJS         += external_writer.o
@@ -431,7 +440,7 @@ CXXLIBS      += -lpthread
 
 OBJS         +=
 
-# TODO: Warnings have been made common.  For some while, we wont
+# TODO: Warnings have been made common.  For some while, we will not
 # make them fatal by default.  But that will come!
 
 ifeq (,$(FORCE_PTHREAD)) # not if we forced
@@ -522,6 +531,14 @@ endif
 ifdef USE_EBYE_INPUT_32
 CXXFLAGS     += -DUSE_EBYE_INPUT_32=$(USE_EBYE_INPUT_32) \
 		-DUSE_EBYE_INPUT=$(USE_EBYE_INPUT_32)
+OBJS         += ebye_input.o
+EMPTY_FILE_FORMAT = --ebye
+endif
+
+ifdef USE_EBYE_INPUT_TIMESTAMPED
+CXXFLAGS     += -DUSE_EBYE_INPUT_TIMESTAMPED=$(USE_EBYE_INPUT_TIMESTAMPED) \
+		-DUSE_EBYE_INPUT_32=$(USE_EBYE_INPUT_TIMESTAMPED) \
+		-DUSE_EBYE_INPUT=$(USE_EBYE_INPUT_TIMESTAMPED)
 OBJS         += ebye_input.o
 EMPTY_FILE_FORMAT = --ebye
 endif

@@ -71,6 +71,10 @@ int _signal_spec_order_index = 0;
 
 #define CURR_SIGNAL_COUNT (_signal_spec_order_index++)
 
+int _struct_item_order_index = 0;
+
+#define CURR_ITEM_COUNT (_struct_item_order_index++)
+
 #define CHECK_INDEX(index,max) { \
   { if ((index) <  0)     ERROR_LOC(CURR_FILE_LINE,"Variable index may not be negative (%d).\n",(index)); } \
   { if ((index) >= (max)) ERROR_LOC(CURR_FILE_LINE,"Cowardly refusing variable index (%d) >= %d.\n",(index),(max)); } \
@@ -415,7 +419,7 @@ event_declared_item_list:
         ;
 
 event_declared_item:
-          T_IGNORE_UNKNOWN_SUBEVENT ';'    { struct_decl *decl = new struct_decl(CURR_FILE_LINE,NULL,NULL,NULL,EVENT_OPTS_IGNORE_UNKNOWN_SUBEVENT); $$ = decl; }
+          T_IGNORE_UNKNOWN_SUBEVENT ';'    { struct_decl *decl = new struct_decl(CURR_FILE_LINE,CURR_ITEM_COUNT,NULL,NULL,NULL,EVENT_OPTS_IGNORE_UNKNOWN_SUBEVENT); $$ = decl; }
         | declared_item                    { $$ = $1; }
         ;
 
@@ -430,7 +434,7 @@ declared_item_list:
         ;
 
 declared_item:
-          declared_item_multi_ext var_named_single '=' IDENTIFIER '(' arg_list_null ')' ';' { struct_decl *decl = new struct_decl(CURR_FILE_LINE,$2,$4,$6,$1); $$ = decl; }
+          declared_item_multi_ext var_named_single '=' IDENTIFIER '(' arg_list_null ')' ';' { struct_decl *decl = new struct_decl(CURR_FILE_LINE,CURR_ITEM_COUNT,$2,$4,$6,$1); $$ = decl; }
         ;
 
 declared_item_multi_ext:

@@ -22,12 +22,10 @@
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_h99.h"
 #define EXT_EVENT_STRUCT              EXT_STR_h99
-#define EXT_EVENT_STRUCT_LAYOUT       EXT_STR_h99_layout
-#define EXT_EVENT_STRUCT_LAYOUT_INIT  EXT_STR_h99_LAYOUT_INIT
+#define EXT_EVENT_STRUCT_ITEMS_INFO   EXT_STR_h99_ITEMS_INFO
 
 #define EXT_EVENT_STRUCT_B              EXT_STR_h98
-#define EXT_EVENT_STRUCT_B_LAYOUT       EXT_STR_h98_layout
-#define EXT_EVENT_STRUCT_B_LAYOUT_INIT  EXT_STR_h98_LAYOUT_INIT
+#define EXT_EVENT_STRUCT_B_ITEMS_INFO   EXT_STR_h98_ITEMS_INFO
 
 #include EXT_EVENT_STRUCT_H_FILE
 
@@ -42,16 +40,19 @@
 int main(int argc,char *argv[])
 {
   struct ext_data_client *client;
+  int ok;
   int i;
 
   int server_i = 1;
   int check_next = 0;
 
   EXT_EVENT_STRUCT event;
-  EXT_EVENT_STRUCT_LAYOUT event_layout = EXT_EVENT_STRUCT_LAYOUT_INIT;
+  struct ext_data_structure_info *struct_info = NULL;
+  uint32_t struct_map_success;
 
   EXT_EVENT_STRUCT_B event_b;
-  EXT_EVENT_STRUCT_B_LAYOUT event_b_layout = EXT_EVENT_STRUCT_B_LAYOUT_INIT;
+  struct ext_data_structure_info *struct_b_info = NULL;
+  uint32_t struct_b_map_success;
 
   int h99_id = -1;
   int h98_id = -1;
@@ -86,18 +87,36 @@ int main(int argc,char *argv[])
   if (client == NULL)
     exit(1);
 
+  struct_info = ext_data_struct_info_alloc_stderr();
+  if (struct_info == NULL)
+    exit(1);
+
+  EXT_EVENT_STRUCT_ITEMS_INFO(ok, struct_info, 0, EXT_EVENT_STRUCT, 1);
+  if (!ok)
+    exit(1);
+
+  struct_b_info = ext_data_struct_info_alloc_stderr();
+  if (struct_b_info == NULL)
+    exit(1);
+
+  EXT_EVENT_STRUCT_B_ITEMS_INFO(ok, struct_b_info, 0, EXT_EVENT_STRUCT_B, 1);
+  if (!ok)
+    exit(1);
+
   if (!ext_data_setup_stderr(client,
-			     &event_layout,sizeof(event_layout),
-			     NULL, NULL,
+			     NULL,0,
+			     struct_info, &struct_map_success,
 			     sizeof(event),
-			     "", &h99_id))
+			     "", &h99_id,
+			     EXT_DATA_ITEM_MAP_OK))
     goto failed_setup;
 
   if (!ext_data_setup_stderr(client,
-			     &event_b_layout,sizeof(event_b_layout),
-			     NULL, NULL,
+			     NULL,0,
+			     struct_b_info, &struct_b_map_success,
 			     sizeof(event_b),
-			     "h98", &h98_id))
+			     "h98", &h98_id,
+			     EXT_DATA_ITEM_MAP_OK))
     goto failed_setup;
 
   for ( ; ; )

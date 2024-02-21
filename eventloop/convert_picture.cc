@@ -27,7 +27,8 @@
 
 void convert_picture(const char *filename,
 		     const char *pict,
-		     int width,int height)
+		     int width,int height,
+		     bool color)
 {
   forked_child writer;
   int fd;
@@ -37,13 +38,15 @@ void convert_picture(const char *filename,
 
   writer.fork(argv[0],argv,NULL,&fd);
 
-  sprintf (header,
-	   "P5\n"
+  snprintf(header,sizeof(header),
+	   "%s\n"
 	   "%d %d\n"
 	   "255\n",
+	   color ? "P6" : "P5",
 	   width,height);
 
-  size_t sz = sizeof(char) * (size_t) width * (size_t) height;
+  size_t sz =
+    sizeof(char) * (size_t) width * (size_t) height * (color ? 3 : 1);
 
   full_write(fd,header,strlen(header));
   full_write(fd,pict,sz);

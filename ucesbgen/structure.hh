@@ -33,9 +33,10 @@
 class struct_item
 {
 public:
-  struct_item(const file_line &loc)
+  struct_item(const file_line &loc, int order_index = -1)
   {
     _loc = loc;
+    _order_index = order_index;
   }
 
 public:
@@ -46,6 +47,7 @@ public:
 
 public:
   file_line _loc;
+  int       _order_index; /* For sorting item, uniquely. */
 
 };
 
@@ -108,12 +110,12 @@ public:
   virtual ~struct_decl() { }
 
 public:
-  struct_decl(const file_line &loc,
+  struct_decl(const file_line &loc, int order_index,
 	      const var_name *name,
 	      const char *ident,
 	      const argument_list *args,
 	      int opts)
-    : struct_item(loc)
+    : struct_item(loc, order_index)
   {
     _name  = name;
     _ident = ident;

@@ -275,7 +275,7 @@ void watch_members(const T &src,const data_watcher<T,Twatcher_channel> &watch,wa
       //WARNING("%d",watch._zzp_info._type);
       switch (watch._zzp_info->_type)
 	{
-	case ZZP_INFO_NONE: // no zero supress item
+	case ZZP_INFO_NONE: // no zero suppress item
 	case ZZP_INFO_FIXED_LIST: // part of fixed list
 	  break;
 	case ZZP_INFO_CALL_ARRAY_INDEX:

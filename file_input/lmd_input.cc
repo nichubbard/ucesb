@@ -45,7 +45,7 @@
 // handle to that.  No swapping will be done.  But if the subevent was
 // crossing the border of an fragmented event (stored in several
 // buffers (records)), we'll make a copy of the event such that it is
-// continous in memory.  This is so that the unpackers need not worry
+// continuous in memory.  This is so that the unpackers need not worry
 // about sudden boundaries of the event that need to be crossed.
 // (Doing the copy operation here is cheaper than having to constantly
 // check if the data pointer has passed one of several boundaries.)
@@ -57,7 +57,7 @@
 // sequential), is left to one of them, and also any final operation
 // (like ntuple-writing) will be done by the master process.  Also, in
 // case the program internally collect some sort of data (histograms),
-// they must be mergable at the end, i.e. each thread that process
+// they must be mergeable at the end, i.e. each thread that process
 // events has it's own copy, and only at the end we'll merge the data.
 // (So make sure that they still would not care in what order or what
 // slices etc the events were processed).  In order to have the slaves
@@ -75,9 +75,9 @@
 // as long as the handle is shared, and only used by one thread at a
 // time, the handle may be started to be operated upon by one thread,
 // and then continued to be modified by someone else.  Also, all data
-// inbetween the any fragments (i.e. buffer headers) will never be
+// in between the any fragments (i.e. buffer headers) will never be
 // read again, so it is valid to do a memmove of any part of the event
-// in order to join fragments, overwriting the header inbetween).
+// in order to join fragments, overwriting the header in-between).
 // Such memmove is however not allowed if the file was mmap()ed from
 // the file-system (in which case we are anyhow read-only, and will
 // cause a full seg-fault)
@@ -155,10 +155,10 @@ bool lmd_source::read_record(bool expect_fragment)
   else if (endian_free0 == bswap_32(0x00000001))
     _buffer_status = SDS_SWAPPING;
   // This is for a suggested alternative, where the data itself is
-  // never touched (left in producer endianess and order, and the
+  // never touched (left in producer endianness and order, and the
   // headers are always in network order (in which case we could
   // handle it still more easily, if we'd drop support for old lmd
-  // files (which we wont :-) ))
+  // files (which we won't :-) ))
   else if (endian_free0 == ntohl(0x00000003)) // headers network
 					      // order, data big
 					      // endian (network
@@ -261,7 +261,7 @@ bool lmd_source::read_record(bool expect_fragment)
 	}
 
       ERROR("l_dlen (%d, raw: 0x%08x) of buffer header does not result "
-            "in blocksize (%d, swapped: %d) %% 1024 bytes! (Wrong endianess?)",
+            "in blocksize (%d, swapped: %d) %% 1024 bytes! (Wrong endianness?)",
             _buffer_header.l_dlen,
             _buffer_header.l_dlen,
             (int) buffer_size_dlen,
@@ -326,7 +326,7 @@ bool lmd_source::read_record(bool expect_fragment)
       // unpacker system issues a read() per buffer, which then is
       // unaligned.  Ha!  In your face!)
 
-      // Actaully - this could be seen as a precedent for making all
+      // Actually - this could be seen as a precedent for making all
       // buffers just their used size (and unaligned).  We then stop
       // wasting space all over the place.  And would also be rid of
       // the fragmented events...
@@ -655,7 +655,7 @@ bool lmd_source::read_record(bool expect_fragment)
 	  // end of an event... (the rest of the events we namely want)
 
 	  // This is necessary, since otherwise it may take ages to
-	  // syncronize if we get an file with almost exclusively
+	  // synchronize if we get an file with almost exclusively
 	  // fragmented events
 
 	  // There will be an event header at the start of the buffer...
@@ -779,7 +779,7 @@ lmd_event *lmd_source::get_event()
   // written it all...)
 
   // This check has to be in get_event, cannot be in read_record,
-  // since we may have a continous stretch of fragmented buffers,
+  // since we may have a continuous stretch of fragmented buffers,
   // which would then always when requesting a new record call
   // with expect_fragment
 
@@ -1078,16 +1078,21 @@ void lmd_source::print_buffer_header(const s_bufhe_host *header)
     {
       if (header->l_dlen > LMD_BUF_HEADER_MAX_IUSED_DLEN)
 	{
-	  printf("File header claim size%s%8zd%s\n",
-		 CT_OUT(BOLD),
-		 size,
-		 CT_OUT(NORM));
+	  size_t header_size = size;
 
 	  used = (size_t) header->i_used;
 
 	  used = BUFFER_USED_FROM_IUSED(used);
 
 	  size = used + sizeof (s_bufhe_host);
+
+	  printf("File header claim size%s%8zd%s (actual: %s%zd%s)\n",
+		 CT_OUT(BOLD),
+		 header_size,
+		 CT_OUT(NORM),
+		 CT_OUT(BOLD),
+		 size,
+		 CT_OUT(NORM));
 	}
     }
 
@@ -1245,7 +1250,7 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 	      LMD_SUBEVENT_STICKY_DLEN_REVOKE)
 	    strcpy(data_len,"revoke");
 	  else
-	    sprintf (data_len,"%d",
+	    snprintf(data_len,sizeof(data_len),"%d",
 		     SUBEVENT_DATA_LENGTH_FROM_DLEN(subevent_info->_header._header.l_dlen));
 	  
 	  printf(" %sSubEv ProcID%s%s%6d%s Type/Subtype%s%5d%5d%s "
@@ -1322,7 +1327,7 @@ void lmd_event::print_event(int data,hex_dump_mark_buf *unpack_fail) const
 		    hex_dump(stdout,
 			     (uint32*) subevent_info->_data,
 			     subevent_info->_data + data_length,_swapping,
-			     "%c%08x",9,buf,unpack_fail);
+			     "%c%08x",9,buf,unpack_fail, true);
 		  else
 		    hex_dump(stdout,
 			     (uint16*) subevent_info->_data,
@@ -1536,7 +1541,7 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
 	      // dereference chunk_cur, so we cannot give it away)
 
 	      // But we want to give an invalid (but non-null) pointer
-	      // (since the length is zero, noone should _ever_ look
+	      // (since the length is zero, no one should _ever_ look
 	      // at it...
 
 	      subevent_info->_data = (char*)16;
@@ -1558,7 +1563,7 @@ void lmd_event::locate_subevents(lmd_event_hint *hints)
       else
 	{
 	  // We have some fun, first of all, the data is not stored
-	  // continous yet
+	  // continuous yet
 
 	  subevent_info->_data   = NULL;
 
@@ -1760,7 +1765,7 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
       else
 	{
 	  // or data was fragmented.  Now, if the fragments are in memory
-	  // order, we also know that we may destroy whatever is inbetween
+	  // order, we also know that we may destroy whatever is in-between
 	  // them, so we need only copy the shortest portion of the subevent
 	  // to make it adjacent to the rest.
 
@@ -1778,7 +1783,7 @@ void lmd_event::get_subevent_data_src(lmd_subevent *subevent_info,
 	  if (size0 < remain)
 	    {
 	      // The first fragment is smaller than the rest (and then,
-	      // even if more than two fragements, most likely also
+	      // even if more than two fragments, most likely also
 	      // smaller than fragment 1)
 
 	      subevent_info->_data = frag->_ptr - size0;

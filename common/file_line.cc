@@ -21,8 +21,29 @@
 #include "file_line.hh"
 #include "dumper.hh"
 
+#include <string.h>
+
 lineno_map *_last_lineno_map  = NULL;
 lineno_map *_first_lineno_map = NULL;;
+
+void insert_lineno_map(int internal,
+		       const char* file, size_t sz_file, int line)
+{
+  lineno_map *map = new lineno_map;
+
+  map->_internal = internal;
+  map->_line = line;
+  map->_file = (file != NULL ? strndup(file, sz_file) : "UNKNOWN");
+  map->_prev = _last_lineno_map;
+  map->_next = NULL;
+
+  if (!_first_lineno_map)
+    _first_lineno_map = map;
+  else
+    _last_lineno_map->_next = map;
+
+  _last_lineno_map = map;
+}
 
 void print_lineno(FILE* fid,int internal)
 {

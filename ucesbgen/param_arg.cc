@@ -108,8 +108,8 @@ void dump_param_args(const file_line &loc,
       d.text_fmt(",/*%s*/",p->_name);
       if (i != a._arg_map.end())
 	{
-	  a._arg_map.erase(i);
 	  i->second->dump(d);
+	  a._arg_map.erase(i);
 	}
       else if (p->_def) // or do we have a default value?
 	p->_def->dump(d);
@@ -161,9 +161,9 @@ void dump_match_args(const file_line &loc,
       if (i != a._arg_map.end())
 	{
 	  d.text_fmt("%s(VES10_1_%s==",has_cond ? "&&" : "",p->_name);
-	  a._arg_map.erase(i);
 	  i->second->dump(d);
 	  d.text_fmt(")");
+	  a._arg_map.erase(i);
 	  has_cond = true;
 	}
     }

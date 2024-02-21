@@ -10,17 +10,25 @@ stages:
 ###
 # Common tags:
 
+# See next blob.  These are ok with North and East virtual machines.
 .docker: &docker
   tags:
+    - docker-virt-ok
+  # retry: 1
+
+# The North and East virtual machines have troubles with DNS/IP 'lookup'
+# sometimes for older images, require plain 'docker' tag.
+.docker-no-virt: &docker-no-virt
+  tags:
     - docker
-  retry: 1
+  # retry: 1
 
 # User-mode emulation, requires binfmt_misc to be set up
 .qemu: &qemu
   tags:
     - docker
     - binfmt
-  retry: 1
+  # retry: 1
 
 ###
 # Build rules, these contain the 'script'
@@ -28,7 +36,7 @@ stages:
 .build: &build
   script:
     - test -d /opt/root && source /opt/root/bin/thisroot.sh || echo No ROOT installed
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - $CXX --version
@@ -39,7 +47,7 @@ stages:
 
 .build-bsd: &build-bsd
   script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - $CC --version
@@ -59,7 +67,7 @@ stages:
 
 .debian: &debian
   before_script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - apt-get update -yq > /dev/null
@@ -73,7 +81,7 @@ stages:
 
 .old-debian: &old-debian
   before_script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export CC=${JOB_NAME[2]}
     - export CXX=${JOB_NAME[3]}
     - apt-get update -yq > /dev/null
@@ -115,7 +123,7 @@ stages:
 .ubuntu-gcc6-with-flex: &ubuntu-gcc6
   <<: *debian
   before_script:
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - export FLEX=${JOB_NAME[6]}
     - apt-get update -yq > /dev/null
     - apt-get install -y --no-install-recommends flex bison libncurses5-dev
@@ -149,7 +157,7 @@ stages:
   script:
     - _DISABLE="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
     - _SSH="ssh -c 3des-cbc root@127.0.0.1 -p $PORT $_DISABLE"
-    - JOB_NAME=( $CI_BUILD_NAME )
+    - JOB_NAME=( $CI_JOB_NAME )
     - _TARGET="${JOB_NAME[4]}"
     - sleep 60
     - while ! $_SSH -o ConnectTimeout=5 'uname -a'; do
@@ -255,22 +263,22 @@ freebsd 10 gcc g++ empty:
 
 qemusys arm . . tdas_conv:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-arm
 
 qemusys arm . . ext_writer_test:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-arm
 
 qemusys ppc . . tdas_conv:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-ppc
 
 qemusys ppc . . ext_writer_test:
   stage: build
-  <<: *docker
+  <<: *docker-no-virt
   <<: *qemu-system-ppc
 
 ###
@@ -354,21 +362,78 @@ qemu ppc clang clang++ xtst:
   <<: *qemu
   <<: *build
 
-
 ###
-# And the rest.
+# Try the merging mode (no-virt needed), quite fast.
+
+gcc-latest minimal gcc g++ empty merging:
+  stage: build
+  image: gcc:latest
+  <<: *docker-no-virt
+  <<: *debian
+  variables:
+    EXTRA_MAKE_FLAGS: "USE_MERGING=1"
+
+gcc-latest minimal gcc g++ xtst merging:
+  stage: build
+  image: gcc:latest
+  <<: *docker-no-virt
+  <<: *debian
+  variables:
+    EXTRA_MAKE_FLAGS: "USE_MERGING=1"
+###
+# And the rest.  First the no-wirt images as they need scarce builders.
 
 SLC latest gcc g++ all:
   stage: build
   image: munken/build-essential:slc6-latest-gcc
-  <<: *docker
+  <<: *docker-no-virt
   <<: *slc6
 
 CC7 latest gcc g++ all:
   stage: build
   image: munken/build-essential:cc7-latest-gcc
-  <<: *docker
+  <<: *docker-no-virt
   <<: *cc7
+
+# Problems with North and East dues to flex wget in before_script.
+Xenial root6 gcc g++ all flex 2.6.1:
+  stage: build
+  image: munken/root2:ubuntu-xenial
+  <<: *docker-no-virt
+  <<: *ubuntu-gcc6
+
+Xenial root6 gcc g++ all flex 2.6.2:
+  stage: build
+  image: munken/root2:ubuntu-xenial
+  <<: *docker-no-virt
+  <<: *ubuntu-gcc6
+
+gcc-latest full gcc g++ all:
+  stage: build
+  image: gcc:latest
+  <<: *docker-no-virt
+  <<: *debian
+
+Debian Wheezy gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-wheezy-gcc
+  <<: *docker-no-virt
+  <<: *build
+
+Debian Wheezy gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-wheezy-clang
+  <<: *docker-no-virt
+  <<: *build
+
+Debian Etch gcc g++ all:
+  stage: build
+  image: munken/build-essential:debian-etch-gcc
+  <<: *docker-no-virt
+  <<: *build
+
+###
+# And the rest.
 
 Ubuntu Trusty gcc g++ all:
   stage: build
@@ -399,18 +464,6 @@ Ubuntu Xenial clang clang++ all:
   image: munken/build-essential:ubuntu-xenial-clang
   <<: *docker
   <<: *build  
-
-Xenial root6 gcc g++ all flex 2.6.1:
-  stage: build
-  image: munken/root2:ubuntu-xenial
-  <<: *docker
-  <<: *ubuntu-gcc6
-
-Xenial root6 gcc g++ all flex 2.6.2:
-  stage: build
-  image: munken/root2:ubuntu-xenial
-  <<: *docker
-  <<: *ubuntu-gcc6
 
 Ubuntu Bionic gcc g++ all:
   stage: build
@@ -447,12 +500,6 @@ Arch latest clang clang++ all:
   image: archlinux/archlinux:base
   <<: *arch
   <<: *build
-
-gcc-latest full gcc g++ all:
-  stage: build
-  image: gcc:latest
-  <<: *docker
-  <<: *debian
 
 Debian buster gcc g++ all:
   stage: build
@@ -550,18 +597,6 @@ debian jessie clang-8 clang++-8 all:
   <<: *docker
   <<: *build
 
-Debian Wheezy gcc g++ all:
-  stage: build
-  image: munken/build-essential:debian-wheezy-gcc
-  <<: *docker
-  <<: *build
-
-Debian Etch gcc g++ all:
-  stage: build
-  image: munken/build-essential:debian-etch-gcc
-  <<: *docker
-  <<: *build
-
 Opensuse latest gcc g++ all:
   stage: build
   image: munken/build-essential:opensuse-latest-gcc
@@ -606,22 +641,3 @@ Ubuntu Bionic gcc g++ all root6:
   <<: *docker
   <<: *debian
   <<: *build
-
-###
-# Try the merging mode
-
-gcc-latest minimal gcc g++ empty merging:
-  stage: build
-  image: gcc:latest
-  <<: *docker
-  <<: *debian
-  variables:
-    EXTRA_MAKE_FLAGS: "USE_MERGING=1"
-
-gcc-latest minimal gcc g++ xtst merging:
-  stage: build
-  image: gcc:latest
-  <<: *docker
-  <<: *debian
-  variables:
-    EXTRA_MAKE_FLAGS: "USE_MERGING=1"

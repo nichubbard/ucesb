@@ -65,6 +65,8 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info);
 
 /*************************************************************************/
 
+#define EXT_DATA_ITEM_FLAGS_OPTIONAL  0x01
+
 /* Add one item of structure information.
  *
  * @struct_info     Information structure.
@@ -83,6 +85,9 @@ void ext_data_struct_info_free(struct ext_data_structure_info *struct_info);
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
+ *                  Note: fixed array size is handled by @size above.
+ * @flags           Mark that an item is optional. Failure to map the item
+ *                  will be reported differently (..._MAP_OPT_NOT_FOUND).
  *
  * Return value:
  *
@@ -100,7 +105,7 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
 			      int type,
 			      const char *prename, int preindex,
 			      const char *name, const char *ctrl_name,
-			      int limit_max);
+			      int limit_max, uint32_t flags);
 
 /*************************************************************************/
 
@@ -130,43 +135,65 @@ int ext_data_struct_info_item(struct ext_data_structure_info *struct_info,
  *                  otherwise NULL or "".
  * @limit           Maximum value.  Needed for items that are controlling
  *                  variables.  Set to -1 when unused.
+ *                  Note: fixed array size is handled by @size above.
+ * @flags           Mark that an item is optional. Failure to map the item
+ *                  will be reported differently (..._MAP_OPT_NOT_FOUND).
  *
  * Failure or success is reported in @ok.
  *
  */
 
-#define EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			      item,type,name,ctrl,limit_max)		\
+#define EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			       item,type,name,ctrl,limit_max,flags)	\
   if (!printerr) {							\
     ok &= (ext_data_struct_info_item(struct_info,			\
 				     offsetof (struct_t, item)+offset,	\
 				     sizeof (((struct_t *) 0)->item),	\
 				     EXT_DATA_ITEM_TYPE_##type,		\
 				     "", -1,				\
-				     name, ctrl, limit_max) == 0);	\
+				     name, ctrl, limit_max, flags) == 0); \
   } else {								\
     ok &= ext_data_struct_info_item_stderr(struct_info,			\
 					   offsetof (struct_t, item)+offset, \
 					   sizeof (((struct_t *) 0)->item), \
 					   EXT_DATA_ITEM_TYPE_##type,	\
 					   "", -1,			\
-					   name, ctrl, limit_max);	\
+					   name, ctrl, limit_max, flags); \
   }
+
+#define EXT_STR_ITEM_INFO2(ok,struct_info,offset,struct_t,printerr,	\
+			   item,type,name,flags)			\
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",-1,flags)
+
+#define EXT_STR_ITEM_INFO2_ZZP(ok,struct_info,offset,struct_t,printerr,	\
+			       item,type,name,ctrl,flags)		\
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,ctrl,-1,flags)
+
+#define EXT_STR_ITEM_INFO2_LIM(ok,struct_info,offset,struct_t,printerr,	\
+			       item,type,name,limit_max,flags)		\
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",limit_max,flags)
+
+/* These are to support old generated code which did not have the
+ * flags parameter.
+ */
 
 #define EXT_STR_ITEM_INFO(ok,struct_info,offset,struct_t,printerr,	\
 			  item,type,name)				\
-  EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			item,type,name,"",-1)
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",-1,0)
 
 #define EXT_STR_ITEM_INFO_ZZP(ok,struct_info,offset,struct_t,printerr,	\
 			      item,type,name,ctrl)			\
-  EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			item,type,name,ctrl,-1)
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,ctrl,-1,0)
 
 #define EXT_STR_ITEM_INFO_LIM(ok,struct_info,offset,struct_t,printerr,	\
 			      item,type,name,limit_max)			\
-  EXT_STR_ITEM_INFO_ALL(ok,struct_info,offset,struct_t,printerr,	\
-			item,type,name,"",limit_max)
+  EXT_STR_ITEM_INFO2_ALL(ok,struct_info,offset,struct_t,printerr,	\
+			 item,type,name,"",limit_max,0)
 
 /*************************************************************************/
 
@@ -189,21 +216,29 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
 #define EXT_DATA_ITEM_MAP_ARRAY_FEWER    0x0020u /* Array, client shorter. */
 #define EXT_DATA_ITEM_MAP_ARRAY_MORE     0x0040u /* Array, client longer. */
 #define EXT_DATA_ITEM_MAP_NOT_DONE       0x0080u /* Never reached mapping. */
+#define EXT_DATA_ITEM_MAP_OPT_NOT_FOUND  0x0100u /* Optional item not found. */
 
 /* This mask identifies mappings which loose no data. */
 #define EXT_DATA_ITEM_MAP_OK            (EXT_DATA_ITEM_MAP_MATCH | \
-					 EXT_DATA_ITEM_MAP_ARRAY_MORE)
+					 EXT_DATA_ITEM_MAP_ARRAY_MORE | \
+					 EXT_DATA_ITEM_MAP_OPT_NOT_FOUND)
+/* This mask identifies mappings which may drop data from server,
+ * but all client items had sources.
+ */
+#define EXT_DATA_ITEM_MAP_OK_NO_DEST    (EXT_DATA_ITEM_MAP_OK | \
+					 EXT_DATA_ITEM_MAP_NO_DEST)
 
 /* Return information on how the structure members were mapped from
  * the data structure given by the server after ext_data_setup().  The
  * result is given in the return arguments.  @map_success is one of
  * the constants EXT_DATA_ITEM_MAP_... above.
  *
- * First call theis function with @restart = 1, and as long as it
+ * First call this function with @restart = 1, and as long as it
  * returns success, with @restart = 0.
  *
- * Note that information is also reported about items in the server
- * structure that have not been mapped, i.e. ..._NO_DEST.
+ * Note that after all client items, information is also reported
+ * about items in the server structure that have not been mapped,
+ * i.e. ..._NO_DEST.  For server items, @offset is returned as -1.
  *
  * Do not call this function after the ext_data_client connection has
  * been closed.
@@ -212,10 +247,9 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  * below!
  *
  * @struct_info     Information structure.
- * @kind            Kind of item to return.  (1 = start client items,
- *                  2 = start server items, 0 = continue).
+ * @restart         Set to 1 on first call, then 0.
  * @var_name        Name of item (result).
- * @offset          Offset of item (result).
+ * @offset          Offset of item (result).  (-1 for server items.)
  * @map_success     Matching outcome (result).
  *
  * Return value:
@@ -227,6 +261,8 @@ ext_data_struct_info_last_error(struct ext_data_structure_info *struct_info);
  * Possible errors:
  *
  * EFAULT           @struct_info is NULL.
+ * EINVAL           Structure has not been mapped, i.e. was not used
+ *                  with ext_data_setup().
  */
 
 int
@@ -238,7 +274,8 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
 
 /*************************************************************************/
 
-/* Print a table of members and their mapping success.
+/* Print a table of members and their mapping success, after call to
+ * ext_data_setup().
  *
  * Do not call this function after the ext_data_client connection has
  * been closed.
@@ -256,6 +293,8 @@ ext_data_struct_info_map_success(struct ext_data_structure_info *struct_info,
  * Possible errors:
  *
  * EFAULT           @struct_info is NULL.
+ * EINVAL           Structure has not been mapped, i.e. was not used
+ *                  with ext_data_setup().
  */
 
 int
@@ -363,6 +402,8 @@ struct ext_data_client *ext_data_open_out();
  *                      In order to not have silent data loss, it is
  *                      suggested to only continue if
  *                      (struct_map_success & ~EXT_DATA_ITEM_MAP_OK).
+ *                      Or with EXT_DATA_ITEM_MAP_OK_NO_DEST to just
+ *                      ensure that all destination items got data.
  *                      ext_data_struct_info_print_map_success() can be
  *                      used to print a report of mapping issues.
  *                      Can be NULL (no mapping possible).
@@ -414,7 +455,7 @@ int ext_data_setup(struct ext_data_client *client,
  *  n  file descriptor.
  * -1  failure, see errno.
  *
- * Error codes on falure come from fcntl().
+ * Error codes on failure come from fcntl().
  */
 
 int ext_data_nonblocking_fd(struct ext_data_client *client);
@@ -443,7 +484,7 @@ int ext_data_nonblocking_fd(struct ext_data_client *client);
  *                  Malformed message.  Bug?
  * EPROTO           Unexpected message.  Bug?
  * EFAULT           @client is NULL.
- * EAGAIN           No futher data at this moment (after using
+ * EAGAIN           No further data at this moment (after using
  *                  ext_data_nonblocking_fd()).
  */
 
@@ -482,7 +523,7 @@ int ext_data_next_event(struct ext_data_client *client,
  *                  Malformed message.  Bug?
  * EPROTO           Unexpected message.  Bug?
  * EFAULT           @client is NULL.
- * EAGAIN           No futher data at this moment (after using
+ * EAGAIN           No further data at this moment (after using
  *                  ext_data_nonblocking_fd()).
  */
 
@@ -536,7 +577,7 @@ int ext_data_get_raw_data(struct ext_data_client *client,
  * @client          Connection context structure.
  * @buf             Pointer to the data structure.
  * @size            Size of the structure.  Use sizeof(struct).
- * @clear_zzp_lists Clear contents of varible sized (zero-suppressed)
+ * @clear_zzp_lists Clear contents of variable sized (zero-suppressed)
  *                  lists.  Should be 0 for performance, see below.
  * @struct_id       Key of structure to clear, 0 if name_id = "".
  *
@@ -698,6 +739,10 @@ const char *ext_data_last_error(struct ext_data_client *client);
 /* The following functions are the same as those above, except that
  * errors are caught and messages printed to stderr.
  *
+ * Exception: ext_data_setup_stderr has additional argument:
+ * @exclude_success  See ext_data_struct_info_map_success,
+ *                   typical use: EXT_DATA_ITEM_MAP_OK.
+ *
  * Returns:
  *
  * ext_data_struct_info_alloc_stderr   pointer or NULL
@@ -722,7 +767,7 @@ int ext_data_struct_info_item_stderr(struct ext_data_structure_info *struct_info
 				     int type,
 				     const char *prename, int preindex,
 				     const char *name, const char *ctrl_name,
-				     int limit_max);
+				     int limit_max, uint32_t flags);
 
 struct ext_data_client *ext_data_connect_stderr(const char *server);
 
@@ -733,7 +778,11 @@ int ext_data_setup_stderr(struct ext_data_client *client,
 			  struct ext_data_structure_info *struct_info,
 			  uint32_t *struct_map_success,
 			  size_t size_buf,
-			  const char *name_id, int *struct_id);
+			  const char *name_id, int *struct_id,
+			  uint32_t exclude_success);
+
+/* In case using code needs to compile also with earlier version. */
+#define EXT_DATA_SETUP_STDERR_HAS_EXCLUDE_SUCCESS 1
 
 int ext_data_nonblocking_fd_stderr(struct ext_data_client *client);
 

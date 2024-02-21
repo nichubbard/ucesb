@@ -37,14 +37,14 @@ EXT_HIRICH::~EXT_HIRICH()
 void hirich_header_word::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  sprintf(buf,"i:%3d,ec:%3d,c:%3d",module_no,event_count,count);
+  snprintf(buf,sizeof(buf),"i:%3d,ec:%3d,c:%3d",module_no,event_count,count);
   pretty_dump(id,buf,pdi);
 }
 
 void hirich_data_word::dump(const signal_id &id,pretty_dump_info &pdi) const
 {
   char buf[32];
-  sprintf(buf,"(%3d:%3d)",channel,value);
+  snprintf(buf,sizeof(buf),"(%3d:%3d)",channel,value);
   pretty_dump(id,buf,pdi);
 }
 
@@ -82,7 +82,7 @@ EXT_DECL_DATA_SRC_FCN(void,EXT_HIRICH::__unpack)
   // before all the data and HIRICH_MARKER_FOOTER after all the data
 
   // As the footer does not contain the 'module header valid marker'
-  // we'll use a strategy whereby if the next data word for a moudle
+  // we'll use a strategy whereby if the next data word for a module
   // header is not valid, we'll also check to see if it perhaps is the
   // footer marker, in which case we'll abort unpacking, and leave it
   // for the subevent itself to handle the footer.  This way, we'd

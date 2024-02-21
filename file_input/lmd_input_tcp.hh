@@ -33,6 +33,9 @@
 
 #define LMD_TCP_PORT_TRANS_MAP_ADD  1234
 
+#define LMD_TCP_PORT_FAKERNET              1
+#define LMD_UDP_PORT_FAKERNET_IDEMPOTENT  15
+
 #define LMD_TCP_INFO_BUFSIZE_NODATA     -1
 #define LMD_TCP_INFO_BUFSIZE_MAXCLIENTS -2
 
@@ -41,7 +44,7 @@
 #define LMD_TCP_INFO_STREAMS_PORT_MAP_MARK_MASK    0xffff0000
 #define LMD_TCP_INFO_STREAMS_PORT_MAP_PORT_MASK    0x0000ffff
 
-/* Info about number of connection attemps/s in the 'streams' member. */
+/* Info about number of connection attempts/s in the 'streams' member. */
 #define LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_MARK       0x50550000
 #define LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_MARK_MASK  0xffff0000
 #define LMD_TCP_INFO_STREAMS_NODATA_HOLDOFF_RATE_MASK  0x0000ffff
@@ -188,11 +191,12 @@ protected:
 			uint16_t *port,
 			uint16_t default_port);
   bool open_connection(const struct sockaddr_in *p_serv_addr,
-		       uint16_t port, bool error_on_failure);
+		       uint16_t port, bool error_on_failure,
+		       bool tcp = true);
   void close_connection();
 
-  void do_read(void *buf,size_t count,int timeout = -1);
-  void do_write(void *buf,size_t count,int timeout = -1);
+  void do_read(void *buf,size_t count,int timeout_us = -1);
+  void do_write(void *buf,size_t count,int timeout_us = -1);
 
 public:
   virtual size_t connect(const char *server) = 0;
@@ -219,9 +223,12 @@ protected:
 
   size_t read_buffer(void *buf,size_t count,int *nbufs);
 
+  void reset_tcp();
+
 protected:
   size_t do_map_connect(const char *server,
-			int port_map_add, uint16_t default_port);
+			int port_map_add, uint16_t default_port,
+			bool tcp_reset_by_udp = false);
 
 };
 
@@ -239,6 +246,17 @@ public:
   virtual size_t get_buffer(void *buf,size_t count);
 
   virtual size_t preferred_min_buffer_size();
+};
+
+
+class lmd_input_tcp_fakernet :
+  public lmd_input_tcp_transport
+{
+public:
+  virtual ~lmd_input_tcp_fakernet() { }
+
+public:
+  virtual size_t connect(const char *server);
 };
 
 

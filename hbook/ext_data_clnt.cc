@@ -62,7 +62,7 @@ bool ext_data_clnt::connect(const char *server)
 bool ext_data_clnt::connect(const char *server,int port)
 {
   char tmp[1024];
-  sprintf(tmp,"%s:%d",server,port);
+  snprintf(tmp,sizeof(tmp),"%s:%d",server,port);
   _client = ext_data_connect(tmp);
   return _client != NULL;
 }
@@ -143,7 +143,7 @@ bool ext_data_clnt_stderr::connect(const char *server)
 bool ext_data_clnt_stderr::connect(const char *server,int port)
 {
   char tmp[1024];
-  sprintf(tmp,"%s:%d",server,port);
+  snprintf(tmp,sizeof(tmp),"%s:%d",server,port);
   _client = ext_data_connect_stderr(tmp);
   return _client != NULL;
 }
@@ -158,7 +158,8 @@ int ext_data_clnt_stderr::setup(const void *struct_layout_info,
 				ext_data_struct_info *struct_info,
 				uint32_t *struct_map_success,
 				size_t size_buf,
-				const char *name_id, int *struct_id)
+				const char *name_id, int *struct_id,
+				uint32_t exclude_success)
 {
   struct ext_data_structure_info *si =
     struct_info ?
@@ -168,7 +169,8 @@ int ext_data_clnt_stderr::setup(const void *struct_layout_info,
 			       struct_layout_info, size_info,
 			       si, struct_map_success,
 			       size_buf,
-			       name_id, struct_id);
+			       name_id, struct_id,
+			       exclude_success);
 }
 
 int ext_data_clnt_stderr::next_event(int *struct_id)

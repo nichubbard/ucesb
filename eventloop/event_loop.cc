@@ -50,6 +50,7 @@
 #include "event_sizes.hh"
 #include "accounting.hh"
 #include "tstamp_alignment.hh"
+#include "tstamp_sync_check.hh"
 #include "select_event.hh"
 
 #include "../common/strndup.hh"
@@ -86,6 +87,7 @@ event_sizes _event_sizes;
 
 #ifdef USE_LMD_INPUT
 tstamp_alignment *_ts_align_hist = NULL;
+tstamp_sync_check *_ts_sync_check = NULL;
 #endif
 
 event_base _static_event;
@@ -251,6 +253,8 @@ void ucesb_event_loop::postprocess()
 #ifdef USE_LMD_INPUT
   if (_ts_align_hist)
     _ts_align_hist->show();
+  if (_ts_sync_check)
+    _ts_sync_check->show();
 #endif
 
   if (_conf._event_sizes)
@@ -397,7 +401,7 @@ void apply_timestamp_slope(lmd_subevent_10_1_host const &a_header,
 }
 
 bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
-			  uint64_t *timestamp,
+			  tstamp_sync_info &ts_sync_info,
 			  ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -432,8 +436,11 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
 	  error_branch_id & TITRIS_STAMP_EBID_UNUSED,
 	  error_branch_id);
 
-  if (error_branch_id & TITRIS_STAMP_EBID_ERROR)
-    return false;
+  uint16_t id = ((error_branch_id &
+		  TITRIS_STAMP_EBID_BRANCH_ID_MASK) >>
+		 TITRIS_STAMP_EBID_BRANCH_ID_SHIFT);
+
+  ts_sync_info._id = id;
 
   if (ts_align_index)
     {
@@ -441,16 +448,17 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
 	*ts_align_index = -1;
       else
 	*ts_align_index =
-	  _ts_align_hist->get_index(subevent_info,
-				    error_branch_id &
-				    TITRIS_STAMP_EBID_BRANCH_ID_MASK);
+	  _ts_align_hist->get_index(subevent_info, id);
     }
+
+  if (error_branch_id & TITRIS_STAMP_EBID_ERROR)
+    return false;
 
   if (data + 4 > data_end)
     ERROR("First subevent does not have data enough for TITRIS time stamp "
 	"values.");
 
-  uint32_t id     = SWAPPING_BSWAP_32(data[0]);
+  uint32_t id_32  = SWAPPING_BSWAP_32(data[0]);
   uint32_t ts_l16 = SWAPPING_BSWAP_32(data[1]);
   uint32_t ts_m16 = SWAPPING_BSWAP_32(data[2]);
   uint32_t ts_h16 = SWAPPING_BSWAP_32(data[3]);
@@ -461,11 +469,12 @@ bool get_titris_timestamp(FILE_INPUT_EVENT *src_event,
     ERROR("TITRIS time stamp word has wrong marker.  (0x%08x 0x%08x 0x%08x)",
 	  ts_l16, ts_m16, ts_h16);
 
-  *timestamp =
+  ts_sync_info._timestamp =
       (             ts_l16 & TITRIS_STAMP_LMH_TIME_MASK)         |
       (            (ts_m16 & TITRIS_STAMP_LMH_TIME_MASK)  << 16) |
       (((uint64_t) (ts_h16 & TITRIS_STAMP_LMH_TIME_MASK)) << 32);
-  apply_timestamp_slope(subevent_info->_header, id, *timestamp);
+  apply_timestamp_slope(subevent_info->_header, id_32,
+			ts_sync_info._timestamp);
 
   return true;
 }
@@ -530,7 +539,7 @@ int get_wr_id(FILE_INPUT_EVENT *src_event)
 }
 
 bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
-		      uint64_t *timestamp,
+		      tstamp_sync_info &ts_sync_info,
 		      ssize_t *ts_align_index)
 {
   if (src_event->_nsubevents < 1)
@@ -565,10 +574,11 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  error_branch_id & WR_STAMP_EBID_UNUSED,
 	  error_branch_id);
 
-/* HTT: Don't know about this yet...
-  if (error_branch_id & WR_STAMP_EBID_ERROR)
-    return false;
-*/
+  uint16_t id = ((error_branch_id &
+		  WR_STAMP_EBID_BRANCH_ID_MASK) >>
+		 WR_STAMP_EBID_BRANCH_ID_SHIFT);
+
+  ts_sync_info._id = id;
 
   if (ts_align_index)
     {
@@ -576,16 +586,17 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
         *ts_align_index = -1;
       else
 	*ts_align_index =
-	  _ts_align_hist->get_index(subevent_info,
-				    error_branch_id &
-				    WR_STAMP_EBID_BRANCH_ID_MASK);
+	  _ts_align_hist->get_index(subevent_info, id);
     }
+
+  if (error_branch_id & WR_STAMP_EBID_ERROR)
+    return false;
 
   if (data + 5 > data_end)
     ERROR("First subevent does not have data enough "
 	  "for WR time stamp values.");
 
-  uint32_t id      = SWAPPING_BSWAP_32(data[0]);
+  uint32_t id_32   = SWAPPING_BSWAP_32(data[0]);
   uint32_t ts_0_16 = SWAPPING_BSWAP_32(data[1]);
   uint32_t ts_1_16 = SWAPPING_BSWAP_32(data[2]);
   uint32_t ts_2_16 = SWAPPING_BSWAP_32(data[3]);
@@ -599,28 +610,54 @@ bool get_wr_timestamp(FILE_INPUT_EVENT *src_event,
 	  "(0x%08x 0x%08x 0x%08x 0x%08x)",
 	  ts_0_16, ts_1_16, ts_2_16, ts_3_16);
 
-  *timestamp =
+  ts_sync_info._timestamp =
       (             ts_0_16 & WR_STAMP_DATA_TIME_MASK)         |
       ((            ts_1_16 & WR_STAMP_DATA_TIME_MASK)  << 16) |
       (((uint64_t) (ts_2_16 & WR_STAMP_DATA_TIME_MASK)) << 32) |
       (((uint64_t) (ts_3_16 & WR_STAMP_DATA_TIME_MASK)) << 48);
 
-  apply_timestamp_slope(subevent_info->_header, id, *timestamp);
+  apply_timestamp_slope(subevent_info->_header, id_32,
+			ts_sync_info._timestamp);
+
+  /* The sync check value is optional, so only get it in case it is
+   * available.
+   */
+  if (data + 6 <= data_end)
+    {
+      uint32_t sync_check_raw = SWAPPING_BSWAP_32(data[5]);
+
+      if ((sync_check_raw & SYNC_CHECK_MAGIC_MASK) ==
+	  SYNC_CHECK_MAGIC)
+	{
+	  ts_sync_info._sync_check_flags =
+	    (sync_check_raw & SYNC_CHECK_FLAGS_MASK) >> SYNC_CHECK_FLAGS_SHIFT;
+	  ts_sync_info._sync_check_value =
+	    (sync_check_raw & SYNC_CHECK_VALUE_MASK);
+	}
+    }
 
   return true;
 }
 
 bool get_timestamp(int timestamp_type,
 		   FILE_INPUT_EVENT *src_event,
-		   uint64_t *timestamp,
+		   tstamp_sync_info &ts_sync_info,
 		   ssize_t *ts_align_index)
 {
+  ts_sync_info._sync_check_flags = 0;
+  ts_sync_info._sync_check_value = 0;
+  ts_sync_info._timestamp        = 0;
+
   switch (timestamp_type)
     {
     case TIMESTAMP_TYPE_TITRIS:
-      return get_titris_timestamp(src_event, timestamp, ts_align_index);
+      return get_titris_timestamp(src_event,
+				  ts_sync_info,
+				  ts_align_index);
     case TIMESTAMP_TYPE_WR:
-      return get_wr_timestamp(src_event, timestamp, ts_align_index);
+      return get_wr_timestamp(src_event,
+			      ts_sync_info,
+			      ts_align_index);
     }
   assert(false);
 }
@@ -643,12 +680,13 @@ void do_merge_prepare_event_info(source_event_base *x)
       {
 	FILE_INPUT_EVENT *src_event =
 	  (FILE_INPUT_EVENT *) x->_event->_file_event;
+	tstamp_sync_info ts_sync_info;
 
 	x->_tstamp_align_index = -1;
 
 	bool good_stamp =
 	  get_timestamp(_conf._merge_event_mode,
-			src_event, &x->_timestamp,
+			src_event, ts_sync_info,
 			&x->_tstamp_align_index);
 
 	if (!good_stamp)
@@ -658,6 +696,8 @@ void do_merge_prepare_event_info(source_event_base *x)
 	    // compares less than anyone else, so immediate eject
 	    x->_timestamp = 0;
 	  }
+	else
+	  x->_timestamp = ts_sync_info._timestamp;
       }
     case MERGE_EVENTS_MODE_USER:
       // Nothing to prepare ???  (if so, where to store it?)
@@ -720,11 +760,11 @@ int do_check_merge_event_after(const merge_event_order *prev,
       if (x->_event->_unpack.event_no == prev->event_no)
 	return MERGE_EVENTS_ERROR_ORDER_SAME;
 
-      /* We allow previous event to be within a large range,
-       * in case the wrapping was preceeded by some skipping.
+      /* We allow previous and new event to be within a large range,
+       * in case the wrapping was preceded by some skipping.
        */
-      if (x->_event->_unpack.event_no == 0 &&
-	  (prev->event_no & 0xff000000) == 0xff000000)
+      if ((x->_event->_unpack.event_no & 0xff000000) == 0x00000000 &&
+	  (prev->event_no              & 0xff000000) == 0xff000000)
 	return 0;
 
       return MERGE_EVENTS_ERROR_ORDER_BEFORE;
@@ -1181,7 +1221,7 @@ void unpack_subevent(event_base_t &eb,
    *
    * So we should rather have subevents switch on their type/subtype,
    * and then control and subcrate would choose the particular
-   * instance, while procid would need to tell the endianess of
+   * instance, while procid would need to tell the endianness of
    * the producer.
    */
 
@@ -1353,10 +1393,11 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   FILE_INPUT_EVENT *src_event = &_file_event;
 #endif
 
-  uint64_t timestamp;
+  tstamp_sync_info ts_sync_info;
 
   bool good_stamp =
-    get_timestamp(_conf._event_stitch_mode, src_event, &timestamp, NULL);
+    get_timestamp(_conf._event_stitch_mode, src_event,
+		  ts_sync_info, NULL);
 
   if (!good_stamp)
     {
@@ -1383,7 +1424,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 
   if (stitch->_has_stamp)
     {
-      if (false && timestamp < stitch->_last_stamp)
+      if (false && ts_sync_info._timestamp < stitch->_last_stamp)
 	{
 	  // Unordered, dump!
 	  // printf("unordered -> !bad !combine\n");
@@ -1397,7 +1438,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	}
       else
 	{
-	  if ((int64_t) (timestamp - stitch->_last_stamp) <
+	  if ((int64_t) (ts_sync_info._timestamp - stitch->_last_stamp) <
 	      _conf._event_stitch_value)
 	    {
 #ifdef USE_INPUTFILTER
@@ -1407,7 +1448,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 		stitch->_combine = true;
 		stitch->_implant[0] |= is_implant_aida;
 		stitch->_implant[1] |= is_implant_frs;
-		stitch->_last_stamp = timestamp + _conf._event_stitch_value;
+		stitch->_last_stamp = ts_sync_info._timestamp + _conf._event_stitch_value;
 	      }
 	      else if (!is_implant_aida && !is_implant_frs)
 #endif
@@ -1434,7 +1475,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   // Only make the window wide at the start of stitching
   if (_conf._aida_new_stitch && src_event->_aida_extra && !stitch->_combine)
   {
-    timestamp += src_event->_aida_length;
+    ts_sync_info._timestamp += src_event->_aida_length;
   }
 
   // Do not stitch special triggers
@@ -1447,7 +1488,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
   //if (timestamp > stitch->_last_stamp)
 #ifdef USE_INPUTFILTER 
   if (!stitch->_implant[0] && !stitch->_implant[1])
-    stitch->_last_stamp = timestamp;
+    stitch->_last_stamp = ts_sync_info._timestamp;
 #endif
   if (!stitch->_combine)
     {
@@ -1461,7 +1502,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 }
 #endif
 
-template<typename T_event_base,int account>
+template<typename T_event_base,int account,int memberdump>
 void ucesb_event_loop::unpack_event(T_event_base &eb)
 {
   eb._unpack_fail._prev = eb._unpack_fail._this = eb._unpack_fail._next = NULL;
@@ -1551,12 +1592,12 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 	{
 	  if (scramble)
 	    {
-	      __data_src<1,1,account> src(start,end);
+	      __data_src<1,1,account,memberdump> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	  else
 	    {
-	      __data_src<1,0,account> src(start,end);
+	      __data_src<1,0,account,memberdump> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	}
@@ -1564,12 +1605,12 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 	{
 	  if (scramble)
 	    {
-	      __data_src<0,1,account> src(start,end);
+	      __data_src<0,1,account,memberdump> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	  else
 	    {
-	      __data_src<0,0,account> src(start,end);
+	      __data_src<0,0,account,memberdump> src(start,end);
 	      unpack_subevent(eb,&subevent_info->_header,src,start);
 	    }
 	}
@@ -1577,17 +1618,17 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 #ifdef USE_HLD_INPUT
       if (subevent_info->_swapping)
 	{
-	  __data_src<1,0,account> src(start,end);
+	  __data_src<1,0,account,memberdump> src(start,end);
 	  unpack_subevent(eb,&subevent_info->_header,src,start);
 	}
       else
 	{
-	  __data_src<0,0,account> src(start,end);
+	  __data_src<0,0,account,memberdump> src(start,end);
 	  unpack_subevent(eb,&subevent_info->_header,src,start);
 	}
 #endif
 #ifdef USE_RIDF_INPUT
-      __data_src<0,0,account> src(start,end);
+      __data_src<0,0,account,memberdump> src(start,end);
       unpack_subevent(eb,&subevent_info->_header,src,start);
 #endif
     }
@@ -1608,13 +1649,13 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 
   if (src_event->_swapping)
     {
-      __data_src<1,account> src(start,end);
+      __data_src<1,account,memberdump> src(start,end);
 
       unpack_subevent(eb,&src_event->_header,src,start);
     }
   else
     {
-      __data_src<0,account> src(start,end);
+      __data_src<0,account,memberdump> src(start,end);
 
       unpack_subevent(eb,&src_event->_header,src,start);
     }
@@ -1625,13 +1666,21 @@ void ucesb_event_loop::unpack_event(T_event_base &eb)
 
 // Force instantiation
 template
-void ucesb_event_loop::unpack_event<event_base,0>(event_base &eb);
+void ucesb_event_loop::unpack_event<event_base,0,0>(event_base &eb);
 template
-void ucesb_event_loop::unpack_event<event_base,1>(event_base &eb);
+void ucesb_event_loop::unpack_event<event_base,1,0>(event_base &eb);
 template
-void ucesb_event_loop::unpack_event<sticky_event_base,0>(sticky_event_base &eb);
+void ucesb_event_loop::unpack_event<event_base,0,1>(event_base &eb);
 template
-void ucesb_event_loop::unpack_event<sticky_event_base,1>(sticky_event_base &eb);
+void ucesb_event_loop::unpack_event<event_base,1,1>(event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base,0,0>(sticky_event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base,1,0>(sticky_event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base,0,1>(sticky_event_base &eb);
+template
+void ucesb_event_loop::unpack_event<sticky_event_base,1,1>(sticky_event_base &eb);
 
 void ucesb_event_loop::force_event_data(event_base &eb
 #if defined(USE_LMD_INPUT) || defined(USE_HLD_INPUT) || defined(USE_RIDF_INPUT)
@@ -1848,9 +1897,9 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
   try {
 #ifndef USE_MERGING
 #ifdef USE_LMD_INPUT
-  if (_ts_align_hist)
+  if (_ts_align_hist || _ts_sync_check)
     {
-      uint64_t timestamp;
+      tstamp_sync_info ts_sync_info;
       ssize_t ts_align_index;
 
 #if USE_THREADING || USE_MERGING
@@ -1859,15 +1908,28 @@ bool ucesb_event_loop::handle_event(T_event_base &eb,int *num_multi)
       FILE_INPUT_EVENT *src_event = &_file_event;
 #endif
 
+      ts_sync_info._event_no = eb._unpack.event_no;
+      ts_sync_info._trigger = eb._unpack.trigger;
+
       bool good_stamp =
-	get_timestamp(_ts_align_hist->get_style(), src_event,
-		      &timestamp, &ts_align_index);
+	get_timestamp(_ts_align_hist ? _ts_align_hist->get_style() :
+		      TIMESTAMP_TYPE_WR,
+		      src_event,
+		      ts_sync_info,
+		      _ts_align_hist ? &ts_align_index : NULL);
 
       if (!good_stamp)
-	timestamp = 0;
+	ts_sync_info._timestamp = 0;
 
-      // TODO: if (!good_stamp) { do we want to account 0 at all? }
-      _ts_align_hist->account(ts_align_index, timestamp);
+      if (_ts_align_hist)
+	{
+	  // TODO: if (!good_stamp) { do we want to account 0 at all? }
+	  _ts_align_hist->account(ts_align_index, ts_sync_info._timestamp);
+	}
+      if (_ts_sync_check)
+	{
+	  _ts_sync_check->account(ts_sync_info);
+	}
     }
 #endif
   for (int mev = 0; mev < multievents; mev++)

@@ -24,6 +24,8 @@
 #include "error.hh"
 #include "optimise.hh"
 
+#include "colourtext.hh"
+
 /*
  *
  */
@@ -42,7 +44,7 @@
 
 // The UNLIKELY(...) should also be in the PEEK_FROM_BUFFER, but it
 // seems many versions (random) of gcc then comes with spurious warnings
-// about __match_peek possibly being used unitialized...
+// about __match_peek possibly being used uninitialized...
 
 #define PEEK_FROM_BUFFER(loc,data_type,dest) {                      \
   if (/*UNLIKELY(*/!__buffer.peek_##data_type(&dest)/*)*/) {        \
@@ -84,29 +86,32 @@
 
 #define CHECK_BITS_EQUAL(loc,value,constraint) {	      \
   if (UNLIKELY((value) != (constraint))) {		      \
-    ERROR_U_LOC(loc,"%s should be 0x%llx, is 0x%llx.",#value, \
+    ERROR_U_LOC(loc,"%s should be 0x%" PRIx64 ", is 0x%" PRIx64 ".",#value, \
 		(uint64) (constraint),(uint64) (value));      \
   }							      \
 }
 
 #define CHECK_UNNAMED_BITS_ZERO(loc,value,mask) {                            \
   if (UNLIKELY(((value) & (mask)) != 0)) {                                   \
-    ERROR_U_LOC(loc,"Undefined parts of %s (mask 0x%llx) expected to be 0, " \
-		    "are 0x%llx (masked 0x%llx).",#value,		     \
+    ERROR_U_LOC(loc,"Undefined parts of %s (mask 0x%" PRIx64 ") "	     \
+		    "expected to be 0, "				     \
+		    "are 0x%" PRIx64 " (masked 0x%" PRIx64 ").",#value,	     \
 	      (uint64) (mask),(uint64) (value),(uint64) ((value) & (mask))); \
   }                                                                          \
 }
 
 #define CHECK_BITS_RANGE(loc,value,min,max) {                               \
   if (UNLIKELY((value) < (min) || (value) > (max))) {                       \
-    ERROR_U_LOC(loc,"%s should be within 0x%llx..0x%llx, is 0x%llx.",       \
+    ERROR_U_LOC(loc,"%s should be within 0x%" PRIx64 "..0x%" PRIx64 ", "    \
+		    "is 0x%" PRIx64 ".",				    \
 		    #value,(uint64) (min),(uint64) (max),(uint64) (value)); \
   }                                                                         \
 }
 
 #define CHECK_BITS_RANGE_MAX(loc,value,max) {                             \
   if (UNLIKELY((value) > (max))) {                                        \
-    ERROR_U_LOC(loc,"%s should be within 0x%llx..0x%llx, is 0x%llx.",     \
+    ERROR_U_LOC(loc,"%s should be within 0x%" PRIx64 "..0x%" PRIx64 ", "  \
+		    "is 0x%" PRIx64 ".",				  \
 		    #value,(uint64) (0),(uint64) (max),(uint64) (value)); \
   }                                                                       \
 }

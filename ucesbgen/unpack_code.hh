@@ -37,7 +37,7 @@ struct indexed_type_ind
 {
 public:
   indexed_type_ind(const char *type,int max_items,int max_items2,int opts,
-		   const file_line &loc);
+		   int order_index);
 
 public:
   const char *_type;
@@ -46,11 +46,11 @@ public:
 
   int         _opts;
 
-  file_line   _loc; // for sorting items
+  int         _order_index;
 
 public:
   bool operator<(const indexed_type_ind &rhs) const {
-    return _loc._internal < rhs._loc._internal;
+    return _order_index < rhs._order_index;
   }
 };
 
@@ -163,6 +163,9 @@ public:
 
   const var_external *gen_external_header(const variable *v,dumper &d,uint32 type);
 
+  bool has_params(const param_list *params,
+		  bool dump_member_args);
+
   void gen_params(const param_list *params,
 		  dumper &d,
 		  uint32 type,
@@ -177,6 +180,7 @@ public:
 
 protected:
   void gen_match_decl_quick(const std::vector<match_info> &infos,
+			    bool force_full_match,
 			    dumper &d,int size,
 			    const char *abort_spurious_label);
 

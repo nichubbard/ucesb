@@ -61,7 +61,7 @@ bool swap_hld_header(T_header *header)
       byteswap ((uint32*) header,sizeof (*header));
       return true;
     }
-  ERROR("%s decoding (%08x) marker broken, cannot determine endianess.",
+  ERROR("%s decoding (%08x) marker broken, cannot determine endianness.",
 	sizeof (*header) == sizeof(hld_event_header) ? "Event" : "Subevent",
 	header->_decoding.u32);
 }
@@ -79,7 +79,7 @@ hld_event *hld_source::get_event()
 
 #ifdef USE_THREADING
   // Even if we blow up with an error, the reclaim item will be in the
-  // reclaim list, so the memory wont leak
+  // reclaim list, so the memory won't leak
   dest = (hld_event *) _wt._defrag_buffer->allocate_reclaim(sizeof (hld_event));
 #else
   _file_event.release();
@@ -401,7 +401,7 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 	      // dereference chunk_cur, so we cannot give it away)
 
 	      // But we want to give an invalid (but non-null) pointer
-	      // (since the length is zero, noone should _ever_ look
+	      // (since the length is zero, no one should _ever_ look
 	      // at it...
 
 	      subevent_info->_data = (char*)16;
@@ -420,7 +420,7 @@ void hld_event::locate_subevents(hld_event_hint */*hints*/)
 	  data_length += unused;
 
 	  // We have some fun, first of all, the data is not stored
-	  // continous yet
+	  // continuous yet
 
 	  subevent_info->_data   = NULL;
 

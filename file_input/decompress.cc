@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -114,7 +115,7 @@ void decompressor::start(int *fd_in,
   // handle.  We're responsible for reaping the child process.
 
   // Note: the file must be closed BEFORE we reap the child, since
-  // otherwise we may wait indefinately, since the child may be
+  // otherwise we may wait indefinitely, since the child may be
   // waiting for us to read.  But if we close, it'll get a deadly
   // signal for writing to a closed file that is closed on the other end.
 
@@ -239,7 +240,9 @@ void *decompress_relay_thread(void *info)
 	    }
 	  printf ("\n");
 	  */
-	  ssize_t n = write(drt->_fd_write,aligned + offset,towrite);
+	  // MSG_NOSIGNAL to prevent SIGPIPE generation.
+	  ssize_t n = send(drt->_fd_write, aligned + offset, towrite,
+			   MSG_NOSIGNAL);
 
 	  if (n == -1)
 	    {
@@ -358,7 +361,7 @@ void decompress(decompressor **handler,
 #ifdef HAVE_TEE
   else
     {
-      // Creat a pipe to tee() into.
+      // Create a pipe to tee() into.
 
       int pipe_tee[2];
 
@@ -614,6 +617,10 @@ void data_input_source::connect(const char *name,int type
       server = new lmd_input_tcp_transport();
 
       break;
+    case LMD_INPUT_TYPE_FAKERNET:
+      server = new lmd_input_tcp_fakernet();
+
+      break;
     default:
       assert(false);
       return;
@@ -685,7 +692,7 @@ void data_input_source::open(const char *filename
   // a pipe, don't even try to open using a decompressor, as it will
   // not be able to work (we use them using direct filenames, not
   // piping into them, which of course ne could do, but it's too much
-  // pain) It's harmless to try mmaping, altough it won't work... :)
+  // pain) It's harmless to try mmaping, although it won't work... :)
 
   const char *decompress_filename = filename;
 

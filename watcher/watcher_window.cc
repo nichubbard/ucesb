@@ -250,7 +250,7 @@ void watcher_window::event(watcher_event_info &info)
 
       char buf[256];
 
-      sprintf (buf,"Event: %d",_event_no);
+      snprintf(buf,sizeof(buf),"Event: %d",_event_no);
 
       wmove(wtop,2,0);
       waddstr(wtop,buf);
@@ -258,7 +258,7 @@ void watcher_window::event(watcher_event_info &info)
       for (int type = 0; type < NUM_WATCH_TYPES; type++)
 	{
 	  wcolor_set(wtop,(short) (COL_TYPE_BASE+type),NULL);
-	  sprintf (buf,"%9s:%8d ",
+	  snprintf (buf,sizeof(buf),"%9s:%8d ",
 		   WATCH_TYPE_NAMES[type]._name,
 		   _type_count[type]);
 	  wmove(wtop,1+type,80-20);

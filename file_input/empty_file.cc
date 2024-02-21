@@ -46,7 +46,7 @@
 
 // This program creates a stream of data representing empty events on
 // stdout.  It can be used to test the basic event processing of
-// almost any unpacker, as empty events usually are valid (altough
+// almost any unpacker, as empty events usually are valid (although
 // they perhaps shouldn't).  One can also test the processing overhead
 // for an event as such.
 
@@ -489,6 +489,7 @@ void write_data_lmd()
   uint64_t rstate_sticky_base = 8;
   uint64_t rstate_sticky_corr = 9;
   uint64_t rstate_sticky_frac = 10;
+  uint64_t rstate_sticky_text = 11;
 
   uint64_t wr_time = 0x00000003ffffc000ll; // 0000 0003 ffff c000
 
@@ -625,6 +626,10 @@ void write_data_lmd()
 	      // we want to inject some varying amount of payload
 	      // (after the minimum, since 0 payload means revoke)
 
+	      ssize_t sticky_text    =
+		(rxs64s(&rstate_sticky_text) & 1) ?
+		(rxs64s(&rstate_sticky_text) & 0xff) : 0;
+
 	      ssize_t need_sticky_event_total_size =
 		sizeof(lmd_event_10_1_host);
 
@@ -642,6 +647,11 @@ void write_data_lmd()
 
 		  need_sticky_event_total_size += sizeof (uint32_t);
 		}
+
+	      if (sticky_text)
+		need_sticky_event_total_size +=
+		  sizeof(lmd_subevent_10_1_host) +
+		  (2 + sticky_text) * sizeof (uint32_t);
 
 	      // For the correlation base sticky, we follow [0]
 	      if (sticky_update & 1)
@@ -750,6 +760,37 @@ void write_data_lmd()
 
 		      evp_end = sevp_end;
 		    }
+		}
+
+	      if (sticky_text)
+		{
+		  lmd_subevent_10_1_host *sev =
+		    (lmd_subevent_10_1_host *) evp_end;
+
+		  sev->_header.i_type    = 0x0cbe;
+		  sev->_header.i_subtype = 0x0cbf;
+		  sev->h_control  = 10;
+		  sev->h_subcrate = _conf._crate;
+		  sev->i_procid   = 0;
+
+		  char *sev_start = (char*) (sev + 1);
+
+		  uint32_t *p = (uint32_t *) sev_start;
+
+		  *(p++) = 0x54585430;       // 'TXT0'
+		  *(p++) = sticky_text << 2; // Number of bytes following.
+
+		  for (ssize_t i = 0; i < sticky_text; i++)
+		    {
+		      *(p++) = 0x61626364; // 'abcd'
+		    }
+
+		  char *sevp_end = (char *) p;
+
+		  sev->_header.l_dlen =
+		    SUBEVENT_DLEN_FROM_DATA_LENGTH(sevp_end - sev_start);
+
+		  evp_end = sevp_end;
 		}
 
 	      ev->_header.l_dlen    =
