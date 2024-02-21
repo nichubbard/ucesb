@@ -539,7 +539,7 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout_us)
       if (_conf._watcher._command && _watcher._init)
       {
           ncurses_timeout = true;        
-          timeout = 10;
+          timeout_us = 10 * 1000000;
           //_watcher.keepalive();
       }
 #endif
