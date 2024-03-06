@@ -35,6 +35,7 @@
 
 #define EXT_EVENT_STRUCT_H_FILE       "ext_h101.h"
 #define EXT_EVENT_STRUCT              EXT_STR_h101
+#define EXT_EVENT_STRUCT_ITEMS_INFO   EXT_STR_h101_ITEMS_INFO
 #define EXT_EVENT_STRUCT_LAYOUT       EXT_STR_h101_layout
 #define EXT_EVENT_STRUCT_LAYOUT_INIT  EXT_STR_h101_LAYOUT_INIT
 
@@ -51,24 +52,43 @@
 #include <limits>
 #include <string>
 
+/*static const std::string fatima_scalers_names[16] =*/
+/*{*/
+  /*"bPlast Free",*/
+  /*"bPlast Accepted",*/
+  /*"",*/
+  /*"LOAX Free",*/
+  /*"LOAX Accepted",*/
+  /*"",*/
+  /*"bPlast Up",*/
+  /*"bPlast Down",*/
+  /*"bPlast Up AND Down",*/
+  /*"SCI41 L",*/
+  /*"SCI41 R",*/
+  /*"SCI21 L",*/
+  /*"SCI21 R",*/
+  /*"10Hz",*/
+  /*"DTAS Anodes",*/
+  /*"",*/
+/*};*/
+
 static const std::string fatima_scalers_names[16] =
 {
   "bPlast Free",
   "bPlast Accepted",
-  "",
-  "LOAX Free",
-  "LOAX Accepted",
-  "",
+  "FATIMA TAMEX Free",
+  "FATIMA TAMEX Accepted",
+  "FATIMA VME Free",
+  "FATIMA VME Accepted",
+  "Ge Free",
+  "Ge Accepted",
   "bPlast Up",
   "bPlast Down",
-  "bPlast Up AND Down",
+  "bPlast AND",
   "SCI41 L",
   "SCI41 R",
-  "SCI21 L",
-  "SCI21 R",
-  "10Hz",
-  "DTAS Anodes",
-  "",
+  "SCI42 L",
+  "SCI42 R"
 };
 
 static const std::string frs_frs_names[32] =
@@ -122,7 +142,7 @@ static const std::string frs_main_names[32] =
 };
 
 #ifndef USE_ITEMS_INFO
-#define USE_ITEMS_INFO 0
+#define USE_ITEMS_INFO 1
 #endif
 
 int main(int argc,char *argv[])
@@ -262,7 +282,7 @@ int main(int argc,char *argv[])
 		     NULL, NULL,
 #else
 		     NULL,0,
-		     struct_info, &struct_map_success
+		     struct_info, &struct_map_success,
 #endif
 		     sizeof(event),
 		     "", NULL) != 0)

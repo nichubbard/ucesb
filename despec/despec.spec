@@ -34,10 +34,8 @@ FRS_MVLC_SCALER()
   MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
   UINT32 marker NOENCODE {
     0_15 : unk1;
-    16_31: match;
+    16_31: 0xf520;
   }
-  if (marker.match == 0xf520)
-  {
   UINT16 header {
     0_1: 0;
     2_7: nlw;
@@ -54,7 +52,6 @@ FRS_MVLC_SCALER()
   }
 
   UINT32 trailer NOENCODE;
-  }
 }
 
 FRS_MAIN_SCALER()
