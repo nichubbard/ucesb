@@ -1,0 +1,8 @@
+/* ### */
+
+/* Fail due to wrong #items in line, first missing header. */
+POS(5) =
+  { 8     }
+  { 9, 10 }
+  ;
+

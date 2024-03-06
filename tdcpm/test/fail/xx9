@@ -1,0 +1,8 @@
+/* ### */
+
+/* Fail due to wrong #items in line. */
+POOS(5) =
+  [   ,]
+  { },
+  {0}
+
