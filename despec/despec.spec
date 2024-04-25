@@ -7,6 +7,14 @@ DUMMY()
   UINT32 no NOENCODE;
 }
 
+TRIG3EVENT()
+{
+  UINT32 no NOENCODE
+  {
+    0_31: 0x20202020;
+  }
+}
+
 // Dummy events or unpack a scalar
 FATIMA_SCALER()
 {
@@ -39,7 +47,7 @@ FRS_MVLC_SCALER()
   UINT16 header {
     0_1: 0;
     2_7: nlw;
-    8_11: type = MATCH(4);
+    8_11: type;
     12_15: geo;
   }
   UINT16 header2 NOENCODE;
@@ -143,8 +151,15 @@ SUBEVENT(tpat_subev)
 
 SUBEVENT(frs_main_subev)
 {
-  wr = WHITE_RABBIT();
-  scaler = FRS_MVLC_SCALER();
+  //wr = WHITE_RABBIT();
+  select several
+  {
+    trig3 = TRIG3EVENT();
+  }
+  select several
+  {
+    scaler = FRS_MVLC_SCALER();
+  }
   select several
   {
     dummy = DUMMY();
@@ -153,7 +168,14 @@ SUBEVENT(frs_main_subev)
 
 SUBEVENT(frs_frs_subev)
 {
-  scaler = FRS_MVLC_SCALER();
+  select several
+  {
+     trig3 = TRIG3EVENT();
+  }
+  select several
+  {
+    scaler = FRS_MVLC_SCALER();
+  }
   select several
   {
     dummy = DUMMY();
