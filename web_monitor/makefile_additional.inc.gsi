@@ -1,0 +1,26 @@
+# -*- Makefile -*-
+
+# ------- OPTIONS -------------
+# Enable ZeroMQ (Remote monitoring) code - requires extra libraries (not default at GSI)
+# libzmq libzmqpp (ZeroMQ) and Google Protobuf
+USE_ZEROMQ=y
+# -------- END OF OPTIONS -------
+
+USE_LMD_INPUT=1
+
+OBJS += web_monitor_user.o
+
+CXXFLAGS += -DCONTROL_INCLUDE -Wno-conversion -Wno-float-conversion
+
+ifeq ($(USE_ZEROMQ),y)
+OBJS += ucesb.pb.o
+
+ucesb.pb.h ucesb.pb.cc: $(UCESB_BASE_DIR)/web_monitor/ucesb.proto
+	$(PROTOC) --cpp_out=$(UCESB_BASE_DIR)/web_monitor ucesb.proto
+CXXFLAGS += -DZEROMQ -I$(UCESB_BASE_DIR)/lib
+CXXLIBS += -L$(UCESB_BASE_DIR)/lib -lzmq -lzmqpp -lprotobuf
+CXXLIBS += -Wl,-rpath,'$$ORIGIN'
+#CXXFLAGS += -DZEROMQ $(shell pkg-config --cflags libzmq libzmqpp protobuf)
+#CXXLIBS += $(shell pkg-config --libs libzmq libzmqpp protobuf)
+#CXXLIBS += -Wl,-rpath,'$$ORIGIN'
+endif

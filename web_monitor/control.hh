@@ -1,0 +1,14 @@
+
+#ifndef __CONTROL_HH__
+#define __CONTROL_HH__
+
+#define WATCHER_EVENT_INFO_USER_FUNCTION web_monitor_watcher_event_info
+
+#define WATCHER_EVENT_INFO_INCLUDE "web_monitor_watch_info.hh"
+
+#define USER_WATCHER_INIT web_monitor_watcher_init
+#define USER_WATCHER_DISPLAY web_monitor_watcher_display
+#define USER_WATCHER_CLEAR web_monitor_watcher_clear
+#define USER_KEEPALIVE_FUNCTION web_monitor_watcher_keepalive
+
+#endif//__CONTROL_HH__
