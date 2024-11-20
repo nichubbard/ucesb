@@ -42,7 +42,7 @@ GENDIR=gen
 UNPACKERS=land xtst rpc2006 is446 is430_05 is445_08 labbet1 mwpclab \
 	gamma_k8 hacky empty sid_genf madrid ebye i123 s107 tacquila \
 	fa192mar09 is507 sampler ridf despec ebye_empty iss_lmd \
-	tamex17sync web_monitor #tagtest
+	tamex17sync web_monitor frs_montor #tagtest
 
 UNPACKERS_is446=is446_toggle is446_tglarray
 
@@ -167,6 +167,10 @@ despec_real: $(DEPENDENCIES)
 web_monitor_real: $(DEPENDENCIES)
 	@$(MAKE) -C web_monitor -f ../makefile_unpacker.inc UNPACKER=web_monitor
 
+.PHONY: frs_monitor_real
+frs_monitor_real: $(DEPENDENCIES)
+	@$(MAKE) -C frs_monitor -f ../makefile_unpacker.inc UNPACKER=frs_monitor
+
 #########################################################
 
 empty/empty: empty_real
@@ -271,6 +275,16 @@ endif
 web_monitor: web_monitor_real
 ifndef USE_MERGING # disabled for the time being (to be fixed...)
 web_monitor: $(EXTTDIR)/ext_reader_h101.runstamp \
+	$(EXTTDIR)/ext_reader_h101_items_info.runstamp \
+	$(EXTTDIR)/ext_reader_h101_stderr.runstamp \
+	$(EXTTDIR)/ext_writer_h101.runstamp
+endif
+#########################################################
+
+.PHONY: frs_monitor
+frs_monitor: frs_monitor_real
+ifndef USE_MERGING # disabled for the time being (to be fixed...)
+frs_monitor: $(EXTTDIR)/ext_reader_h101.runstamp \
 	$(EXTTDIR)/ext_reader_h101_items_info.runstamp \
 	$(EXTTDIR)/ext_reader_h101_stderr.runstamp \
 	$(EXTTDIR)/ext_writer_h101.runstamp

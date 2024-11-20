@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package frs_monitor;
+
+message UcesbSummary {
+	string server = 1;
+	int32 clients = 2;
+	uint64 event_no = 3;
+	int32 time = 4;
+	uint64 wr = 5;
+
+	message Triggers {
+		string name = 1;
+		int32 rate = 2;
+	}
+
+	repeated Triggers triggers = 6;
+
+	bool onspill = 7;
+	int32 lastspill = 8;
+	int32 spilltime = 9;
+	int32 extrtime = 10;
+	uint32 spill_ctr = 11;
+
+	string analserver = 12;
+}
+
+message LogEntry {
+	enum LogSeverity {
+		NORMAL = 0;
+		WARNING = 1;
+		ERROR = 2;
+	}
+
+	LogSeverity severity = 1;
+	string message = 2;
+}
+
+message UcesbReport {
+	UcesbSummary summary = 1;
+	repeated LogEntry logs = 4;
+}
+
