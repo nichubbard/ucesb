@@ -1442,15 +1442,14 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 	      _conf._event_stitch_value)
 	    {
 #ifdef USE_INPUTFILTER
-	      if ((is_implant_aida && !stitch->_implant[0])
-		    || (is_implant_frs && !stitch->_implant[1]))
-	      {
-		stitch->_combine = true;
-		stitch->_implant[0] |= is_implant_aida;
-		stitch->_implant[1] |= is_implant_frs;
-		stitch->_last_stamp = ts_sync_info._timestamp + _conf._event_stitch_value;
-	      }
-	      else if (!is_implant_aida && !is_implant_frs)
+	      //if (true)
+	      //{
+		//stitch->_combine = true;
+		//stitch->_implant[0] |= is_implant_aida;
+		//stitch->_implant[1] |= is_implant_frs;
+		//stitch->_last_stamp = ts_sync_info._timestamp + _conf._event_stitch_value;
+	      //}
+	      //else if (!is_implant_aida && !is_implant_frs)
 #endif
 	      {
 		stitch->_combine = true;
@@ -1487,7 +1486,7 @@ void ucesb_event_loop::stitch_event(event_base &eb,
 
   //if (timestamp > stitch->_last_stamp)
 #ifdef USE_INPUTFILTER 
-  if (!stitch->_implant[0] && !stitch->_implant[1])
+  if (true) // && !stitch->_implant[0] && !stitch->_implant[1])
     stitch->_last_stamp = ts_sync_info._timestamp;
 #endif
   if (!stitch->_combine)

@@ -513,13 +513,21 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
           int feeID = 1 + ((channelID >> 6) & 0x3F);
           channelID &= 0x3F;
 #ifdef AIDA_REAL_IMPLANTS
-          if (feeID == 1 || feeID == 3 || feeID == 5 || feeID == 6 || feeID == 7 || feeID == 8)
+          if (feeID == 1 || feeID == 3 || feeID == 5 || feeID == 9 || feeID == 12 || feeID == 15)
           {
             cur_aida->pside_imp[0] = true;
           }
           if (feeID == 2 || feeID == 4)
           {
             cur_aida->nside_imp[0] = true;
+          }
+          if (feeID == 11 || feeID == 10 || feeID == 7 || feeID == 14 || feeID == 16 || feeID == 13)
+          {
+            cur_aida->pside_imp[1] = true;
+          }
+          if (feeID == 6 || feeID == 8)
+          {
+            cur_aida->nside_imp[1] = true;
           }
 
           if (cur_aida->pside_imp[0] && cur_aida->nside_imp[0])
@@ -530,6 +538,15 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
             }
             cur_aida->pside_imp[0] = false;
             cur_aida->nside_imp[0] = false;
+          }
+          if (cur_aida->pside_imp[1] && cur_aida->nside_imp[1])
+          {
+            if (_AIDA_WATCHER_STATS)
+            {
+              _AIDA_WATCHER_STATS->add_i(11);
+            }
+            cur_aida->pside_imp[1] = false;
+            cur_aida->nside_imp[1] = false;
           }
 #else
 
@@ -876,9 +893,9 @@ lmd_event *aidaevent_entry::emit()
   _file_event._aida_implant = this->implant();
   _file_event._aida_length = (int64_t)this->fragment_wr - AIDA_TIME_SHIFT - this->timestamp;
   if (this->implant()) {
-    this->fragment_wr = this->implant_wr_e;
+    //this->fragment_wr = this->implant_wr_e;
     //_file_event._aida_length = (int64_t)entry->implant_wr_s - entry->timestamp; // Only count length from start to implant for overlap... implant is instant
-    _file_event._aida_length = 0; // Aida implants have 0 length
+    //_file_event._aida_length = 0; // Aida implants have 0 length
   }
 
   wrts_header wr(_conf._eventbuilder_wrid, (uint64_t)this->timestamp);
