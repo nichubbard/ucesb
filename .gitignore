@@ -29,6 +29,7 @@ hbook/*_dict.h
 *.o
 
 # Executables
+frs_monitor/frs_monitor
 despec/despec
 empty/empty
 file_input/empty_file
