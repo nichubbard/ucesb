@@ -62,6 +62,8 @@ std::vector<uint32_t> scalers_old(SCALER_COUNT);
 std::vector<uint32_t> scalers_old_spill(SCALER_COUNT);
 std::vector<uint32_t> scalers_last_spill(SCALER_COUNT);
 std::vector<uint32_t> aida_last_spill(AIDA_DSSDS);
+std::vector<uint32_t> aida_last_spill_decays(AIDA_DSSDS);
+std::vector<uint32_t> aida_last_spill_scalers(AIDA_FEES);
 
 watcher_type_info despec_watch_types[NUM_WATCH_TYPES] =
 {
@@ -88,7 +90,7 @@ void despec_watcher_event_info(watcher_event_info *info,
   info->_type = DESPEC_WATCH_TYPE_PHYSICS;
   bool pulse = false;
 
-  if (event->trigger == 3)
+  if (event->frs_tpat.tpat.n == 0 && event->trigger == 3)
   {
     info->_type = DESPEC_WATCH_TYPE_TCAL;
     pulse = true;
@@ -152,7 +154,11 @@ void despec_watcher_event_info(watcher_event_info *info,
     }
     scalers_old_spill = scalers_now;
     auto const& im_sp = _AIDA_WATCHER_STATS->implants(1);
+    auto const& de_sp = _AIDA_WATCHER_STATS->decays(1);
+    auto const& sc_sp = _AIDA_WATCHER_STATS->scaler(1);
     std::copy(im_sp.begin(), im_sp.end(), aida_last_spill.begin());
+    std::copy(de_sp.cbegin(), de_sp.cend(), aida_last_spill_decays.begin());
+    std::copy(sc_sp.begin(), sc_sp.end(), aida_last_spill_scalers.begin());
     _AIDA_WATCHER_STATS->clear(1);
     _spill_counter++;
   }
@@ -167,11 +173,11 @@ void despec_watcher_event_info(watcher_event_info *info,
   {
     if (event->wr[i].first == 0x200) continue;
 
-    if (event->wr[i].first == 0x100 && event->trigger == 2)
-    {
-      info->_type = DESPEC_WATCH_TYPE_TCAL;
-      pulse = true;
-    }
+    //if (event->wr[i].first == 0x100 && event->trigger == 2)
+    //{
+      //info->_type = DESPEC_WATCH_TYPE_TCAL;
+      //pulse = true;
+    //}
 
     last_event[event->wr[i].first] = _despec_now;
 
@@ -330,6 +336,7 @@ void zmq_calculate_scalers()
       entry->set_index(2 * j + 1);
       entry->set_rate((double)de_hz[j] / dt);
       entry->set_spill(de_sp[j]);
+      entry->set_last_spill(aida_last_spill_decays[j]);
     }
     for (size_t j = 0; j < AIDA_FEES; j++)
     {
@@ -337,6 +344,7 @@ void zmq_calculate_scalers()
       entry->set_index(j);
       entry->set_rate((double)sc_hz[j] / dt);
       entry->set_spill(sc_sp[j]);
+      entry->set_last_spill(aida_last_spill_scalers[j]);
     }
   }
 #endif

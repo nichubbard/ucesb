@@ -93,10 +93,10 @@ static const std::string fatima_scalers_names[16] =
 
 static const std::string frs_frs_names[32] =
 {
-  "IC01curr-old",
+  "IC01curr",
   "SEETRAM-old",
   "SEETRAM",
-  "IC01curr",
+  "IC01curr-old",
   "IC01",
   "SCI00",
   "SCI01",
@@ -104,6 +104,27 @@ static const std::string frs_frs_names[32] =
   "Start Extr",
   "Stop Extr",
   "Beam Transformer",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "TriggerBox L Ch0",
+  "TriggerBox L Ch1",
+  "TriggerBox L Ch2",
+  "TriggerBox L Ch3",
+  "TriggerBox L Ch4",
+  "TriggerBox L Ch5",
+  "TriggerBox L Ch6",
+  "TriggerBox L Ch7",
+  "TriggerBox R Ch0",
+  "TriggerBox R Ch1",
+  "TriggerBox R Ch2",
+  "TriggerBox R Ch3",
+  "TriggerBox R Ch4",
+  "TriggerBox R Ch5",
+  "TriggerBox R Ch6",
+  "TriggerBox R Ch7",
 };
 
 static const std::string frs_main_names[32] =
@@ -111,8 +132,8 @@ static const std::string frs_main_names[32] =
   "FRS Free",
   "FRS Accepted",
   "Spill Counter",
-  "1 Hz clock",
   "10 Hz clock",
+  "10 kHz clock",
   "100 kHz X veto",
   "100 kHz clock",
   "1 kHz clock",
@@ -128,17 +149,18 @@ static const std::string frs_main_names[32] =
   "SCI41L",
   "SCI42L",
   "SCI43L",
-  "SCI81L",
+  "SCI42R",
   "SCI21R",
   "SCI41R",
-  "SCI42R",
-  "SCI43R",
-  "SCI81R",
+  "",
+  "",
+  "",
   "SCI31L",
   "SCI31R",
-  "SCI11",
+  "SCI22R",
   "SCI22L",
-  "SCI22R"
+  "1 MHz",
+  "1 MHz DT"
 };
 
 #ifndef USE_ITEMS_INFO
@@ -165,10 +187,12 @@ int main(int argc,char *argv[])
   uint64_t fatima_scalers[16] = {0};
   bool fatima_scalers_init = false;
   uint32_t fatima_scalers_last[16] = {0};
+  uint32_t fatima_scalers_ov[16] = {0};
 
   uint64_t frs_scalers[64] = {0};
   bool frs_scalers_init = false;
   uint32_t frs_scalers_last[64] = {0};
+  uint32_t frs_scalers_ov[64] = {0};
 
   if (argc < 2)
     {
@@ -374,6 +398,7 @@ int main(int argc,char *argv[])
 	      int64_t delta = event.fatima_scaler_scalarsv[i] - fatima_scalers_last[i];
 	      if (delta < 0) {
 		delta += std::numeric_limits<uint32_t>::max();
+		fatima_scalers_ov[i]++;
 	      }
 	      fatima_scalers[i] += delta;
 	      fatima_scalers_last[i] = event.fatima_scaler_scalarsv[i];
@@ -394,7 +419,8 @@ int main(int argc,char *argv[])
 	    {
 	      int64_t delta = (int64_t)event.frs_frs_scaler_scalersv[i] - (int64_t)frs_scalers_last[i];
 	      if (delta < 0) {
-		delta += std::numeric_limits<uint32_t>::max();
+		delta += (1 << 26) - 1;
+		frs_scalers_ov[i]++;
 	      }
 	      frs_scalers[i] += delta;
 	      frs_scalers_last[i] = event.frs_frs_scaler_scalersv[i];
@@ -404,9 +430,8 @@ int main(int argc,char *argv[])
 	    {
 	      int64_t delta = (int64_t)event.frs_main_scaler_scalersv[i] - (int64_t)frs_scalers_last[32 + i];
 	      if (event.frs_main_scaler_scalersv[i] < frs_scalers_last[32 + i]) {
-		/*printf("Overflow: delta = %lld\n", delta);*/
-		/*printf("-> Now = %u, Last = %u\n", event.frs_main_scaler_scalersv[i], frs_scalers_last[32 + i]);*/
-		/*delta += std::numeric_limits<uint32_t>::max();*/
+		delta += (1 << 26) - 1;
+		frs_scalers_ov[32+i]++;
 	      }
 	      frs_scalers[32 + i] += delta;
 	      frs_scalers_last[32 + i] = event.frs_main_scaler_scalersv[i];
@@ -453,12 +478,14 @@ int main(int argc,char *argv[])
     if (fatima_scalers_names[i] == "") continue;
     std::cout << "Scaler #" << std::setw(2) << i << ": " << std::setw(25) << fatima_scalers_names[i]
       << " : " << std::setw(16) << fatima_scalers[i]
-      << " : " << std::setw(16) << (fatima_scalers[i] / scale) << std::endl;
+      << " : " << std::setw(16) << (fatima_scalers[i] / scale)
+      << " : " << std::setw(8) << (fatima_scalers_ov[i])
+      << std::endl;
   }
 
   std::cout << std::endl;
 
-  scale = frs_scalers[35];
+  scale = frs_scalers[36] / 10000.;
   for (int i = 0; i < 64; i++)
   {
     std::string name = "";
@@ -468,6 +495,7 @@ int main(int argc,char *argv[])
     std::cout << "Scaler #" << std::setw(2) << i << ": " << std::setw(25) << name
       << " : " << std::setw(16) << frs_scalers[i]
       << " : " << std::setw(16) << (frs_scalers[i] / scale)
+      << " : " << std::setw(8) << (frs_scalers_ov[i])
       << std::endl;
   }
 

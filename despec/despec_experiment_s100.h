@@ -73,7 +73,7 @@ static constexpr size_t SCALER_FRS_FRS_COUNT = 32;
 static constexpr size_t SCALER_FRS_MAIN_COUNT = 32;
 static constexpr size_t SCALER_COUNT = SCALER_FATIMA_COUNT + SCALER_FRS_FRS_COUNT + SCALER_FRS_MAIN_COUNT;
 
-static constexpr int FRS_TPAT_PULSER = (1 << 8);
+static constexpr int FRS_TPAT_PULSER = (1 << 1);
 static constexpr size_t SCALER_START_EXTR = SCALER_FATIMA_COUNT + 8;
 static constexpr size_t SCALER_STOP_EXTR = SCALER_FATIMA_COUNT + 9;
 

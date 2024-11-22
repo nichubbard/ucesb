@@ -54,7 +54,9 @@ FRS_MVLC_SCALER()
 
   list (0 <= i < header.nlw) {
     UINT32 scaler NOENCODE {
-      0_31: value;
+      0_25: value;
+      26: 0;
+      27_31: cid = MATCH(i);
       ENCODE(scalers[i], (value=value));
     }
   }
@@ -145,7 +147,7 @@ SUBEVENT(fatima_vme)
 
 SUBEVENT(tpat_subev)
 {
-  dummy = DUMMY();
+  wr = WHITE_RABBIT();
   tpat = TRLOII_TPAT(id = 0xcf);
 }
 
@@ -191,7 +193,7 @@ EVENT
   //FINGER = WR_BLOCK(procid=50);
   //FRS = WR_BLOCK(procid=10);
   revisit fatima = fatima_vme(procid=70, type=10, subtype=1);
-  revisit frs_tpat = tpat_subev(type=36, subtype=3600, procid=10);
+  revisit frs_tpat = tpat_subev(type=10, subtype=1, procid=15);
   revisit frs_frs = frs_frs_subev(type=10, subtype=1, procid=30);
   revisit frs_main = frs_main_subev(type=10, subtype=1, procid=10);
   ignore_unknown_subevent;
