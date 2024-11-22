@@ -37,12 +37,25 @@ extern std::atomic<int> _global_clients;
 static int _events = 0;
 int64_t __monitor_last = 0;
 int64_t _monitor_now = 0;
+// per-wr tracking
+std::map<int, long> events;
+std::map<int, long> pulses;
+std::map<int, long> events_total;
+std::map<int, uint64_t> last_event;
+// wr sync tracking
+std::map<int, int64_t> pulsers;
+std::map<std::pair<int, int>, bool> sync_ok;
+std::map<std::pair<int, int>, int> sync_bad;
+std::map<int, int> daq_sync;
 // spil data
 static bool _on_spill = false;
 static uint64_t _last_spill = 0;
 static uint64_t _spill_length = 0;
 static uint64_t _extraction_time = 0;
 static uint32_t _spill_counter = 0;
+
+// This contains data that can change more often
+#include FRS_EXPERIMENT_H
 
 watcher_type_info frs_monitor_watch_types[NUM_WATCH_TYPES] =
 {
@@ -104,9 +117,93 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
   report.mutable_summary()->set_server(_inputs[0]._name);
 #endif
 
+  // DAQ and Pulser Tracking
+  for (uint i = 0; i < event->wr.size(); i++)
+  {
+    // Used to track if DAQ is "alive"
+    last_event[event->wr[i].first] = _monitor_now;
+
+    if (pulse)
+    {
+      int id = event->wr[i].first;
+      int64_t wr = event->wr[i].second;
+      // Statistics
+      pulses[id]++;
+      if (!events_total[id]) events_total[id] = 0;
+      int64_t prev_ts = pulsers[id];
+      if (prev_ts != 0)
+      {
+        // Check pulse times of all other subsystems
+        // If the time between this and other system is < 30 us
+        // the sync of this PAIR is good
+        // otherwise if 20 pulses have gone and none have matched
+        // the pair is BAD
+        //
+        // If the PAIR is good, both DAQs are good
+        // If the PAIR is bad, a DAQ is bad if all its pairs are bad
+        for (auto& i : pulsers)
+        {
+          if (i.first == id) continue;
+          int64_t prev_them = i.second;
+          int64_t time_since_other = wr - prev_them;
+          if (wr > prev_them && prev_them != 0)
+          {
+            auto pair = std::make_pair(id, i.first);
+            if (id > i.first) pair = std::make_pair(i.first, id);
+
+            if (abs((int)time_since_other) < 30000)
+            {
+              sync_ok[pair] = true;
+              sync_bad[pair] = 0;
+              daq_sync[i.first] = 1;
+              daq_sync[id] = 1;
+            }
+            else
+            {
+              if(++sync_bad[pair] > 20)
+              {
+                sync_ok[pair] = false;
+                if (daq_sync[i.first] != 1) daq_sync[i.first] = 2;
+                if (daq_sync[id] != 1) daq_sync[id] = 2;
+              }
+            }
+          }
+        }
+      }
+      pulsers[id] = wr;
+    }
+    else
+    {
+      // Non pulsers just accumulate statistics
+      events[event->wr[i].first]++;
+      events_total[event->wr[i].first]++;
+    }
+  }
+
+  // No pulser for 2 minutes - downgrade to ? status again
+  for (auto& i : pulsers)
+  {
+    if (i.second && i.second + 120e9 < _monitor_now)
+    {
+      // Reset ALL daq syncs for now, they should be redone next time?
+      for (auto syncid : daq_sync) {
+        daq_sync[syncid.first] = 0;
+      }
+      i.second = 0;
+    }
+  }
+
   _events++;
 
 #ifdef ZEROMQ
+  // Send some statistics to the 0MQ report
+  report.mutable_summary()->set_event_no(info->_event_no);
+  report.mutable_summary()->set_server(_inputs[0]._name);
+#endif
+
+#ifdef ZEROMQ
+  // Send data every 100ms (sorta), although some data
+  // is only done every second. Makes scalers look more responsive
   uint64_t rt_now = realtime_ns();
   if (rt_now - last_fast_refresh > fast_scaler_refresh)
   {
@@ -136,7 +233,13 @@ void frs_monitor_watcher_init()
   _watcher._present_channels.clear();
   init_pair(5, COLOR_RED, COLOR_BLACK);
 
-  INFO("Web Monitor Example Watcher Initialised");
+  // Create all expected subsystems so they're always shown
+  for (auto i : expected)
+  {
+    events_total[i] = 0;
+  }
+
+  INFO("FRS Web Monitor Watcher Initialised");
 
 #ifdef ZEROMQ
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -175,6 +278,28 @@ void frs_monitor_watcher_init()
 #endif
 }
 
+// Used to format big numbers (event counters)
+void format_long_int(char* buf, long i)
+{
+  int r = 0;
+  while (i > 1e8)
+  {
+    i /= 1000;
+    r += 1;
+  }
+
+  if (r)
+  {
+    char rs[] = { ' ', 'k', 'M', 'B', 'T', 'q', 'Q', 's', 'S', '?' };
+    if (r > 9) r = 9;
+    sprintf(buf, "%7ld%c", i, rs[r]);
+  }
+  else
+  {
+    sprintf(buf, "%8ld", i);
+  }
+}
+
 void frs_monitor_watcher_display(watcher_display_info& info)
 {
   if (info._line > info._max_line)
@@ -186,6 +311,7 @@ void frs_monitor_watcher_display(watcher_display_info& info)
   werase(info._w);
 
   whline(info._w, ACS_HLINE, 80);
+  mvwaddstr(info._w, info._line, 1, "FRS DAQ Status");
 
   info._line += 1;
 
@@ -193,14 +319,83 @@ void frs_monitor_watcher_display(watcher_display_info& info)
   {
     __monitor_last--;
   }
+ 
+  mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "System", "ID", "Events", "Rate", "Pulser", "Correlation");
+  info._line++;
 
   double dt = (_monitor_now - __monitor_last) / (double)1e9;
 
+  char buf[256] = { '\0' };
+#ifdef ZEROMQ
+  report.mutable_status()->clear_daq();
+#endif
+  // Loop through all WR IDs that have been seen
+  for(auto& i: events_total)
+  {
+    // If the DAQ hasn't send a message in 2 minutes, say it's dead
+    bool active = true;
+    if (last_event[i.first] + 120e9 < _monitor_now)
+    {
+      active = false;
+    }
+    format_long_int(buf, events_total[i.first]);
+    {
+#ifdef ZEROMQ
+      // Just shove all the data in the 0MQ buffer, this part is easy
+      auto report_daq = report.mutable_status()->add_daq();
+      report_daq->set_events(events_total[i.first]);
+      report_daq->set_id(i.first);
+      report_daq->set_subsystem(names[i.first]);
+      report_daq->set_rate(events[i.first] / dt);
+      report_daq->set_pulser(pulses[i.first] / dt);
+      report_daq->set_active(active);
+#endif
+      // For the rarely looked at ncurses UI
+      if (!active)
+      {
+        mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %18s          ", names[i.first].c_str(), i.first, buf, "NO DATA");
+      }
+      else
+      {
+        mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+      }
+      // Check the DAQ Sync "enum"/flag
+      if (daq_sync[i.first] == 1)
+      {
+        wcolor_set(info._w, 3, NULL);
+        wprintw(info._w, "%12s", "OK");
+#ifdef ZEROMQ
+        report_daq->set_correlation(frs_monitor::DaqInformation::GOOD);
+#endif
+      }
+      else if (daq_sync[i.first] == 2)
+      {
+        wcolor_set(info._w, 5, NULL);
+        wprintw(info._w, "%12s", "BAD");
+#ifdef ZEROMQ
+        report_daq->set_correlation(frs_monitor::DaqInformation::BAD);
+#endif
+      }
+      else
+      {
+        wcolor_set(info._w, 4, NULL);
+        wprintw(info._w, "%12s", "N/A");
+#ifdef ZEROMQ
+        report_daq->set_correlation(frs_monitor::DaqInformation::UNKNOWN);
+#endif
+      }
+      wcolor_set(info._w, 2, NULL);
+    }
+    info._line += 1;
+  }
   wrefresh(info._w);
 
 #ifdef ZEROMQ
   zmq_calculate_scalers();
 #endif
+
+  // Could ncurses some scalers here, like DESPEC
+  // But probably no point, prefer web UI
 
   extern watcher_window _watcher;
 
@@ -239,12 +434,18 @@ void frs_monitor_watcher_display(watcher_display_info& info)
 #endif
 }
 
+// This happens every second (TIMEOUT) and used to reset the periodic stats
+// (aka rates)
 void frs_monitor_watcher_clear()
 {
+  events.clear();
+  pulses.clear();
   __monitor_last = _monitor_now;
 
 }
 
+// A new callback from ucesb core (requires patches)
+// if dead is true, ucesb hasn't received anything from its input
 void frs_monitor_watcher_keepalive(bool dead)
 {
 #ifdef ZEROMQ

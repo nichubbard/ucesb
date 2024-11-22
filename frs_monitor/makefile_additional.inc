@@ -12,6 +12,7 @@ USE_LMD_INPUT=1
 OBJS += frs_monitor_user.o
 
 CXXFLAGS += -DCONTROL_INCLUDE -Wno-conversion -Wno-float-conversion
+CXXFLAGS += -DFRS_EXPERIMENT_H="\"frs_experiment_test.h\""
 #CXXFLAGS = -DZMQ_PORT="\"5000\""
 
 ifeq ($(USE_ZEROMQ),y)

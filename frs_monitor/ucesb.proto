@@ -25,6 +25,28 @@ message UcesbSummary {
 	string analserver = 12;
 }
 
+message DaqInformation {
+	string subsystem = 1;
+	int32 id = 2;
+	uint64 events = 3;
+	uint32 rate = 4;
+	uint32 pulser = 5;
+
+	enum CorrelationStatus {
+		UNKNOWN = 0;
+		GOOD = 1;
+		BAD = 2;
+	}
+
+	CorrelationStatus correlation = 6;
+
+	bool active = 7;
+}
+
+message DaqStatus {
+	repeated DaqInformation daq = 1;
+}
+
 message LogEntry {
 	enum LogSeverity {
 		NORMAL = 0;
@@ -38,6 +60,7 @@ message LogEntry {
 
 message UcesbReport {
 	UcesbSummary summary = 1;
+	DaqStatus status = 2;
 	repeated LogEntry logs = 4;
 }
 
