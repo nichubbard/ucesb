@@ -53,6 +53,9 @@ static uint64_t _last_spill = 0;
 static uint64_t _spill_length = 0;
 static uint64_t _extraction_time = 0;
 static uint32_t _spill_counter = 0;
+// frs trloii trigger mux
+std::vector<uint32_t> frs_trloii_now(16 * 3);
+std::vector<uint32_t> frs_trloii_old(16 * 3);
 
 // This contains data that can change more often
 #include FRS_EXPERIMENT_H
@@ -60,7 +63,11 @@ static uint32_t _spill_counter = 0;
 watcher_type_info frs_monitor_watch_types[NUM_WATCH_TYPES] =
 {
   { COLOR_GREEN,   "Physics" },
-  { COLOR_YELLOW,  "Pulser" },
+  { COLOR_YELLOW,  "TRLOII" },
+  { COLOR_YELLOW,  "WR Sync" },
+  { COLOR_BLUE,    "BOS" },
+  { COLOR_BLUE,    "EOS" },
+  { COLOR_RED,     "Other" },
 };
 
 static constexpr uint64_t fast_scaler_refresh = 1E8; // nanoseconds 
@@ -79,13 +86,30 @@ static uint64_t realtime_ns()
 void frs_monitor_watcher_event_info(watcher_event_info *info,
     unpack_event *event)
 {
-  info->_type = FRS_WATCH_TYPE_PHYSICS;
   bool pulse = false;
 
-  if (event->trigger == 3)
+
+  switch (event->trigger)
   {
-    info->_type = FRS_WATCH_TYPE_TCAL;
-    pulse = true;
+    case 1:
+      info->_type = FRS_WATCH_TYPE_PHYSICS;
+      break;
+    case 2:
+      info->_type = FRS_WATCH_TYPE_TRLOII;
+      break;
+    case 3:
+      info->_type = FRS_WATCH_TYPE_WR;
+      pulse = true;
+      break;
+    case 4:
+      info->_type = FRS_WATCH_TYPE_BOS;
+      break;
+    case 5:
+      info->_type = FRS_WATCH_TYPE_EOS;
+      break;
+    default:
+      info->_type = FRS_WATCH_TYPE_OTHER;
+      break;
   }
 
   /* One can also override the _time and _event_no variables, altough
@@ -193,6 +217,14 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
     }
   }
 
+  // TRLOII Scalers
+  //
+  for (uint i = 0; i < 16; i++) {
+    frs_trloii_now[i] = event->trloii_mvlc.trloii_trig_mux.before_deadtime[i];
+    frs_trloii_now[16 + i] = event->trloii_mvlc.trloii_trig_mux.after_deadtime[i];
+    frs_trloii_now[32 + i] = event->trloii_mvlc.trloii_trig_mux.after_reduction[i];
+  }
+
   _events++;
 
 #ifdef ZEROMQ
@@ -222,7 +254,18 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
 void zmq_calculate_scalers()
 {
 #ifdef ZEROMQ
-  //double dt = (_monitor_now - _monitor_last) / (double)1e9;
+  double dt = (_monitor_now - __monitor_last) / (double)1e9;
+
+  report.clear_scalers();
+
+  auto trloii_tpat_report = report.add_scalers();
+  trloii_tpat_report->set_key("tpat");
+  trloii_tpat_report->clear_scalers();
+  for (size_t i = 0; i < 48; i++) {
+    auto entry = trloii_tpat_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(frs_trloii_now[i] - frs_trloii_old[i]) / dt);
+  }
 #endif
 }
 
@@ -440,6 +483,7 @@ void frs_monitor_watcher_clear()
 {
   events.clear();
   pulses.clear();
+  frs_trloii_old = frs_trloii_now;
   __monitor_last = _monitor_now;
 
 }

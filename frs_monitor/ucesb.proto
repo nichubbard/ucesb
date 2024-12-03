@@ -47,6 +47,18 @@ message DaqStatus {
 	repeated DaqInformation daq = 1;
 }
 
+message ScalerEntry {
+	int32 index = 1;
+	int32 rate = 2;
+	int32 spill = 3;
+	int32 last_spill = 4;
+}
+
+message ScalerGroup {
+	string key = 1;
+	repeated ScalerEntry scalers = 2;
+}
+
 message LogEntry {
 	enum LogSeverity {
 		NORMAL = 0;
@@ -61,6 +73,7 @@ message LogEntry {
 message UcesbReport {
 	UcesbSummary summary = 1;
 	DaqStatus status = 2;
+	repeated ScalerGroup scalers = 3;
 	repeated LogEntry logs = 4;
 }
 

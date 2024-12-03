@@ -39,7 +39,7 @@ void zmq_thread()
 
     zmq_poller.add(zmq_subber);
 
-    web_monitor::UcesbReport proto;
+    frs_monitor::UcesbReport proto;
 
     while(true)
     {
