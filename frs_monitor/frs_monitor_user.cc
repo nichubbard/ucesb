@@ -5,6 +5,7 @@
 #include "user.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <ctime>
 #include <curses.h> // needed for the COLOR_ below
 
@@ -56,6 +57,9 @@ static uint32_t _spill_counter = 0;
 // frs trloii trigger mux
 std::vector<uint32_t> frs_trloii_now(16 * 3);
 std::vector<uint32_t> frs_trloii_old(16 * 3);
+// frs trloii dump
+std::vector<uint32_t> frs_trloii_all_now(93);
+std::vector<uint32_t> frs_trloii_all_old(93);
 
 // This contains data that can change more often
 #include FRS_EXPERIMENT_H
@@ -225,6 +229,47 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
     frs_trloii_now[32 + i] = event->trloii_mvlc.trloii_trig_mux.after_reduction[i];
   }
 
+#define LIST_SCALER(name, N) \
+  for(uint i = 0; i < N; i++) { \
+    frs_trloii_all_now[offs + i] = event->trloii_mvlc.trloii_src_scalers.name[i]; \
+  }
+
+  // TRLOII DUMP
+  if (event->trigger == 2) {
+    size_t offs = 0;
+	LIST_SCALER(ecl_in,                 16)
+	LIST_SCALER(ecl_io_in,               8)
+	LIST_SCALER(lemo_in,                 2)
+	LIST_SCALER(wired_zero,              1)
+	LIST_SCALER(wired_one,               1)
+	LIST_SCALER(prng_poisson,            1)
+	LIST_SCALER(pulser,                  4)
+	LIST_SCALER(lmu_out,                 8)
+	LIST_SCALER(gate_delay,              4)
+	LIST_SCALER(edge_gate,               2)
+	LIST_SCALER(downscale,               1)
+	LIST_SCALER(all_or,                  2)
+	LIST_SCALER(coincidence,             1)
+	LIST_SCALER(input_coinc,             1)
+	LIST_SCALER(multi_latch_alm_full,    4)
+	LIST_SCALER(serial_tstamp_out,       1)
+	LIST_SCALER(serial_tstamp_alm_full,  1)
+	LIST_SCALER(serial_tstamp_desync,    1)
+	LIST_SCALER(serial_signals_out,      3)
+	LIST_SCALER(heimtime_out,            1)
+	LIST_SCALER(accept_trig,            16)
+	LIST_SCALER(encoded_trig,            4)
+	LIST_SCALER(master_start,            1)
+	LIST_SCALER(master_toggle,           2)
+	LIST_SCALER(multi_scaler,            1)
+	LIST_SCALER(deadtime,                1)
+	LIST_SCALER(accept_pulse,            1)
+	LIST_SCALER(trig_lmu_out_enabled_or, 1)
+	LIST_SCALER(multi_trig_buf_alm_full, 1)
+	LIST_SCALER(multi_scaler_alm_full,   1)
+	LIST_SCALER(trimi_tdt,               1)
+  }
+
   _events++;
 
 #ifdef ZEROMQ
@@ -265,6 +310,15 @@ void zmq_calculate_scalers()
     auto entry = trloii_tpat_report->add_scalers();
     entry->set_index(i);
     entry->set_rate((double)(frs_trloii_now[i] - frs_trloii_old[i]) / dt);
+  }
+
+  auto trloii_dump_report = report.add_scalers();
+  trloii_dump_report->set_key("trloii");
+  trloii_dump_report->clear_scalers();
+  for (size_t i = 0; i < frs_trloii_all_now.size(); i++) {
+    auto entry = trloii_dump_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(frs_trloii_all_now[i] - frs_trloii_all_old[i]) / dt);
   }
 #endif
 }
@@ -484,6 +538,7 @@ void frs_monitor_watcher_clear()
   events.clear();
   pulses.clear();
   frs_trloii_old = frs_trloii_now;
+  frs_trloii_all_old = frs_trloii_all_now;
   __monitor_last = _monitor_now;
 
 }
