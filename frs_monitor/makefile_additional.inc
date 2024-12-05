@@ -18,8 +18,9 @@ CXXFLAGS += -DFRS_EXPERIMENT_H="\"frs_experiment_test.h\""
 ifeq ($(USE_ZEROMQ),y)
 OBJS += ucesb.pb.o
 
-PROTOC=/u/nhubbard/Build/protobuf-3.13.0/deb10/bin/protoc
-export PKG_CONFIG_PATH:=/u/nhubbard/Build/protobuf-3.13.0/deb10/lib/pkgconfig:$(PKG_CONFIG_PATH)
+#PROTOC=/u/nhubbard/Build/protobuf-3.13.0/deb10/bin/protoc
+PROTOC=protoc
+#export PKG_CONFIG_PATH:=/u/nhubbard/Build/protobuf-3.13.0/deb10/lib/pkgconfig:$(PKG_CONFIG_PATH)
 
 ucesb.pb.h ucesb.pb.cc: $(UCESB_BASE_DIR)/frs_monitor/ucesb.proto
 	$(PROTOC) --cpp_out=$(UCESB_BASE_DIR)/frs_monitor ucesb.proto

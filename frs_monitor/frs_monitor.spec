@@ -46,6 +46,9 @@ SUBEVENT(vulom) {
   }
 
   trloii_trig_mux = TRLOII_TRIG_MUX();
+  select optional {
+    trloii_timing = TRLOII_TIMING();
+  }
 
   select optional {
     mid = MID_BARRIER();

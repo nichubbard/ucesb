@@ -40,6 +40,27 @@ TRLOII_TRIG_MUX() {
 	}
 }
 
+TRLOII_TIMING() {
+	MEMBER(DATA32 vulom_clock);
+	MEMBER(DATA32 dt_timing);
+	MEMBER(DATA32 inc_vulom_clock);
+	MEMBER(DATA32 inc_dt_timing);
+
+	UINT32 barrier NOENCODE {
+		0_31: w = MATCH(0xdeaddead);
+	}
+
+	UINT32 w1 NOENCODE {
+		0_31: data;
+		ENCODE(vulom_clock, (value = data));
+	}
+
+	UINT32 w2 NOENCODE {
+		0_31: data;
+		ENCODE(dt_timing, (value = data));
+	}
+};
+
 MID_BARRIER() {
 	UINT32 marker NOENCODE {
 		0_31: w = MATCH(0xbeefbabe);

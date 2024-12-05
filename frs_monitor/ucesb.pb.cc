@@ -14,7 +14,11 @@
 #include <google/protobuf/wire_format.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
+extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_DaqInformation_ucesb_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_DaqStatus_ucesb_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_LogEntry_ucesb_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_ScalerEntry_ucesb_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_ScalerGroup_ucesb_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_UcesbSummary_ucesb_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_ucesb_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_UcesbSummary_Triggers_ucesb_2eproto;
 namespace frs_monitor {
@@ -26,6 +30,22 @@ class UcesbSummaryDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<UcesbSummary> _instance;
 } _UcesbSummary_default_instance_;
+class DaqInformationDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<DaqInformation> _instance;
+} _DaqInformation_default_instance_;
+class DaqStatusDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<DaqStatus> _instance;
+} _DaqStatus_default_instance_;
+class ScalerEntryDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ScalerEntry> _instance;
+} _ScalerEntry_default_instance_;
+class ScalerGroupDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ScalerGroup> _instance;
+} _ScalerGroup_default_instance_;
 class LogEntryDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<LogEntry> _instance;
@@ -35,6 +55,35 @@ class UcesbReportDefaultTypeInternal {
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<UcesbReport> _instance;
 } _UcesbReport_default_instance_;
 }  // namespace frs_monitor
+static void InitDefaultsscc_info_DaqInformation_ucesb_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::frs_monitor::_DaqInformation_default_instance_;
+    new (ptr) ::frs_monitor::DaqInformation();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::frs_monitor::DaqInformation::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_DaqInformation_ucesb_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_DaqInformation_ucesb_2eproto}, {}};
+
+static void InitDefaultsscc_info_DaqStatus_ucesb_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::frs_monitor::_DaqStatus_default_instance_;
+    new (ptr) ::frs_monitor::DaqStatus();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::frs_monitor::DaqStatus::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_DaqStatus_ucesb_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_DaqStatus_ucesb_2eproto}, {
+      &scc_info_DaqInformation_ucesb_2eproto.base,}};
+
 static void InitDefaultsscc_info_LogEntry_ucesb_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -49,6 +98,35 @@ static void InitDefaultsscc_info_LogEntry_ucesb_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_LogEntry_ucesb_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_LogEntry_ucesb_2eproto}, {}};
 
+static void InitDefaultsscc_info_ScalerEntry_ucesb_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::frs_monitor::_ScalerEntry_default_instance_;
+    new (ptr) ::frs_monitor::ScalerEntry();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::frs_monitor::ScalerEntry::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_ScalerEntry_ucesb_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_ScalerEntry_ucesb_2eproto}, {}};
+
+static void InitDefaultsscc_info_ScalerGroup_ucesb_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::frs_monitor::_ScalerGroup_default_instance_;
+    new (ptr) ::frs_monitor::ScalerGroup();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::frs_monitor::ScalerGroup::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_ScalerGroup_ucesb_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_ScalerGroup_ucesb_2eproto}, {
+      &scc_info_ScalerEntry_ucesb_2eproto.base,}};
+
 static void InitDefaultsscc_info_UcesbReport_ucesb_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -60,9 +138,11 @@ static void InitDefaultsscc_info_UcesbReport_ucesb_2eproto() {
   ::frs_monitor::UcesbReport::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_UcesbReport_ucesb_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_UcesbReport_ucesb_2eproto}, {
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<4> scc_info_UcesbReport_ucesb_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 4, 0, InitDefaultsscc_info_UcesbReport_ucesb_2eproto}, {
       &scc_info_UcesbSummary_ucesb_2eproto.base,
+      &scc_info_DaqStatus_ucesb_2eproto.base,
+      &scc_info_ScalerGroup_ucesb_2eproto.base,
       &scc_info_LogEntry_ucesb_2eproto.base,}};
 
 static void InitDefaultsscc_info_UcesbSummary_ucesb_2eproto() {
@@ -94,8 +174,8 @@ static void InitDefaultsscc_info_UcesbSummary_Triggers_ucesb_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_UcesbSummary_Triggers_ucesb_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_UcesbSummary_Triggers_ucesb_2eproto}, {}};
 
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_ucesb_2eproto[4];
-static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_ucesb_2eproto[1];
+static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_ucesb_2eproto[8];
+static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_ucesb_2eproto[2];
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_ucesb_2eproto = nullptr;
 
 const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_ucesb_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
@@ -124,6 +204,40 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_ucesb_2eproto::offsets[] PROTO
   PROTOBUF_FIELD_OFFSET(::frs_monitor::UcesbSummary, spill_ctr_),
   PROTOBUF_FIELD_OFFSET(::frs_monitor::UcesbSummary, analserver_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, subsystem_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, id_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, events_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, rate_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, pulser_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, correlation_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqInformation, active_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqStatus, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::DaqStatus, daq_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerEntry, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerEntry, index_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerEntry, rate_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerEntry, spill_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerEntry, last_spill_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerGroup, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerGroup, key_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::ScalerGroup, scalers_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::frs_monitor::LogEntry, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -136,18 +250,28 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_ucesb_2eproto::offsets[] PROTO
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::frs_monitor::UcesbReport, summary_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::UcesbReport, status_),
+  PROTOBUF_FIELD_OFFSET(::frs_monitor::UcesbReport, scalers_),
   PROTOBUF_FIELD_OFFSET(::frs_monitor::UcesbReport, logs_),
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::frs_monitor::UcesbSummary_Triggers)},
   { 7, -1, sizeof(::frs_monitor::UcesbSummary)},
-  { 24, -1, sizeof(::frs_monitor::LogEntry)},
-  { 31, -1, sizeof(::frs_monitor::UcesbReport)},
+  { 24, -1, sizeof(::frs_monitor::DaqInformation)},
+  { 36, -1, sizeof(::frs_monitor::DaqStatus)},
+  { 42, -1, sizeof(::frs_monitor::ScalerEntry)},
+  { 51, -1, sizeof(::frs_monitor::ScalerGroup)},
+  { 58, -1, sizeof(::frs_monitor::LogEntry)},
+  { 65, -1, sizeof(::frs_monitor::UcesbReport)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_UcesbSummary_Triggers_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_UcesbSummary_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_DaqInformation_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_DaqStatus_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_ScalerEntry_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_ScalerGroup_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_LogEntry_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::frs_monitor::_UcesbReport_default_instance_),
 };
@@ -161,36 +285,76 @@ const char descriptor_table_protodef_ucesb_2eproto[] PROTOBUF_SECTION_VARIABLE(p
   "pill\030\010 \001(\005\022\021\n\tspilltime\030\t \001(\005\022\020\n\010extrtim"
   "e\030\n \001(\005\022\021\n\tspill_ctr\030\013 \001(\r\022\022\n\nanalserver"
   "\030\014 \001(\t\032&\n\010Triggers\022\014\n\004name\030\001 \001(\t\022\014\n\004rate"
-  "\030\002 \001(\005\"\203\001\n\010LogEntry\0223\n\010severity\030\001 \001(\0162!."
-  "frs_monitor.LogEntry.LogSeverity\022\017\n\007mess"
-  "age\030\002 \001(\t\"1\n\013LogSeverity\022\n\n\006NORMAL\020\000\022\013\n\007"
-  "WARNING\020\001\022\t\n\005ERROR\020\002\"^\n\013UcesbReport\022*\n\007s"
-  "ummary\030\001 \001(\0132\031.frs_monitor.UcesbSummary\022"
-  "#\n\004logs\030\004 \003(\0132\025.frs_monitor.LogEntryb\006pr"
-  "oto3"
+  "\030\002 \001(\005\"\346\001\n\016DaqInformation\022\021\n\tsubsystem\030\001"
+  " \001(\t\022\n\n\002id\030\002 \001(\005\022\016\n\006events\030\003 \001(\004\022\014\n\004rate"
+  "\030\004 \001(\r\022\016\n\006pulser\030\005 \001(\r\022B\n\013correlation\030\006 "
+  "\001(\0162-.frs_monitor.DaqInformation.Correla"
+  "tionStatus\022\016\n\006active\030\007 \001(\010\"3\n\021Correlatio"
+  "nStatus\022\013\n\007UNKNOWN\020\000\022\010\n\004GOOD\020\001\022\007\n\003BAD\020\002\""
+  "5\n\tDaqStatus\022(\n\003daq\030\001 \003(\0132\033.frs_monitor."
+  "DaqInformation\"M\n\013ScalerEntry\022\r\n\005index\030\001"
+  " \001(\005\022\014\n\004rate\030\002 \001(\005\022\r\n\005spill\030\003 \001(\005\022\022\n\nlas"
+  "t_spill\030\004 \001(\005\"E\n\013ScalerGroup\022\013\n\003key\030\001 \001("
+  "\t\022)\n\007scalers\030\002 \003(\0132\030.frs_monitor.ScalerE"
+  "ntry\"\203\001\n\010LogEntry\0223\n\010severity\030\001 \001(\0162!.fr"
+  "s_monitor.LogEntry.LogSeverity\022\017\n\007messag"
+  "e\030\002 \001(\t\"1\n\013LogSeverity\022\n\n\006NORMAL\020\000\022\013\n\007WA"
+  "RNING\020\001\022\t\n\005ERROR\020\002\"\261\001\n\013UcesbReport\022*\n\007su"
+  "mmary\030\001 \001(\0132\031.frs_monitor.UcesbSummary\022&"
+  "\n\006status\030\002 \001(\0132\026.frs_monitor.DaqStatus\022)"
+  "\n\007scalers\030\003 \003(\0132\030.frs_monitor.ScalerGrou"
+  "p\022#\n\004logs\030\004 \003(\0132\025.frs_monitor.LogEntryb\006"
+  "proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_ucesb_2eproto_deps[1] = {
 };
-static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_ucesb_2eproto_sccs[4] = {
+static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_ucesb_2eproto_sccs[8] = {
+  &scc_info_DaqInformation_ucesb_2eproto.base,
+  &scc_info_DaqStatus_ucesb_2eproto.base,
   &scc_info_LogEntry_ucesb_2eproto.base,
+  &scc_info_ScalerEntry_ucesb_2eproto.base,
+  &scc_info_ScalerGroup_ucesb_2eproto.base,
   &scc_info_UcesbReport_ucesb_2eproto.base,
   &scc_info_UcesbSummary_ucesb_2eproto.base,
   &scc_info_UcesbSummary_Triggers_ucesb_2eproto.base,
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_ucesb_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_ucesb_2eproto = {
-  false, false, descriptor_table_protodef_ucesb_2eproto, "ucesb.proto", 564,
-  &descriptor_table_ucesb_2eproto_once, descriptor_table_ucesb_2eproto_sccs, descriptor_table_ucesb_2eproto_deps, 4, 0,
+  false, false, descriptor_table_protodef_ucesb_2eproto, "ucesb.proto", 1086,
+  &descriptor_table_ucesb_2eproto_once, descriptor_table_ucesb_2eproto_sccs, descriptor_table_ucesb_2eproto_deps, 8, 0,
   schemas, file_default_instances, TableStruct_ucesb_2eproto::offsets,
-  file_level_metadata_ucesb_2eproto, 4, file_level_enum_descriptors_ucesb_2eproto, file_level_service_descriptors_ucesb_2eproto,
+  file_level_metadata_ucesb_2eproto, 8, file_level_enum_descriptors_ucesb_2eproto, file_level_service_descriptors_ucesb_2eproto,
 };
 
 // Force running AddDescriptors() at dynamic initialization time.
 static bool dynamic_init_dummy_ucesb_2eproto = (static_cast<void>(::PROTOBUF_NAMESPACE_ID::internal::AddDescriptors(&descriptor_table_ucesb_2eproto)), true);
 namespace frs_monitor {
-const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* LogEntry_LogSeverity_descriptor() {
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* DaqInformation_CorrelationStatus_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_ucesb_2eproto);
   return file_level_enum_descriptors_ucesb_2eproto[0];
+}
+bool DaqInformation_CorrelationStatus_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || _MSC_VER >= 1900)
+constexpr DaqInformation_CorrelationStatus DaqInformation::UNKNOWN;
+constexpr DaqInformation_CorrelationStatus DaqInformation::GOOD;
+constexpr DaqInformation_CorrelationStatus DaqInformation::BAD;
+constexpr DaqInformation_CorrelationStatus DaqInformation::CorrelationStatus_MIN;
+constexpr DaqInformation_CorrelationStatus DaqInformation::CorrelationStatus_MAX;
+constexpr int DaqInformation::CorrelationStatus_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || _MSC_VER >= 1900)
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* LogEntry_LogSeverity_descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_ucesb_2eproto);
+  return file_level_enum_descriptors_ucesb_2eproto[1];
 }
 bool LogEntry_LogSeverity_IsValid(int value) {
   switch (value) {
@@ -949,6 +1113,1088 @@ void UcesbSummary::InternalSwap(UcesbSummary* other) {
 
 // ===================================================================
 
+void DaqInformation::InitAsDefaultInstance() {
+}
+class DaqInformation::_Internal {
+ public:
+};
+
+DaqInformation::DaqInformation(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:frs_monitor.DaqInformation)
+}
+DaqInformation::DaqInformation(const DaqInformation& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  subsystem_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_subsystem().empty()) {
+    subsystem_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_subsystem(),
+      GetArena());
+  }
+  ::memcpy(&events_, &from.events_,
+    static_cast<size_t>(reinterpret_cast<char*>(&active_) -
+    reinterpret_cast<char*>(&events_)) + sizeof(active_));
+  // @@protoc_insertion_point(copy_constructor:frs_monitor.DaqInformation)
+}
+
+void DaqInformation::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_DaqInformation_ucesb_2eproto.base);
+  subsystem_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  ::memset(&events_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&active_) -
+      reinterpret_cast<char*>(&events_)) + sizeof(active_));
+}
+
+DaqInformation::~DaqInformation() {
+  // @@protoc_insertion_point(destructor:frs_monitor.DaqInformation)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void DaqInformation::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+  subsystem_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void DaqInformation::ArenaDtor(void* object) {
+  DaqInformation* _this = reinterpret_cast< DaqInformation* >(object);
+  (void)_this;
+}
+void DaqInformation::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void DaqInformation::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const DaqInformation& DaqInformation::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_DaqInformation_ucesb_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void DaqInformation::Clear() {
+// @@protoc_insertion_point(message_clear_start:frs_monitor.DaqInformation)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  subsystem_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::memset(&events_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&active_) -
+      reinterpret_cast<char*>(&events_)) + sizeof(active_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* DaqInformation::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // string subsystem = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          auto str = _internal_mutable_subsystem();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "frs_monitor.DaqInformation.subsystem"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint64 events = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+          events_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 rate = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          rate_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 pulser = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40)) {
+          pulser_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .frs_monitor.DaqInformation.CorrelationStatus correlation = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48)) {
+          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_correlation(static_cast<::frs_monitor::DaqInformation_CorrelationStatus>(val));
+        } else goto handle_unusual;
+        continue;
+      // bool active = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 56)) {
+          active_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* DaqInformation::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:frs_monitor.DaqInformation)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string subsystem = 1;
+  if (this->subsystem().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_subsystem().data(), static_cast<int>(this->_internal_subsystem().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "frs_monitor.DaqInformation.subsystem");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_subsystem(), target);
+  }
+
+  // int32 id = 2;
+  if (this->id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_id(), target);
+  }
+
+  // uint64 events = 3;
+  if (this->events() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(3, this->_internal_events(), target);
+  }
+
+  // uint32 rate = 4;
+  if (this->rate() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_rate(), target);
+  }
+
+  // uint32 pulser = 5;
+  if (this->pulser() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(5, this->_internal_pulser(), target);
+  }
+
+  // .frs_monitor.DaqInformation.CorrelationStatus correlation = 6;
+  if (this->correlation() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      6, this->_internal_correlation(), target);
+  }
+
+  // bool active = 7;
+  if (this->active() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(7, this->_internal_active(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:frs_monitor.DaqInformation)
+  return target;
+}
+
+size_t DaqInformation::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:frs_monitor.DaqInformation)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // string subsystem = 1;
+  if (this->subsystem().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_subsystem());
+  }
+
+  // uint64 events = 3;
+  if (this->events() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt64Size(
+        this->_internal_events());
+  }
+
+  // int32 id = 2;
+  if (this->id() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_id());
+  }
+
+  // uint32 rate = 4;
+  if (this->rate() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_rate());
+  }
+
+  // uint32 pulser = 5;
+  if (this->pulser() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_pulser());
+  }
+
+  // .frs_monitor.DaqInformation.CorrelationStatus correlation = 6;
+  if (this->correlation() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_correlation());
+  }
+
+  // bool active = 7;
+  if (this->active() != 0) {
+    total_size += 1 + 1;
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void DaqInformation::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:frs_monitor.DaqInformation)
+  GOOGLE_DCHECK_NE(&from, this);
+  const DaqInformation* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<DaqInformation>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:frs_monitor.DaqInformation)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:frs_monitor.DaqInformation)
+    MergeFrom(*source);
+  }
+}
+
+void DaqInformation::MergeFrom(const DaqInformation& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:frs_monitor.DaqInformation)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.subsystem().size() > 0) {
+    _internal_set_subsystem(from._internal_subsystem());
+  }
+  if (from.events() != 0) {
+    _internal_set_events(from._internal_events());
+  }
+  if (from.id() != 0) {
+    _internal_set_id(from._internal_id());
+  }
+  if (from.rate() != 0) {
+    _internal_set_rate(from._internal_rate());
+  }
+  if (from.pulser() != 0) {
+    _internal_set_pulser(from._internal_pulser());
+  }
+  if (from.correlation() != 0) {
+    _internal_set_correlation(from._internal_correlation());
+  }
+  if (from.active() != 0) {
+    _internal_set_active(from._internal_active());
+  }
+}
+
+void DaqInformation::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:frs_monitor.DaqInformation)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void DaqInformation::CopyFrom(const DaqInformation& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:frs_monitor.DaqInformation)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool DaqInformation::IsInitialized() const {
+  return true;
+}
+
+void DaqInformation::InternalSwap(DaqInformation* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  subsystem_.Swap(&other->subsystem_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DaqInformation, active_)
+      + sizeof(DaqInformation::active_)
+      - PROTOBUF_FIELD_OFFSET(DaqInformation, events_)>(
+          reinterpret_cast<char*>(&events_),
+          reinterpret_cast<char*>(&other->events_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata DaqInformation::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void DaqStatus::InitAsDefaultInstance() {
+}
+class DaqStatus::_Internal {
+ public:
+};
+
+DaqStatus::DaqStatus(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena),
+  daq_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:frs_monitor.DaqStatus)
+}
+DaqStatus::DaqStatus(const DaqStatus& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message(),
+      daq_(from.daq_) {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:frs_monitor.DaqStatus)
+}
+
+void DaqStatus::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_DaqStatus_ucesb_2eproto.base);
+}
+
+DaqStatus::~DaqStatus() {
+  // @@protoc_insertion_point(destructor:frs_monitor.DaqStatus)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void DaqStatus::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+}
+
+void DaqStatus::ArenaDtor(void* object) {
+  DaqStatus* _this = reinterpret_cast< DaqStatus* >(object);
+  (void)_this;
+}
+void DaqStatus::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void DaqStatus::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const DaqStatus& DaqStatus::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_DaqStatus_ucesb_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void DaqStatus::Clear() {
+// @@protoc_insertion_point(message_clear_start:frs_monitor.DaqStatus)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  daq_.Clear();
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* DaqStatus::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // repeated .frs_monitor.DaqInformation daq = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_daq(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* DaqStatus::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:frs_monitor.DaqStatus)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .frs_monitor.DaqInformation daq = 1;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_daq_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, this->_internal_daq(i), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:frs_monitor.DaqStatus)
+  return target;
+}
+
+size_t DaqStatus::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:frs_monitor.DaqStatus)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .frs_monitor.DaqInformation daq = 1;
+  total_size += 1UL * this->_internal_daq_size();
+  for (const auto& msg : this->daq_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void DaqStatus::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:frs_monitor.DaqStatus)
+  GOOGLE_DCHECK_NE(&from, this);
+  const DaqStatus* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<DaqStatus>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:frs_monitor.DaqStatus)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:frs_monitor.DaqStatus)
+    MergeFrom(*source);
+  }
+}
+
+void DaqStatus::MergeFrom(const DaqStatus& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:frs_monitor.DaqStatus)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  daq_.MergeFrom(from.daq_);
+}
+
+void DaqStatus::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:frs_monitor.DaqStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void DaqStatus::CopyFrom(const DaqStatus& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:frs_monitor.DaqStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool DaqStatus::IsInitialized() const {
+  return true;
+}
+
+void DaqStatus::InternalSwap(DaqStatus* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  daq_.InternalSwap(&other->daq_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata DaqStatus::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void ScalerEntry::InitAsDefaultInstance() {
+}
+class ScalerEntry::_Internal {
+ public:
+};
+
+ScalerEntry::ScalerEntry(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:frs_monitor.ScalerEntry)
+}
+ScalerEntry::ScalerEntry(const ScalerEntry& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&index_, &from.index_,
+    static_cast<size_t>(reinterpret_cast<char*>(&last_spill_) -
+    reinterpret_cast<char*>(&index_)) + sizeof(last_spill_));
+  // @@protoc_insertion_point(copy_constructor:frs_monitor.ScalerEntry)
+}
+
+void ScalerEntry::SharedCtor() {
+  ::memset(&index_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&last_spill_) -
+      reinterpret_cast<char*>(&index_)) + sizeof(last_spill_));
+}
+
+ScalerEntry::~ScalerEntry() {
+  // @@protoc_insertion_point(destructor:frs_monitor.ScalerEntry)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void ScalerEntry::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+}
+
+void ScalerEntry::ArenaDtor(void* object) {
+  ScalerEntry* _this = reinterpret_cast< ScalerEntry* >(object);
+  (void)_this;
+}
+void ScalerEntry::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ScalerEntry::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const ScalerEntry& ScalerEntry::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ScalerEntry_ucesb_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void ScalerEntry::Clear() {
+// @@protoc_insertion_point(message_clear_start:frs_monitor.ScalerEntry)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&index_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&last_spill_) -
+      reinterpret_cast<char*>(&index_)) + sizeof(last_spill_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ScalerEntry::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // int32 index = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          index_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 rate = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          rate_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 spill = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+          spill_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 last_spill = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          last_spill_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* ScalerEntry::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:frs_monitor.ScalerEntry)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // int32 index = 1;
+  if (this->index() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_index(), target);
+  }
+
+  // int32 rate = 2;
+  if (this->rate() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_rate(), target);
+  }
+
+  // int32 spill = 3;
+  if (this->spill() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_spill(), target);
+  }
+
+  // int32 last_spill = 4;
+  if (this->last_spill() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_last_spill(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:frs_monitor.ScalerEntry)
+  return target;
+}
+
+size_t ScalerEntry::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:frs_monitor.ScalerEntry)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // int32 index = 1;
+  if (this->index() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_index());
+  }
+
+  // int32 rate = 2;
+  if (this->rate() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_rate());
+  }
+
+  // int32 spill = 3;
+  if (this->spill() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_spill());
+  }
+
+  // int32 last_spill = 4;
+  if (this->last_spill() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_last_spill());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void ScalerEntry::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:frs_monitor.ScalerEntry)
+  GOOGLE_DCHECK_NE(&from, this);
+  const ScalerEntry* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<ScalerEntry>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:frs_monitor.ScalerEntry)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:frs_monitor.ScalerEntry)
+    MergeFrom(*source);
+  }
+}
+
+void ScalerEntry::MergeFrom(const ScalerEntry& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:frs_monitor.ScalerEntry)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.index() != 0) {
+    _internal_set_index(from._internal_index());
+  }
+  if (from.rate() != 0) {
+    _internal_set_rate(from._internal_rate());
+  }
+  if (from.spill() != 0) {
+    _internal_set_spill(from._internal_spill());
+  }
+  if (from.last_spill() != 0) {
+    _internal_set_last_spill(from._internal_last_spill());
+  }
+}
+
+void ScalerEntry::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:frs_monitor.ScalerEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void ScalerEntry::CopyFrom(const ScalerEntry& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:frs_monitor.ScalerEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ScalerEntry::IsInitialized() const {
+  return true;
+}
+
+void ScalerEntry::InternalSwap(ScalerEntry* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ScalerEntry, last_spill_)
+      + sizeof(ScalerEntry::last_spill_)
+      - PROTOBUF_FIELD_OFFSET(ScalerEntry, index_)>(
+          reinterpret_cast<char*>(&index_),
+          reinterpret_cast<char*>(&other->index_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ScalerEntry::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void ScalerGroup::InitAsDefaultInstance() {
+}
+class ScalerGroup::_Internal {
+ public:
+};
+
+ScalerGroup::ScalerGroup(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena),
+  scalers_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:frs_monitor.ScalerGroup)
+}
+ScalerGroup::ScalerGroup(const ScalerGroup& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message(),
+      scalers_(from.scalers_) {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_key().empty()) {
+    key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_key(),
+      GetArena());
+  }
+  // @@protoc_insertion_point(copy_constructor:frs_monitor.ScalerGroup)
+}
+
+void ScalerGroup::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ScalerGroup_ucesb_2eproto.base);
+  key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+ScalerGroup::~ScalerGroup() {
+  // @@protoc_insertion_point(destructor:frs_monitor.ScalerGroup)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void ScalerGroup::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+  key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void ScalerGroup::ArenaDtor(void* object) {
+  ScalerGroup* _this = reinterpret_cast< ScalerGroup* >(object);
+  (void)_this;
+}
+void ScalerGroup::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ScalerGroup::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const ScalerGroup& ScalerGroup::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ScalerGroup_ucesb_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void ScalerGroup::Clear() {
+// @@protoc_insertion_point(message_clear_start:frs_monitor.ScalerGroup)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  scalers_.Clear();
+  key_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ScalerGroup::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // string key = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          auto str = _internal_mutable_key();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "frs_monitor.ScalerGroup.key"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // repeated .frs_monitor.ScalerEntry scalers = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_scalers(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* ScalerGroup::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:frs_monitor.ScalerGroup)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string key = 1;
+  if (this->key().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_key().data(), static_cast<int>(this->_internal_key().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "frs_monitor.ScalerGroup.key");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_key(), target);
+  }
+
+  // repeated .frs_monitor.ScalerEntry scalers = 2;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_scalers_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, this->_internal_scalers(i), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:frs_monitor.ScalerGroup)
+  return target;
+}
+
+size_t ScalerGroup::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:frs_monitor.ScalerGroup)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .frs_monitor.ScalerEntry scalers = 2;
+  total_size += 1UL * this->_internal_scalers_size();
+  for (const auto& msg : this->scalers_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  // string key = 1;
+  if (this->key().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_key());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void ScalerGroup::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:frs_monitor.ScalerGroup)
+  GOOGLE_DCHECK_NE(&from, this);
+  const ScalerGroup* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<ScalerGroup>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:frs_monitor.ScalerGroup)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:frs_monitor.ScalerGroup)
+    MergeFrom(*source);
+  }
+}
+
+void ScalerGroup::MergeFrom(const ScalerGroup& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:frs_monitor.ScalerGroup)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  scalers_.MergeFrom(from.scalers_);
+  if (from.key().size() > 0) {
+    _internal_set_key(from._internal_key());
+  }
+}
+
+void ScalerGroup::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:frs_monitor.ScalerGroup)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void ScalerGroup::CopyFrom(const ScalerGroup& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:frs_monitor.ScalerGroup)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ScalerGroup::IsInitialized() const {
+  return true;
+}
+
+void ScalerGroup::InternalSwap(ScalerGroup* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  scalers_.InternalSwap(&other->scalers_);
+  key_.Swap(&other->key_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ScalerGroup::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
 void LogEntry::InitAsDefaultInstance() {
 }
 class LogEntry::_Internal {
@@ -1189,18 +2435,26 @@ void LogEntry::InternalSwap(LogEntry* other) {
 void UcesbReport::InitAsDefaultInstance() {
   ::frs_monitor::_UcesbReport_default_instance_._instance.get_mutable()->summary_ = const_cast< ::frs_monitor::UcesbSummary*>(
       ::frs_monitor::UcesbSummary::internal_default_instance());
+  ::frs_monitor::_UcesbReport_default_instance_._instance.get_mutable()->status_ = const_cast< ::frs_monitor::DaqStatus*>(
+      ::frs_monitor::DaqStatus::internal_default_instance());
 }
 class UcesbReport::_Internal {
  public:
   static const ::frs_monitor::UcesbSummary& summary(const UcesbReport* msg);
+  static const ::frs_monitor::DaqStatus& status(const UcesbReport* msg);
 };
 
 const ::frs_monitor::UcesbSummary&
 UcesbReport::_Internal::summary(const UcesbReport* msg) {
   return *msg->summary_;
 }
+const ::frs_monitor::DaqStatus&
+UcesbReport::_Internal::status(const UcesbReport* msg) {
+  return *msg->status_;
+}
 UcesbReport::UcesbReport(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena),
+  scalers_(arena),
   logs_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
@@ -1208,6 +2462,7 @@ UcesbReport::UcesbReport(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 }
 UcesbReport::UcesbReport(const UcesbReport& from)
   : ::PROTOBUF_NAMESPACE_ID::Message(),
+      scalers_(from.scalers_),
       logs_(from.logs_) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_summary()) {
@@ -1215,12 +2470,19 @@ UcesbReport::UcesbReport(const UcesbReport& from)
   } else {
     summary_ = nullptr;
   }
+  if (from._internal_has_status()) {
+    status_ = new ::frs_monitor::DaqStatus(*from.status_);
+  } else {
+    status_ = nullptr;
+  }
   // @@protoc_insertion_point(copy_constructor:frs_monitor.UcesbReport)
 }
 
 void UcesbReport::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_UcesbReport_ucesb_2eproto.base);
-  summary_ = nullptr;
+  ::memset(&summary_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&status_) -
+      reinterpret_cast<char*>(&summary_)) + sizeof(status_));
 }
 
 UcesbReport::~UcesbReport() {
@@ -1232,6 +2494,7 @@ UcesbReport::~UcesbReport() {
 void UcesbReport::SharedDtor() {
   GOOGLE_DCHECK(GetArena() == nullptr);
   if (this != internal_default_instance()) delete summary_;
+  if (this != internal_default_instance()) delete status_;
 }
 
 void UcesbReport::ArenaDtor(void* object) {
@@ -1255,11 +2518,16 @@ void UcesbReport::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  scalers_.Clear();
   logs_.Clear();
   if (GetArena() == nullptr && summary_ != nullptr) {
     delete summary_;
   }
   summary_ = nullptr;
+  if (GetArena() == nullptr && status_ != nullptr) {
+    delete status_;
+  }
+  status_ = nullptr;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1276,6 +2544,25 @@ const char* UcesbReport::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_summary(), ptr);
           CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .frs_monitor.DaqStatus status = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_status(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // repeated .frs_monitor.ScalerGroup scalers = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_scalers(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
         } else goto handle_unusual;
         continue;
       // repeated .frs_monitor.LogEntry logs = 4;
@@ -1326,6 +2613,22 @@ failure:
         1, _Internal::summary(this), target, stream);
   }
 
+  // .frs_monitor.DaqStatus status = 2;
+  if (this->has_status()) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        2, _Internal::status(this), target, stream);
+  }
+
+  // repeated .frs_monitor.ScalerGroup scalers = 3;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_scalers_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(3, this->_internal_scalers(i), target, stream);
+  }
+
   // repeated .frs_monitor.LogEntry logs = 4;
   for (unsigned int i = 0,
       n = static_cast<unsigned int>(this->_internal_logs_size()); i < n; i++) {
@@ -1350,6 +2653,13 @@ size_t UcesbReport::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  // repeated .frs_monitor.ScalerGroup scalers = 3;
+  total_size += 1UL * this->_internal_scalers_size();
+  for (const auto& msg : this->scalers_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
   // repeated .frs_monitor.LogEntry logs = 4;
   total_size += 1UL * this->_internal_logs_size();
   for (const auto& msg : this->logs_) {
@@ -1362,6 +2672,13 @@ size_t UcesbReport::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *summary_);
+  }
+
+  // .frs_monitor.DaqStatus status = 2;
+  if (this->has_status()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *status_);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1395,9 +2712,13 @@ void UcesbReport::MergeFrom(const UcesbReport& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
+  scalers_.MergeFrom(from.scalers_);
   logs_.MergeFrom(from.logs_);
   if (from.has_summary()) {
     _internal_mutable_summary()->::frs_monitor::UcesbSummary::MergeFrom(from._internal_summary());
+  }
+  if (from.has_status()) {
+    _internal_mutable_status()->::frs_monitor::DaqStatus::MergeFrom(from._internal_status());
   }
 }
 
@@ -1422,8 +2743,14 @@ bool UcesbReport::IsInitialized() const {
 void UcesbReport::InternalSwap(UcesbReport* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  scalers_.InternalSwap(&other->scalers_);
   logs_.InternalSwap(&other->logs_);
-  swap(summary_, other->summary_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(UcesbReport, status_)
+      + sizeof(UcesbReport::status_)
+      - PROTOBUF_FIELD_OFFSET(UcesbReport, summary_)>(
+          reinterpret_cast<char*>(&summary_),
+          reinterpret_cast<char*>(&other->summary_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata UcesbReport::GetMetadata() const {
@@ -1439,6 +2766,18 @@ template<> PROTOBUF_NOINLINE ::frs_monitor::UcesbSummary_Triggers* Arena::Create
 }
 template<> PROTOBUF_NOINLINE ::frs_monitor::UcesbSummary* Arena::CreateMaybeMessage< ::frs_monitor::UcesbSummary >(Arena* arena) {
   return Arena::CreateMessageInternal< ::frs_monitor::UcesbSummary >(arena);
+}
+template<> PROTOBUF_NOINLINE ::frs_monitor::DaqInformation* Arena::CreateMaybeMessage< ::frs_monitor::DaqInformation >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::frs_monitor::DaqInformation >(arena);
+}
+template<> PROTOBUF_NOINLINE ::frs_monitor::DaqStatus* Arena::CreateMaybeMessage< ::frs_monitor::DaqStatus >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::frs_monitor::DaqStatus >(arena);
+}
+template<> PROTOBUF_NOINLINE ::frs_monitor::ScalerEntry* Arena::CreateMaybeMessage< ::frs_monitor::ScalerEntry >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::frs_monitor::ScalerEntry >(arena);
+}
+template<> PROTOBUF_NOINLINE ::frs_monitor::ScalerGroup* Arena::CreateMaybeMessage< ::frs_monitor::ScalerGroup >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::frs_monitor::ScalerGroup >(arena);
 }
 template<> PROTOBUF_NOINLINE ::frs_monitor::LogEntry* Arena::CreateMaybeMessage< ::frs_monitor::LogEntry >(Arena* arena) {
   return Arena::CreateMessageInternal< ::frs_monitor::LogEntry >(arena);
