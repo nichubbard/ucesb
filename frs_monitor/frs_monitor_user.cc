@@ -232,6 +232,7 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
 #define LIST_SCALER(name, N) \
   for(uint i = 0; i < N; i++) { \
     frs_trloii_all_now[offs + i] = event->trloii_mvlc.trloii_src_scalers.name[i]; \
+    offs++; \
   }
 
   // TRLOII DUMP
