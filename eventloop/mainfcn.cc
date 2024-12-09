@@ -63,6 +63,8 @@
 
 #include "user.hh"
 
+#include "watcher_window.hh"
+
 void signal_handler_ret(int signal)
 {
   UNUSED(signal);
@@ -1991,12 +1993,18 @@ get_next_event:
 
 #ifndef USE_MERGING
 #ifdef USE_CURSES
-	    if (_conf._watcher._command)
+	    extern watcher_window _watcher;
+	    if (_conf._watcher._command && !_watcher._nocurses)
 	      watcher_event();
 	    else
 #endif
 #endif
 	      {
+#ifdef USE_CURSES
+		if (_conf._watcher._command) {
+			watcher_event();
+		}
+#endif
 		if (_update_progress)
 		  {
 		    _update_progress=0;

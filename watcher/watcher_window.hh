@@ -61,6 +61,7 @@ public:
   uint _display_timeout;
   
   bool _init;
+  bool _nocurses;
 
 public:
   vect_watcher_channel_display  _display_channels;

@@ -330,7 +330,9 @@ void frs_monitor_watcher_init()
   extern watcher_window _watcher;
   _watcher._display_channels.clear();
   _watcher._present_channels.clear();
-  init_pair(5, COLOR_RED, COLOR_BLACK);
+  if (!_watcher._nocurses) {
+    init_pair(5, COLOR_RED, COLOR_BLACK);
+  }
 
   // Create all expected subsystems so they're always shown
   for (auto i : expected)
@@ -401,27 +403,28 @@ void format_long_int(char* buf, long i)
 
 void frs_monitor_watcher_display(watcher_display_info& info)
 {
-  if (info._line > info._max_line)
-    return;
+  extern watcher_window _watcher;
+  if (!_watcher._nocurses) {
+    if (info._line > info._max_line)
+      return;
+    wcolor_set(info._w, info._col_norm, NULL);
+    wmove(info._w, info._line, 0);
 
-  wcolor_set(info._w, info._col_norm, NULL);
-  wmove(info._w, info._line, 0);
+    werase(info._w);
 
-  werase(info._w);
+    whline(info._w, ACS_HLINE, 80);
+    mvwaddstr(info._w, info._line, 1, "FRS DAQ Status");
 
-  whline(info._w, ACS_HLINE, 80);
-  mvwaddstr(info._w, info._line, 1, "FRS DAQ Status");
-
-  info._line += 1;
+    info._line += 1;
+   
+    mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "System", "ID", "Events", "Rate", "Pulser", "Correlation");
+    info._line++;
+  }
 
   if (_monitor_now == __monitor_last)
   {
     __monitor_last--;
   }
- 
-  mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "System", "ID", "Events", "Rate", "Pulser", "Correlation");
-  info._line++;
-
   double dt = (_monitor_now - __monitor_last) / (double)1e9;
 
   char buf[256] = { '\0' };
@@ -449,45 +452,57 @@ void frs_monitor_watcher_display(watcher_display_info& info)
       report_daq->set_pulser(pulses[i.first] / dt);
       report_daq->set_active(active);
 #endif
-      // For the rarely looked at ncurses UI
-      if (!active)
-      {
-        mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %18s          ", names[i.first].c_str(), i.first, buf, "NO DATA");
-      }
-      else
-      {
-        mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+      if (!_watcher._nocurses) {
+        // For the rarely looked at ncurses UI
+        if (!active)
+        {
+          mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %18s          ", names[i.first].c_str(), i.first, buf, "NO DATA");
+        }
+        else
+        {
+          mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
+        }
       }
       // Check the DAQ Sync "enum"/flag
       if (daq_sync[i.first] == 1)
       {
-        wcolor_set(info._w, 3, NULL);
-        wprintw(info._w, "%12s", "OK");
+        if (!_watcher._nocurses) {
+          wcolor_set(info._w, 3, NULL);
+          wprintw(info._w, "%12s", "OK");
+        }
 #ifdef ZEROMQ
         report_daq->set_correlation(frs_monitor::DaqInformation::GOOD);
 #endif
       }
       else if (daq_sync[i.first] == 2)
       {
-        wcolor_set(info._w, 5, NULL);
-        wprintw(info._w, "%12s", "BAD");
+        if (!_watcher._nocurses) {
+          wcolor_set(info._w, 5, NULL);
+          wprintw(info._w, "%12s", "BAD");
+        }
 #ifdef ZEROMQ
         report_daq->set_correlation(frs_monitor::DaqInformation::BAD);
 #endif
       }
       else
       {
-        wcolor_set(info._w, 4, NULL);
-        wprintw(info._w, "%12s", "N/A");
+        if (!_watcher._nocurses) {
+          wcolor_set(info._w, 4, NULL);
+          wprintw(info._w, "%12s", "N/A");
+        }
 #ifdef ZEROMQ
         report_daq->set_correlation(frs_monitor::DaqInformation::UNKNOWN);
 #endif
       }
-      wcolor_set(info._w, 2, NULL);
+      if (!_watcher._nocurses) {
+        wcolor_set(info._w, 2, NULL);
+      }
     }
     info._line += 1;
   }
-  wrefresh(info._w);
+  if (!_watcher._nocurses) {
+    wrefresh(info._w);
+  }
 
 #ifdef ZEROMQ
   zmq_calculate_scalers();
@@ -495,8 +510,6 @@ void frs_monitor_watcher_display(watcher_display_info& info)
 
   // Could ncurses some scalers here, like DESPEC
   // But probably no point, prefer web UI
-
-  extern watcher_window _watcher;
 
 #ifdef ZEROMQ
   extern std::deque<std::pair<std::string, int>> errors;

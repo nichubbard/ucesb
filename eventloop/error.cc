@@ -204,7 +204,7 @@ void formatted_error::eject()
       {
           _watcher.on_error(_buffer, _type);
       }
-      else
+      if (!_conf._watcher._command || !_watcher._init || _watcher._nocurses)
 #endif
       {
         markconvbold_output(_buffer,

@@ -52,6 +52,7 @@ watcher_window::watcher_window()
 {
   _last_update = 0;
   _init = false;
+  _nocurses = false;
 
   _display_at_mask = 0;
   _display_counts  = 1000;
@@ -82,78 +83,80 @@ void watcher_window::init()
 {
   // Get ourselves some window
   
-  mw = initscr();
-  start_color();
-  atexit([]
-    { 
-      endwin();
-      for (auto const& i : errors)
-      {
-        markconvbold_output(i.first.c_str(),
-  			  i.second == FE_ERROR ? CTR_WHITE_BG_RED :
-  			  i.second == FE_WARNING ? CTR_BLACK_BG_YELLOW :
-  			  CTR_NONE);
-      }
-    }
-  );
-  nocbreak(); 
-  noecho();
-  nonl();
-  curs_set(0);
+  if (!_nocurses) {
+	  mw = initscr();
+	  start_color();
+	  atexit([]
+	    { 
+	      endwin();
+	      for (auto const& i : errors)
+	      {
+		markconvbold_output(i.first.c_str(),
+				  i.second == FE_ERROR ? CTR_WHITE_BG_RED :
+				  i.second == FE_WARNING ? CTR_BLACK_BG_YELLOW :
+				  CTR_NONE);
+	      }
+	    }
+	  );
+	  nocbreak(); 
+	  noecho();
+	  nonl();
+	  curs_set(0);
 
-  assert (NUM_WATCH_TYPES == sizeof(WATCH_TYPE_NAMES)/sizeof(WATCH_TYPE_NAMES[0]));
+	  assert (NUM_WATCH_TYPES == sizeof(WATCH_TYPE_NAMES)/sizeof(WATCH_TYPE_NAMES[0]));
 
-  init_pair(COL_NORMAL,     COLOR_WHITE  ,COLOR_BLUE);
-  init_pair(COL_DATA_BKGND, COLOR_WHITE  ,COLOR_BLACK);
-  
-  init_pair(COL_TEXT_NORMAL, COLOR_WHITE  ,COLOR_BLACK);
-  init_pair(COL_TEXT_ERROR,  COLOR_WHITE  ,COLOR_RED);
-  init_pair(COL_TEXT_WARNING,COLOR_YELLOW ,COLOR_BLACK);
-  init_pair(COL_TEXT_INFO,   COLOR_GREEN  ,COLOR_BLACK);
-  init_pair(COL_TEXT_ERROR_BLINK, COLOR_RED, COLOR_WHITE);
+	  init_pair(COL_NORMAL,     COLOR_WHITE  ,COLOR_BLUE);
+	  init_pair(COL_DATA_BKGND, COLOR_WHITE  ,COLOR_BLACK);
+	  
+	  init_pair(COL_TEXT_NORMAL, COLOR_WHITE  ,COLOR_BLACK);
+	  init_pair(COL_TEXT_ERROR,  COLOR_WHITE  ,COLOR_RED);
+	  init_pair(COL_TEXT_WARNING,COLOR_YELLOW ,COLOR_BLACK);
+	  init_pair(COL_TEXT_INFO,   COLOR_GREEN  ,COLOR_BLACK);
+	  init_pair(COL_TEXT_ERROR_BLINK, COLOR_RED, COLOR_WHITE);
 
-  for (int type = 0; type < NUM_WATCH_TYPES; type++)
-    init_pair((short) (COL_TYPE_BASE+type),
-	      WATCH_TYPE_NAMES[type]._color,COLOR_BLACK);
-      
+	  for (int type = 0; type < NUM_WATCH_TYPES; type++)
+	    init_pair((short) (COL_TYPE_BASE+type),
+		      WATCH_TYPE_NAMES[type]._color,COLOR_BLACK);
+	      
 
-  wtop      = newwin(TOP_WINDOW_LINES,80,               0,    0); 
-  wscroll   = newwin(              41,80,TOP_WINDOW_LINES,    0);
-  werrortop = newwin(               1,80,TOP_WINDOW_LINES+41,  0);
-  werror    = newwin(               0, 0,TOP_WINDOW_LINES+42, 0);
+	  wtop      = newwin(TOP_WINDOW_LINES,80,               0,    0); 
+	  wscroll   = newwin(              41,80,TOP_WINDOW_LINES,    0);
+	  werrortop = newwin(               1,80,TOP_WINDOW_LINES+41,  0);
+	  werror    = newwin(               0, 0,TOP_WINDOW_LINES+42, 0);
 
-  scrollok(wscroll,1);
-  scrollok(werror, 1);
+	  scrollok(wscroll,1);
+	  scrollok(werror, 1);
 
-  // Fill it with some information
+	  // Fill it with some information
 
-  wcolor_set(wtop,COL_NORMAL,NULL);
-  wbkgd(wtop,COLOR_PAIR(COL_NORMAL));
+	  wcolor_set(wtop,COL_NORMAL,NULL);
+	  wbkgd(wtop,COLOR_PAIR(COL_NORMAL));
 
-  //wmove(wtop,0,0);
-  //waddstr(wtop,"*** Watcher ***");
-  wnoutrefresh(wtop);
+	  //wmove(wtop,0,0);
+	  //waddstr(wtop,"*** Watcher ***");
+	  wnoutrefresh(wtop);
 
-  wcolor_set(wscroll,COL_NORMAL,NULL);
-  wbkgd(wscroll,COLOR_PAIR(COL_DATA_BKGND));
-  mvwaddstr(wscroll, 2, 10, "Waiting for events...");
-  wnoutrefresh(wscroll);
+	  wcolor_set(wscroll,COL_NORMAL,NULL);
+	  wbkgd(wscroll,COLOR_PAIR(COL_DATA_BKGND));
+	  mvwaddstr(wscroll, 2, 10, "Waiting for events...");
+	  wnoutrefresh(wscroll);
 
-  wcolor_set(werrortop, COL_TEXT_ERROR, NULL);
-  wbkgd(werrortop,COLOR_PAIR(COL_TEXT_NORMAL));
-  wmove(werrortop, 0, 0);
-  whline(werrortop, ACS_HLINE, 80);
-  mvwaddstr(werrortop, 0, 1, "ucesb Log");
-  wnoutrefresh(werrortop);  
-  
-  wcolor_set(werror,COL_TEXT_NORMAL,NULL);
-  wbkgd(werror,COLOR_PAIR(COL_TEXT_NORMAL));
-  
-  
-  wmove(werror, 0, 0);
-  wnoutrefresh(werror);  
+	  wcolor_set(werrortop, COL_TEXT_ERROR, NULL);
+	  wbkgd(werrortop,COLOR_PAIR(COL_TEXT_NORMAL));
+	  wmove(werrortop, 0, 0);
+	  whline(werrortop, ACS_HLINE, 80);
+	  mvwaddstr(werrortop, 0, 1, "ucesb Log");
+	  wnoutrefresh(werrortop);  
+	  
+	  wcolor_set(werror,COL_TEXT_NORMAL,NULL);
+	  wbkgd(werror,COLOR_PAIR(COL_TEXT_NORMAL));
+	  
+	  
+	  wmove(werror, 0, 0);
+	  wnoutrefresh(werror);  
+	  doupdate();
+  }
 
-  doupdate();
 
   _init = true;
   _time = 0;
@@ -244,76 +247,87 @@ void watcher_window::event(watcher_event_info &info)
       time_t t = _time;
       const char* t_str = ctime(&t);
 
-      wcolor_set(wtop,COL_NORMAL,NULL);
-      wmove(wtop,0,(int) (40-strlen(t_str) / 2));
-      waddstr(wtop,t_str);
+      if (!_nocurses) {
+	      wcolor_set(wtop,COL_NORMAL,NULL);
+	      wmove(wtop,0,(int) (40-strlen(t_str) / 2));
+	      waddstr(wtop,t_str);
 
-      char buf[256];
+	      char buf[256];
 
-      snprintf(buf,sizeof(buf),"Event: %d",_event_no);
+	      snprintf(buf,sizeof(buf),"Event: %d",_event_no);
 
-      wmove(wtop,2,0);
-      waddstr(wtop,buf);
+	      wmove(wtop,2,0);
+	      waddstr(wtop,buf);
 
-      for (int type = 0; type < NUM_WATCH_TYPES; type++)
-	{
-	  wcolor_set(wtop,(short) (COL_TYPE_BASE+type),NULL);
-	  snprintf (buf,sizeof(buf),"%9s:%8d ",
-		   WATCH_TYPE_NAMES[type]._name,
-		   _type_count[type]);
-	  wmove(wtop,1+type,80-20);
-	  waddstr(wtop,buf);
-	}
+	      for (int type = 0; type < NUM_WATCH_TYPES; type++)
+		{
+		  wcolor_set(wtop,(short) (COL_TYPE_BASE+type),NULL);
+		  snprintf (buf,sizeof(buf),"%9s:%8d ",
+			   WATCH_TYPE_NAMES[type]._name,
+			   _type_count[type]);
+		  wmove(wtop,1+type,80-20);
+		  waddstr(wtop,buf);
+		}
 
-      wnoutrefresh(wtop);
+	      wnoutrefresh(wtop);
 
-      watcher_display_info display_info;
+	      watcher_display_info display_info;
 
-      // info._requests = &_requests;
+	      // info._requests = &_requests;
 
-      display_info._w      = wscroll;
-      display_info._line   = 0;
-      display_info._counts = _counter;
-      display_info._show_range_stat = _show_range_stat;
+	      display_info._w      = wscroll;
+	      display_info._line   = 0;
+	      display_info._counts = _counter;
+	      display_info._show_range_stat = _show_range_stat;
 
-      getmaxyx(wscroll,display_info._max_line,display_info._max_width);
+	      getmaxyx(wscroll,display_info._max_line,display_info._max_width);
 
-      display_info._col_norm    = COL_DATA_BKGND;
-      for (int type = 0; type < NUM_WATCH_TYPES; type++)
-	display_info._col_data[type] = (short) (COL_TYPE_BASE+type);
+	      display_info._col_norm    = COL_DATA_BKGND;
+	      for (int type = 0; type < NUM_WATCH_TYPES; type++)
+		display_info._col_data[type] = (short) (COL_TYPE_BASE+type);
 
-      /*
-      _det_watcher.display(info);
-      _det_watchcoinc.display(info);
-      */
+	      /*
+	      _det_watcher.display(info);
+	      _det_watchcoinc.display(info);
+	      */
 
-      vect_watcher_channel_display::iterator ch;
+	      vect_watcher_channel_display::iterator ch;
 
-      for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
-	(*ch)->display(display_info);
+	      for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
+		(*ch)->display(display_info);
 
 #ifdef USER_WATCHER_DISPLAY
-      USER_WATCHER_DISPLAY(display_info);
+	      USER_WATCHER_DISPLAY(display_info);
 #endif
 
-      wnoutrefresh(wscroll);
-      wnoutrefresh(werror);  
-      doupdate();
+	      wnoutrefresh(wscroll);
+	      wnoutrefresh(werror);  
+	      doupdate();
 
-      _counter = 0;
-      memset(_type_count,0,sizeof(_type_count));
+	      _counter = 0;
+	      memset(_type_count,0,sizeof(_type_count));
 
-      for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
-	(*ch)->clear_data();
+	      for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
+		(*ch)->clear_data();
 
 #ifdef USER_WATCHER_CLEAR
-      USER_WATCHER_CLEAR();
+	      USER_WATCHER_CLEAR();
 #endif
-      /*
-      _det_watcher.clear();
-      _det_watchcoinc.clear();
-      */
+	      /*
+	      _det_watcher.clear();
+	      _det_watchcoinc.clear();
+	      */
+	    }
     }
+  else {
+	      watcher_display_info display_info;
+#ifdef USER_WATCHER_DISPLAY
+	      USER_WATCHER_DISPLAY(display_info);
+#endif
+#ifdef USER_WATCHER_CLEAR
+	      USER_WATCHER_CLEAR();
+#endif
+  }
 }
 
 static void rectangle(WINDOW* w, int y1, int x1, int y2, int x2)
@@ -347,7 +361,7 @@ void watcher_window::keepalive()
   USER_KEEPALIVE_FUNCTION((now - _last_update > 10));
 #endif
 
-  if (now - _last_update > 10)
+  if (now - _last_update > 10 && !_nocurses)
   {
     werase(wscroll);
     rectangle(wscroll, 2, 5, 6, 75);
@@ -385,6 +399,8 @@ void watcher_window::on_error(const char* buf, int type)
   errors.push_back({buf, type});
   if (errors.size() > 2000)
     errors.pop_front();
+
+  if (_nocurses) return;
   
   wcolor_set(werror,COL_TEXT_NORMAL+type,NULL);  
   

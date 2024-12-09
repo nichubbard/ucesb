@@ -770,6 +770,7 @@ void watcher_usage()
   printf ("eos                 Update display at end-of-spill.\n");
   printf ("count=N             Update display every N events.\n");
   printf ("timeout=N           Update display event N seconds.\n");
+  printf ("nocurses	       Don't use curses (web only)\n");
   printf ("log                 Logarithmic value scale (ignores min).\n");
   printf ("range               Show range/correlation with location "
 	  "variable.\n");
@@ -877,6 +878,11 @@ void watcher_init(const char *command)
 		  info._watcher->_display_at_mask =
 		    WATCHER_DISPLAY_TIMEOUT;
 		  info._watcher->_display_timeout = (uint) atoi(post);
+		}
+	      else if (MATCH_ARG("NOCURSES") ||
+		       MATCH_ARG("nocurses"))
+		{
+		  info._watcher->_nocurses = true;
 		}
 	      else if (MATCH_C_PREFIX("DET=",post) ||
 		       MATCH_C_PREFIX("det=",post) ||
