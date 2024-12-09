@@ -81,6 +81,8 @@ bool detector_requests::is_channel_requested(const signal_id& id,
 
   bool match[4] = { false, false, false, false };
 
+  return false;
+
   for (unsigned int i = 0; i < _requests.size(); i++)
     {
       detector_request* request = &(_requests[i]);
