@@ -321,9 +321,27 @@ void watcher_window::event(watcher_event_info &info)
     }
   else {
 	      watcher_display_info display_info;
+	      display_info._col_norm    = COL_DATA_BKGND;
+	      for (int type = 0; type < NUM_WATCH_TYPES; type++)
+		display_info._col_data[type] = (short) (COL_TYPE_BASE+type);
+
+	      /*
+	      _det_watcher.display(info);
+	      _det_watchcoinc.display(info);
+	      */
+
+	      vect_watcher_channel_display::iterator ch;
+
+	      for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
+		(*ch)->display(display_info);
 #ifdef USER_WATCHER_DISPLAY
 	      USER_WATCHER_DISPLAY(display_info);
 #endif
+	      _counter = 0;
+	      memset(_type_count,0,sizeof(_type_count));
+
+	      for (ch = _display_channels.begin(); ch != _display_channels.end(); ++ch)
+		(*ch)->clear_data();
 #ifdef USER_WATCHER_CLEAR
 	      USER_WATCHER_CLEAR();
 #endif
