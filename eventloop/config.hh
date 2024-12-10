@@ -99,6 +99,7 @@ struct config_opts
   int _eventbuilder_procid;
   int _eventbuilder_wrid;
   int64_t _eventbuilder_window;
+  int64_t _aida_maxlen;
   bool _aida_new_stitch;
   bool _aida_skip_decays;
   bool _enable_dtas;

@@ -107,6 +107,7 @@ void usage()
   printf ("  --aida-ids=P,W     The ProcID (P) and WR ID (W) for AIDA events. Default: 90, 700\n");
   printf ("  --aida-old-stitch  Use the older method of time-stitching AIDA (ignore length of AIDA event)\n");
   printf ("  --aida-skip-decays Don't output AIDA decay events (for near-line speedup)\n");
+  printf ("  --aida-max-len=N   Maximum length of AIDA events in nanoseconds. Default: 0 (no maximum)\n");
   printf ("  --dtas             Also split DTAS events\n");
 #else
   printf (" (--aida)           No support for AIDA event building compiled in.\n");
@@ -726,6 +727,9 @@ int main(int argc, char **argv)
       else if (MATCH_PREFIX("--aida-window=",post)) {
          _conf._eventbuilder_window = atoi(post);
       }
+      else if (MATCH_PREFIX("--aida-max-len=", post)) {
+	_conf._aida_maxlen = atoi(post);
+      }
       else if (MATCH_PREFIX("--aida-ids=",post)) {
          parse_aida_ids(post);
       }
@@ -934,13 +938,16 @@ int main(int argc, char **argv)
   if(_conf._enable_eventbuilder)
   {
     INFO("AIDA Event Builder enabled, ProcID = %d and WR ID = %x, Event window = %ld ns", _conf._eventbuilder_procid, _conf._eventbuilder_wrid, _conf._eventbuilder_window);
+    if (_conf._aida_maxlen) {
+      INFO("AIDA Events limited to %ld ns", _conf._aida_maxlen);
+    }
     if (_conf._aida_skip_decays)
     {
       INFO("Only outputting AIDA implants!");
     }
     if (_conf._enable_dtas)
     {
-      INFO("DTAS Event Builder enabled, ProcID = %d and WR ID = %x, Event window = %ld ns", 37, 0x800, 2000);
+      INFO("DTAS Event Builder enabled, ProcID = %d and WR ID = %x, Event window = %ld ns", 37, 0x800, 2000L);
     }
   }
   else if (_conf._enable_dtas)

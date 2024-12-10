@@ -641,7 +641,10 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
         aida_skip = 0;
 
         // UPDATE: Only ADC items can break apart events (INFO words don't really matter athis point)
-        if ((word1 & 0xC0000000) == 0xC0000000 && load_event_wr - old_ts > _conf._eventbuilder_window)
+        if ((word1 & 0xC0000000) == 0xC0000000
+		&& (load_event_wr - old_ts > _conf._eventbuilder_window
+		  || (_conf._aida_maxlen && load_event_wr - cur_aida->timestamp  > _conf._aida_maxlen)
+	    ))
         {
           // End of Event
 #if _AIDA_DUMP
