@@ -283,6 +283,7 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
 #ifdef ZEROMQ
   // Send data every 100ms (sorta), although some data
   // is only done every second. Makes scalers look more responsive
+  // This doesn't really seem to work well because of data buffering, tbh
   uint64_t rt_now = realtime_ns();
   if (rt_now - last_fast_refresh > fast_scaler_refresh)
   {
@@ -534,7 +535,7 @@ void frs_monitor_watcher_display(watcher_display_info& info)
   {
     auto trig = report.mutable_summary()->add_triggers();
     trig->set_name(WATCH_TYPE_NAMES[i]._name);
-    trig->set_rate(_watcher._type_count[i]);
+    trig->set_rate(_watcher._type_count[i] / dt);
   }
   report.mutable_summary()->set_clients(_global_clients);
 
