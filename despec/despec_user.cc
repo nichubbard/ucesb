@@ -355,7 +355,9 @@ void despec_watcher_init()
   extern watcher_window _watcher;
   _watcher._display_channels.clear();
   _watcher._present_channels.clear();
-  init_pair(5, COLOR_RED, COLOR_BLACK);
+  if (!_watcher._nocurses) {
+    init_pair(5, COLOR_RED, COLOR_BLACK);
+  }
 
   //extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
   _AIDA_WATCHER_STATS = new aidaeb_watcher_stats(2);
@@ -432,27 +434,30 @@ void format_long_int(char* buf, long i)
 
 void despec_watcher_display(watcher_display_info& info)
 {
-  if (info._line > info._max_line)
-    return;
+  extern watcher_window _watcher;
+  if (!_watcher._nocurses) {
+    if (info._line > info._max_line)
+      return;
 
-  wcolor_set(info._w, info._col_norm, NULL);
-  wmove(info._w, info._line, 0);
+    wcolor_set(info._w, info._col_norm, NULL);
+    wmove(info._w, info._line, 0);
 
-  werase(info._w);
+    werase(info._w);
 
-  whline(info._w, ACS_HLINE, 80);
-  mvwaddstr(info._w, info._line, 1, "DESPEC DAQ Status");
-  //mvwprintw(info._w, info._line + 1, 0, "Events: %08d", _events);
+    whline(info._w, ACS_HLINE, 80);
+    mvwaddstr(info._w, info._line, 1, "DESPEC DAQ Status");
+    //mvwprintw(info._w, info._line + 1, 0, "Events: %08d", _events);
 
-  info._line += 1;
+    info._line += 1;
+
+    mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "Detector", "ID", "Events", "Rate", "Pulser", "Correlation");
+    info._line++;
+  }
 
   if (_despec_now == _despec_last)
   {
     _despec_last--;
   }
-
-  mvwprintw(info._w, info._line, 0, "%8s\t%4s\t%8s    %10s    %10s    %12s", "Detector", "ID", "Events", "Rate", "Pulser", "Correlation");
-  info._line++;
 
   //int dt = (int)(_despec_now - _despec_last);
   double dt = (_despec_now - _despec_last) / (double)1e9;
@@ -485,6 +490,7 @@ void despec_watcher_display(watcher_display_info& info)
       report_daq->set_pulser(pulses[i.first] / dt);
       report_daq->set_active(active);
 #endif
+    if (!_watcher._nocurses) {
       if (!active)
       {
         mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %18s          ", names[i.first].c_str(), i.first, buf, "NO DATA");
@@ -493,94 +499,107 @@ void despec_watcher_display(watcher_display_info& info)
       {
         mvwprintw(info._w, info._line, 0, "%8s\t%4x\t%8s    %8.0f/s    %8.0f/s    ", names[i.first].c_str(), i.first, buf, events[i.first] / dt, pulses[i.first] / dt);
       }
+    }
       if (daq_sync[i.first] == 1)
       {
-        wcolor_set(info._w, 3, NULL);
-        wprintw(info._w, "%12s", "OK");
+        if (!_watcher._nocurses) {
+            wcolor_set(info._w, 3, NULL);
+            wprintw(info._w, "%12s", "OK");
+        }
 #ifdef ZEROMQ
         report_daq->set_correlation(despec::DaqInformation::GOOD);
 #endif
       }
       else if (daq_sync[i.first] == 2)
       {
-        wcolor_set(info._w, 5, NULL);
-        wprintw(info._w, "%12s", "BAD");
+        if (!_watcher._nocurses) {
+          wcolor_set(info._w, 5, NULL);
+          wprintw(info._w, "%12s", "BAD");
+        }
 #ifdef ZEROMQ
         report_daq->set_correlation(despec::DaqInformation::BAD);
 #endif
       }
       else
       {
-        wcolor_set(info._w, 4, NULL);
-        wprintw(info._w, "%12s", "N/A");
+        if (!_watcher._nocurses) {
+          wcolor_set(info._w, 4, NULL);
+          wprintw(info._w, "%12s", "N/A");
+        }
 #ifdef ZEROMQ
         report_daq->set_correlation(despec::DaqInformation::UNKNOWN);
 #endif
       }
-      wcolor_set(info._w, 2, NULL);
+      if (!_watcher._nocurses) {
+        wcolor_set(info._w, 2, NULL);
+      }
     }
     info._line += 1;
   }
-  wrefresh(info._w);
+  if (!_watcher._nocurses) {
+    wrefresh(info._w);
+  }
 
 #ifdef ZEROMQ
   zmq_calculate_scalers();
 #endif
 
-  if (events_total.find(0x1500) != events_total.end())
-  {
-    info._line++;
-    wmove(info._w, info._line, 0);
-    whline(info._w, ACS_HLINE, 80);
-    mvwaddstr(info._w, info._line, 1, "DESPEC Scalers");
-
-
-    for (size_t j = 0; j < scaler_order.size(); j++)
-    {
-      int i = scaler_order[j];
-      int col =0 ;
-      if (j % 2 == 1) col = 40;
-      else info._line++;
-      if (i == -1) continue;
-      mvwprintw(info._w, info._line, col, "%21s = %8.0f Hz",
-          scalers[i].c_str(),
-          (double)(scalers_now[i] - scalers_old[i]) / dt
-          );
-    }
-    wrefresh(info._w);
-  }
-
-  if(_conf._enable_eventbuilder)
-  {
-    info._line++;
-    info._line++;
-    wmove(info._w, info._line, 0);
-    whline(info._w, ACS_HLINE, 80);
-    mvwaddstr(info._w, info._line, 1, "AIDA Rates");
-    info._line++;
-    mvwprintw(info._w, info._line, 0, "%18s      Implants", "");
-    mvwprintw(info._w, info._line, 40, "Decays", "");
-    auto const& im_hz = _AIDA_WATCHER_STATS->implants(0);
-    auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
-    for (size_t j = 0; j < AIDA_DSSDS; j++)
+  if (!_watcher._nocurses) {
+    if (events_total.find(0x1500) != events_total.end())
     {
       info._line++;
-      mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
-          "DSSD",
-          j + 1,
-          (double)im_hz[j] / dt
-          );
-      mvwprintw(info._w, info._line, 40, "%8.0f Hz",
-          (double)de_hz[j] / dt
-          );
+      wmove(info._w, info._line, 0);
+      whline(info._w, ACS_HLINE, 80);
+      mvwaddstr(info._w, info._line, 1, "DESPEC Scalers");
+
+
+      for (size_t j = 0; j < scaler_order.size(); j++)
+      {
+        int i = scaler_order[j];
+        int col =0 ;
+        if (j % 2 == 1) col = 40;
+        else info._line++;
+        if (i == -1) continue;
+        mvwprintw(info._w, info._line, col, "%21s = %8.0f Hz",
+            scalers[i].c_str(),
+            (double)(scalers_now[i] - scalers_old[i]) / dt
+            );
+      }
+      wrefresh(info._w);
     }
   }
-  else
-  {
-    info._line++;
-  }
 
-  extern watcher_window _watcher;
+  if (!_watcher._nocurses) {
+    if(_conf._enable_eventbuilder)
+    {
+      info._line++;
+      info._line++;
+      wmove(info._w, info._line, 0);
+      whline(info._w, ACS_HLINE, 80);
+      mvwaddstr(info._w, info._line, 1, "AIDA Rates");
+      info._line++;
+      mvwprintw(info._w, info._line, 0, "%18s      Implants", "");
+      mvwprintw(info._w, info._line, 40, "Decays", "");
+      auto const& im_hz = _AIDA_WATCHER_STATS->implants(0);
+      auto const& de_hz = _AIDA_WATCHER_STATS->decays(0);
+      for (size_t j = 0; j < AIDA_DSSDS; j++)
+      {
+        info._line++;
+        mvwprintw(info._w, info._line, 0, "%17s %d    %8.0f Hz",
+            "DSSD",
+            j + 1,
+            (double)im_hz[j] / dt
+            );
+        mvwprintw(info._w, info._line, 40, "%8.0f Hz",
+            (double)de_hz[j] / dt
+            );
+      }
+    }
+    else
+    {
+      info._line++;
+    }
+  }
 
 #ifdef ZEROMQ
   extern std::deque<std::pair<std::string, int>> errors;
