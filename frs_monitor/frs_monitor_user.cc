@@ -105,10 +105,10 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
       info->_type = FRS_WATCH_TYPE_WR;
       pulse = true;
       break;
-    case 4:
+    case 12:
       info->_type = FRS_WATCH_TYPE_BOS;
       break;
-    case 5:
+    case 13:
       info->_type = FRS_WATCH_TYPE_EOS;
       break;
     default:
