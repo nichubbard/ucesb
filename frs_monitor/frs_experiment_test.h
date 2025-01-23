@@ -3,6 +3,7 @@
 std::map<int, std::string> names =
 {
   { 0x100 , "FRS" },
+  { 0x200 , "Trav. MUSIC" },
 };
 
 std::vector<int> expected = { 0x100 };

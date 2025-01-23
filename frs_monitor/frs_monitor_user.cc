@@ -145,11 +145,14 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
   report.mutable_summary()->set_server(_inputs[0]._name);
 #endif
 
+  std::map<int, bool> event_contents;
+
   // DAQ and Pulser Tracking
   for (uint i = 0; i < event->wr.size(); i++)
   {
     // Used to track if DAQ is "alive"
     last_event[event->wr[i].first] = _monitor_now;
+    event_contents[event->wr[i].first] = true;
 
     if (pulse)
     {
@@ -223,10 +226,13 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
 
   // TRLOII Scalers
   //
-  for (uint i = 0; i < 16; i++) {
-    frs_trloii_now[i] = event->trloii_mvlc.trloii_trig_mux.before_deadtime[i];
-    frs_trloii_now[16 + i] = event->trloii_mvlc.trloii_trig_mux.after_deadtime[i];
-    frs_trloii_now[32 + i] = event->trloii_mvlc.trloii_trig_mux.after_reduction[i];
+  //
+  if (event_contents[0x100]) {
+    for (uint i = 0; i < 16; i++) {
+      frs_trloii_now[i] = event->trloii_mvlc.trloii_trig_mux.before_deadtime[i];
+      frs_trloii_now[16 + i] = event->trloii_mvlc.trloii_trig_mux.after_deadtime[i];
+      frs_trloii_now[32 + i] = event->trloii_mvlc.trloii_trig_mux.after_reduction[i];
+    }
   }
 
 #define LIST_SCALER(name, N) \
@@ -236,7 +242,7 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
   }
 
   // TRLOII DUMP
-  if (event->trigger == 2) {
+  if (event->trigger == 2 && event_contents[0x100]) {
     size_t offs = 0;
     LIST_SCALER(ecl_in,                 16)
     LIST_SCALER(ecl_io_in,               8)
@@ -342,6 +348,7 @@ void frs_monitor_watcher_init()
   }
 
   INFO("FRS Web Monitor Watcher Initialised");
+  INFO("Using mappings for experiment '%s'", EXPERIMENT_NAME);
 
 #ifdef ZEROMQ
   GOOGLE_PROTOBUF_VERIFY_VERSION;
