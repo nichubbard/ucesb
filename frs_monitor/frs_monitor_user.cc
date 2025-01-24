@@ -322,6 +322,11 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
   // Send some statistics to the 0MQ report
   report.mutable_summary()->set_event_no(info->_event_no);
   report.mutable_summary()->set_server(_inputs[0]._name);
+  report.mutable_summary()->set_onspill(_on_spill);
+  report.mutable_summary()->set_lastspill(_last_spill / 1e9);
+  report.mutable_summary()->set_spilltime(_spill_length / 1e6);
+  report.mutable_summary()->set_extrtime(_extraction_time / 1e6);
+  report.mutable_summary()->set_spill_ctr(_spill_counter);
 #endif
 
 #ifdef ZEROMQ
