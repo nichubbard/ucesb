@@ -620,6 +620,7 @@ void frs_monitor_watcher_clear()
   pulses.clear();
   frs_trloii_old = frs_trloii_now;
   frs_trloii_all_old = frs_trloii_all_now;
+  scalers_old = scalers_now;
   __monitor_last = _monitor_now;
 
 }
