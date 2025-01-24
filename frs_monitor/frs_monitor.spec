@@ -2,6 +2,12 @@
 // vi: filetype=cpp
 #include "trloii_mb.spec"
 
+// We're not a complete unpacker :)
+DUMMY()
+{
+  UINT32 no NOENCODE;
+}
+
 WHITE_RABBIT()
 {
   MEMBER(DATA32 ts_id[1000] NO_INDEX_LIST);
@@ -36,10 +42,35 @@ WHITE_RABBIT()
   ENCODE(ts_high APPEND_LIST, (value=(ts4.val << 16 | ts3.val)));
 }
 
-SUBEVENT(vulom) {
-  select optional {
-    wr_ts = WHITE_RABBIT();
+FRS_MVLC_SCALER()
+{
+  MEMBER(DATA32 scalers[32] ZERO_SUPPRESS_LIST);
+  UINT32 marker NOENCODE {
+    0_15 : unk1;
+    16_31: 0xf520;
   }
+  UINT16 header {
+    0_1: 0;
+    2_7: nlw;
+    8_11: type;
+    12_15: geo;
+  }
+  UINT16 header2 NOENCODE;
+
+  list (0 <= i < header.nlw) {
+    UINT32 scaler NOENCODE {
+      0_25: value;
+      26: 0;
+      27_31: cid = MATCH(i);
+      ENCODE(scalers[i], (value=value));
+    }
+  }
+
+  UINT32 trailer NOENCODE;
+}
+
+SUBEVENT(vulom) {
+  wr_ts = WHITE_RABBIT();
 
   select optional {
     tpat_blt = TPAT_BLT();
@@ -51,21 +82,39 @@ SUBEVENT(vulom) {
   }
 
   select optional {
-    mid = MID_BARRIER();
-  }
-
-  select optional {
     trloii_src_scalers = TRLOII_SRC_SCALERS();
   }
+}
 
-  select optional {
-    end = END_TAG();
+SUBEVENT(frs_main_subev)
+{
+  select several
+  {
+    scaler = FRS_MVLC_SCALER();
+  }
+  select several
+  {
+    dummy = DUMMY();
+  }
+}
+
+SUBEVENT(frs_frs_subev)
+{
+  select several
+  {
+    scaler = FRS_MVLC_SCALER();
+  }
+  select several
+  {
+    dummy = DUMMY();
   }
 }
 
 EVENT
 {
   trloii_mvlc = vulom(procid=15, control=30);
+  frs_frs = frs_frs_subev(type=10, subtype=1, procid=30);
+  frs_main = frs_main_subev(type=10, subtype=1, procid=10);
   ignore_unknown_subevent;
 }
 

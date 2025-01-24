@@ -29,6 +29,9 @@
 #define ZMQ_PORT "4242"
 #endif
 
+// This contains data that can change more often
+#include FRS_EXPERIMENT_H
+
 static frs_monitor::UcesbReport report;
 static zmqpp::context zmq_context;
 static zmqpp::socket zmq_pubber(zmq_context, zmqpp::socket_type::pub);
@@ -60,9 +63,11 @@ std::vector<uint32_t> frs_trloii_old(16 * 3);
 // frs trloii dump
 std::vector<uint32_t> frs_trloii_all_now(93);
 std::vector<uint32_t> frs_trloii_all_old(93);
-
-// This contains data that can change more often
-#include FRS_EXPERIMENT_H
+// scalers
+std::vector<uint32_t> scalers_now(SCALER_COUNT);
+std::vector<uint32_t> scalers_old(SCALER_COUNT);
+std::vector<uint32_t> scalers_old_spill(SCALER_COUNT);
+std::vector<uint32_t> scalers_last_spill(SCALER_COUNT);
 
 watcher_type_info frs_monitor_watch_types[NUM_WATCH_TYPES] =
 {
@@ -224,6 +229,39 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
     }
   }
 
+  // FRS Scalers
+  for (uint i = 0; i < event->frs_frs.scaler.scalers._num_items; i++)
+  {
+    scalers_now[i] = event->frs_frs.scaler.scalers[i];
+  }
+
+  for (uint i = 0; i < event->frs_main.scaler.scalers._num_items; i++)
+  {
+    scalers_now[SCALER_FRS_FRS_COUNT + i] =
+      event->frs_main.scaler.scalers[i];
+  }  
+
+  // TODO: Replace with BOS/EOS Markers
+  // START EXTR Scaler triggered, so we reset the spill array and say on spill
+  if (scalers_now[SCALER_START_EXTR] - scalers_old_spill[SCALER_START_EXTR] > 0) {
+    _on_spill = true;
+    //time_t new_spill = (uint)(_despec_now / (uint64_t)1e9);
+    _spill_length = _monitor_now - _last_spill;
+    _last_spill = _monitor_now;
+    for (size_t i = 0; i < scalers_now.size(); i++)
+    {
+      scalers_last_spill[i] = scalers_now[i] - scalers_old_spill[i];
+    }
+    scalers_old_spill = scalers_now;
+    _spill_counter++;
+  }
+
+  // STOP EXTR Scaler triggered, spill off flag
+  if (_on_spill && scalers_now[SCALER_STOP_EXTR] - scalers_old_spill[SCALER_STOP_EXTR] > 0) {
+    _on_spill = false;
+    _extraction_time = _monitor_now - _last_spill;
+  }
+
   // TRLOII Scalers
   //
   //
@@ -311,6 +349,21 @@ void zmq_calculate_scalers()
   double dt = (_monitor_now - __monitor_last) / (double)1e9;
 
   report.clear_scalers();
+
+  auto frs_report = report.add_scalers();
+  frs_report->set_key("frs");
+  frs_report->clear_scalers();
+  for (size_t i = 0; i < SCALER_FRS_FRS_COUNT + SCALER_FRS_MAIN_COUNT; i++)
+  {
+    auto entry = frs_report->add_scalers();
+    entry->set_index(i);
+    entry->set_rate((double)(scalers_now[i] -
+          scalers_old[i]) / dt);
+    entry->set_spill(scalers_now[i] -
+        scalers_old_spill[i]);
+    entry->set_last_spill(scalers_last_spill[i]);
+  }
+
 
   auto trloii_tpat_report = report.add_scalers();
   trloii_tpat_report->set_key("tpat");

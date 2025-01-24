@@ -61,13 +61,6 @@ TRLOII_TIMING() {
 	}
 };
 
-MID_BARRIER() {
-	UINT32 marker NOENCODE {
-		0_31: w = MATCH(0xbeefbabe);
-	}
-}
-
-
 #define LIST_SCALER(name, N) \
 	MEMBER(DATA32 name[N]); \
 	MEMBER(DATA32 inc_##name[32] NO_INDEX_LIST); \
@@ -80,6 +73,10 @@ MID_BARRIER() {
 	}
 
 TRLOII_SRC_SCALERS() {
+	UINT32 begin_marker NOENCODE {
+		0_31: w = MATCH(0xbeefbabe);
+	}
+
 	MEMBER(DATA32 time_increment_us); // Handled in user function.
 
 	LIST_SCALER(ecl_in,                 16)
@@ -113,10 +110,8 @@ TRLOII_SRC_SCALERS() {
 	LIST_SCALER(multi_trig_buf_alm_full, 1)
 	LIST_SCALER(multi_scaler_alm_full,   1)
 	LIST_SCALER(trimi_tdt,               1)
-}
 
-END_TAG() {
-	UINT32 marker NOENCODE {
+	UINT32 end_marker NOENCODE {
 		0_31: w = MATCH(0xb16b00b5);
 	}
 }
