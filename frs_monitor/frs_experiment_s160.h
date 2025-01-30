@@ -4,6 +4,7 @@ std::map<int, std::string> names =
 {
   { 0x100 , "FRS" },
   { 0x200 , "Trav. MUSIC" },
+  { 0x300 , "MR-TOF" },
 };
 
 std::vector<int> expected = { 0x100, 0x200 };
