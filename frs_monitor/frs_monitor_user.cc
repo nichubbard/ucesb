@@ -278,8 +278,6 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
       frs_trloii_now[16 + i] = event->trloii_mvlc.trloii_trig_mux.after_deadtime[i];
       frs_trloii_now[32 + i] = event->trloii_mvlc.trloii_trig_mux.after_reduction[i];
     }
-    frs_trloii_now[32 + 16] = event->trloii_mvlc.trloii_timing.vulom_clock;
-    frs_trloii_now[32 + 17] = event->trloii_mvlc.trloii_timing.dt_timing;
   }
 
 #define LIST_SCALER(name, N) \
@@ -323,6 +321,10 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
     LIST_SCALER(multi_scaler_alm_full,   1)
     LIST_SCALER(trimi_tdt,               1)
     assert(offs == 93);
+
+    // Maybe a hack for now
+    frs_trloii_now[32 + 16] = event->trloii_mvlc.trloii_src_scalers.accept_pulse[0];
+    frs_trloii_now[32 + 17] = event->trloii_mvlc.trloii_timing.dt_timing;
   }
 
   _events++;
