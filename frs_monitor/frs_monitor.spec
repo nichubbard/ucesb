@@ -58,10 +58,14 @@ FRS_MVLC_SCALER()
   UINT16 header2 NOENCODE;
 
   list (0 <= i < header.nlw) {
+    //UINT32 scaler NOENCODE {
+      //0_25: value;
+      //26: 0;
+      //27_31: cid = MATCH(i);
+      //ENCODE(scalers[i], (value=value));
+    //}
     UINT32 scaler NOENCODE {
-      0_25: value;
-      26: 0;
-      27_31: cid = MATCH(i);
+      0_31: value;
       ENCODE(scalers[i], (value=value));
     }
   }
@@ -88,10 +92,8 @@ SUBEVENT(vulom) {
 
 SUBEVENT(frs_main_subev)
 {
-  select several
-  {
-    scaler = FRS_MVLC_SCALER();
-  }
+  vulom_scaler_marker = DUMMY();
+  scaler = FRS_MVLC_SCALER();
   select several
   {
     dummy = DUMMY();
@@ -100,10 +102,8 @@ SUBEVENT(frs_main_subev)
 
 SUBEVENT(frs_frs_subev)
 {
-  select several
-  {
-    scaler = FRS_MVLC_SCALER();
-  }
+  vulom_scaler_marker = DUMMY();
+  scaler = FRS_MVLC_SCALER();
   select several
   {
     dummy = DUMMY();
