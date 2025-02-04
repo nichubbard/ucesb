@@ -57,9 +57,11 @@ static uint64_t _last_spill = 0;
 static uint64_t _spill_length = 0;
 static uint64_t _extraction_time = 0;
 static uint32_t _spill_counter = 0;
-// frs trloii trigger mux
-std::vector<uint32_t> frs_trloii_now(16 * 3);
-std::vector<uint32_t> frs_trloii_old(16 * 3);
+// frs trloii trigger mux (+ 2 for deadtime)
+std::vector<uint32_t> frs_trloii_now(16 * 3 + 2);
+std::vector<uint32_t> frs_trloii_old(16 * 3 + 2);
+std::vector<uint32_t> frs_trloii_old_spill(16 * 3 + 2);
+std::vector<uint32_t> frs_trloii_last_spill(16 * 3 + 2);
 // frs trloii dump
 std::vector<uint32_t> frs_trloii_all_now(93);
 std::vector<uint32_t> frs_trloii_all_old(93);
@@ -252,7 +254,12 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
     {
       scalers_last_spill[i] = scalers_now[i] - scalers_old_spill[i];
     }
+    for (size_t i = 0; i < frs_trloii_now.size(); i++)
+    {
+      frs_trloii_last_spill[i] = frs_trloii_now[i] - frs_trloii_old_spill[i];
+    }
     scalers_old_spill = scalers_now;
+    frs_trloii_old_spill = frs_trloii_now;
     _spill_counter++;
   }
 
@@ -271,6 +278,8 @@ void frs_monitor_watcher_event_info(watcher_event_info *info,
       frs_trloii_now[16 + i] = event->trloii_mvlc.trloii_trig_mux.after_deadtime[i];
       frs_trloii_now[32 + i] = event->trloii_mvlc.trloii_trig_mux.after_reduction[i];
     }
+    frs_trloii_now[32 + 16] = event->trloii_mvlc.trloii_timing.vulom_clock;
+    frs_trloii_now[32 + 17] = event->trloii_mvlc.trloii_timing.dt_timing;
   }
 
 #define LIST_SCALER(name, N) \
@@ -377,6 +386,8 @@ void zmq_calculate_scalers()
     auto entry = trloii_tpat_report->add_scalers();
     entry->set_index(i);
     entry->set_rate((double)(frs_trloii_now[i] - frs_trloii_old[i]) / dt);
+    entry->set_spill(frs_trloii_now[i] - frs_trloii_old[i]);
+    entry->set_last_spill(frs_trloii_last_spill[i]);
   }
 
   auto trloii_dump_report = report.add_scalers();
