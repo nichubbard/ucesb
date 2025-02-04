@@ -382,7 +382,7 @@ void zmq_calculate_scalers()
   auto trloii_tpat_report = report.add_scalers();
   trloii_tpat_report->set_key("tpat");
   trloii_tpat_report->clear_scalers();
-  for (size_t i = 0; i < 48; i++) {
+  for (size_t i = 0; i < frs_trloii_now.size(); i++) {
     auto entry = trloii_tpat_report->add_scalers();
     entry->set_index(i);
     entry->set_rate((double)(frs_trloii_now[i] - frs_trloii_old[i]) / dt);
