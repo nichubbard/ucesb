@@ -548,6 +548,12 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout_us)
       timewait.tv_usec = timeout_us % 1000000;
 
       int n = select(nfds+1,&rfds,NULL,NULL,timeout_us >= 0 ? &timewait : NULL);
+    #if not defined(EXTERNAL_WRITER_NO_SHM) && defined(USE_CURSES) && not defined(USE_MERGING)
+    if (ncurses_timeout && _conf._watcher._command && _watcher._init)
+    {
+        _watcher.keepalive();
+    }
+    #endif
 
       if (n == -1)
 	{
@@ -565,13 +571,6 @@ void lmd_input_tcp::do_read(void *buf,size_t count,int timeout_us)
 
       if (n == 0)
 	{
-    #if not defined(EXTERNAL_WRITER_NO_SHM) && defined(USE_CURSES) && not defined(USE_MERGING)
-    if (ncurses_timeout && _conf._watcher._command && _watcher._init)
-    {
-        _watcher.keepalive();
-        continue;
-    }
-    #endif
 	  ERROR("timeout during read");
 	}
 
