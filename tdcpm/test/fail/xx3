@@ -1,0 +1,5 @@
+/* ### */
+
+/* Fail due to '+ *' sequence. */
+POS = 1 ns + * 2 ns;
+

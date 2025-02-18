@@ -1,0 +1,8 @@
+/* ### different lengths */
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  [ k     , m ]
+  { 9     }
+  ;
+

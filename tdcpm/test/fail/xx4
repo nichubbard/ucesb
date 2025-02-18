@@ -1,0 +1,9 @@
+/* ### different lengths */
+
+/* Fail due to wrong #items in units. */
+POS(5) =
+  [ k     , m ]
+  [[ns/ch ]]
+  { 9     , 10 }
+  ;
+

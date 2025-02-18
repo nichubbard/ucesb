@@ -1,0 +1,86 @@
+/* ### unit mismatch between terms */
+
+/* All tests in this file should fail.
+ * The tests are separated by the triple-# marks.
+ * There cannot be separators at the beginning or end of the file.
+ * Text after the triple-# marks is expected in the error output.
+ */
+
+/* Fail due to mismatching units. */
+POS = 4 ps + 2 cm;
+
+/* ### unit mismatch between terms */
+
+/* Fail due to mismatching units. */
+POS = 4 ps * 1 ns + 2 kg;
+
+/* ### */
+
+/* Fail due to '+ *' sequence. */
+POS = 1 ns + * 2 ns;
+
+/* ### different lengths */
+
+/* Fail due to wrong #items in units. */
+POS(5) =
+  [ k     , m ]
+  [[ns/ch ]]
+  { 9     , 10 }
+  ;
+
+/* ### different lengths */
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  [ k     , m ]
+  [[ns/ch , 5 ns ]]
+  { 9     }
+  ;
+
+/* ### different lengths */
+
+/* Fail due to wrong #items in line. */
+POS(5) =
+  [ k     , m ]
+  { 9     }
+  ;
+
+/* ### */
+
+/* Fail due to wrong #items in line, first missing header. */
+POS(5) =
+  { 8     }
+  { 9, 10 }
+  ;
+
+/* ### */
+
+/* Fail due to wrong #items in line, first missing header. */
+POS(5) =
+  { 9, 10 }
+  { 9, 12 }
+  { 11    }
+  ;
+
+/* ### */
+
+/* Fail due to wrong #items in line. */
+POOS(5) =
+  [   ,]
+  { },
+  {0}
+
+/* ### Unit mismatch */
+
+/* Fail due to wrong unit. */
+r.a = 7 cm;
+
+/* ### Unit mismatch */
+
+/* Fail due to wrong unit. */
+s[0].k = 1 ns;
+
+/* ### Unit mismatch */
+
+/* Fail due to wrong unit. */
+r.e[2].m = 5;

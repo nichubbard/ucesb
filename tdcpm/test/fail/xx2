@@ -1,0 +1,5 @@
+/* ### unit mismatch between terms */
+
+/* Fail due to mismatching units. */
+POS = 4 ps * 1 ns + 2 kg;
+
