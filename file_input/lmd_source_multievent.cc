@@ -432,6 +432,9 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
         cur_aida->_header = se->_header;
         cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
         cur_aida->fragment_wr = load_event_wr;
+        if (_AIDA_WATCHER_STATS) {
+            _AIDA_WATCHER_STATS->real_i_reset();
+        }
       }
 
       uint32_t *pl_start = reinterpret_cast<uint32_t*>(pb_start);
@@ -513,40 +516,9 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
           int feeID = 1 + ((channelID >> 6) & 0x3F);
           channelID &= 0x3F;
 #ifdef AIDA_REAL_IMPLANTS
-          if (feeID == 1 || feeID == 3 || feeID == 5 || feeID == 9 || feeID == 12 || feeID == 15)
+          if (_AIDA_WATCHER_STATS)
           {
-            cur_aida->pside_imp[0] = true;
-          }
-          if (feeID == 2 || feeID == 4)
-          {
-            cur_aida->nside_imp[0] = true;
-          }
-          if (feeID == 11 || feeID == 10 || feeID == 7 || feeID == 14 || feeID == 16 || feeID == 13)
-          {
-            cur_aida->pside_imp[1] = true;
-          }
-          if (feeID == 6 || feeID == 8)
-          {
-            cur_aida->nside_imp[1] = true;
-          }
-
-          if (cur_aida->pside_imp[0] && cur_aida->nside_imp[0])
-          {
-            if (_AIDA_WATCHER_STATS)
-            {
-              _AIDA_WATCHER_STATS->add_i(1);
-            }
-            cur_aida->pside_imp[0] = false;
-            cur_aida->nside_imp[0] = false;
-          }
-          if (cur_aida->pside_imp[1] && cur_aida->nside_imp[1])
-          {
-            if (_AIDA_WATCHER_STATS)
-            {
-              _AIDA_WATCHER_STATS->add_i(11);
-            }
-            cur_aida->pside_imp[1] = false;
-            cur_aida->nside_imp[1] = false;
+            _AIDA_WATCHER_STATS->real_i(feeID);
           }
 #else
 
@@ -678,6 +650,9 @@ void lmd_source_multievent::load_aida(lmd_subevent *se, char* pb_start, char* pb
           cur_aida = pool_new(aida_events_pool);
           cur_aida->_header = se->_header;
           cur_aida->timestamp = load_event_wr - AIDA_TIME_SHIFT;
+          if (_AIDA_WATCHER_STATS) {
+              _AIDA_WATCHER_STATS->real_i_reset();
+          }
           _TRACE(" new AIDA event %16lx\n", load_event_wr);
         }
 

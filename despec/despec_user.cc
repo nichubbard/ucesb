@@ -12,6 +12,7 @@
 #include "../watcher/watcher_window.hh"
 
 #include <map>
+#include <unordered_set>
 #include "../lu_common/colourtext.hh"
 
 #include "../file_input/lmd_source_multievent.hh"
@@ -364,6 +365,7 @@ void despec_watcher_init()
   //extern aidaeb_watcher_stats* _AIDA_WATCHER_STATS;
   _AIDA_WATCHER_STATS = new aidaeb_watcher_stats(2);
   _AIDA_WATCHER_STATS->load_map(aida_dssd_map);
+  _AIDA_WATCHER_STATS->load_pn_info(aida_p_fees, aida_n_fees);
 
   // Create all expected subsystems so they're always shown
   for (auto i : expected)

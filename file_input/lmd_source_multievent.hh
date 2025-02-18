@@ -6,6 +6,7 @@
 #include <list>
 #include <map>
 #include <queue>
+#include <unordered_set>
 
 #include <stdint.h>
 
@@ -58,6 +59,14 @@ public:
         scalers[i].resize(max_fee);
         clear(i);
       }
+      pside_imp.resize(max_d);
+      nside_imp.resize(max_d);
+  }
+
+  inline void load_pn_info(std::unordered_set<int> fees_p, std::unordered_set<int> fees_n)
+  {
+      this->fees_p = fees_p;
+      this->fees_n = fees_n;
   }
 
   inline void clear(size_t copy = 0)
@@ -88,6 +97,10 @@ private:
   std::vector<std::vector<int64_t>> dssd_counts_d;
   std::vector<std::vector<int64_t>> scalers;
   size_t copies;
+  std::unordered_set<int> fees_p;
+  std::unordered_set<int> fees_n;
+  std::vector<bool> pside_imp;
+  std::vector<bool> nside_imp;
 
   inline void add_internal(std::vector<std::vector<int64_t>>& vec, int fee)
   {
@@ -102,6 +115,47 @@ private:
   }
 
 public:
+  inline void real_i(int fee)
+  {
+      if (fee_dssd.find(fee) == fee_dssd.end()) return;
+      // If the FEE isn't in the p/n map, resort to normal statistics
+      if (fees_p.find(fee) == fees_p.end() && fees_n.find(fee) == fees_n.end())
+      {
+          add_i(fee);
+          return;
+      }
+      // Otherwise
+      int dssd = fee_dssd[fee];
+      bool isp = fees_p.find(fee) != fees_p.end();
+      bool isn = fees_n.find(fee) != fees_n.end();
+      if (isp == isn) {
+          // Go back to normal if the FEE is in both p & n
+          add_i(fee);
+          return;
+      }
+      if (isp) {
+          pside_imp[dssd] = true;
+      }
+      if (isn) {
+          nside_imp[dssd] = true;
+      }
+
+      if (pside_imp[dssd] && nside_imp[dssd]) {
+          for(size_t i = 0; i < copies; i++)
+          {
+              dssd_counts_i[i][dssd - 1]++;
+          }
+          pside_imp[dssd] = false;
+          nside_imp[dssd] = false;
+      }
+  }
+
+  inline void real_i_reset()
+  {
+      std::fill(pside_imp.begin(), pside_imp.end(), false);
+      std::fill(nside_imp.begin(), nside_imp.end(), false);
+  }
+
   inline void add_i(int fee)
   {
       add_internal(dssd_counts_i, fee);
@@ -243,10 +297,6 @@ struct aidaevent_entry : public event_entry
   int flags;
   // clean this up later if it works
   //multiplexer_data multiplexer;
-#ifdef AIDA_REAL_IMPLANTS
-  bool pside_imp[2];
-  bool nside_imp[2];
-#endif
 
 	aidaevent_entry() : data(), fragment(true), implant_wr_s(0), flags(0)  { data.reserve(10000); reset(); }
 	virtual ~aidaevent_entry(){}
@@ -258,12 +308,6 @@ struct aidaevent_entry : public event_entry
     implant_wr_s = 0;
     flags = 0;
     //multiplexer.clear();
-#ifdef AIDA_REAL_IMPLANTS
-    pside_imp[0] = false;
-    nside_imp[0] = false;
-    pside_imp[1] = false;
-    nside_imp[1] = false;
-#endif
   }
 
   bool implant() const {
