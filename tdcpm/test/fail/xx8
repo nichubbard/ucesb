@@ -1,9 +1,0 @@
-/* ### */
-
-/* Fail due to wrong #items in line, first missing header. */
-POS(5) =
-  { 9, 10 }
-  { 9, 12 }
-  { 11    }
-  ;
-

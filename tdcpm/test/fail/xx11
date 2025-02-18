@@ -1,5 +1,0 @@
-/* ### Unit mismatch */
-
-/* Fail due to wrong unit. */
-s[0].k = 1 ns;
-

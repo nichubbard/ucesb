@@ -62,3 +62,5 @@ hbook/example/ext_writer_test
 psdc/psdc
 ucesbgen/ucesbgen
 tdcpm/tdcpm_test
+
+tdcpm/test/*
