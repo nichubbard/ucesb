@@ -90,17 +90,19 @@ void despec_watcher_event_info(watcher_event_info *info,
   info->_type = DESPEC_WATCH_TYPE_PHYSICS;
   bool pulse = false;
 
-  if (event->frs_tpat.tpat.n == 0 && event->trigger == 3)
+  if (event->trigger == 3)
   {
     info->_type = DESPEC_WATCH_TYPE_TCAL;
     pulse = true;
   }
 
+/*
   if (event->frs_tpat.tpat.n == 1 && event->frs_tpat.tpat.tpat[0].value & FRS_TPAT_PULSER)
   {
     info->_type = DESPEC_WATCH_TYPE_TCAL;
     pulse = true;
   }
+  */
 
   /* One can also override the _time and _event_no variables, altough
    * for LMD files formats this is filled out before (from the buffer
@@ -545,7 +547,7 @@ void despec_watcher_display(watcher_display_info& info)
 #endif
 
   if (!_watcher._nocurses) {
-    if (events_total.find(0x1500) != events_total.end())
+    if (events_total.find(0x1700) != events_total.end())
     {
       info._line++;
       wmove(info._w, info._line, 0);

@@ -30,8 +30,9 @@ endif
 ifeq ($(USE_ZEROMQ),y)
 OBJS += ucesb.pb.o
 
-PROTOC=/u/nhubbard/Build/protobuf-3.13.0/deb10/bin/protoc
-export PKG_CONFIG_PATH:=/u/nhubbard/Build/protobuf-3.13.0/deb10/lib/pkgconfig:$(PKG_CONFIG_PATH)
+#PROTOC=/u/nhubbard/Build/protobuf-3.13.0/deb10/bin/protoc
+#export PKG_CONFIG_PATH:=/u/nhubbard/Build/protobuf-3.13.0/deb10/lib/pkgconfig:$(PKG_CONFIG_PATH)
+PROTOC=protoc
 
 ucesb.pb.h ucesb.pb.cc: $(UCESB_BASE_DIR)/despec/ucesb.proto
 	$(PROTOC) --cpp_out=$(UCESB_BASE_DIR)/despec ucesb.proto
