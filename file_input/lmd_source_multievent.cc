@@ -239,7 +239,8 @@ lmd_source_multievent::file_status_t lmd_source_multievent::load_events()  /////
       && (pl_start[3] & 0xFFFF0000) == 0x05e10000 && (pl_start[4] & 0xFFFF0000) == 0x06e10000)
     {
       uint32_t procID = pl_start[0];
-      if (procID != 0x200)
+      // It's 2025 and we can stop ignoring 0x200 as it's no longer broken
+      //if (procID != 0x200)
       {
         load_event_wr = pl_start[1] & 0xffff;
         load_event_wr |= (pl_start[2] & 0xffff) << 16;

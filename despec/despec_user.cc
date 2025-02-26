@@ -174,7 +174,8 @@ void despec_watcher_event_info(watcher_event_info *info,
 
   for (uint i = 0; i < event->wr.size(); i++)
   {
-    if (event->wr[i].first == 0x200) continue;
+    // It's 2025 and the horror of broken 0x200 is gone
+    //if (event->wr[i].first == 0x200) continue;
 
     //if (event->wr[i].first == 0x100 && event->trigger == 2)
     //{

@@ -3,17 +3,18 @@
 std::map<int, std::string> names =
 {
   { 0x100 , "FRS" },
+  { 0x200 , "Trav. MUSIC" },
   { 0x400 , "DEGAS" },
   { 0x500 , "bPlas" },
   { 0x700 , "AIDA" },
   { 0x1500, "FAT. VME" },
   { 0x1600, "FAT. TMX" },
   { 0x1700, "Beam Mon" },
-  { 0x1800, "BB7" },
-  { 0x1900, "BGO" },
+  { 0x1800, "BB7#1" },
+  { 0x1900, "BB7#2" },
 };
 
-std::vector<int> expected = { 0x100, 0x400, 0x500, 0x700, 0x1500, 0x1600, 0x1900 };
+std::vector<int> expected = { 0x100, 0x400, 0x500, 0x700, 0x1700, 0x1800, 0x1900 };
 
 // These are only used for the obsolete ncurses UI
 // Web format is defined on the website 
@@ -63,7 +64,7 @@ std::map<int, int> aida_dssd_map =
   {15, 1},
 };
 
-std::unordered_set<int> aida_p_fees = { 1, 3, 5, 9, 10, 12, 15 };
+std::unordered_set<int> aida_p_fees = { 1, 3, 5, 9, 12, 15 };
 std::unordered_set<int> aida_n_fees = { 2, 4 };
 
 // 16 FATIMA scalers and 64 FRS scalers
